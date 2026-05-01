@@ -29,12 +29,14 @@ export function ensureUserRegistry(options: Pick<EnsureCoreAssetsOptions, "chain
   const chainHome = options.chainHome ?? getChainHome()
   const registryPath = join(chainHome, "skills-registry.yaml")
 
+  mkdirSync(chainHome, { recursive: true })
+  mkdirSync(join(chainHome, "skills"), { recursive: true })
+
   if (existsSync(registryPath)) return
 
-  mkdirSync(chainHome, { recursive: true })
   writeFileSync(
     registryPath,
-    "schema_version: 3\nchain_hub: []\npersonal: []\ncli_packages: []\n",
+    "schema_version: 3\ncore: []\nchain_hub: []\npersonal: []\ncli_packages: []\n",
     "utf8",
   )
 }

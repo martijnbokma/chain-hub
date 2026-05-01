@@ -60,7 +60,7 @@ export function distillLearnings(chainHome: string, dryRun = false): string | nu
     `Events: **${records.length}**`,
     "",
     "Review each section, then copy vetted bullets into:",
-    "` .chain/learnings/shared/<skill-slug>/OVERLAY.md `",
+    "`CHAIN_HOME/learnings/shared/<skill-slug>/OVERLAY.md`",
     "",
     "---",
     ""

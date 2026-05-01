@@ -20,6 +20,8 @@ export interface GithubSourceBundle {
 
 export interface SkillsRegistry {
   schema_version: number
+  /** Bundled / protected core skills mirrored under skills/ (from the shipped package). */
+  core?: string[]
   chain_hub: string[]
   personal: string[]
   packs?: string[]
@@ -34,6 +36,7 @@ export interface SkillsRegistry {
 
 export function collectRegistrySlugs(reg: SkillsRegistry): string[] {
   return [
+    ...(reg.core || []),
     ...(reg.chain_hub || []),
     ...(reg.personal || []),
     ...(reg.packs || []),
@@ -94,22 +97,18 @@ export function addSkill(opts: {
   source?: string
   version?: string
   credits?: string
-  bucket?: "chain_hub" | "personal"
+  bucket?: "core" | "chain_hub" | "personal"
 }): void {
   const reg = readRegistry()
 
   if (collectRegistrySlugs(reg).includes(opts.slug)) return
 
   const bucket = opts.bucket ?? "personal"
-  if (bucket === "chain_hub") {
-    if (!reg.chain_hub) reg.chain_hub = []
-    reg.chain_hub.push(opts.slug)
-    reg.chain_hub.sort()
-  } else {
-    if (!reg.personal) reg.personal = []
-    reg.personal.push(opts.slug)
-    reg.personal.sort()
-  }
+  const bucketKey: keyof Pick<SkillsRegistry, "core" | "chain_hub" | "personal"> =
+    bucket === "chain_hub" ? "chain_hub" : bucket === "core" ? "core" : "personal"
+  if (!reg[bucketKey]) reg[bucketKey] = []
+  ;(reg[bucketKey] as string[]).push(opts.slug)
+  ;(reg[bucketKey] as string[]).sort()
 
   if (opts.source?.startsWith("github:")) {
     upsertGithubBundle(reg, opts.source, opts.slug, opts.credits)
@@ -118,13 +117,19 @@ export function addSkill(opts: {
   writeRegistry(reg)
 }
 
+function filterSlugFromBucket(
+  reg: SkillsRegistry,
+  key: keyof Pick<SkillsRegistry, "core" | "chain_hub" | "personal" | "packs" | "community" | "cli_packages">,
+  slug: string,
+): void {
+  if (reg[key]) reg[key] = (reg[key] as string[]).filter((s) => s !== slug)
+}
+
 export function removeSkill(slug: string): void {
   const reg = readRegistry()
-  if (reg.chain_hub) reg.chain_hub = reg.chain_hub.filter((s) => s !== slug)
-  if (reg.personal) reg.personal = reg.personal.filter((s) => s !== slug)
-  if (reg.packs) reg.packs = reg.packs.filter((s) => s !== slug)
-  if (reg.community) reg.community = reg.community.filter((s) => s !== slug)
-  if (reg.cli_packages) reg.cli_packages = reg.cli_packages.filter((s) => s !== slug)
+  for (const key of ["core", "chain_hub", "personal", "packs", "community", "cli_packages"] as const) {
+    filterSlugFromBucket(reg, key, slug)
+  }
   if (reg.authorship?.self) {
     reg.authorship.self = reg.authorship.self.filter((s) => s !== slug)
   }

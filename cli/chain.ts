@@ -43,13 +43,13 @@ Hub location resolution:
   1) --chain-home <path>     (per command override)
   2) CHAIN_HOME env var
   3) chain config set chain_home <path>
-  4) ~/.chain (default)
+  4) ~/chain-hub (default)
 `,
     )
 
   withChainHomeOption(
     program.command("init")
-    .description("Initialize protected Chain Hub core assets")
+    .description("Initialize Chain Hub: core assets, user skills/ directory, and skills-registry.yaml")
     .action(async () => {
       const { runInit } = await import("./commands/init")
       await runInit()

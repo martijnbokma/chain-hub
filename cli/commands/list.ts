@@ -57,6 +57,7 @@ export async function runList(): Promise<void> {
   }
 
   const registry = readRegistry()
+  const coreRegistrySet = new Set(registry.core || [])
   const chainHubSet = new Set(registry.chain_hub || [])
   const personalSet = new Set(registry.personal || [])
   const packsSet = new Set(registry.packs || [])
@@ -83,7 +84,8 @@ export async function runList(): Promise<void> {
     const ghCol = 26
     for (const slug of userSkillEntries) {
       const origin =
-        chainHubSet.has(slug) ? kleur.dim("chain-hub")
+        coreRegistrySet.has(slug) ? kleur.dim("core")
+        : chainHubSet.has(slug) ? kleur.dim("chain-hub")
         : personalSet.has(slug) ? kleur.dim("personal")
         : packsSet.has(slug) ? kleur.dim("pack")
         : communitySet.has(slug) ? kleur.dim("community")
@@ -98,7 +100,9 @@ export async function runList(): Promise<void> {
       const ghPart = kleur.dim(ghPlain.padEnd(ghCol))
       const line = (dot: string) =>
         console.log("  " + dot + " " + slug.padEnd(slugCol) + " " + origin + "  " + authorship + "  " + ghPart)
-      if (chainHubSet.has(slug)) {
+      if (coreRegistrySet.has(slug)) {
+        line(kleur.blue("●"))
+      } else if (chainHubSet.has(slug)) {
         line(kleur.blue("●"))
       } else if (personalSet.has(slug)) {
         line(kleur.green("●"))

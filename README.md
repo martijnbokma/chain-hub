@@ -9,7 +9,7 @@ The program is published on npm as **`chain-hub`**; after installing, you run th
 ## In plain language
 
 - **Skills** and related files are reusable instructions and setups for coding assistants—not magic, just organized files in a standard layout.
-- **Chain Hub** does not replace your editor or your AI product; it **organizes** those assets and **points** your tools at them from a single place (`CHAIN_HOME`, usually `~/.chain`).
+- **Chain Hub** does not replace your editor or your AI product; it **organizes** those assets and **points** your tools at them from a single place (`CHAIN_HOME`, usually `~/chain-hub`).
 - You run a few commands once per machine (or after updates), then your IDEs stay in sync without copying folders by hand.
 
 ## What you can do with it
@@ -54,10 +54,10 @@ If anything looks wrong, run **`chain validate`** (and **`chain init`** first if
 
 ## How your data is organized (technical)
 
-- **Package vs hub:** The CLI comes from **`cli/`** (or from npm as **`chain-hub`**). Your personal library—skills, agents, workflows, rules, and the registry—lives under **`CHAIN_HOME`** (default **`~/.chain`**), not inside the npm install path or this repo when you use the defaults.
+- **Package vs hub:** The CLI comes from **`cli/`** (or from npm as **`chain-hub`**). Your personal library—skills, agents, workflows, rules, and the registry—lives under **`CHAIN_HOME`** (default **`~/chain-hub`**), not inside the npm install path or this repo when you use the defaults.
 - **Layers:** **`CHAIN_HOME/core/`** is the protected, versioned copy of bundled assets after **`chain init`**. **Your** content uses the hub root: **`skills/`**, **`agents/`**, **`workflows/`**, **`rules/`**, and **`skills-registry.yaml`** (including provenance). Add personal work there, not inside **`core/`**.
 - **IDE links:** **`chain setup`** creates symlinks **from** **`CHAIN_HOME`** **into** editor-specific directories (for example **`~/.cursor`**). A Universal adapter may also mirror into **`~/.agents/`**—treat that as an extra link surface; **`CHAIN_HOME`** remains the single source of truth.
-- **Flexibility:** Set **`CHAIN_HOME`** to any directory (sandboxes, backups, or e.g. `$XDG_DATA_HOME/chain` on Unix). See **[cli/README.md](cli/README.md)** for environment details.
+- **Flexibility:** Set **`CHAIN_HOME`** to any directory (sandboxes, backups, or e.g. `$XDG_DATA_HOME/chain-hub` on Unix). See **[cli/README.md](cli/README.md)** for environment details.
 
 ## Contributing (developers)
 

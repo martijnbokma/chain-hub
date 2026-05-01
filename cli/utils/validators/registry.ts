@@ -18,6 +18,7 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
     const registry = yaml.parse(registryContent)
 
     const registeredSlugs: string[] = [
+      ...(registry.core || []),
       ...(registry.chain_hub || []),
       ...(registry.personal || []),
       ...(registry.packs || []),
@@ -36,7 +37,9 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
     const selfSlugs: string[] = (registry.authorship?.self || []).map((s: unknown) => String(s))
     for (const slug of selfSlugs) {
       if (!registeredSlugs.includes(slug)) {
-        errors.push("authorship.self slug '" + slug + "' is not listed in chain_hub, personal, packs, community, or cli_packages")
+        errors.push(
+          "authorship.self slug '" + slug + "' is not listed in core, chain_hub, personal, packs, community, or cli_packages",
+        )
       }
     }
 
@@ -52,7 +55,9 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
       const skills = Array.isArray(bundle.skills) ? bundle.skills.map((s: unknown) => String(s)) : []
       for (const slug of skills) {
         if (!registeredSlugs.includes(slug)) {
-          errors.push("github_sources skill '" + slug + "' is not in chain_hub, personal, packs, community, or cli_packages")
+          errors.push(
+            "github_sources skill '" + slug + "' is not in core, chain_hub, personal, packs, community, or cli_packages",
+          )
         }
         if (githubBundled.has(slug)) {
           errors.push("Skill '" + slug + "' appears in more than one github_sources bundle (use a single repo per skill)")

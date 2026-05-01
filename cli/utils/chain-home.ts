@@ -2,6 +2,9 @@ import { homedir } from "os"
 import { join, resolve } from "path"
 import { readChainConfig } from "./chain-config"
 
+/** Default hub folder under the user’s home when `CHAIN_HOME` is unset and config has no `chain_home` (i.e. `~/chain-hub`). */
+export const DEFAULT_CHAIN_HUB_DIRNAME = "chain-hub"
+
 export type ChainHomeSource = "env" | "config" | "default"
 
 export interface ChainHomeResolution {
@@ -27,7 +30,7 @@ export function getChainHomeResolution(): ChainHomeResolution {
     return { path: normalizeChainHomePath(config.chain_home), source: "config" }
   }
 
-  return { path: join(homedir(), ".chain"), source: "default" }
+  return { path: join(homedir(), DEFAULT_CHAIN_HUB_DIRNAME), source: "default" }
 }
 
 export function getChainHome(): string {

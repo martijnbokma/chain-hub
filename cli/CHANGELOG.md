@@ -6,6 +6,14 @@ Notabele gebruikers-impact van **chain-hub** (CLI + gebundelde `core/`). Interne
 
 ### Features
 
+- `skills-registry.yaml` supports an optional **`core:`** slug list for bundled/protected skills mirrored under `skills/`, separate from **`chain_hub:`** (registry installs via `chain add`) and **`personal:`**.
+
+### Breaking
+
+- Default hub directory when `CHAIN_HOME` is unset and no `chain_home` is stored in user config is now **`~/chain-hub`** (was **`~/chain`**). To keep using the old folder, run `chain config set chain_home ~/chain` (or set `CHAIN_HOME`). To align with the new default, move your hub: `mv ~/chain ~/chain-hub`, then `chain setup`.
+
+### Features
+
 - Initial commit of Chain Hub V2 (Phoenix)
 - Add Addy Osmani agent-skills as pack
 - Complete brain with 81 skills and corrected structure

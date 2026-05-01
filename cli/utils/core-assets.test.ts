@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
 import { ensureCoreAssets, ensureUserRegistry } from "./core-assets"
@@ -74,6 +74,7 @@ protected:
     ensureUserRegistry({ chainHome })
 
     expect(readFileSync(join(chainHome, "skills-registry.yaml"), "utf8")).toContain("schema_version: 3")
+    expect(statSync(join(chainHome, "skills")).isDirectory()).toBe(true)
   })
 
   test("does not overwrite an existing user registry", () => {
@@ -83,5 +84,15 @@ protected:
     ensureUserRegistry({ chainHome })
 
     expect(readFileSync(join(chainHome, "skills-registry.yaml"), "utf8")).toBe("custom: true\n")
+    expect(statSync(join(chainHome, "skills")).isDirectory()).toBe(true)
+  })
+
+  test("ensures skills directory exists even when registry already present", () => {
+    mkdirSync(chainHome, { recursive: true })
+    writeFileSync(join(chainHome, "skills-registry.yaml"), "schema_version: 3\npersonal: []\n")
+
+    ensureUserRegistry({ chainHome })
+
+    expect(statSync(join(chainHome, "skills")).isDirectory()).toBe(true)
   })
 })

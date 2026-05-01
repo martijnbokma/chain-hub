@@ -14,7 +14,7 @@ describe("runAdd", () => {
     mkdirSync(join(tmp, "skills"), { recursive: true })
     writeFileSync(
       join(tmp, "skills-registry.yaml"),
-      "schema_version: 3\nchain_hub: []\npersonal: []\ncli_packages: []\n",
+      "schema_version: 3\ncore: []\nchain_hub: []\npersonal: []\ncli_packages: []\n",
     )
     originalChainHome = process.env.CHAIN_HOME
     process.env.CHAIN_HOME = tmp
@@ -51,5 +51,13 @@ describe("runAdd", () => {
     const reg = readRegistry()
     expect(reg.personal).toContain("my-skill")
     expect(reg.chain_hub ?? []).not.toContain("my-skill")
+  })
+
+  test("addSkill can land in core bucket", async () => {
+    const { addSkill, readRegistry } = await import("../registry/local")
+    addSkill({ slug: "bundled-skill", bucket: "core" })
+    const reg = readRegistry()
+    expect(reg.core).toContain("bundled-skill")
+    expect(reg.chain_hub ?? []).not.toContain("bundled-skill")
   })
 })

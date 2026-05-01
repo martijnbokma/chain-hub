@@ -7,6 +7,7 @@ const ANTIGRAVITY_DIR = join(homedir(), ".gemini", "antigravity")
 
 export const antigravity: IdeAdapter = {
   name: "Antigravity",
+  infoUrl: "https://antigravity.google/",
   detect: () => exists(ANTIGRAVITY_DIR),
   links: (chainHome) => [
     { from: join(chainHome, "skills"), to: join(ANTIGRAVITY_DIR, "skills"), description: "skills" },

@@ -19,7 +19,7 @@ version: 1
 ## AI Execution Guidelines
 
 - Keep instructions **tool-neutral** where possible; mention IDE linking only as “after `chain setup`”.
-- Use the user’s actual `CHAIN_HOME` when known; otherwise state the default `~/.chain`.
+- Use the user’s actual `CHAIN_HOME` when known; otherwise state the default `~/chain-hub`.
 - **Checkpoint:** After each major step, pause and ask if the command succeeded before continuing.
 
 ## Process

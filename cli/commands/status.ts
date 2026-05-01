@@ -15,10 +15,14 @@ export async function runStatus(): Promise<void> {
   for (const adapter of allAdapters) {
     const detected = adapter.detect()
     if (!detected) {
-      console.log(kleur.dim(`  ${adapter.name} — not detected`))
+      const hint = adapter.infoUrl ? ` · ${adapter.infoUrl}` : ""
+      console.log(kleur.dim(`  ${adapter.name} — not detected${hint}`))
       continue
     }
     console.log(kleur.bold(`  ${adapter.name}`))
+    if (adapter.infoUrl) {
+      console.log(kleur.dim(`    ${adapter.infoUrl}`))
+    }
     for (const link of adapter.links(chainHome)) {
       if (!isSymlink(link.to)) {
         console.log(kleur.red(`    ✗ ${link.description} — missing or not a symlink`))

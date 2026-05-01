@@ -19,6 +19,7 @@ describe("project validation", () => {
   test("allows reserved names for github-sourced skills", () => {
     writeRegistry(`
 schema_version: 3
+core: []
 chain_hub: []
 personal:
   - claude-api
@@ -39,6 +40,7 @@ github_sources:
   test("rejects reserved names for non-github-sourced skills", () => {
     writeRegistry(`
 schema_version: 3
+core: []
 chain_hub: []
 personal:
   - claude-api
@@ -54,6 +56,7 @@ cli_packages: []
   test("reports missing protected core skill assets", () => {
     writeRegistry(`
 schema_version: 3
+core: []
 chain_hub: []
 personal: []
 cli_packages: []
@@ -76,6 +79,7 @@ protected:
   test("accepts present protected core skill and rule assets", () => {
     writeRegistry(`
 schema_version: 3
+core: []
 chain_hub: []
 personal: []
 cli_packages: []

@@ -8,6 +8,5 @@ export const universal: IdeAdapter = {
   links: (chainHome) => [
     { from: join(chainHome, "agents"), to: join(homedir(), ".agents", "agents"), description: "Universal agents" },
     { from: join(chainHome, "skills"), to: join(homedir(), ".agents", "skills"), description: "Universal skills" },
-    { from: chainHome, to: join(homedir(), ".chain"), description: "Internal CLI config (~/.chain)" },
   ],
 }

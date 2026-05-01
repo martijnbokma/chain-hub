@@ -1,5 +1,5 @@
 import { expect, test, describe, afterEach } from "bun:test"
-import { getChainHome, getChainHomeResolution } from "./chain-home"
+import { DEFAULT_CHAIN_HUB_DIRNAME, getChainHome, getChainHomeResolution } from "./chain-home"
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { homedir, tmpdir } from "os"
 import { join } from "path"
@@ -26,12 +26,14 @@ describe("getChainHome", () => {
     expect(getChainHome()).toBe("/custom/chain")
   })
 
-  test("returns ~/.chain when CHAIN_HOME is not set", () => {
+  test("returns ~/chain-hub when CHAIN_HOME is not set", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "chain-home-"))
-    tempDirs.push(tempDir)
+    const configRoot = mkdtempSync(join(tmpdir(), "chain-xdg-"))
+    tempDirs.push(tempDir, configRoot)
     process.chdir(tempDir)
+    process.env.XDG_CONFIG_HOME = configRoot
     delete process.env.CHAIN_HOME
-    expect(getChainHome()).toBe(join(homedir(), ".chain"))
+    expect(getChainHome()).toBe(join(homedir(), DEFAULT_CHAIN_HUB_DIRNAME))
   })
 
   test("returns config chain_home when env var is not set", () => {

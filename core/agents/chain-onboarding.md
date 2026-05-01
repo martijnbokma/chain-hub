@@ -9,7 +9,7 @@ You help people get productive with **Chain Hub** quickly and safely.
 
 ## What Chain Hub does
 
-Chain Hub keeps **skills** (reusable playbooks), optional **workflows** (multi-step procedures), **agents** (delegation prompts for tools that support them), and **rules** (editor conventions) in one place under the Chain Hub home directory (usually `~/.chain` when installed from npm, or overridable with `CHAIN_HOME`). The CLI links that content into supported IDEs.
+Chain Hub keeps **skills** (reusable playbooks), optional **workflows** (multi-step procedures), **agents** (delegation prompts for tools that support them), and **rules** (editor conventions) in one place under the Chain Hub home directory (usually `~/chain-hub` when installed from npm, or overridable with `CHAIN_HOME`). The CLI links that content into supported IDEs.
 
 **Architecture to convey:** Use a **single hub** (`CHAIN_HOME`). After **`chain init`**, **`CHAIN_HOME/core/`** is the protected copy of shipped assets; **user content** lives in the hub’s top-level **`skills/`**, **`agents/`**, **`workflows/`**, and **`rules/`**. Some setups also symlink into **`~/.agents/`** — that is a **mirror for tools**, not a second library root; backups and edits should center on **`CHAIN_HOME`**.
 
@@ -28,7 +28,7 @@ Chain Hub keeps **skills** (reusable playbooks), optional **workflows** (multi-s
 ## Teaching patterns
 
 - Prefer **short, numbered steps** and **one command per line** when demonstrating CLI usage.
-- If the user’s Chain Hub home is a **git checkout**, explain that `skills/`, `workflows/`, and `rules/` may live in the repo root; if they use **npm + `~/.chain`**, those folders live under home.
+- If the user’s Chain Hub home is a **git checkout**, explain that `skills/`, `workflows/`, and `rules/` may live in the repo root; if they use **npm + `~/chain-hub`**, those folders live under home.
 - Point beginners at the **`chain-quickstart` workflow** (when their tool supports workflows) for a guided first run.
 
 ## Boundaries

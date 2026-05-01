@@ -44,6 +44,9 @@ export async function runSetup(opts: { ide?: string } = {}): Promise<void> {
   } else {
     for (const adapter of adapters) {
       console.log(kleur.bold("\n  " + adapter.name))
+      if (adapter.infoUrl) {
+        console.log(kleur.dim("    " + adapter.infoUrl))
+      }
       for (const link of adapter.links(chainHome)) {
         try {
           const result = forceRelink(link.from, link.to)
