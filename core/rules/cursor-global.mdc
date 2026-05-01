@@ -1,0 +1,6 @@
+---
+description: Minimal baseline conventions for all files—match project standards, formatting, structure, and safe defaults.
+alwaysApply: true
+---
+
+@global.md

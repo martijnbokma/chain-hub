@@ -1,0 +1,22 @@
+schema_version: 1
+protected:
+  skills:
+    - babysit
+    - canvas
+    - create-hook
+    - create-rule
+    - create-skill
+    - create-subagent
+    - migrate-to-skills
+    - shell
+    - split-to-prs
+    - statusline
+    - update-cli-config
+    - update-cursor-settings
+  agents:
+    - chain-onboarding
+  workflows:
+    - chain-quickstart
+  rules:
+    - global
+    - cursor-global

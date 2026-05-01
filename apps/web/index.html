@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chain Hub — One Source of Truth for Every AI Assistant</title>
+  <meta name="description" content="Manage your AI assistant skills, workflows, and rules in one place. Chain Hub syncs them across Claude Code, Cursor, Windsurf, Gemini CLI, and more — with a single command.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #070912;
+      --surface:       #0c0f1a;
+      --surface-2:     #101421;
+      --surface-3:     #171c2d;
+      --text:          #eff2ff;
+      --text-dim:      #8f96b2;
+      --text-faint:    #31364d;
+      --accent:        #8b7cff;
+      --accent-soft:   rgba(139, 124, 255, 0.62);
+      --accent-glow:   rgba(139, 124, 255, 0.13);
+      --accent-border: rgba(139, 124, 255, 0.26);
+      --border:        rgba(239, 242, 255, 0.08);
+      --border-bright: rgba(139, 124, 255, 0.22);
+      --green:         #5ee0a8;
+
+      --font-display: 'Archivo', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+      --max-w: 1180px;
+      --pad-x: 56px;
+      --section: 128px;
+    }
+
+    @media (max-width: 768px) {
+      :root { --pad-x: 24px; --section: 80px; }
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: .45;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+    }
+
+    .wrap {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--pad-x);
+    }
+
+    /* ── NAV ──────────────────────────────────────────────────── */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      padding: 18px 0;
+      transition: background .35s, border-color .35s;
+      border-bottom: 1px solid transparent;
+    }
+    #nav.scrolled {
+      background: rgba(8, 8, 12, .82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-color: var(--border);
+    }
+    #nav .wrap { display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo {
+      display: flex; align-items: center; gap: 9px;
+      text-decoration: none; color: var(--text);
+      font-family: var(--font-display);
+      font-size: 18px; font-weight: 700; letter-spacing: -.055em;
+    }
+    .nav-logo svg {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+    .nav-links a {
+      color: var(--text-dim); text-decoration: none;
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links .cta {
+      border: 1px solid var(--accent-border);
+      color: var(--accent) !important;
+      padding: 7px 16px;
+      transition: background .2s, border-color .2s !important;
+    }
+    .nav-links .cta:hover { background: var(--accent-glow); border-color: var(--accent) !important; }
+    @media (max-width: 680px) { .nav-links { display: none; } }
+
+    /* ── HERO ─────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding-top: 80px;
+      position: relative; overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 55% 55% at 72% 48%, rgba(139,124,255,.13) 0%, transparent 65%),
+        radial-gradient(ellipse 35% 50% at 18% 85%, rgba(72,176,255,.07) 0%, transparent 60%);
+    }
+    .hero-grid {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, black, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, black, transparent 75%);
+    }
+    .hero .wrap {
+      position: relative; z-index: 1;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 72px; align-items: center;
+      padding-top: 48px; padding-bottom: 96px; width: 100%;
+    }
+    @media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } }
+
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 24px;
+    }
+    .hero-eyebrow::before {
+      content: ''; display: block;
+      width: 22px; height: 1px; background: var(--accent);
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(44px, 5.2vw, 72px);
+      font-weight: 700; line-height: .99;
+      letter-spacing: -.065em; margin-bottom: 24px;
+    }
+    .hero-title em { font-style: normal; color: var(--accent); }
+    .hero-sub {
+      font-size: 14px; line-height: 1.75;
+      color: var(--text-dim); max-width: 430px; margin-bottom: 44px;
+    }
+    .hero-actions { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+      letter-spacing: .03em; text-decoration: none; cursor: pointer;
+      border-radius: 2px; transition: opacity .2s, transform .18s, background .2s;
+    }
+    .btn-primary {
+      background: var(--accent); color: #070912;
+      border: 1px solid var(--accent); padding: 12px 24px;
+    }
+    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-ghost { color: var(--text-dim); border: none; background: none; padding: 0; }
+    .btn-ghost:hover { color: var(--text); }
+
+    .hero-badges {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-top: 44px; padding-top: 36px;
+      border-top: 1px solid var(--border);
+    }
+    .badge {
+      font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--text-dim); padding: 6px 12px; border: 1px solid var(--border);
+    }
+
+    /* Terminal */
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 48px 120px rgba(0,0,0,.55), 0 0 0 1px rgba(139,124,255,.1);
+    }
+    .term-bar {
+      background: var(--surface-2);
+      padding: 11px 16px;
+      display: flex; align-items: center; gap: 7px;
+      border-bottom: 1px solid var(--border);
+    }
+    .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .term-dot:nth-child(1) { background: #ff5f57; }
+    .term-dot:nth-child(2) { background: #febc2e; }
+    .term-dot:nth-child(3) { background: #28c840; }
+    .term-title {
+      flex: 1; text-align: center;
+      font-size: 10px; color: var(--text-dim); letter-spacing: .05em;
+    }
+    .term-body { padding: 22px 24px; font-size: 12.5px; line-height: 1.85; min-height: 268px; }
+    .t-row {
+      display: flex; gap: 8px;
+      opacity: 0; transform: translateY(3px);
+      transition: opacity .28s, transform .28s;
+    }
+    .t-row.show { opacity: 1; transform: none; }
+    .t-indent {
+      padding-left: 16px;
+      opacity: 0; transform: translateY(3px);
+      transition: opacity .28s, transform .28s;
+    }
+    .t-indent.show { opacity: 1; transform: none; }
+    .t-prompt { color: var(--accent); flex-shrink: 0; }
+    .t-cmd { color: var(--text); }
+    .t-ok { color: var(--green); }
+    .t-dim { color: var(--text-dim); }
+    .t-hi { color: var(--accent); }
+    .cursor-blink {
+      display: inline-block; width: 7px; height: 13px;
+      background: var(--accent); vertical-align: middle;
+      margin-left: 2px; animation: blink 1.1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── SHARED SECTION ───────────────────────────────────────── */
+    .ruled {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    section { padding: var(--section) 0; }
+
+    .tag {
+      font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--text-faint); margin-bottom: 14px;
+    }
+    .tag::before { content: '// '; color: var(--accent-soft); }
+
+    .h2 {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 3.5vw, 50px);
+      font-weight: 700; line-height: 1.02;
+      letter-spacing: -.06em; margin-bottom: 20px;
+    }
+    .h2 em { font-style: normal; color: var(--accent); }
+
+    .lead { font-size: 14px; color: var(--text-dim); line-height: 1.75; max-width: 520px; }
+
+    /* ── PROBLEM ──────────────────────────────────────────────── */
+    .problem.ruled { background: linear-gradient(180deg, var(--surface) 0%, transparent 100%); }
+    .problem-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+    }
+    @media (max-width: 760px) { .problem-inner { grid-template-columns: 1fr; gap: 48px; } }
+
+    .pain-list { display: flex; flex-direction: column; }
+    .pain-item {
+      display: flex; gap: 18px; align-items: baseline;
+      padding: 22px 0; border-bottom: 1px solid var(--border);
+    }
+    .pain-item:last-child { border-bottom: none; }
+    .pain-n { font-size: 10px; color: var(--text-faint); flex-shrink: 0; width: 20px; }
+    .pain-text { font-size: 13px; color: var(--text-dim); line-height: 1.65; }
+    .pain-text strong { color: var(--text); font-weight: 400; }
+    .pain-text code { color: var(--accent-soft); font-size: 12px; }
+
+    /* ── HOW ──────────────────────────────────────────────────── */
+    .how-steps {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 2px; margin-top: 60px;
+    }
+    @media (max-width: 760px) { .how-steps { grid-template-columns: 1fr; } }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 36px 32px; transition: border-color .25s, background .25s;
+    }
+    .step:hover { border-color: var(--accent-border); background: var(--surface-2); }
+    .step-n {
+      font-family: var(--font-display); font-size: 68px; font-weight: 700;
+      color: var(--text-faint); line-height: .9; letter-spacing: -.08em; margin-bottom: 24px;
+    }
+    .step-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 10px; }
+    .step-desc { font-size: 12px; color: var(--text-dim); line-height: 1.7; margin-bottom: 24px; }
+    .step-terminal {
+      margin-top: auto;
+      overflow: hidden;
+      background: #060814;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 14px 34px rgba(0,0,0,.18);
+    }
+    .step-terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 12px;
+      background: linear-gradient(180deg, rgba(239,242,255,.045), rgba(239,242,255,.012));
+      border-bottom: 1px solid var(--border);
+    }
+    .step-terminal-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-faint);
+    }
+    .step-terminal-dot:nth-child(1) { background: #ff5f57; }
+    .step-terminal-dot:nth-child(2) { background: #febc2e; }
+    .step-terminal-dot:nth-child(3) { background: #28c840; }
+    .step-cmd {
+      display: flex;
+      gap: 8px;
+      padding: 12px 14px 13px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .step-cmd-prompt { color: var(--accent); flex-shrink: 0; }
+    .step-cmd-text { color: var(--text); }
+
+    /* ── EDITORS ──────────────────────────────────────────────── */
+    .editors.ruled {
+      background:
+        radial-gradient(ellipse 42% 36% at 78% 26%, rgba(139, 124, 255, .08), transparent 68%),
+        linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+    }
+    .editors-head {
+      margin-bottom: 56px;
+    }
+    .editors-note {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.75;
+      max-width: 520px;
+      margin-top: 20px;
+    }
+
+    .ide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 860px) { .ide-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 480px) { .ide-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .ide-cell {
+      position: relative;
+      overflow: hidden;
+      min-height: 172px;
+      background:
+        linear-gradient(180deg, rgba(239, 242, 255, .035), transparent 52%),
+        var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 18px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      color: inherit;
+      text-decoration: none;
+      transition: transform .22s, border-color .22s, background .22s, box-shadow .22s;
+    }
+    .ide-cell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(139, 124, 255, .16), transparent 58%);
+      opacity: 0;
+      transition: opacity .22s;
+      pointer-events: none;
+    }
+    .ide-cell:hover,
+    .ide-cell:focus-visible {
+      transform: translateY(-3px);
+      background:
+        linear-gradient(180deg, rgba(139, 124, 255, .08), transparent 58%),
+        var(--surface-2);
+      border-color: var(--accent-border);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .28);
+    }
+    .ide-cell:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+    .ide-cell:hover::before,
+    .ide-cell:focus-visible::before { opacity: 1; }
+    .ide-glyph {
+      width: 62px;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(239, 242, 255, .045);
+      border: 1px solid var(--border-bright);
+      border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+      transition: transform .22s, border-color .22s, background .22s;
+    }
+    .ide-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+    .ide-cell:hover .ide-glyph,
+    .ide-cell:focus-visible .ide-glyph {
+      transform: scale(1.04);
+      background: rgba(139, 124, 255, .095);
+      border-color: var(--accent-border);
+    }
+    .ide-name {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+    .ide-badge {
+      position: relative;
+      z-index: 1;
+      font-size: 9px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .ide-badge.live {
+      background: rgba(94, 224, 168, .1);
+      border: 1px solid rgba(94, 224, 168, .16);
+      color: var(--green);
+    }
+
+    /* ── ANATOMY ──────────────────────────────────────────────── */
+    .anatomy-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+    }
+    @media (max-width: 760px) { .anatomy-inner { grid-template-columns: 1fr; gap: 48px; } }
+
+    .type-cards { display: grid; grid-template-columns: 1fr; gap: 2px; }
+    .type-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 28px 26px; transition: border-color .25s;
+    }
+    .type-card:hover { border-color: var(--accent-border); }
+    .type-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .type-glyph { font-size: 18px; line-height: 1; }
+    .type-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .type-count { margin-left: auto; font-size: 10px; color: var(--accent); }
+    .type-desc { font-size: 12px; color: var(--text-dim); line-height: 1.65; }
+
+    /* ── COMMANDS ─────────────────────────────────────────────── */
+    .cmds-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 2px; margin-top: 60px;
+    }
+    @media (max-width: 860px) { .cmds-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .cmds-grid { grid-template-columns: 1fr; } }
+
+    .cmd-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 24px 22px; transition: border-color .25s, background .25s;
+    }
+    .cmd-card:hover { border-color: var(--accent-border); background: var(--surface-2); }
+    .cmd-terminal {
+      overflow: hidden;
+      background: #060814;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+    }
+    .cmd-terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 11px;
+      background: linear-gradient(180deg, rgba(239,242,255,.045), rgba(239,242,255,.012));
+      border-bottom: 1px solid var(--border);
+    }
+    .cmd-terminal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .cmd-terminal-dot:nth-child(1) { background: #ff5f57; }
+    .cmd-terminal-dot:nth-child(2) { background: #febc2e; }
+    .cmd-terminal-dot:nth-child(3) { background: #28c840; }
+    .cmd-line {
+      display: flex;
+      gap: 8px;
+      padding: 11px 13px 12px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .cmd-prompt { color: var(--accent); flex-shrink: 0; }
+    .cmd-text { color: var(--text); }
+    .cmd-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── INSTALL ──────────────────────────────────────────────── */
+    .install-inner {
+      display: grid; grid-template-columns: 1fr 1.15fr; gap: 80px; align-items: start;
+    }
+    @media (max-width: 760px) { .install-inner { grid-template-columns: 1fr; gap: 48px; } }
+
+    .feature-list { display: flex; flex-direction: column; margin-top: 36px; }
+    .feat {
+      display: flex; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--border);
+    }
+    .feat:last-child { border-bottom: none; }
+    .feat-arrow { color: var(--accent); flex-shrink: 0; }
+    .feat-text { font-size: 12px; color: var(--text-dim); line-height: 1.65; }
+    .feat-text strong { color: var(--text); font-weight: 400; }
+    .feat-text code { color: var(--accent-soft); }
+
+    .code-card {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 6px; overflow: hidden;
+    }
+    .code-card-head {
+      background: var(--surface-2);
+      padding: 11px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-card-lang { font-size: 10px; color: var(--text-dim); letter-spacing: .07em; text-transform: uppercase; }
+    .copy-btn {
+      font-size: 10px; color: var(--text-faint);
+      font-family: var(--font-mono); letter-spacing: .05em;
+      background: none; border: none; cursor: pointer; transition: color .2s;
+    }
+    .copy-btn:hover { color: var(--accent); }
+    .code-card-body { padding: 24px 22px; font-size: 12.5px; line-height: 2; overflow-x: auto; }
+
+    /* Code line types */
+    .cmt { display: block; color: var(--text-faint); }
+    .code-line { display: flex; gap: 8px; }
+    .code-prompt { color: var(--accent); }
+    .code-text { color: var(--text); }
+    .code-str { color: #7ec4a0; }
+    .code-ok { display: block; color: var(--green); }
+    .code-hi { display: block; color: var(--accent); }
+
+    /* ── FOOTER ───────────────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); padding: 44px 0; }
+    footer .wrap {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-dim); font-family: var(--font-display);
+      font-size: 18px; font-weight: 700; letter-spacing: -.055em;
+    }
+    .footer-brand svg {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+    .footer-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-note { font-size: 11px; color: var(--text-faint); }
+    .footer-note a {
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+    .footer-note a:hover { color: var(--accent); }
+    .footer-heart {
+      width: 12px;
+      height: 12px;
+      color: var(--accent);
+      vertical-align: -2px;
+      margin: 0 2px;
+    }
+    .footer-donate {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(139, 124, 255, .35);
+      border-radius: 999px;
+      padding: 7px 12px;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+      text-decoration: none;
+      background: rgba(139, 124, 255, .08);
+      transition: border-color .2s ease, color .2s ease, background .2s ease;
+    }
+    .footer-donate:hover {
+      border-color: rgba(139, 124, 255, .65);
+      color: var(--accent);
+      background: rgba(139, 124, 255, .14);
+    }
+
+    /* ── FADE-IN ──────────────────────────────────────────────── */
+    .fi {
+      opacity: 0; transform: translateY(18px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+    .fi.in { opacity: 1; transform: none; }
+    .fi-d1 { transition-delay: .1s; }
+    .fi-d2 { transition-delay: .2s; }
+    .fi-d3 { transition-delay: .3s; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ──────────────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="wrap">
+    <a href="#" class="nav-logo">
+      <svg width="22" height="22" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+        <rect x="10" y="10" width="36" height="36" rx="12"
+              stroke="#8b7cff" stroke-width="3" fill="rgba(139,124,255,.1)"/>
+        <path d="M21 22L27 28L21 34"
+              stroke="#8b7cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M31 34H37"
+              stroke="#5ee0a8" stroke-width="3" stroke-linecap="round"/>
+        <path d="M39 13L43 17M43 13L39 17"
+              stroke="#8f96b2" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      Chain Hub
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#editors">Editors</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#commands">CLI</a></li>
+      <li><a href="#install" class="cta">Get started</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────────── -->
+<section class="hero" id="home">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="wrap">
+
+    <div class="fi">
+      <div class="hero-eyebrow">Single Source of Truth</div>
+      <h1 class="hero-title">
+        Your AI assistants,<br>
+        finally <em>in sync.</em>
+      </h1>
+      <p class="hero-sub">
+        Chain Hub stores your skills, workflows, and rules in one canonical
+        place and symlinks them into every AI-powered editor on your machine —
+        automatically.
+      </p>
+      <div class="hero-actions">
+        <a href="#install" class="btn btn-primary">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M6.5 1v8M3 6l3.5 3.5L10 6M1.5 12h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Quick install
+        </a>
+        <a href="#how" class="btn btn-ghost">
+          How it works
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M1 6.5h11M8 3l4 3.5L8 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+      <div class="hero-badges">
+        <div class="badge">6 editors supported</div>
+        <div class="badge">100+ skills</div>
+        <div class="badge">TypeScript CLI</div>
+        <div class="badge">Self-healing symlinks</div>
+        <div class="badge">Open format</div>
+      </div>
+    </div>
+
+    <div class="terminal fi fi-d2" id="terminal" role="img" aria-label="Terminal showing chain setup command output">
+      <div class="term-bar" aria-hidden="true">
+        <div class="term-dot"></div>
+        <div class="term-dot"></div>
+        <div class="term-dot"></div>
+        <div class="term-title">terminal — ~/.chain</div>
+      </div>
+      <div class="term-body" id="term-body" aria-hidden="true"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── PROBLEM ───────────────────────────────────────────────────── -->
+<section class="problem ruled" id="problem">
+  <div class="wrap">
+    <div class="problem-inner">
+      <div class="fi">
+        <div class="tag">The problem</div>
+        <h2 class="h2">One machine.<br><em>Five configs.</em></h2>
+        <p class="lead">
+          Every AI editor has its own convention for storing rules and instructions.
+          You maintain the same content in five places and they drift apart the moment you update one.
+        </p>
+      </div>
+      <div class="pain-list fi fi-d1">
+        <div class="pain-item">
+          <div class="pain-n">01</div>
+          <div class="pain-text">
+            <strong>Cursor</strong> reads rules from <code>.cursor/rules/</code> in its own Markdown format.
+          </div>
+        </div>
+        <div class="pain-item">
+          <div class="pain-n">02</div>
+          <div class="pain-text">
+            <strong>Claude Code</strong> looks in <code>~/.claude/</code> for skills and CLAUDE.md files.
+          </div>
+        </div>
+        <div class="pain-item">
+          <div class="pain-n">03</div>
+          <div class="pain-text">
+            <strong>Windsurf, Gemini CLI, Trae, Kiro</strong> — each with entirely different paths and expectations.
+          </div>
+        </div>
+        <div class="pain-item">
+          <div class="pain-n">04</div>
+          <div class="pain-text">
+            The result: <strong>stale duplicates everywhere.</strong> Your best skills live in one editor only.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
+<section id="how">
+  <div class="wrap">
+    <div class="fi">
+      <div class="tag">How it works</div>
+      <h2 class="h2">Write once.<br><em>Run everywhere.</em></h2>
+      <p class="lead">
+        Chain maintains one canonical directory for all your AI knowledge,
+        then symlinks it precisely into every editor — simultaneously.
+      </p>
+    </div>
+    <div class="how-steps">
+      <div class="step fi fi-d1">
+        <div class="step-n">01</div>
+        <div class="step-name">Clone your hub</div>
+        <div class="step-desc">
+          Fork the Chain Hub template and clone it to <code style="color:var(--accent-soft)">~/.chain</code>.
+          This becomes the canonical home for all your AI assistant knowledge.
+        </div>
+        <div class="step-terminal" aria-label="Terminal command: git clone to ~/.chain">
+          <div class="step-terminal-bar" aria-hidden="true">
+            <span class="step-terminal-dot"></span>
+            <span class="step-terminal-dot"></span>
+            <span class="step-terminal-dot"></span>
+          </div>
+          <div class="step-cmd">
+            <span class="step-cmd-prompt">$</span>
+            <span class="step-cmd-text">git clone … ~/.chain</span>
+          </div>
+        </div>
+      </div>
+      <div class="step fi fi-d2">
+        <div class="step-n">02</div>
+        <div class="step-name">Run setup once</div>
+        <div class="step-desc">
+          The CLI detects every installed IDE on your machine and creates
+          symlinks from your hub into each editor's expected location.
+        </div>
+        <div class="step-terminal" aria-label="Terminal command: chain setup">
+          <div class="step-terminal-bar" aria-hidden="true">
+            <span class="step-terminal-dot"></span>
+            <span class="step-terminal-dot"></span>
+            <span class="step-terminal-dot"></span>
+          </div>
+          <div class="step-cmd">
+            <span class="step-cmd-prompt">$</span>
+            <span class="step-cmd-text">chain setup</span>
+          </div>
+        </div>
+      </div>
+      <div class="step fi fi-d3">
+        <div class="step-n">03</div>
+        <div class="step-name">Edit once, sync everywhere</div>
+        <div class="step-desc">
+          Change a skill in your hub. Every editor sees it instantly.
+          Add, remove, scaffold and validate — all from one CLI.
+        </div>
+        <div class="step-terminal" aria-label="Terminal command: chain validate">
+          <div class="step-terminal-bar" aria-hidden="true">
+            <span class="step-terminal-dot"></span>
+            <span class="step-terminal-dot"></span>
+            <span class="step-terminal-dot"></span>
+          </div>
+          <div class="step-cmd">
+            <span class="step-cmd-prompt">$</span>
+            <span class="step-cmd-text">chain validate</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── EDITORS ────────────────────────────────────────────────────── -->
+<section class="editors ruled" id="editors">
+  <div class="wrap">
+    <div class="editors-head fi">
+      <div>
+        <div class="tag">Supported editors</div>
+        <h2 class="h2" style="margin-bottom:0">Works where<br><em>you work.</em></h2>
+        <p class="editors-note">
+          Every major AI coding environment. Synchronized from one hub.
+        </p>
+      </div>
+    </div>
+    <div class="ide-grid fi fi-d1">
+      <a class="ide-cell" href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener noreferrer" aria-label="Open Claude Code in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/claude-code.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Claude Code</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+      <a class="ide-cell" href="https://cursor.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Cursor in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/cursor.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Cursor</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+      <a class="ide-cell" href="https://windsurf.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Windsurf in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/windsurf.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Windsurf</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+      <a class="ide-cell" href="https://geminicli.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Gemini CLI in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/gemini.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Gemini CLI</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+      <a class="ide-cell" href="https://kiro.dev/" target="_blank" rel="noopener noreferrer" aria-label="Open Kiro in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/kiro.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Kiro</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+      <a class="ide-cell" href="https://www.trae.ai/" target="_blank" rel="noopener noreferrer" aria-label="Open Trae in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/trae.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Trae</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+      <a class="ide-cell" href="https://mistral.ai/products/vibe" target="_blank" rel="noopener noreferrer" aria-label="Open Mistral Vibe in a new tab">
+        <div class="ide-glyph" aria-hidden="true">
+          <img class="ide-logo" src="./assets/logos/mistral-vibe.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="ide-name">Mistral Vibe</div>
+        <div class="ide-badge live">Live</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── SKILLS ANATOMY ────────────────────────────────────────────── -->
+<section id="skills">
+  <div class="wrap">
+    <div class="anatomy-inner">
+      <div class="fi">
+        <div class="tag">Content model</div>
+        <h2 class="h2">Skills,<br>workflows<br><em>&amp; rules.</em></h2>
+        <p class="lead">
+          Chain organizes AI knowledge into three first-class types —
+          each with a clear role in how your assistants behave.
+        </p>
+        <p style="margin-top:20px; font-size:13px; color:var(--text-dim); line-height:1.75">
+          Skills are invocable by name. Workflows guide multi-step processes step by step.
+          Rules are always-on constraints that shape every response.
+          Together they form a coherent, portable knowledge system.
+        </p>
+      </div>
+      <div class="type-cards fi fi-d1">
+        <div class="type-card">
+          <div class="type-head">
+            <div class="type-glyph" aria-hidden="true">◈</div>
+            <div class="type-name">Skills</div>
+            <div class="type-count">100+ available</div>
+          </div>
+          <div class="type-desc">
+            Specialized knowledge modules. Each has a trigger condition, a workflow,
+            and a quality gate. The AI invokes them by name when the task matches.
+          </div>
+        </div>
+        <div class="type-card">
+          <div class="type-head">
+            <div class="type-glyph" aria-hidden="true">⤳</div>
+            <div class="type-name">Workflows</div>
+            <div class="type-count">20+ available</div>
+          </div>
+          <div class="type-desc">
+            Step-by-step procedures for complex agent tasks — spec writing, debugging,
+            refactoring, deployment. Always sequential. Always verifiable.
+          </div>
+        </div>
+        <div class="type-card">
+          <div class="type-head">
+            <div class="type-glyph" aria-hidden="true">⌥</div>
+            <div class="type-name">Rules</div>
+            <div class="type-count">Global &amp; per-project</div>
+          </div>
+          <div class="type-desc">
+            Always-on constraints for code style, language policy, and architecture.
+            Applied automatically to every session. Never need invoking.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CLI REFERENCE ─────────────────────────────────────────────── -->
+<section class="ruled" id="commands">
+  <div class="wrap">
+    <div class="fi">
+      <div class="tag">CLI reference</div>
+      <h2 class="h2">Everything from<br><em>one command.</em></h2>
+      <p class="lead">The <code style="color:var(--accent-soft)">chain</code> CLI handles the full lifecycle — from initial setup to publishing new skills.</p>
+    </div>
+    <div class="cmds-grid">
+      <div class="cmd-card fi fi-d1">
+        <div class="cmd-terminal" aria-label="Terminal command: chain setup">
+          <div class="cmd-terminal-bar" aria-hidden="true">
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+          </div>
+          <div class="cmd-line">
+            <span class="cmd-prompt">$</span>
+            <span class="cmd-text">chain setup</span>
+          </div>
+        </div>
+        <div class="cmd-desc">Detect all installed IDEs and create or repair symlinks from your hub into each editor.</div>
+      </div>
+      <div class="cmd-card fi fi-d1">
+        <div class="cmd-terminal" aria-label="Terminal command: chain validate">
+          <div class="cmd-terminal-bar" aria-hidden="true">
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+          </div>
+          <div class="cmd-line">
+            <span class="cmd-prompt">$</span>
+            <span class="cmd-text">chain validate</span>
+          </div>
+        </div>
+        <div class="cmd-desc">Lint all skill frontmatter and structure. Run before every commit — also enforced as a pre-commit hook.</div>
+      </div>
+      <div class="cmd-card fi fi-d2">
+        <div class="cmd-terminal" aria-label="Terminal command: chain list">
+          <div class="cmd-terminal-bar" aria-hidden="true">
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+          </div>
+          <div class="cmd-line">
+            <span class="cmd-prompt">$</span>
+            <span class="cmd-text">chain list</span>
+          </div>
+        </div>
+        <div class="cmd-desc">Show all active skills with their source, type, and sync status across editors.</div>
+      </div>
+      <div class="cmd-card fi fi-d2">
+        <div class="cmd-terminal" aria-label="Terminal command: chain new slug">
+          <div class="cmd-terminal-bar" aria-hidden="true">
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+          </div>
+          <div class="cmd-line">
+            <span class="cmd-prompt">$</span>
+            <span class="cmd-text">chain new &lt;slug&gt;</span>
+          </div>
+        </div>
+        <div class="cmd-desc">Scaffold a new skill from the canonical template with correct frontmatter pre-filled.</div>
+      </div>
+      <div class="cmd-card fi fi-d3">
+        <div class="cmd-terminal" aria-label="Terminal command: chain add github">
+          <div class="cmd-terminal-bar" aria-hidden="true">
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+          </div>
+          <div class="cmd-line">
+            <span class="cmd-prompt">$</span>
+            <span class="cmd-text">chain add github:…</span>
+          </div>
+        </div>
+        <div class="cmd-desc">Install a skill directly from any GitHub repository. Pulled into your hub and linked instantly.</div>
+      </div>
+      <div class="cmd-card fi fi-d3">
+        <div class="cmd-terminal" aria-label="Terminal command: chain reflect">
+          <div class="cmd-terminal-bar" aria-hidden="true">
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+            <span class="cmd-terminal-dot"></span>
+          </div>
+          <div class="cmd-line">
+            <span class="cmd-prompt">$</span>
+            <span class="cmd-text">chain reflect</span>
+          </div>
+        </div>
+        <div class="cmd-desc">Analyze recent session logs and surface patterns worth encoding as permanent skills or rules.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── INSTALL ────────────────────────────────────────────────────── -->
+<section class="install ruled" id="install">
+  <div class="wrap">
+    <div class="install-inner">
+      <div class="fi">
+        <div class="tag">Quick start</div>
+        <h2 class="h2">Up in<br><em>three steps.</em></h2>
+        <p class="lead">
+          Clone, link, and run. No configuration files, no environment setup.
+          Chain figures out where each editor lives on its own.
+        </p>
+        <div class="feature-list">
+          <div class="feat">
+            <div class="feat-arrow" aria-hidden="true">↳</div>
+            <div class="feat-text">
+              <strong>Self-healing</strong> — broken symlinks are automatically repaired on the next <code>chain setup</code>.
+            </div>
+          </div>
+          <div class="feat">
+            <div class="feat-arrow" aria-hidden="true">↳</div>
+            <div class="feat-text">
+              <strong>Compiled binary</strong> — the CLI builds to a native Bun binary. No runtime required in production.
+            </div>
+          </div>
+          <div class="feat">
+            <div class="feat-arrow" aria-hidden="true">↳</div>
+            <div class="feat-text">
+              <strong>Validated on commit</strong> — the pre-commit hook runs <code>chain validate</code> and blocks broken skills automatically.
+            </div>
+          </div>
+          <div class="feat">
+            <div class="feat-arrow" aria-hidden="true">↳</div>
+            <div class="feat-text">
+              <strong>Extensible</strong> — bring any skill from GitHub with <code>chain add github:owner/repo</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-card fi fi-d1">
+        <div class="code-card-head">
+          <span class="code-card-lang">bash</span>
+          <button class="copy-btn" id="copy-btn" type="button">copy</button>
+        </div>
+        <div class="code-card-body">
+          <span class="cmt"># 1. Clone to your home directory</span>
+          <div class="code-line">
+            <span class="code-prompt">$</span>
+            <span class="code-text">git clone </span>
+            <span class="code-str">https://github.com/you/chain-hub</span>
+            <span class="code-text">&nbsp;~/.chain</span>
+          </div>
+          <br>
+          <span class="cmt"># 2. Install the CLI</span>
+          <div class="code-line">
+            <span class="code-prompt">$</span>
+            <span class="code-text">cd ~/.chain/cli &amp;&amp; bun install &amp;&amp; bun link</span>
+          </div>
+          <br>
+          <span class="cmt"># 3. Sync all your AI editors in one shot</span>
+          <div class="code-line">
+            <span class="code-prompt">$</span>
+            <span class="code-text">chain setup</span>
+          </div>
+          <br>
+          <span class="code-ok"># ✓  Claude Code  →  ~/.claude/skills</span>
+          <span class="code-ok"># ✓  Cursor       →  ~/.cursor/rules</span>
+          <span class="code-ok"># ✓  Windsurf     →  ~/.codeium/windsurf</span>
+          <span class="code-ok"># ✓  Gemini CLI   →  ~/.gemini/skills</span>
+          <span class="code-ok"># ✓  Kiro         →  ~/.kiro/skills</span>
+          <span class="code-ok"># ✓  Trae         →  ~/.trae/skills</span>
+          <br>
+          <span class="code-hi">6 IDEs synchronized.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────── -->
+<footer>
+  <div class="wrap">
+    <div class="footer-brand">
+      <svg width="18" height="18" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+        <rect x="10" y="10" width="36" height="36" rx="12"
+              stroke="#8b7cff" stroke-width="3" fill="rgba(139,124,255,.1)"/>
+        <path d="M21 22L27 28L21 34"
+              stroke="#8b7cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M31 34H37"
+              stroke="#5ee0a8" stroke-width="3" stroke-linecap="round"/>
+        <path d="M39 13L43 17M43 13L39 17"
+              stroke="#8f96b2" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      Chain Hub
+    </div>
+    <div class="footer-meta">
+      <div class="footer-note">Made with <svg class="footer-heart" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="love"><path d="M12 21s-7.2-4.5-9.6-8.4C.4 9.4 1.3 5.5 4.5 4.1 7 3 9.6 3.8 12 6.3 14.4 3.8 17 3 19.5 4.1c3.2 1.4 4.1 5.3 2.1 8.5C19.2 16.5 12 21 12 21Z"/></svg> by <a href="https://martijnbokma.nl" target="_blank" rel="noopener noreferrer">Martijn Bokma</a>.</div>
+      <a class="footer-donate" href="https://www.paypal.com/paypalme/martijnbokma" target="_blank" rel="noopener noreferrer">Donate</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* nav scroll */
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', function () {
+    nav.classList.toggle('scrolled', window.scrollY > 36);
+  }, { passive: true });
+
+  /* fade-in on scroll */
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.fi').forEach(function (el) { io.observe(el); });
+
+  /* terminal animation — all content is hardcoded, no user input */
+  var termScript = [
+    { type: 'cmd',   text: 'chain setup' },
+    { type: 'out',   text: '  Scanning for installed IDEs…', cls: 't-dim' },
+    { type: 'out',   text: '  ✓  Claude Code   →  ~/.claude/skills', cls: 't-ok' },
+    { type: 'out',   text: '  ✓  Cursor        →  ~/.cursor/rules',  cls: 't-ok' },
+    { type: 'out',   text: '  ✓  Windsurf      →  ~/.codeium/windsurf', cls: 't-ok' },
+    { type: 'out',   text: '  ✓  Gemini CLI    →  ~/.gemini/skills', cls: 't-ok' },
+    { type: 'out',   text: '  ✓  Kiro          →  ~/.kiro/skills',   cls: 't-ok' },
+    { type: 'out',   text: '  ✓  Trae          →  ~/.trae/skills',   cls: 't-ok' },
+    { type: 'blank' },
+    { type: 'out',   text: '  6 IDEs synchronized. 147 skills linked.', cls: 't-hi' },
+    { type: 'cur' },
+  ];
+
+  var termBody = document.getElementById('term-body');
+  var termIdx  = 0;
+
+  function makeSpan(cls, text) {
+    var s = document.createElement('span');
+    s.className = cls;
+    s.textContent = text;
+    return s;
+  }
+
+  function renderTermLine(item) {
+    var el = document.createElement('div');
+    if (item.type === 'cmd') {
+      el.className = 't-row';
+      el.appendChild(makeSpan('t-prompt', '$'));
+      el.appendChild(makeSpan('t-cmd', ' ' + item.text));
+    } else if (item.type === 'cur') {
+      el.className = 't-row';
+      el.appendChild(makeSpan('t-prompt', '$'));
+      el.appendChild(makeSpan('t-cmd', ' '));
+      var cur = document.createElement('span');
+      cur.className = 'cursor-blink';
+      el.appendChild(cur);
+    } else if (item.type === 'blank') {
+      el.className = 't-indent';
+      el.style.height = '8px';
+    } else {
+      el.className = 't-indent';
+      el.appendChild(makeSpan(item.cls, item.text));
+    }
+    termBody.appendChild(el);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { el.classList.add('show'); });
+    });
+  }
+
+  function termTick() {
+    if (termIdx >= termScript.length) return;
+    renderTermLine(termScript[termIdx++]);
+    var delay = termIdx === 1 ? 700 : termScript[termIdx - 1].type === 'cmd' ? 320 : 155;
+    setTimeout(termTick, delay);
+  }
+
+  setTimeout(termTick, 560);
+
+  /* copy install code */
+  document.getElementById('copy-btn').addEventListener('click', function () {
+    var code = [
+      '# 1. Clone to your home directory',
+      'git clone https://github.com/you/chain-hub ~/.chain',
+      '',
+      '# 2. Install the CLI',
+      'cd ~/.chain/cli && bun install && bun link',
+      '',
+      '# 3. Sync all your AI editors in one shot',
+      'chain setup',
+    ].join('\n');
+    var btn = this;
+    navigator.clipboard.writeText(code).then(function () {
+      btn.textContent = 'copied ✓';
+      setTimeout(function () { btn.textContent = 'copy'; }, 2200);
+    });
+  });
+</script>
+</body>
+</html>
