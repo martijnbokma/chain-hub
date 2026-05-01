@@ -3,7 +3,7 @@
 bun.lockb
 cli/dist/
 
-# --- apps/web (static site / future Astro, etc.) ---
+# --- apps/web (Astro marketing site) ---
 apps/web/dist/
 apps/web/.astro/
 apps/web/.output/

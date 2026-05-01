@@ -49,6 +49,7 @@ If anything looks wrong, run **`chain validate`** (and **`chain init`** first if
 | Path | Purpose |
 |------|---------|
 | `cli/` | NPM package **`chain-hub`** — the **`chain`** command (Bun for dev, test, and build) |
+| `apps/web/` | Marketing site and docs for [chainhub.one](https://www.chainhub.one/) — Astro + Tailwind CSS v4 (`bun install` then `bun run dev` / `bun run build`) |
 | `core/` | Bundled **protected** assets: skills, workflows, agents, rules, `registry.yaml`, plus `core/templates/` (e.g. shadcn `components.json` for maintainers). On **`chain init`**, this tree is copied to **`CHAIN_HOME/core/`**; your own skills live under **`CHAIN_HOME/skills/`** |
 
 ## How your data is organized (technical)
@@ -71,4 +72,13 @@ Install from npm, configure `CHAIN_HOME`, and read the full command reference: *
 
 ## CI
 
-GitHub Actions runs tests, production build, and package checks on pushes and pull requests (see `.github/workflows/ci.yml`).
+GitHub Actions runs tests, production build, and package checks for the CLI, and builds the marketing site in `apps/web/`, on pushes and pull requests (see `.github/workflows/ci.yml`).
+
+## Marketing site (`apps/web/`)
+
+```bash
+cd apps/web
+bun install
+bun run dev      # local preview
+bun run build    # static output in apps/web/dist/
+```

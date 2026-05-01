@@ -1,0 +1,681 @@
+---
+export const prerender = true;
+import SiteHeader from '../components/SiteHeader.astro';
+
+const base = import.meta.env.BASE_URL;
+
+const headerNavItems = [
+  { href: `${base}docs/`, label: 'Docs' },
+  { href: '#how', label: 'How it works' },
+  { href: '#editors', label: 'Editors' },
+  { href: '#skills', label: 'Skills' },
+  { href: '#commands', label: 'CLI' },
+  { href: '#install', label: 'Get started', cta: true },
+];
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Chain Hub — One Source of Truth for Every AI Assistant</title>
+  <meta name="description" content="chainhub.one — One Chain Hub to sync your skills, workflows, and rules across every AI editor. Curated core, your library, one symlinked home.">
+  <link rel="canonical" href="https://www.chainhub.one/">
+  <meta property="og:url" content="https://www.chainhub.one/">
+  <meta property="og:title" content="Chain Hub — One Source of Truth for Every AI Assistant">
+  <meta property="og:description" content="chainhub.one — One Chain Hub to sync skills, workflows, and rules across Claude Code, Cursor, Windsurf, Gemini CLI, and more.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="ch-site bg-bg text-text font-mono text-[13px] leading-[1.65] antialiased overflow-x-hidden pb-[env(safe-area-inset-bottom,0px)] [text-size-adjust:100%]">
+
+<SiteHeader items={headerNavItems} />
+
+<!-- ── HERO ─────────────────────────────────────────────────────── -->
+<section class="relative flex min-h-dvh min-h-screen items-center overflow-hidden pt-[calc(4.5rem+env(safe-area-inset-top,0px))] sm:pt-20" id="home">
+  <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_55%_at_72%_48%,rgba(139,124,255,0.13)_0%,transparent_65%),radial-gradient(ellipse_35%_50%_at_18%_85%,rgba(72,176,255,0.07)_0%,transparent_60%)]" aria-hidden="true"></div>
+  <div
+    class="pointer-events-none absolute inset-0 bg-[length:64px_64px] [background-image:linear-gradient(rgba(239,242,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(239,242,255,0.08)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_40%,black,transparent_75%)]"
+    aria-hidden="true"
+  ></div>
+  <div class="layout-wrap relative z-10 grid w-full min-w-0 grid-cols-1 items-center gap-8 pt-8 pb-16 sm:gap-12 sm:pt-12 sm:pb-20 md:gap-[72px] md:pb-24 lg:grid-cols-2">
+
+    <div class="min-w-0 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100 fi">
+      <div class="mb-6 flex items-center gap-2.5 text-[10px] uppercase tracking-[0.18em] text-accent before:block before:h-px before:w-[22px] before:bg-accent before:content-['']">Single Source of Truth</div>
+      <p class="mb-[22px] -mt-2 max-w-[440px] text-xs leading-[1.55] tracking-[0.02em] text-text-dim">
+        <a href={base} class="font-semibold text-accent no-underline hover:underline hover:underline-offset-[3px]">chainhub.one</a>
+        <span> — One Chain Hub to sync them all.</span>
+        <span class="mt-2 block text-[11px] italic tracking-[0.01em] text-text-faint">(No magic ring required — just symlinks.)</span>
+      </p>
+      <h1 class="mb-6 max-w-[22ch] font-display text-[clamp(2rem,6vw+0.5rem,4.5rem)] font-bold leading-[1.02] tracking-[-0.065em] sm:leading-[0.99] sm:[max-width:none]">
+        Your AI assistants,<br>
+        finally <em class="not-italic text-accent">in sync.</em>
+      </h1>
+      <p class="mb-8 max-w-[430px] text-sm leading-[1.75] text-text-dim sm:mb-11">
+        Chain Hub ships a <strong class="font-bold text-text">small, curated core</strong> — skills, workflows,
+        rules, and agents to get you started. You then <strong class="font-bold text-text">grow your own library</strong>:
+        scaffold skills, author rules, add workflows, and pull extras from GitHub so every
+        assistant reflects <em class="not-italic text-accent">your</em> stack, language, and way of working.
+      </p>
+      <div class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
+        <a href="#install" class="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-sm border border-accent bg-accent px-6 py-3 font-mono text-xs font-medium tracking-[0.03em] text-bg no-underline transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88] sm:w-auto">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M6.5 1v8M3 6l3.5 3.5L10 6M1.5 12h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Quick install
+        </a>
+        <a href="/docs/" class="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 border border-transparent bg-transparent px-4 py-3 font-mono text-xs font-medium tracking-[0.03em] text-text-dim no-underline transition-colors hover:text-text sm:w-auto sm:justify-start sm:border-none sm:px-0 sm:py-2">
+          Read docs
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M1 6.5h11M8 3l4 3.5L8 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+      <div class="mt-11 flex flex-wrap gap-2.5 border-t border-border pt-9">
+        <div class="border border-border px-3 py-1.5 text-[10px] uppercase tracking-[0.06em] text-text-dim">Broad editor support</div>
+        <div class="border border-border px-3 py-1.5 text-[10px] uppercase tracking-[0.06em] text-text-dim">Core + your skills</div>
+        <div class="border border-border px-3 py-1.5 text-[10px] uppercase tracking-[0.06em] text-text-dim">CLI: new, add, validate</div>
+        <div class="border border-border px-3 py-1.5 text-[10px] uppercase tracking-[0.06em] text-text-dim">Self-healing symlinks</div>
+        <div class="border border-border px-3 py-1.5 text-[10px] uppercase tracking-[0.06em] text-text-dim">Open format</div>
+      </div>
+    </div>
+
+    <div class="fi delay-200 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100 overflow-hidden rounded-[10px] border border-border-bright bg-surface shadow-[0_48px_120px_rgba(0,0,0,0.55),0_0_0_1px_rgba(139,124,255,0.1)]" id="terminal" role="img" aria-label="Terminal showing chain setup command output">
+      <div class="flex items-center gap-[7px] border-b border-border bg-surface-2 px-4 py-[11px]" aria-hidden="true">
+        <div class="size-2.5 rounded-full bg-[#ff5f57]"></div>
+        <div class="size-2.5 rounded-full bg-[#febc2e]"></div>
+        <div class="size-2.5 rounded-full bg-[#28c840]"></div>
+        <div class="min-w-0 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">terminal — ~/.chain</div>
+      </div>
+      <div class="min-h-[220px] px-4 py-4 text-[11.5px] leading-[1.85] sm:min-h-[268px] sm:px-6 sm:py-[22px] sm:text-[12.5px]" id="term-body" aria-hidden="true"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── PROBLEM ───────────────────────────────────────────────────── -->
+<section class="border-y border-border bg-gradient-to-b from-surface to-transparent py-32 max-md:py-20" id="problem">
+  <div class="layout-wrap">
+    <div class="grid grid-cols-1 items-start gap-12 md:grid-cols-2 md:gap-20">
+      <div class="fi opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">The problem</div>
+        <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">One machine.<br><em class="not-italic text-accent">Five configs.</em></h2>
+        <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">
+          Every AI editor has its own convention for storing rules and instructions.
+          You maintain the same content in five places and they drift apart the moment you update one.
+        </p>
+      </div>
+      <div class="fi flex flex-col delay-100 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100 [&>div:last-child]:border-b-0">
+        <div class="flex items-baseline gap-[18px] border-b border-border py-[22px]">
+          <div class="w-5 shrink-0 text-[10px] text-text-faint">01</div>
+          <div class="text-[13px] leading-[1.65] text-text-dim [&_code]:text-[12px] [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+            <strong>Cursor</strong> reads rules from <code>.cursor/rules/</code> in its own Markdown format.
+          </div>
+        </div>
+        <div class="flex items-baseline gap-[18px] border-b border-border py-[22px]">
+          <div class="w-5 shrink-0 text-[10px] text-text-faint">02</div>
+          <div class="text-[13px] leading-[1.65] text-text-dim [&_code]:text-[12px] [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+            <strong>Claude Code</strong> looks in <code>~/.claude/</code> for skills and CLAUDE.md files.
+          </div>
+        </div>
+        <div class="flex items-baseline gap-[18px] border-b border-border py-[22px]">
+          <div class="w-5 shrink-0 text-[10px] text-text-faint">03</div>
+          <div class="text-[13px] leading-[1.65] text-text-dim [&_code]:text-[12px] [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+            <strong>Windsurf, Gemini CLI, Trae, Kiro, Mistral Vibe</strong> — each with entirely different paths and expectations.
+          </div>
+        </div>
+        <div class="flex items-baseline gap-[18px] border-b border-border py-[22px]">
+          <div class="w-5 shrink-0 text-[10px] text-text-faint">04</div>
+          <div class="text-[13px] leading-[1.65] text-text-dim [&_strong]:font-normal [&_strong]:text-text">
+            The result: <strong>stale duplicates everywhere.</strong> Your best skills live in one editor only.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
+<section class="py-32 max-md:py-20" id="how">
+  <div class="layout-wrap">
+    <div class="fi mb-0 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">How it works</div>
+      <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Write once.<br><em class="not-italic text-accent">Run everywhere.</em></h2>
+      <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">
+        Chain Hub maintains one canonical directory for all your AI knowledge,
+        then symlinks it precisely into every editor — simultaneously.
+      </p>
+    </div>
+    <div class="mt-[60px] grid grid-cols-1 gap-0.5 bg-border md:grid-cols-3">
+      <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">01</div>
+        <div class="mb-2.5 text-[13px] font-medium text-text">Install Chain Hub</div>
+        <div class="mb-6 text-xs leading-[1.7] text-text-dim [&_a]:text-[rgba(139,124,255,0.62)] [&_a]:no-underline [&_a]:hover:underline [&_code]:text-[rgba(139,124,255,0.62)]">
+          Install the published npm package globally so the
+          <code>chain</code> command is available in your shell.
+          To upgrade later, run the same install again, then
+          <code>chain init</code> to refresh bundled core (see
+          <a href="/docs/#up-to-date">docs</a>).
+        </div>
+        <div class="mt-auto overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]" aria-label="Terminal command: npm install -g chain-hub">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+            <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+            <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+            <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3.5 py-3 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">npm install -g chain-hub</span>
+          </div>
+        </div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">02</div>
+        <div class="mb-2.5 text-[13px] font-medium text-text">Initialize your hub</div>
+        <div class="mb-6 text-xs leading-[1.7] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)]">
+          Run <code>chain init</code> to install the protected
+          <code>core/</code> into your <code>CHAIN_HOME</code>.
+        </div>
+        <div class="mt-auto overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]" aria-label="Terminal command: chain init">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+            <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+            <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+            <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3.5 py-3 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain init</span>
+          </div>
+        </div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">03</div>
+        <div class="mb-2.5 text-[13px] font-medium text-text">Run setup and sync</div>
+        <div class="mb-6 text-xs leading-[1.7] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)]">
+          Run <code>chain setup</code> once to detect installed IDEs and create symlinks.
+          Then maintain your playbooks in <code>skills/</code>,
+          <code>workflows/</code>, and <code>rules/</code>.
+        </div>
+        <div class="mt-auto overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]" aria-label="Terminal command: chain setup">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+            <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+            <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+            <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3.5 py-3 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain setup</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── EDITORS ────────────────────────────────────────────────────── -->
+<section
+  class="border-y border-border bg-[radial-gradient(ellipse_42%_36%_at_78%_26%,rgba(139,124,255,0.08),transparent_68%),linear-gradient(180deg,#0c0f1a,#070912)] py-32 max-md:py-20"
+  id="editors"
+>
+  <div class="layout-wrap">
+    <div class="fi mb-14 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <div>
+        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Supported editors</div>
+        <h2 class="mb-0 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Works where<br><em class="not-italic text-accent">you work.</em></h2>
+        <p class="mt-5 max-w-[520px] text-sm leading-[1.75] text-text-dim">
+          Targets the environments people use most. <strong class="font-semibold text-text">chain setup</strong> only links editors
+          it detects on your machine — you grow skills and rules in the hub; the CLI wires them through.
+        </p>
+      </div>
+    </div>
+    <div class="fi grid gap-3 delay-100 opacity-0 [grid-template-columns:repeat(auto-fit,minmax(min(100%,148px),1fr))] translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener noreferrer" aria-label="Open Claude Code in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/claude-code.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Claude Code</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://cursor.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Cursor in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/cursor.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Cursor</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://windsurf.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Windsurf in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/windsurf.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Windsurf</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://geminicli.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Gemini CLI in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/gemini.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Gemini CLI</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://kiro.dev/" target="_blank" rel="noopener noreferrer" aria-label="Open Kiro in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/kiro.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Kiro</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://www.trae.ai/" target="_blank" rel="noopener noreferrer" aria-label="Open Trae in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/trae.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Trae</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://mistral.ai/products/vibe" target="_blank" rel="noopener noreferrer" aria-label="Open Mistral Vibe in a new tab">
+        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/mistral-vibe.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Mistral Vibe</div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── SKILLS ANATOMY ────────────────────────────────────────────── -->
+<section class="py-32 max-md:py-20" id="skills">
+  <div class="layout-wrap">
+    <div class="grid grid-cols-1 items-start gap-12 md:grid-cols-2 md:gap-20">
+      <div class="fi opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Content model</div>
+        <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Skills,<br>workflows<br><em class="not-italic text-accent">&amp; rules.</em></h2>
+        <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">
+          Chain Hub organizes AI knowledge into three first-class types. The
+          <strong class="font-semibold text-text">bundled core</strong> gives you a working baseline; everything beyond that is
+          <strong class="font-semibold text-text">yours to define</strong> — so your library stays aligned with how you actually build.
+        </p>
+        <p class="mt-5 text-[13px] leading-[1.75] text-text-dim">
+          <strong class="font-semibold text-text">Skills</strong> are invocable playbooks you add with <code class="text-[rgba(139,124,255,0.62)]">chain new</code> or install from registries and GitHub.
+          <strong class="font-semibold text-text">Workflows</strong> are step-by-step procedures you maintain under your hub.
+          <strong class="font-semibold text-text">Rules</strong> are always-on editor conventions — global or per project.
+          Agents and registry metadata live beside them. Together they form a portable system that scales from solo defaults to a fully custom playbook.
+        </p>
+      </div>
+      <div class="fi grid grid-cols-1 gap-0.5 delay-100 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="border border-border bg-surface p-6 transition-colors hover:border-[rgba(139,124,255,0.26)] md:p-7">
+          <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div class="text-lg leading-none" aria-hidden="true">◈</div>
+            <div class="min-w-0 flex-1 text-[13px] font-medium text-text sm:flex-none">Skills</div>
+            <div class="w-full text-[10px] text-accent sm:ml-auto sm:w-auto sm:text-right">Core starter + unlimited yours</div>
+          </div>
+          <div class="text-xs leading-[1.65] text-text-dim">
+            A few protected core skills ship with the hub; you scaffold the rest with the CLI
+            and tune triggers, sections, and quality gates so assistants pull in exactly your playbooks.
+          </div>
+        </div>
+        <div class="border border-border bg-surface p-6 transition-colors hover:border-[rgba(139,124,255,0.26)] md:p-7">
+          <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div class="text-lg leading-none" aria-hidden="true">⤳</div>
+            <div class="min-w-0 flex-1 text-[13px] font-medium text-text sm:flex-none">Workflows</div>
+            <div class="w-full text-[10px] text-accent sm:ml-auto sm:w-auto sm:text-right">You author the flow</div>
+          </div>
+          <div class="text-xs leading-[1.65] text-text-dim">
+            Core includes example workflows; you add your own markdown procedures for how
+            <em class="not-italic">your</em> team specs, debugs, ships, or reviews — one source of truth, linked everywhere.
+          </div>
+        </div>
+        <div class="border border-border bg-surface p-6 transition-colors hover:border-[rgba(139,124,255,0.26)] md:p-7">
+          <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <div class="text-lg leading-none" aria-hidden="true">⌥</div>
+            <div class="min-w-0 flex-1 text-[13px] font-medium text-text sm:flex-none">Rules</div>
+            <div class="w-full text-[10px] text-accent sm:ml-auto sm:w-auto sm:text-right">Shape every session</div>
+          </div>
+          <div class="text-xs leading-[1.65] text-text-dim">
+            Bundled global rules get you consistent defaults; extend or replace them with your own
+            Markdown rules so tone, stack, and boundaries match your projects.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CLI REFERENCE ─────────────────────────────────────────────── -->
+<section class="border-y border-border py-32 max-md:py-20" id="commands">
+  <div class="layout-wrap">
+    <div class="fi opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">CLI reference</div>
+      <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Everything from<br><em class="not-italic text-accent">one command.</em></h2>
+      <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">The <code class="text-[rgba(139,124,255,0.62)]">chain</code> CLI handles the full lifecycle — from initial setup to publishing new skills.</p>
+    </div>
+    <div class="mt-[60px] grid grid-cols-1 gap-0.5 bg-border sm:grid-cols-2 lg:grid-cols-3">
+      <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain setup">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
+            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
+            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain setup</span>
+          </div>
+        </div>
+        <div class="text-xs leading-[1.6] text-text-dim">Detect all installed IDEs and create or repair symlinks from your hub into each editor.</div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain validate">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
+            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
+            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain validate</span>
+          </div>
+        </div>
+        <div class="text-xs leading-[1.6] text-text-dim">Lint all skill frontmatter and structure. Run before every commit — also enforced as a pre-commit hook.</div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain list">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
+            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
+            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain list</span>
+          </div>
+        </div>
+        <div class="text-xs leading-[1.6] text-text-dim">Show all active skills with their source, type, and sync status across editors.</div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain new slug">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
+            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
+            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain new &lt;slug&gt;</span>
+          </div>
+        </div>
+        <div class="text-xs leading-[1.6] text-text-dim">Scaffold a new skill from the canonical template with correct frontmatter pre-filled.</div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain add github">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
+            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
+            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain add github:…</span>
+          </div>
+        </div>
+        <div class="text-xs leading-[1.6] text-text-dim">Install a skill directly from any GitHub repository. Pulled into your hub and linked instantly.</div>
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain reflect">
+          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
+            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
+            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain reflect</span>
+          </div>
+        </div>
+        <div class="text-xs leading-[1.6] text-text-dim">Analyze recent session logs and surface patterns worth encoding as permanent skills or rules.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── INSTALL ────────────────────────────────────────────────────── -->
+<section class="border-y border-border py-32 max-md:py-20" id="install">
+  <div class="layout-wrap">
+    <div class="grid min-w-0 grid-cols-1 items-start gap-12 md:grid-cols-2 md:gap-20 lg:gap-x-20">
+      <div class="fi min-w-0 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Quick start</div>
+        <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Up in<br><em class="not-italic text-accent">three steps.</em></h2>
+        <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">
+          Clone, initialize core, link editors. Then invest in <strong class="font-semibold text-text">your</strong> skills and rules —
+          the bundled set is a launch pad, not the ceiling. Chain Hub still finds each editor’s paths on its own.
+        </p>
+        <div class="mt-9 flex flex-col [&>div:last-child]:border-b-0">
+          <div class="flex gap-3.5 border-b border-border py-[18px]">
+            <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
+            <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+              <strong>Self-healing</strong> — broken symlinks are automatically repaired on the next <code>chain setup</code>.
+            </div>
+          </div>
+          <div class="flex gap-3.5 border-b border-border py-[18px]">
+            <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
+            <div class="text-xs leading-[1.65] text-text-dim [&_strong]:font-normal [&_strong]:text-text">
+              <strong>Compiled binary</strong> — the CLI builds to a native Bun binary. No runtime required in production.
+            </div>
+          </div>
+          <div class="flex gap-3.5 border-b border-border py-[18px]">
+            <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
+            <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+              <strong>Validated on commit</strong> — the pre-commit hook runs <code>chain validate</code> and blocks broken skills automatically.
+            </div>
+          </div>
+          <div class="flex gap-3.5 border-b border-border py-[18px]">
+            <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
+            <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+              <strong>Extensible</strong> — bring any skill from GitHub with <code>chain add github:owner/repo</code>.
+            </div>
+          </div>
+          <div class="flex gap-3.5 border-b border-border py-[18px]">
+            <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
+            <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
+              <strong>Flexible hub path</strong> — default is <code>~/.chain</code>, or persist your own path with <code>chain config set chain_home &lt;path&gt;</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fi min-w-0 overflow-hidden rounded-md border border-border-bright bg-surface delay-100 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="flex min-w-0 items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-3 sm:px-[18px] sm:py-[11px]">
+          <span class="min-w-0 truncate text-[10px] uppercase tracking-[0.07em] text-text-dim">bash</span>
+          <button class="inline-flex min-h-9 min-w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent font-mono text-[10px] tracking-[0.05em] text-text-faint transition-colors hover:text-accent" id="copy-btn" type="button">copy</button>
+        </div>
+        <div class="overflow-x-auto overscroll-x-contain px-4 py-5 text-[11px] leading-[1.95] sm:px-5 sm:py-6 sm:text-[12.5px] sm:leading-[2]">
+          <span class="block text-text-faint"># 0. Overview: https://www.chainhub.one/</span>
+          <br>
+          <span class="block text-text-faint"># 1. Install Chain Hub globally</span>
+          <div class="flex gap-2">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">npm install -g chain-hub</span>
+          </div>
+          <br>
+          <span class="block text-text-faint"># 2. Initialize your hub</span>
+          <div class="flex gap-2">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain init</span>
+          </div>
+          <br>
+          <span class="block text-text-faint"># 3. Sync all your AI editors in one shot</span>
+          <div class="flex gap-2">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain setup</span>
+          </div>
+          <br>
+          <span class="block text-text-faint"># Optional: persist a custom hub location</span>
+          <div class="flex gap-2">
+            <span class="shrink-0 text-accent">$</span>
+            <span class="text-text">chain config set chain_home ~/my-chain-home</span>
+          </div>
+          <br>
+          <span class="block text-green"># ✓  Claude Code  →  ~/.claude/skills</span>
+          <span class="block text-green"># ✓  Cursor       →  ~/.cursor/rules</span>
+          <span class="block text-green"># ✓  Windsurf     →  ~/.codeium/windsurf</span>
+          <span class="block text-green"># ✓  Gemini CLI   →  ~/.gemini/skills</span>
+          <span class="block text-green"># ✓  Kiro         →  ~/.kiro/skills</span>
+          <span class="block text-green"># ✓  Trae         →  ~/.trae/skills</span>
+          <span class="block text-green"># ✓  Mistral Vibe →  ~/.vibe/skills</span>
+          <br>
+          <span class="block text-accent"># Example: detected IDEs linked. Then extend skills/, workflows/, rules/.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────── -->
+<footer class="border-t border-border py-9 sm:py-11">
+  <div class="layout-wrap flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+    <div class="flex min-w-0 items-center gap-2 font-display text-base font-bold tracking-[-0.055em] text-text-dim sm:text-lg">
+      <svg width="18" height="18" viewBox="0 0 56 56" fill="none" aria-hidden="true" class="size-[18px] shrink-0">
+        <rect x="10" y="10" width="36" height="36" rx="12"
+              stroke="#8b7cff" stroke-width="3" fill="rgba(139,124,255,.1)"/>
+        <path d="M21 22L27 28L21 34"
+              stroke="#8b7cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M31 34H37"
+              stroke="#5ee0a8" stroke-width="3" stroke-linecap="round"/>
+        <path d="M39 13L43 17M43 13L39 17"
+              stroke="#8f96b2" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      Chain Hub
+    </div>
+    <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div class="min-w-0 text-[11px] leading-relaxed text-text-faint">
+        <a href={base} class="text-text-dim no-underline transition-colors hover:text-accent">chainhub.one</a>
+        ·
+        <a href={`${base}docs/`} class="text-text-dim no-underline transition-colors hover:text-accent">Docs</a>
+        ·
+        <a class="inline-flex items-center align-middle leading-none text-text-dim transition-colors hover:text-accent" href="https://github.com/martijnbokma/chain-hub" target="_blank" rel="noopener noreferrer" aria-label="Chain Hub on GitHub">
+          <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.197 22 16.425 22 12.017 22 6.484 17.522 2 12 2z"/></svg>
+        </a>
+        ·
+        Made with <svg class="-mt-0.5 mx-0.5 inline size-3 text-accent align-middle" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="love"><path d="M12 21s-7.2-4.5-9.6-8.4C.4 9.4 1.3 5.5 4.5 4.1 7 3 9.6 3.8 12 6.3 14.4 3.8 17 3 19.5 4.1c3.2 1.4 4.1 5.3 2.1 8.5C19.2 16.5 12 21 12 21Z"/></svg> by <a href="https://martijnbokma.nl" class="text-text-dim no-underline transition-colors hover:text-accent" target="_blank" rel="noopener noreferrer">Martijn Bokma</a>.
+      </div>
+      <a class="inline-flex min-h-10 items-center justify-center self-start rounded-full border border-[rgba(139,124,255,0.35)] bg-[rgba(139,124,255,0.08)] px-4 py-2 text-[11px] font-semibold text-text no-underline transition-[border-color,color,background] hover:border-[rgba(139,124,255,0.65)] hover:bg-[rgba(139,124,255,0.14)] hover:text-accent sm:self-auto" href="https://www.paypal.com/paypalme/martijnbokma" target="_blank" rel="noopener noreferrer">Donate</a>
+    </div>
+  </div>
+</footer>
+
+<script is:inline>
+  const nav = document.getElementById('nav');
+  function syncNav() {
+    if (!nav) return;
+    if (window.scrollY > 36) nav.setAttribute('data-scrolled', 'true');
+    else nav.removeAttribute('data-scrolled');
+  }
+  syncNav();
+  window.addEventListener('scroll', syncNav, { passive: true });
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.fi').forEach(function (el) { io.observe(el); });
+
+  var termLine =
+    'flex items-baseline gap-2 opacity-0 translate-y-[3px] transition-[opacity,transform] duration-[280ms]';
+  var termIndent =
+    'pl-4 opacity-0 translate-y-[3px] transition-[opacity,transform] duration-[280ms]';
+  var termShown = 'opacity-100 translate-y-0';
+
+  var termScript = [
+    { type: 'cmd',   text: 'chain setup' },
+    { type: 'out',   text: '  Scanning for installed IDEs…', cls: 'text-text-dim' },
+    { type: 'out',   text: '  ✓  Claude Code   →  ~/.claude/skills', cls: 'text-green' },
+    { type: 'out',   text: '  ✓  Cursor        →  ~/.cursor/rules',  cls: 'text-green' },
+    { type: 'out',   text: '  ✓  Windsurf      →  ~/.codeium/windsurf', cls: 'text-green' },
+    { type: 'out',   text: '  ✓  Gemini CLI    →  ~/.gemini/skills', cls: 'text-green' },
+    { type: 'out',   text: '  ✓  Kiro          →  ~/.kiro/skills',   cls: 'text-green' },
+    { type: 'out',   text: '  ✓  Trae          →  ~/.trae/skills',   cls: 'text-green' },
+    { type: 'out',   text: '  ✓  Mistral Vibe  →  ~/.vibe/skills', cls: 'text-green' },
+    { type: 'blank' },
+    { type: 'out',   text: '  Hub linked. Core + symlinks ready — build your library (chain new, chain add …).', cls: 'text-accent' },
+    { type: 'cur' },
+  ];
+
+  var termBody = document.getElementById('term-body');
+  var termIdx  = 0;
+
+  function makeSpan(cls, text) {
+    var s = document.createElement('span');
+    s.className = cls;
+    s.textContent = text;
+    return s;
+  }
+
+  function renderTermLine(item) {
+    var el = document.createElement('div');
+    if (item.type === 'cmd') {
+      el.className = termLine;
+      el.appendChild(makeSpan('shrink-0 text-accent', '$'));
+      el.appendChild(makeSpan('inline-flex items-baseline text-text', '\u00a0' + item.text));
+    } else if (item.type === 'cur') {
+      el.className = termLine;
+      el.appendChild(makeSpan('shrink-0 text-accent', '$'));
+      el.appendChild(makeSpan('inline-flex items-baseline text-text', '\u00a0'));
+      var cur = document.createElement('span');
+      cur.className = 'inline-block h-[1.05em] w-[0.55ch] translate-y-px bg-accent animate-blink';
+      el.appendChild(cur);
+    } else if (item.type === 'blank') {
+      el.className = termIndent + ' h-2';
+    } else {
+      el.className = termIndent;
+      el.appendChild(makeSpan(item.cls, item.text));
+    }
+    termBody.appendChild(el);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        termShown.split(' ').forEach(function (c) { el.classList.add(c); });
+      });
+    });
+  }
+
+  function termTick() {
+    if (termIdx >= termScript.length) return;
+    renderTermLine(termScript[termIdx++]);
+    var delay = termIdx === 1 ? 700 : termScript[termIdx - 1].type === 'cmd' ? 320 : 155;
+    setTimeout(termTick, delay);
+  }
+
+  setTimeout(termTick, 560);
+
+  var navMenu = document.getElementById('nav-menu');
+  if (navMenu) {
+    navMenu.querySelectorAll('ul a').forEach(function (a) {
+      a.addEventListener('click', function () { navMenu.removeAttribute('open'); });
+    });
+  }
+
+  document.getElementById('copy-btn').addEventListener('click', function () {
+    var code = [
+      '# Docs: https://www.chainhub.one/',
+      '',
+      '# 1. Install Chain Hub globally',
+      'npm install -g chain-hub',
+      '',
+      '# 2. Initialize your hub',
+      'chain init',
+      '',
+      '# 3. Sync all your AI editors in one shot',
+      'chain setup',
+    ].join('\n');
+    var btn = this;
+    navigator.clipboard.writeText(code).then(function () {
+      btn.textContent = 'copied ✓';
+      setTimeout(function () { btn.textContent = 'copy'; }, 2200);
+    });
+  });
+</script>
+</body>
+</html>

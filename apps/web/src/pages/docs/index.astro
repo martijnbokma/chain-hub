@@ -1,0 +1,274 @@
+---
+export const prerender = true;
+import SiteHeader from '../../components/SiteHeader.astro';
+
+const baseUrl = import.meta.env.BASE_URL;
+
+const headerNavItems = [
+  { href: '#quickstart', label: 'Quickstart' },
+  { href: '#up-to-date', label: 'Updates' },
+  { href: '#location', label: 'Location' },
+  { href: '#install-content', label: 'Content', mobileLabel: 'Content types' },
+  { href: '#concepts', label: 'Concepts' },
+  { href: '#commands', label: 'CLI' },
+  { href: '#troubleshooting', label: 'Troubleshooting', cta: true },
+];
+
+const headerMobilePrefix = [{ href: baseUrl, label: 'Home' }];
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Chain Hub Docs</title>
+  <meta name="description" content="Lightweight Chain Hub documentation: install, quick start, commands, and CHAIN_HOME model.">
+  <link rel="canonical" href="https://www.chainhub.one/docs/">
+  <meta property="og:url" content="https://www.chainhub.one/docs/">
+  <meta property="og:title" content="Chain Hub Docs">
+  <meta property="og:description" content="Install and use Chain Hub quickly: CHAIN_HOME model, quickstart, and command overview.">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="ch-site min-w-0 overflow-x-hidden bg-bg pb-[env(safe-area-inset-bottom,0px)] font-mono text-[13px] leading-[1.65] text-text antialiased [text-size-adjust:100%]">
+
+<SiteHeader items={headerNavItems} mobilePrefix={headerMobilePrefix} />
+
+<div class="relative isolate min-h-dvh">
+  <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_42%_at_72%_12%,rgba(139,124,255,0.11)_0%,transparent_62%),radial-gradient(ellipse_40%_36%_at_12%_28%,rgba(72,176,255,0.06)_0%,transparent_58%)]" aria-hidden="true"></div>
+  <div
+    class="pointer-events-none absolute inset-0 bg-[length:64px_64px] [background-image:linear-gradient(rgba(239,242,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(239,242,255,0.06)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_85%_55%_at_50%_0%,black,transparent_72%)]"
+    aria-hidden="true"
+  ></div>
+
+  <main class="layout-wrap-docs relative z-10">
+    <section class="border-b border-border pb-10 pt-[calc(88px+env(safe-area-inset-top,0px))] max-[680px]:pb-8 max-[680px]:pt-[calc(76px+env(safe-area-inset-top,0px))]">
+      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Documentation</div>
+      <h1 class="mb-5 font-display text-[clamp(34px,5.5vw,54px)] font-bold leading-[1.02] tracking-[-0.06em]">Docs</h1>
+      <p class="max-w-[70ch] text-sm leading-[1.75] text-text-dim">
+        Lightweight reference for Chain Hub — installation, the
+        <code class="rounded-[5px] border border-accent/25 bg-accent/10 px-1.5 py-px text-[12px] text-code-inline">CHAIN_HOME</code> model, and core CLI commands.
+      </p>
+    </section>
+
+    <div class="grid min-w-0 grid-cols-1 gap-6 pb-16 pt-8 max-[860px]:gap-5 max-[860px]:pb-[max(48px,env(safe-area-inset-bottom,0px))] max-[860px]:pt-6 md:grid-cols-[248px_minmax(0,1fr)] md:gap-8 md:pb-20">
+      <aside class="sticky top-[calc(56px+20px+env(safe-area-inset-top,0px))] min-w-0 self-start rounded-[10px] border border-border-bright bg-surface p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] max-[860px]:static max-[860px]:p-3.5" aria-label="Table of contents">
+        <div class="mb-3 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Contents</div>
+        <ul class="m-0 flex list-none flex-col gap-1.5 max-[860px]:flex-row max-[860px]:flex-wrap max-[860px]:gap-2">
+          <li class="m-0"><a href="#quickstart" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">Quickstart</a></li>
+          <li class="m-0"><a href="#up-to-date" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">CLI and hub updates</a></li>
+          <li class="m-0"><a href="#location" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">Choose hub location</a></li>
+          <li class="m-0"><a href="#install-content" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">Install content types</a></li>
+          <li class="m-0"><a href="#concepts" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">Core concepts</a></li>
+          <li class="m-0"><a href="#commands" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">Command overview</a></li>
+          <li class="m-0"><a href="#troubleshooting" class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">Troubleshooting</a></li>
+        </ul>
+      </aside>
+
+      <article class="ch-docs-prose min-w-0 [&_h2]:mb-3 [&_h2]:mt-0 [&_h2]:font-display [&_h2]:text-[clamp(22px,3.2vw,28px)] [&_h2]:font-bold [&_h2]:leading-[1.08] [&_h2]:tracking-[-0.04em] [&_li]:mb-1.5 [&_p]:mb-2.5 [&_p]:text-text-dim [&_section]:mb-5 [&_section]:scroll-mt-[calc(56px+24px+env(safe-area-inset-top,0px))] [&_section]:rounded-[10px] [&_section]:border [&_section]:border-border-bright [&_section]:bg-surface [&_section]:p-6 [&_section]:shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] max-[680px]:[&_section]:mb-4 max-[680px]:[&_section]:p-4 [&_strong]:font-semibold [&_strong]:text-text [&_ul]:ml-[18px] [&_ul]:text-text-dim">
+        <section id="quickstart">
+          <h2>Quickstart</h2>
+          <p>Install from npm, initialize your hub, then link all supported IDEs.</p>
+          <div class="my-3 overflow-hidden rounded-lg border border-border-bright bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+              <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+              <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+              <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+              <span class="ml-2 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">terminal</span>
+            </div>
+            <div class="overflow-x-auto overscroll-x-contain px-3.5 py-3 text-[12.5px] leading-[1.65] text-terminal-fg whitespace-pre [scrollbar-gutter:stable] max-[680px]:p-3 max-[680px]:text-xs">$ npm install -g chain-hub
+$ chain init
+$ chain setup
+$ chain list</div>
+          </div>
+          <p>
+            By default your hub lives at <code>~/.chain</code>. You can override this with
+            <code>CHAIN_HOME</code> when needed.
+          </p>
+        </section>
+
+        <section id="up-to-date">
+          <h2>CLI and hub updates</h2>
+          <p>
+            The <code>chain</code> command is installed from the <code>chain-hub</code> npm package.
+            Update the CLI by running the same global install as for a fresh setup:
+          </p>
+          <div class="my-3 overflow-hidden rounded-lg border border-border-bright bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+              <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+              <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+              <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+              <span class="ml-2 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">terminal</span>
+            </div>
+            <div class="overflow-x-auto overscroll-x-contain px-3.5 py-3 text-[12.5px] leading-[1.65] text-terminal-fg whitespace-pre [scrollbar-gutter:stable] max-[680px]:p-3 max-[680px]:text-xs">$ npm install -g chain-hub
+$ chain --version</div>
+          </div>
+          <p>
+            After upgrading the CLI, run <code>chain init</code> so <code>CHAIN_HOME/core/</code> matches the bundled core in that release.
+            Run <code>chain setup</code> again if release notes mention IDE symlink changes.
+            For skills installed from the registry or GitHub bundles, use <code>chain update</code>.
+          </p>
+        </section>
+
+        <section id="location">
+          <h2>Choose hub location</h2>
+          <p>
+            Users can pick their own hub location while keeping a safe default. Resolution order is:
+          </p>
+          <ul>
+            <li><code>--chain-home &lt;path&gt;</code> (per-command override)</li>
+            <li><code>CHAIN_HOME</code> environment variable</li>
+            <li><code>chain config set chain_home &lt;path&gt;</code> (persisted user config)</li>
+            <li>default <code>~/.chain</code></li>
+          </ul>
+          <div class="my-3 overflow-hidden rounded-lg border border-border-bright bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+              <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+              <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+              <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+              <span class="ml-2 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">terminal</span>
+            </div>
+            <div class="overflow-x-auto overscroll-x-contain px-3.5 py-3 text-[12.5px] leading-[1.65] text-terminal-fg whitespace-pre [scrollbar-gutter:stable] max-[680px]:p-3 max-[680px]:text-xs">$ chain --chain-home ~/.chain-sandbox init
+$ CHAIN_HOME=~/alt-chain-home chain status
+$ chain config set chain_home ~/my-chain-home
+$ chain config get chain_home</div>
+          </div>
+        </section>
+
+        <section id="install-content">
+          <h2>Install content types</h2>
+          <p>
+            Chain Hub supports four main content types. Skills can be installed via CLI; workflows,
+            rules, and agents are installed by placing files in your <code>CHAIN_HOME</code> folders.
+          </p>
+          <div class="my-3 overflow-hidden rounded-lg border border-border-bright bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+              <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+              <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+              <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+              <span class="ml-2 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">terminal</span>
+            </div>
+            <div class="overflow-x-auto overscroll-x-contain px-3.5 py-3 text-[12.5px] leading-[1.65] text-terminal-fg whitespace-pre [scrollbar-gutter:stable] max-[680px]:p-3 max-[680px]:text-xs">$ chain add github:owner/repo
+$ chain new my-skill
+$ chain setup
+$ chain validate</div>
+          </div>
+          <ul>
+            <li><strong>Skills:</strong> install with <code>chain add &lt;slug-or-github-source&gt;</code> or scaffold with <code>chain new &lt;slug&gt;</code>. Stored in <code>CHAIN_HOME/skills/</code>.</li>
+            <li><strong>Workflows:</strong> add workflow markdown files under <code>CHAIN_HOME/workflows/</code>, then run <code>chain setup</code> to sync IDE links.</li>
+            <li><strong>Rules:</strong> add rule files under <code>CHAIN_HOME/rules/</code>, then run <code>chain setup</code> so editors pick up updates.</li>
+            <li><strong>Agents:</strong> add agent definitions under <code>CHAIN_HOME/agents/</code>, then run <code>chain setup</code> to link into supported IDE locations.</li>
+          </ul>
+          <div class="my-3 rounded-md border border-border-bright border-l-[3px] border-l-accent bg-surface-2 px-3 py-2.5 text-sm leading-[1.65] text-text-dim">
+            After adding or updating any content type, use <code>chain validate</code> to catch structure or schema issues before committing or sharing.
+          </div>
+        </section>
+
+        <section id="concepts">
+          <h2>Core concepts</h2>
+          <ul>
+            <li><strong>One source of truth:</strong> all user data belongs in <code>CHAIN_HOME</code>.</li>
+            <li><strong>Protected core:</strong> <code>chain init</code> copies bundled content to <code>CHAIN_HOME/core/</code>.</li>
+            <li><strong>Your content:</strong> create and maintain <code>skills/</code>, <code>agents/</code>, <code>workflows/</code>, <code>rules/</code> at hub root.</li>
+            <li><strong>IDE sync:</strong> <code>chain setup</code> symlinks from hub into editor-specific locations.</li>
+          </ul>
+          <div class="my-3 rounded-md border border-border-bright border-l-[3px] border-l-accent bg-surface-2 px-3 py-2.5 text-sm leading-[1.65] text-text-dim">
+            Tip: treat editor folders as mirrors. Edit and back up <code>CHAIN_HOME</code>, not the linked targets.
+          </div>
+        </section>
+
+        <section id="commands">
+          <h2>Command overview</h2>
+          <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1 max-[560px]:mx-0 max-[560px]:overflow-visible max-[560px]:px-0">
+            <table class="w-full min-w-[560px] border-collapse max-[560px]:block max-[560px]:min-w-0 [&_tbody_td]:border-b [&_tbody_td]:border-border [&_tbody_td]:px-2 [&_tbody_td]:py-2.5 [&_tbody_td]:text-left [&_tbody_td]:align-top [&_tbody_td]:text-text-dim [&_td]:max-[560px]:block [&_td]:max-[560px]:w-full [&_td]:max-[560px]:border-none [&_td]:max-[560px]:p-0 [&_td]:max-[560px]:last:text-sm [&_td]:max-[560px]:last:leading-snug [&_td_code]:max-[560px]:break-words [&_th]:max-[560px]:hidden [&_thead]:max-[560px]:hidden [&_tr]:max-[560px]:mb-2.5 [&_tr]:max-[560px]:block [&_tr]:max-[560px]:rounded-[10px] [&_tr]:max-[560px]:border [&_tr]:max-[560px]:border-border-bright [&_tr]:max-[560px]:bg-surface-2 [&_tr]:max-[560px]:p-3 [&_tr]:max-[560px]:last:mb-0 [&_tr_td:first-child]:max-[560px]:mb-2 [&_tr_td:first-child]:max-[560px]:border-b [&_tr_td:first-child]:max-[560px]:border-border [&_tr_td:first-child]:max-[560px]:pb-2">
+              <thead>
+                <tr><th class="border-b border-border px-2 py-2.5 text-left align-top text-xs uppercase tracking-[0.08em] text-text-dim">Command</th><th class="border-b border-border px-2 py-2.5 text-left align-top text-xs uppercase tracking-[0.08em] text-text-dim">What it does</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>chain init</code></td><td>Installs/refreshes protected core assets in <code>CHAIN_HOME</code>.</td></tr>
+                <tr><td><code>chain setup</code></td><td>Creates or repairs editor symlinks.</td></tr>
+                <tr><td><code>chain status</code></td><td>Shows per-IDE symlink health.</td></tr>
+                <tr><td><code>chain list</code></td><td>Lists installed skills and source labels.</td></tr>
+                <tr><td><code>chain add &lt;slug&gt;</code></td><td>Installs from registry or GitHub source.</td></tr>
+                <tr><td><code>chain update</code></td><td>Refreshes registry and GitHub-bundle skills from their sources.</td></tr>
+                <tr><td><code>chain new &lt;slug&gt;</code></td><td>Scaffolds a new skill.</td></tr>
+                <tr><td><code>chain validate</code></td><td>Validates skills and workflows.</td></tr>
+                <tr><td><code>chain config get|set|unset chain_home</code></td><td>Shows or manages persisted default hub path.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Full detail lives in the CLI docs:
+            <a href="https://github.com/martijnbokma/chain-hub/blob/main/cli/README.md" target="_blank" rel="noopener noreferrer">cli/README.md</a>.
+          </p>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <p><strong><code>chain</code> runs the wrong binary?</strong> Check aliases first.</p>
+          <div class="my-3 overflow-hidden rounded-lg border border-border-bright bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
+              <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
+              <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
+              <span class="size-[7px] rounded-full bg-[#28c840]"></span>
+              <span class="ml-2 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">terminal</span>
+            </div>
+            <div class="overflow-x-auto overscroll-x-contain px-3.5 py-3 text-[12.5px] leading-[1.65] text-terminal-fg whitespace-pre [scrollbar-gutter:stable] max-[680px]:p-3 max-[680px]:text-xs">$ which -a chain
+$ type chain</div>
+          </div>
+          <p>
+            If you see an old alias (for example a Bun dev alias), remove it from your shell profile,
+            then run <code>unalias chain</code> and open a new terminal.
+          </p>
+          <p><strong>npm publish fails with 403 + 2FA?</strong> Enable npm 2FA or use a granular access token with publish rights.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="relative z-10 border-t border-border py-9 sm:py-11">
+    <div class="layout-wrap-docs flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+      <div class="flex min-w-0 items-center gap-2 font-display text-base font-bold tracking-[-0.055em] text-text-dim sm:text-lg">
+        <svg width="18" height="18" viewBox="0 0 56 56" fill="none" aria-hidden="true" class="size-[18px] shrink-0">
+          <rect x="10" y="10" width="36" height="36" rx="12" stroke="#8b7cff" stroke-width="3" fill="rgba(139,124,255,.1)"/>
+          <path d="M21 22L27 28L21 34" stroke="#8b7cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M31 34H37" stroke="#5ee0a8" stroke-width="3" stroke-linecap="round"/>
+          <path d="M39 13L43 17M43 13L39 17" stroke="#8f96b2" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Chain Hub
+      </div>
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-text-faint">
+        <a href={baseUrl} class="text-text-dim no-underline transition-colors hover:text-accent">chainhub.one</a>
+        <span class="text-text-faint" aria-hidden="true">·</span>
+        <a href={`${baseUrl}docs/`} class="text-text-dim no-underline transition-colors hover:text-accent">Docs</a>
+        <span class="text-text-faint" aria-hidden="true">·</span>
+        <a class="inline-flex items-center text-text-dim transition-colors hover:text-accent" href="https://github.com/martijnbokma/chain-hub" target="_blank" rel="noopener noreferrer" aria-label="Chain Hub on GitHub">
+          <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.197 22 16.425 22 12.017 22 6.484 17.522 2 12 2z"/></svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script is:inline>
+  const nav = document.getElementById('nav');
+  function syncNavDocs() {
+    if (!nav) return;
+    if (window.scrollY > 36) nav.setAttribute('data-scrolled', 'true');
+    else nav.removeAttribute('data-scrolled');
+  }
+  syncNavDocs();
+  window.addEventListener('scroll', syncNavDocs, { passive: true });
+
+  const navMenu = document.getElementById('nav-menu');
+  if (navMenu) {
+    navMenu.querySelectorAll('ul a').forEach(function (a) {
+      a.addEventListener('click', function () { navMenu.removeAttribute('open'); });
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+---
+import '../styles/global.css';
+
+export interface SiteHeaderNavItem {
+  href: string;
+  label: string;
+  /** Optional longer label in the mobile drawer (e.g. "Content types" vs "Content"). */
+  mobileLabel?: string;
+  cta?: boolean;
+}
+
+interface Props {
+  items: SiteHeaderNavItem[];
+  /** Inserted at the top of the mobile menu only (e.g. Home on docs). */
+  mobilePrefix?: SiteHeaderNavItem[];
+}
+
+const { items, mobilePrefix = [] } = Astro.props;
+
+/** Root of this deployment (e.g. `/` locally and in prod; respects `base` if set). */
+const homeHref = import.meta.env.BASE_URL;
+
+const desktopLinkClass =
+  'text-text-dim no-underline text-[11px] tracking-[0.1em] uppercase transition-colors hover:text-text';
+const desktopCtaClass =
+  'border border-[rgba(139,124,255,0.26)] px-4 py-[7px] !text-accent no-underline text-[11px] tracking-[0.1em] uppercase transition-[background,border-color] hover:!border-accent hover:!bg-[rgba(139,124,255,0.13)]';
+const mobileLinkClass =
+  'block min-h-11 rounded-lg px-3.5 py-3 text-[13px] uppercase tracking-[0.06em] text-text-dim no-underline hover:bg-[rgba(139,124,255,0.12)] hover:text-text';
+const mobileCtaClass =
+  'mt-1 block min-h-11 rounded-lg border border-[rgba(139,124,255,0.35)] px-3.5 py-3 text-center !text-accent text-[13px] uppercase tracking-[0.06em] no-underline hover:bg-[rgba(139,124,255,0.12)]';
+---
+
+<nav
+  id="nav"
+  class="fixed top-0 right-0 left-0 z-[200] border-b border-transparent py-3 pt-[calc(12px+env(safe-area-inset-top,0px))] transition-[background,border-color] duration-300 min-[681px]:py-[18px] min-[681px]:pt-[calc(18px+env(safe-area-inset-top,0px))] data-[scrolled=true]:border-border data-[scrolled=true]:bg-[rgba(8,8,12,0.82)] data-[scrolled=true]:backdrop-blur-[18px]"
+>
+  <div class="layout-wrap flex items-center justify-between gap-3">
+    <a
+      href={homeHref}
+      class="flex min-h-11 min-w-0 items-center gap-2 sm:gap-[9px] font-display text-base font-bold tracking-[-0.055em] text-text no-underline sm:text-lg"
+      aria-label="Chain Hub home"
+    >
+      <svg width="22" height="22" viewBox="0 0 56 56" fill="none" aria-hidden="true" class="size-8 shrink-0 sm:size-9">
+        <rect x="10" y="10" width="36" height="36" rx="12" stroke="#8b7cff" stroke-width="3" fill="rgba(139,124,255,.1)"></rect>
+        <path
+          d="M21 22L27 28L21 34"
+          stroke="#8b7cff"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"></path>
+        <path d="M31 34H37" stroke="#5ee0a8" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M39 13L43 17M43 13L39 17" stroke="#8f96b2" stroke-width="1.8" stroke-linecap="round"></path>
+      </svg>
+      Chain Hub
+    </a>
+    <ul class="hidden min-[681px]:flex list-none items-center gap-8" aria-label="Global">
+      {
+        items.map((item) => (
+          <li>
+            {item.cta ? (
+              <a href={item.href} class={desktopCtaClass}>
+                {item.label}
+              </a>
+            ) : (
+              <a href={item.href} class={desktopLinkClass}>
+                {item.label}
+              </a>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+    <details
+      class="group/nav relative block min-[681px]:hidden"
+      id="nav-menu"
+    >
+      <summary
+        class="flex h-11 w-11 shrink-0 cursor-pointer list-none items-center justify-center rounded-xl border border-border bg-gradient-to-b from-surface to-surface-2 text-text-dim shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[border-color,background,color,box-shadow,transform] duration-200 ease-out hover:border-[rgba(139,124,255,0.32)] hover:text-text hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_20px_rgba(139,124,255,0.08)] active:scale-[0.96] group-open/nav:border-[rgba(139,124,255,0.45)] group-open/nav:text-accent group-open/nav:shadow-[inset_0_1px_0_rgba(139,124,255,0.12),0_0_24px_rgba(139,124,255,0.12)] [&::-webkit-details-marker]:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none motion-reduce:active:scale-100"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="flex w-[19px] flex-col gap-[5px] motion-reduce:gap-1.5" aria-hidden="true">
+          <span
+            class="h-0.5 w-full origin-center rounded-full bg-current transition duration-200 ease-out motion-reduce:transition-none group-open/nav:translate-y-[7px] group-open/nav:rotate-45 motion-reduce:group-open/nav:translate-y-0 motion-reduce:group-open/nav:rotate-0"
+          ></span>
+          <span
+            class="h-0.5 w-full rounded-full bg-current transition duration-200 ease-out motion-reduce:transition-none group-open/nav:scale-x-0 group-open/nav:opacity-0 motion-reduce:group-open/nav:scale-x-100 motion-reduce:group-open/nav:opacity-100"
+          ></span>
+          <span
+            class="h-0.5 w-full origin-center rounded-full bg-current transition duration-200 ease-out motion-reduce:transition-none group-open/nav:-translate-y-[7px] group-open/nav:-rotate-45 motion-reduce:group-open/nav:translate-y-0 motion-reduce:group-open/nav:rotate-0"
+          ></span>
+        </span>
+      </summary>
+      <ul
+        class="absolute top-[calc(100%+8px)] right-0 z-[300] max-h-[min(70vh,520px)] w-[min(calc(100vw-2rem),320px)] list-none overflow-y-auto rounded-xl border border-border bg-surface-2 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
+      >
+        {
+          mobilePrefix.map((item) => (
+            <li class="m-0">
+              <a href={item.href} class={item.cta ? mobileCtaClass : mobileLinkClass}>
+                {item.mobileLabel ?? item.label}
+              </a>
+            </li>
+          ))
+        }
+        {
+          items.map((item) => (
+            <li class="m-0">
+              <a href={item.href} class={item.cta ? mobileCtaClass : mobileLinkClass}>
+                {item.mobileLabel ?? item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </details>
+  </div>
+</nav>
