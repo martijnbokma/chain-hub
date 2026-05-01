@@ -11,7 +11,7 @@ export async function runRemove(slug: string): Promise<void> {
 
   if (isProtectedCoreSkill(slug)) {
     throw new UserError(
-      `'${slug}' is a protected Chain core skill and cannot be removed.\n  Core skills keep Chain Hub functional. Remove only user-installed skills.`,
+      `'${slug}' is a protected Chain Hub core skill and cannot be removed.\n  Core skills keep Chain Hub functional. Remove only user-installed skills.`,
     )
   }
 

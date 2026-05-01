@@ -1,13 +1,14 @@
 import kleur from "kleur"
 import { allAdapters } from "../adapters"
-import { getChainHome } from "../utils/chain-home"
+import { getChainHomeResolution } from "../utils/chain-home"
 import { isSymlink } from "../utils/fs"
 import { realpathSync } from "fs"
 
 export async function runStatus(): Promise<void> {
-  const chainHome = getChainHome()
+  const resolution = getChainHomeResolution()
+  const chainHome = resolution.path
   console.log(kleur.bold("\n🔍 chain status"))
-  console.log(kleur.dim(`   CHAIN_HOME: ${chainHome}\n`))
+  console.log(kleur.dim(`   CHAIN_HOME: ${chainHome} (${resolution.source})\n`))
 
   let hasErrors = false
 

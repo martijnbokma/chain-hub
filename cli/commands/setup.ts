@@ -47,8 +47,7 @@ export async function runSetup(opts: { ide?: string } = {}): Promise<void> {
       for (const link of adapter.links(chainHome)) {
         try {
           const result = forceRelink(link.from, link.to)
-          const icon = result === "skipped" ? "✓" : "📦"
-          console.log(kleur.green("    " + icon + " " + link.description + " (" + result + ")"))
+          console.log(kleur.green("    " + link.description + " (" + result + ")"))
         } catch (err) {
           console.error(kleur.red("    ❌ Failed to link " + link.description))
         }
@@ -64,5 +63,5 @@ export async function runSetup(opts: { ide?: string } = {}): Promise<void> {
     )
   }
 
-  console.log(kleur.green("\n  ✓ Setup complete! Chain Hub V2 is synchronized.\n"))
+  console.log(kleur.green("\n  ✓ Setup complete! Chain Hub is synchronized.\n"))
 }

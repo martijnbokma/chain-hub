@@ -2,114 +2,165 @@
 import { Command } from "commander"
 import { readCliVersion } from "./utils/cli-version"
 
+function withChainHomeOption<T extends Command>(command: T): T {
+  return command.option("--chain-home <path>", "Override CHAIN_HOME for this command")
+}
+
+function applyChainHomeOverrideFromArgv(argv: string[]): string[] {
+  const nextArgv: string[] = []
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === "--chain-home") {
+      const value = argv[i + 1]
+      if (value && !value.startsWith("-")) {
+        process.env.CHAIN_HOME = value
+        i++
+        continue
+      }
+    }
+
+    if (arg.startsWith("--chain-home=")) {
+      process.env.CHAIN_HOME = arg.slice("--chain-home=".length)
+      continue
+    }
+
+    nextArgv.push(arg)
+  }
+  return nextArgv
+}
+
 ;(async () => {
+  const argv = applyChainHomeOverrideFromArgv(process.argv)
+
   const program = new Command()
     .name("chain")
-    .description("Manage AI agent skills across IDEs")
+    .description("Chain Hub — manage AI agent skills across IDEs")
     .version(readCliVersion())
+    .addHelpText(
+      "after",
+      `
+Hub location resolution:
+  1) --chain-home <path>     (per command override)
+  2) CHAIN_HOME env var
+  3) chain config set chain_home <path>
+  4) ~/.chain (default)
+`,
+    )
 
-  program
-    .command("init")
-    .description("Initialize protected Chain core assets")
+  withChainHomeOption(
+    program.command("init")
+    .description("Initialize protected Chain Hub core assets")
     .action(async () => {
       const { runInit } = await import("./commands/init")
       await runInit()
-    })
+    }),
+  )
 
-  program
-    .command("setup")
+  withChainHomeOption(
+    program.command("setup")
     .description("Create symlinks for all detected IDEs")
     .option("--ide <name>", "Only set up a specific IDE")
     .action(async (opts) => {
       const { runSetup } = await import("./commands/setup")
       await runSetup(opts)
-    })
+    }),
+  )
 
-  program
-    .command("status")
+  withChainHomeOption(
+    program.command("status")
     .description("Show symlink health per IDE")
     .action(async () => {
       const { runStatus } = await import("./commands/status")
       await runStatus()
-    })
+    }),
+  )
 
-  program
-    .command("add <slug>")
+  withChainHomeOption(
+    program.command("add <slug>")
     .description("Install a skill from registry or github:<owner>/<repo>")
     .option("--skill <name>", "Install only a specific skill from the source")
     .action(async (slug, opts) => {
       const { runAdd } = await import("./commands/add")
       await runAdd(slug, opts)
-    })
+    }),
+  )
 
-  program
-    .command("remove <slug>")
+  withChainHomeOption(
+    program.command("remove <slug>")
     .description("Remove an installed skill")
     .action(async (slug) => {
       const { runRemove } = await import("./commands/remove")
       await runRemove(slug)
-    })
+    }),
+  )
 
-  program
-    .command("list")
+  withChainHomeOption(
+    program.command("list")
     .description("List all skills with source label")
     .action(async () => {
       const { runList } = await import("./commands/list")
       await runList()
-    })
+    }),
+  )
 
-  program
-    .command("search <query>")
+  withChainHomeOption(
+    program.command("search <query>")
     .description("Search skills in all registries")
     .action(async (query) => {
       const { runSearch } = await import("./commands/search")
       await runSearch(query)
-    })
+    }),
+  )
 
-  program
-    .command("new <slug>")
+  withChainHomeOption(
+    program.command("new <slug>")
     .description("Scaffold a new skill from template")
     .action(async (slug) => {
       const { runNew } = await import("./commands/new")
       await runNew(slug)
-    })
+    }),
+  )
 
-  program
-    .command("validate")
+  withChainHomeOption(
+    program.command("validate")
     .description("Validate skills and workflows")
     .option("--fix", "Try to auto-fix issues after validation")
     .action(async (opts) => {
       const { runValidate } = await import("./commands/validate")
       await runValidate(opts)
-    })
+    }),
+  )
 
-  program
-    .command("update")
+  withChainHomeOption(
+    program.command("update")
     .description("Update installed skills from their source (registry or GitHub)")
     .action(async () => {
       const { runUpdate } = await import("./commands/update")
       await runUpdate()
-    })
+    }),
+  )
 
-  program
-    .command("fix")
+  withChainHomeOption(
+    program.command("fix")
     .description("Auto-fix missing sections and frontmatter in skills and workflows")
     .action(async () => {
       const { runFix } = await import("./commands/fix")
       await runFix()
-    })
+    }),
+  )
 
-  program
-    .command("reflect")
+  withChainHomeOption(
+    program.command("reflect")
     .description("Analyze recent learnings and propose improvements")
     .option("--dry-run", "Only show what would be analyzed")
     .action(async (opts) => {
       const { runReflect } = await import("./commands/reflect")
       await runReflect(opts)
-    })
+    }),
+  )
 
-  program
-    .command("capture")
+  withChainHomeOption(
+    program.command("capture")
     .description("Record a learning event (success, failure, correction, note)")
     .requiredOption("--event <type>", "Event type (success|failure|correction|note)")
     .requiredOption("--skill <slug>", "Skill slug (e.g. bug-fix)")
@@ -118,18 +169,46 @@ import { readCliVersion } from "./utils/cli-version"
     .action(async (opts) => {
       const { runCapture } = await import("./commands/capture")
       await runCapture(opts)
-    })
+    }),
+  )
 
-  program
-    .command("fetch-prompts")
+  withChainHomeOption(
+    program.command("fetch-prompts")
     .description("Download design-style prompts from designprompts.dev")
     .action(async () => {
       const { runFetchPrompts } = await import("./commands/fetch-prompts")
       await runFetchPrompts()
+    }),
+  )
+
+  const configProgram = program.command("config").description("Manage Chain Hub configuration")
+
+  configProgram
+    .command("get <key>")
+    .description("Get a config value (supported: chain_home)")
+    .action(async (key) => {
+      const { runConfigGet } = await import("./commands/config")
+      await runConfigGet(key)
+    })
+
+  configProgram
+    .command("set <key> <value>")
+    .description("Set a config value (supported: chain_home)")
+    .action(async (key, value) => {
+      const { runConfigSet } = await import("./commands/config")
+      await runConfigSet(key, value)
+    })
+
+  configProgram
+    .command("unset <key>")
+    .description("Unset a config value (supported: chain_home)")
+    .action(async (key) => {
+      const { runConfigUnset } = await import("./commands/config")
+      await runConfigUnset(key)
     })
 
   try {
-    await program.parseAsync()
+    await program.parseAsync(argv)
   } catch (error) {
     const { default: kleur } = await import("kleur")
     const { UserError } = await import("./utils/errors")

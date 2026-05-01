@@ -1,13 +1,13 @@
 ---
-description: Guided first-run tour for Chain — init, setup, list, validate, and where content lives.
+description: Guided first-run tour for Chain Hub — init, setup, list, validate, and where content lives.
 version: 1
 ---
 
-# Chain quickstart
+# Chain Hub quickstart
 
 ## When to Use
 
-- Right after installing Chain from npm or cloning the tooling repo.
+- Right after installing Chain Hub from npm or cloning the tooling repo.
 - When a user says they “don’t know where skills/workflows live” or symlinks seem wrong.
 - Before adding custom skills so the home directory layout is clear.
 
@@ -37,7 +37,7 @@ version: 1
 
 4. **Inspect inventory**  
    - Run: `chain list`  
-   - Explain: **protected core** skills ship with Chain; user skills live in `CHAIN_HOME/skills/<slug>/`.
+   - Explain: **protected core** skills ship with Chain Hub; user skills live in `CHAIN_HOME/skills/<slug>/`.
 
 5. **Validate**  
    - Run: `chain validate`  

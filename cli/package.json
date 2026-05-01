@@ -1,7 +1,7 @@
 {
   "name": "chain-hub",
-  "version": "0.1.0",
-  "description": "CLI for managing AI agent skills across IDEs",
+  "version": "0.1.1",
+  "description": "Chain Hub CLI — manage AI agent skills across IDEs",
   "type": "module",
   "bin": {
     "chain": "dist/chain.js"

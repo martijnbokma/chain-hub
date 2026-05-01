@@ -52,7 +52,7 @@ export async function runList(): Promise<void> {
     userWorkflowSlugs.length > 0
 
   if (!hasAnything) {
-    console.log(kleur.yellow("\n  No Chain content found. Run 'chain init' and then 'chain setup'.\n"))
+    console.log(kleur.yellow("\n  No Chain Hub content found. Run 'chain init' and then 'chain setup'.\n"))
     return
   }
 

@@ -65,7 +65,7 @@ Use the narrowest event that matches the user's goal.
 - **Block or rewrite a specific tool call** -> `preToolUse`
 - **Add follow-up context after a tool succeeds** -> `postToolUse`
 - **Control whether subagents can run** -> `subagentStart`
-- **Chain subagent loops** -> `subagentStop`
+- **Chain Hub subagent loops** -> `subagentStop`
 - **Check prompts for secrets or policy violations** -> `beforeSubmitPrompt`
 - **Protect MCP calls** -> `beforeMCPExecution`
 

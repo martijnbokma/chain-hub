@@ -1,5 +1,5 @@
 import kleur from "kleur"
-import { getChainHome } from "../utils/chain-home"
+import { getChainHomeResolution } from "../utils/chain-home"
 import { validateProject } from "../utils/validation"
 
 interface ValidateOptions {
@@ -7,10 +7,11 @@ interface ValidateOptions {
 }
 
 export async function runValidate(opts: ValidateOptions = {}): Promise<void> {
-  const chainHome = getChainHome()
+  const resolution = getChainHomeResolution()
+  const chainHome = resolution.path
   
   console.log(kleur.bold("\n🔍 chain validate"))
-  console.log(kleur.dim(`   CHAIN_HOME: ${chainHome}\n`))
+  console.log(kleur.dim(`   CHAIN_HOME: ${chainHome} (${resolution.source})\n`))
 
   const result = validateProject(chainHome)
 
