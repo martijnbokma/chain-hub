@@ -61,6 +61,8 @@ If anything looks wrong, run **`chain validate`** (and **`chain init`** first if
 
 ## Contributing (developers)
 
+**Branching and pre-merge checks:** **[CONTRIBUTING.md](CONTRIBUTING.md)** (solo-friendly workflow: feature branches, stable `main`).
+
 ```bash
 cd cli
 bun install
