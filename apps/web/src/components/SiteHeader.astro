@@ -13,9 +13,14 @@ interface Props {
   items: SiteHeaderNavItem[];
   /** Inserted at the top of the mobile menu only (e.g. Home on docs). */
   mobilePrefix?: SiteHeaderNavItem[];
+  /**
+   * `inline`: horizontal links on desktop (default).
+   * `menu`: desktop shows prefix links + one “Sections” dropdown — use for long in-page TOCs (e.g. docs).
+   */
+  desktopNavMode?: 'inline' | 'menu';
 }
 
-const { items, mobilePrefix = [] } = Astro.props;
+const { items, mobilePrefix = [], desktopNavMode = 'inline' } = Astro.props;
 
 /** Root of this deployment (e.g. `/` locally and in prod; respects `base` if set). */
 const homeHref = import.meta.env.BASE_URL;
@@ -28,6 +33,12 @@ const mobileLinkClass =
   'block min-h-11 rounded-lg px-3.5 py-3 text-[13px] uppercase tracking-[0.06em] text-text-dim no-underline hover:bg-[rgba(139,124,255,0.12)] hover:text-text';
 const mobileCtaClass =
   'mt-1 block min-h-11 rounded-lg border border-[rgba(139,124,255,0.35)] px-3.5 py-3 text-center !text-accent text-[13px] uppercase tracking-[0.06em] no-underline hover:bg-[rgba(139,124,255,0.12)]';
+const desktopMenuSummaryClass =
+  'flex h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-gradient-to-b from-surface to-surface-2 px-3.5 py-0 text-[11px] font-medium uppercase tracking-[0.1em] text-text-dim shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[border-color,background,color,box-shadow] duration-200 hover:border-[rgba(139,124,255,0.32)] hover:text-text [&::-webkit-details-marker]:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent group-open/menu:border-[rgba(139,124,255,0.45)] group-open/menu:text-accent';
+const desktopMenuLinkClass =
+  'block rounded-md px-3 py-2 text-[12px] uppercase tracking-[0.06em] text-text-dim no-underline hover:bg-[rgba(139,124,255,0.12)] hover:text-text';
+const desktopMenuCtaClass =
+  'mt-0.5 block rounded-md border border-[rgba(139,124,255,0.35)] px-3 py-2.5 text-center text-[12px] uppercase tracking-[0.06em] !text-accent no-underline hover:bg-[rgba(139,124,255,0.12)]';
 ---
 
 <nav
@@ -53,7 +64,13 @@ const mobileCtaClass =
       </svg>
       Chain Hub
     </a>
-    <ul class="hidden min-[681px]:flex list-none items-center gap-8" aria-label="Global">
+    <ul
+      class:list={[
+        'list-none items-center gap-8',
+        desktopNavMode === 'menu' ? 'hidden' : 'hidden min-[681px]:flex',
+      ]}
+      aria-label="Global"
+    >
       {
         items.map((item) => (
           <li>
@@ -70,6 +87,42 @@ const mobileCtaClass =
         ))
       }
     </ul>
+    <div
+      class:list={[
+        'items-center gap-2',
+        desktopNavMode === 'menu' ? 'hidden min-[681px]:flex' : 'hidden',
+      ]}
+    >
+      {
+        mobilePrefix.map((item) => (
+          <a href={item.href} class={desktopLinkClass}>
+            {item.mobileLabel ?? item.label}
+          </a>
+        ))
+      }
+      <details class="group/menu relative">
+        <summary class={desktopMenuSummaryClass}>
+          <span>Sections</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" class="text-text-faint transition group-open/menu:rotate-180">
+            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </summary>
+        <ul
+          class="absolute top-[calc(100%+8px)] right-0 z-[300] max-h-[min(70vh,480px)] w-[min(calc(100vw-2rem),280px)] list-none overflow-y-auto rounded-xl border border-border bg-surface-2 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
+          aria-label="Page sections"
+        >
+          {
+            items.map((item) => (
+              <li class="m-0">
+                <a href={item.href} class={item.cta ? desktopMenuCtaClass : desktopMenuLinkClass}>
+                  {item.mobileLabel ?? item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </details>
+    </div>
     <details
       class="group/nav relative block min-[681px]:hidden"
       id="nav-menu"

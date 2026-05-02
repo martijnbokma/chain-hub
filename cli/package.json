@@ -1,6 +1,6 @@
 {
   "name": "chain-hub",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Chain Hub CLI — manage AI agent skills across IDEs",
   "type": "module",
   "bin": {

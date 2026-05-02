@@ -11,17 +11,18 @@ Manage AI agent skills and IDE symlinks from one place with **Chain Hub**. Publi
 
 ## Installation (from this repo)
 
-Replace `<REPO_ROOT>` with wherever you cloned the repository (for example `~/Code/chain-hub`).
+Replace `<REPO_ROOT>` with wherever you cloned the repository (for example `~/Code/side-projects/chain-hub`).
 
 ```bash
 cd <REPO_ROOT>/cli
 bun install
 ```
 
-**Run without a global install** — add to `~/.zshrc` or `~/.bashrc`:
+**Run without a global install** — add to `~/.zshrc` or `~/.bashrc` (set `CHAIN_HUB_REPO` once so moving the clone only updates one line):
 
 ```bash
-alias chain="bun run <REPO_ROOT>/cli/chain.ts"
+export CHAIN_HUB_REPO="$HOME/Code/side-projects/chain-hub"
+alias chain="bun run $CHAIN_HUB_REPO/cli/chain.ts"
 ```
 
 **Or** build a single file and put it on your `PATH`:

@@ -40,7 +40,7 @@ const headerMobilePrefix = [{ href: baseUrl, label: 'Home' }];
 </head>
 <body class="ch-site min-w-0 overflow-x-hidden bg-bg pb-[env(safe-area-inset-bottom,0px)] font-mono text-[13px] leading-[1.65] text-text antialiased [text-size-adjust:100%]">
 
-<SiteHeader items={headerNavItems} mobilePrefix={headerMobilePrefix} />
+<SiteHeader items={headerNavItems} mobilePrefix={headerMobilePrefix} desktopNavMode="menu" />
 
 <div class="relative isolate min-h-dvh">
   <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_42%_at_72%_12%,rgba(139,124,255,0.11)_0%,transparent_62%),radial-gradient(ellipse_40%_36%_at_12%_28%,rgba(72,176,255,0.06)_0%,transparent_58%)]" aria-hidden="true"></div>
@@ -227,7 +227,8 @@ const headerMobilePrefix = [{ href: baseUrl, label: 'Home' }];
           <p><strong><code>chain</code> runs the wrong binary?</strong> Check aliases first.</p>
           <TerminalBlock code={`$ which -a chain\n$ type chain`} />
           <p>
-            If you see an old alias (for example a Bun dev alias), remove it from your shell profile,
+            If you see an old alias (for example <code>bun run …/Code/chain/cli/chain.ts</code> after renaming or moving the monorepo),
+            update <code>CHAIN_HUB_REPO</code> / the alias target to your current clone (see <code>cli/README.md</code>), remove the stale line from your shell profile,
             then run <code>unalias chain</code> and open a new terminal.
           </p>
           <p><strong>npm publish fails with 403 + 2FA?</strong> Enable npm 2FA or use a granular access token with publish rights.</p>
