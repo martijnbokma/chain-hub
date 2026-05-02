@@ -1,4 +1,5 @@
 ---
+import TerminalCommand from "../TerminalCommand.astro";
 ---
 <!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
 <section class="py-32 max-md:py-20" id="how">
@@ -22,17 +23,7 @@
           <code>chain init</code> to refresh bundled core (see
           <a href="/docs/#up-to-date">docs</a>).
         </div>
-        <div class="mt-auto overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]" aria-label="Terminal command: npm install -g chain-hub">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
-            <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
-            <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
-            <span class="size-[7px] rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3.5 py-3 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">npm install -g chain-hub</span>
-          </div>
-        </div>
+        <TerminalCommand command="npm install -g chain-hub" class="mt-auto" />
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
         <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">02</div>
@@ -41,17 +32,7 @@
           Run <code>chain init</code> to install the protected
           <code>core/</code> into your <code>CHAIN_HOME</code>.
         </div>
-        <div class="mt-auto overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]" aria-label="Terminal command: chain init">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
-            <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
-            <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
-            <span class="size-[7px] rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3.5 py-3 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain init</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain init" class="mt-auto" />
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
         <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">03</div>
@@ -61,17 +42,7 @@
           Then maintain your playbooks in <code>skills/</code>,
           <code>workflows/</code>, and <code>rules/</code>.
         </div>
-        <div class="mt-auto overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]" aria-label="Terminal command: chain setup">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-3 py-2" aria-hidden="true">
-            <span class="size-[7px] rounded-full bg-[#ff5f57]"></span>
-            <span class="size-[7px] rounded-full bg-[#febc2e]"></span>
-            <span class="size-[7px] rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3.5 py-3 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain setup</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain setup" class="mt-auto" />
       </div>
     </div>
   </div>

@@ -94,44 +94,30 @@ function printSkillsSection(
   )
 }
 
-function printAgentsSection(chainHome: string, protectedCoreAgents: string[], userAgentSlugs: string[]): void {
-  console.log(kleur.bold("\n  Protected core agents (" + protectedCoreAgents.length + " total)\n"))
-  for (const slug of protectedCoreAgents) {
-    console.log("  " + kleur.blue("●") + " " + slug + "  " + kleur.dim("(agents/" + slug + ".md)"))
-  }
-
-  console.log(
-    kleur.bold("\n  User agents in " + chainHome + "/agents/ (" + userAgentSlugs.length + " total)\n"),
-  )
-  for (const slug of userAgentSlugs) {
-    console.log("  " + kleur.green("●") + " " + slug + "  " + kleur.dim("(agents/" + slug + ".md)"))
-  }
-
-  console.log(
-    kleur.dim(
-      "\n  Agents are markdown files linked into your IDE (~/.cursor/agents, ~/.claude/agents, ~/.agents/agents).\n",
-    ),
-  )
+const ASSET_FOOTER: Record<"agents" | "workflows", string> = {
+  agents: "\n  Agents are markdown files linked into your IDE (~/.cursor/agents, ~/.claude/agents, ~/.agents/agents).\n",
+  workflows: "\n  Workflows are linked per IDE (e.g. Claude Code commands, Windsurf global_workflows).\n",
 }
 
-function printWorkflowsSection(chainHome: string, protectedCoreWorkflows: string[], userWorkflowSlugs: string[]): void {
-  console.log(kleur.bold("\n  Protected core workflows (" + protectedCoreWorkflows.length + " total)\n"))
-  for (const slug of protectedCoreWorkflows) {
-    console.log("  " + kleur.blue("●") + " " + slug + "  " + kleur.dim("(workflows/" + slug + ".md)"))
+function printAssetSection(
+  type: "agents" | "workflows",
+  chainHome: string,
+  protectedItems: string[],
+  userItems: string[],
+): void {
+  console.log(kleur.bold("\n  Protected core " + type + " (" + protectedItems.length + " total)\n"))
+  for (const slug of protectedItems) {
+    console.log("  " + kleur.blue("●") + " " + slug + "  " + kleur.dim("(" + type + "/" + slug + ".md)"))
   }
 
   console.log(
-    kleur.bold("\n  User workflows in " + chainHome + "/workflows/ (" + userWorkflowSlugs.length + " total)\n"),
+    kleur.bold("\n  User " + type + " in " + chainHome + "/" + type + "/ (" + userItems.length + " total)\n"),
   )
-  for (const slug of userWorkflowSlugs) {
-    console.log("  " + kleur.green("●") + " " + slug + "  " + kleur.dim("(workflows/" + slug + ".md)"))
+  for (const slug of userItems) {
+    console.log("  " + kleur.green("●") + " " + slug + "  " + kleur.dim("(" + type + "/" + slug + ".md)"))
   }
 
-  console.log(
-    kleur.dim(
-      "\n  Workflows are linked per IDE (e.g. Claude Code commands, Windsurf global_workflows).\n",
-    ),
-  )
+  console.log(kleur.dim(ASSET_FOOTER[type]))
 }
 
 function printBundlesSection(bundles: Array<{ github: string; credits: string; skills?: string[] }>): void {
@@ -212,11 +198,11 @@ export async function runList(): Promise<void> {
   }
 
   if (protectedCoreAgents.length > 0 || userAgentSlugs.length > 0) {
-    printAgentsSection(chainHome, protectedCoreAgents, userAgentSlugs)
+    printAssetSection("agents", chainHome, protectedCoreAgents, userAgentSlugs)
   }
 
   if (protectedCoreWorkflows.length > 0 || userWorkflowSlugs.length > 0) {
-    printWorkflowsSection(chainHome, protectedCoreWorkflows, userWorkflowSlugs)
+    printAssetSection("workflows", chainHome, protectedCoreWorkflows, userWorkflowSlugs)
   }
 
   const bundles = registry.github_sources || []

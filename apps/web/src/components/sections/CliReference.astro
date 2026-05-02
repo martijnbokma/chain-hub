@@ -1,4 +1,5 @@
 ---
+import TerminalCommand from "../TerminalCommand.astro";
 ---
 <!-- ── CLI REFERENCE ─────────────────────────────────────────────── -->
 <section class="border-y border-border py-32 max-md:py-20" id="commands">
@@ -10,87 +11,27 @@
     </div>
     <div class="mt-[60px] grid grid-cols-1 gap-0.5 bg-border sm:grid-cols-2 lg:grid-cols-3">
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain setup">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
-            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
-            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
-            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain setup</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain setup" size="sm" class="mb-4" />
         <div class="text-xs leading-[1.6] text-text-dim">Detect all installed IDEs and create or repair symlinks from your hub into each editor.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain validate">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
-            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
-            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
-            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain validate</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain validate" size="sm" class="mb-4" />
         <div class="text-xs leading-[1.6] text-text-dim">Lint all skill frontmatter and structure. Run before every commit — also enforced as a pre-commit hook.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain list">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
-            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
-            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
-            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain list</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain list" size="sm" class="mb-4" />
         <div class="text-xs leading-[1.6] text-text-dim">Show all active skills with their source, type, and sync status across editors.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain new slug">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
-            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
-            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
-            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain new &lt;slug&gt;</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain new <slug>" size="sm" class="mb-4" />
         <div class="text-xs leading-[1.6] text-text-dim">Scaffold a new skill from the canonical template with correct frontmatter pre-filled.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain add github">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
-            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
-            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
-            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain add github:…</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain add github:…" size="sm" class="mb-4" />
         <div class="text-xs leading-[1.6] text-text-dim">Install a skill directly from any GitHub repository. Pulled into your hub and linked instantly.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-4 overflow-hidden rounded-lg border border-border bg-[#060814] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" aria-label="Terminal command: chain reflect">
-          <div class="flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)] px-2.5 py-1.5" aria-hidden="true">
-            <span class="size-1.5 rounded-full bg-[#ff5f57]"></span>
-            <span class="size-1.5 rounded-full bg-[#febc2e]"></span>
-            <span class="size-1.5 rounded-full bg-[#28c840]"></span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2.5 text-xs leading-[1.45]">
-            <span class="shrink-0 text-accent">$</span>
-            <span class="text-text">chain reflect</span>
-          </div>
-        </div>
+        <TerminalCommand command="chain reflect" size="sm" class="mb-4" />
         <div class="text-xs leading-[1.6] text-text-dim">Analyze recent session logs and surface patterns worth encoding as permanent skills or rules.</div>
       </div>
     </div>
