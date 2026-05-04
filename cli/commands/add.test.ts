@@ -14,7 +14,7 @@ describe("runAdd", () => {
     mkdirSync(join(tmp, "skills"), { recursive: true })
     writeFileSync(
       join(tmp, "skills-registry.yaml"),
-      "schema_version: 3\ncore: []\nchain_hub: []\npersonal: []\ncli_packages: []\n",
+      "schema_version: 3\nchain_hub: []\npersonal: []\ncli_packages: []\n",
     )
     originalChainHome = process.env.CHAIN_HOME
     process.env.CHAIN_HOME = tmp
@@ -53,11 +53,29 @@ describe("runAdd", () => {
     expect(reg.chain_hub ?? []).not.toContain("my-skill")
   })
 
-  test("addSkill can land in core bucket", async () => {
+  test("addSkill silently skips protected core skills", async () => {
+    mkdirSync(join(tmp, "core"), { recursive: true })
+    writeFileSync(
+      join(tmp, "core", "registry.yaml"),
+      "schema_version: 1\nprotected:\n  skills:\n    - canvas\n",
+    )
     const { addSkill, readRegistry } = await import("../registry/local")
-    addSkill({ slug: "bundled-skill", bucket: "core" })
+    addSkill({ slug: "canvas", bucket: "personal" })
     const reg = readRegistry()
-    expect(reg.core).toContain("bundled-skill")
-    expect(reg.chain_hub ?? []).not.toContain("bundled-skill")
+    expect(reg.personal ?? []).not.toContain("canvas")
+    expect(reg.chain_hub ?? []).not.toContain("canvas")
+  })
+
+  test("addSkill can land in packs bucket", async () => {
+    const { addSkill, readRegistry } = await import("../registry/local")
+    addSkill({ slug: "premium-skill", source: "github:acme/premium-pack", version: "1", bucket: "packs" })
+    const reg = readRegistry()
+    expect(reg.packs ?? []).toContain("premium-skill")
+    expect(reg.personal ?? []).not.toContain("premium-skill")
+    expect(reg.github_sources?.some((b) => b.github === "github:acme/premium-pack" && b.skills.includes("premium-skill"))).toBe(true)
+  })
+
+  test("throws UserError when --pack is used without github:", async () => {
+    await expect(runAdd("some-slug", { pack: true })).rejects.toBeInstanceOf(UserError)
   })
 })

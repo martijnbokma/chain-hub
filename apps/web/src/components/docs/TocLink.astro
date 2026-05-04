@@ -5,4 +5,10 @@ interface Props {
 }
 const { href, label } = Astro.props;
 ---
-<li class="m-0"><a href={href} class="rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text max-[860px]:inline-flex max-[860px]:min-h-11 max-[860px]:items-center max-[860px]:rounded-full max-[860px]:border max-[860px]:border-border max-[860px]:bg-surface-2 max-[860px]:px-3 max-[860px]:py-2 max-[860px]:text-xs max-[860px]:leading-snug">{label}</a></li>
+<li class="m-0">
+  <a
+    href={href}
+    class="block rounded-md px-2 py-1.5 text-[13px] text-text-dim no-underline transition-colors hover:bg-[rgba(139,124,255,0.1)] hover:text-text"
+    >{label}</a
+  >
+</li>

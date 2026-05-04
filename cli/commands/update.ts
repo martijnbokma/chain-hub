@@ -1,11 +1,9 @@
 import kleur from "kleur"
 import { join } from "path"
-import { mkdirSync } from "fs"
-import { writeFile } from "fs/promises"
 import { getChainHome } from "../utils/chain-home"
 import { readRegistry, addSkill } from "../registry/local"
 import { fetchRemoteIndex } from "../registry/remote"
-import { downloadFromGithub } from "../utils/providers/github"
+import { downloadFromGithub, downloadSkillDirectoryFromGithub } from "../utils/providers/github"
 
 export async function runUpdate(): Promise<void> {
   const chainHome = getChainHome()
@@ -40,16 +38,25 @@ export async function runUpdate(): Promise<void> {
 
         const [, ownerRepo] = remote.source.split("github:")
         const [owner, repo] = ownerRepo.split("/")
-        const fileUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${remote.path}/SKILL.md`
-        const res = await fetch(fileUrl)
-        if (!res.ok) {
-          console.error(kleur.red(`  ✗ ${slug}: failed to fetch (${res.status})`))
+        if (!owner || !repo) {
+          console.error(kleur.red(`  ✗ ${slug}: invalid registry source (expected github:<owner>/<repo>)`))
           continue
         }
 
-        const dest = join(skillsDir, slug)
-        mkdirSync(dest, { recursive: true })
-        await writeFile(join(dest, "SKILL.md"), await res.text(), "utf8")
+        try {
+          await downloadSkillDirectoryFromGithub({
+            owner,
+            repo,
+            pathInRepo: remote.path,
+            slug,
+            destDir: skillsDir,
+          })
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          console.error(kleur.red(`  ✗ ${slug}: ${msg}`))
+          continue
+        }
+
         addSkill({ slug, source: remote.source, version: remote.version, bucket: "chain_hub" })
         console.log(kleur.green(`  ✓ ${slug.padEnd(32)} → v${remote.version}`))
         updatedCount++

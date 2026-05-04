@@ -95,6 +95,8 @@ chain validate
 
 If **`chain validate`** reports a missing **`skills-registry.yaml`**, run **`chain init`** first.
 
+When **`CHAIN_HOME`** is a **Chain Hub source checkout** (the git clone that contains **`cli/chain.ts`** and **`core/registry.yaml`**), **`chain setup`** installs a **`.git/hooks/pre-commit`** script that runs **`chain validate`** with **`CHAIN_HOME`** set to the repository root. The hook calls the **`chain`** binary on your **`PATH`** (for example from **`npm install -g chain-hub`**); if **`chain`** is not installed, the hook skips validation. Hubs that are not that source tree do not receive this hook.
+
 ## Usage in projects
 
 You typically do **not** install the CLI per project. After `chain setup`, IDEs read skills from `CHAIN_HOME` via symlinks.
@@ -106,12 +108,14 @@ You typically do **not** install the CLI per project. After `chain setup`, IDEs 
 | `chain setup` | Create or refresh IDE symlinks (`--ide <name>` for one IDE) |
 | `chain status` | Show symlink health per IDE |
 | `chain list` | List skills with registry labels and optional GitHub bundle info |
-| `chain search <query>` | Search remote/registry sources (when configured) |
+| `chain search <query>` / `chain find <query>` | Search the **Chain Hub registry** and the **[skills.sh](https://skills.sh/)** open directory (`GET /api/search`, same backend as `npx skills find`). `find` is an alias of `search`. Use **`--hub-only`** to skip the directory. Override directory host with **`SKILLS_API_URL`**. Live hub index: `registry/index.yaml` on GitHub `main`; if that fetch fails, the CLI uses a bundled copy from the last package build. |
 | `chain add <slug>` | Install from registry or `github:owner/repo` (use `--pack` for curated GitHub bundles / premium packs) |
 | `chain update` | Refresh registry and GitHub-bundle skills from their sources |
 | `chain remove <slug>` | Remove a registry-installed skill |
 | `chain new <slug>` | Scaffold a skill under `CHAIN_HOME/skills/` and register it under `personal` in `skills-registry.yaml` |
 | `chain validate` | Validate skills and workflows (built-in checks; use `--fix` where supported) |
+| `chain capture` | Append one learning event to `learnings/queue/inbox.jsonl` (`--event`, `--skill`, `--summary`; optional `--repo`) |
+| `chain reflect` | Turn the inbox into `learnings/drafts/distill-*.md` and archive the queue (`--dry-run` to preview only) |
 | `chain fix` | Auto-fix some frontmatter/section issues |
 | `chain init` | Install/update protected core assets into `CHAIN_HOME` |
 | `chain config get chain_home` | Show active `CHAIN_HOME` and source |
@@ -129,6 +133,7 @@ chain --chain-home ~/.chain-sandbox init
 chain config set chain_home ~/my-chain-home
 chain add github:owner/repo
 chain add github:your-org/chain-hub-pro --pack
+chain find typescript
 chain validate
 chain validate --fix
 ```

@@ -1,16 +1,19 @@
 import kleur from "kleur"
 import { join } from "path"
 import { mkdirSync } from "fs"
-import { writeFile } from "fs/promises"
 import { getChainHome } from "../utils/chain-home"
 import { addSkill } from "../registry/local"
 import { fetchRemoteIndex } from "../registry/remote"
-import { downloadFromGithub } from "../utils/providers/github"
+import { downloadFromGithub, downloadSkillDirectoryFromGithub } from "../utils/providers/github"
 import { UserError } from "../utils/errors"
 
-export async function runAdd(slug: string, opts: { skill?: string } = {}): Promise<void> {
+export async function runAdd(slug: string, opts: { skill?: string; pack?: boolean } = {}): Promise<void> {
   const chainHome = getChainHome()
   const skillsDir = join(chainHome, "skills")
+
+  if (opts.pack && !slug.startsWith("github:")) {
+    throw new UserError("--pack is only valid with github:<owner>/<repo> installs.")
+  }
 
   // Case 1: GitHub direct installation
   if (slug.startsWith("github:")) {
@@ -33,9 +36,14 @@ export async function runAdd(slug: string, opts: { skill?: string } = {}): Promi
       throw new UserError(opts.skill ? `Skill '${opts.skill}' not found in ${slug}.` : `No skills found in ${slug}.`)
     }
 
+    const bucket = opts.pack ? ("packs" as const) : ("personal" as const)
     for (const skill of installed) {
-      addSkill({ slug: skill, source: slug, version: "github-main", bucket: "personal" })
+      addSkill({ slug: skill, source: slug, version: "github-main", bucket })
       console.log(kleur.green(`  ✓ Installed ${skill}`))
+    }
+
+    if (opts.pack) {
+      console.log(kleur.dim(`  Registered under packs — run chain update to refresh this GitHub bundle later.\n`))
     }
 
     console.log(kleur.green(`\n  ✓ Successfully installed ${installed.length} skill(s) from ${slug}\n`))
@@ -60,13 +68,22 @@ export async function runAdd(slug: string, opts: { skill?: string } = {}): Promi
 
   const [, ownerRepo] = remoteSkill.source.split("github:")
   const [owner, repo] = ownerRepo.split("/")
-  const fileUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${remoteSkill.path}/SKILL.md`
-  const res = await fetch(fileUrl)
-  if (!res.ok) throw new UserError(`Failed to fetch SKILL.md: ${res.status}`)
+  if (!owner || !repo) {
+    throw new UserError(`Invalid registry source for '${slug}': expected github:<owner>/<repo>`)
+  }
 
-  const dest = join(skillsDir, slug)
-  mkdirSync(dest, { recursive: true })
-  await writeFile(join(dest, "SKILL.md"), await res.text(), "utf8")
+  try {
+    await downloadSkillDirectoryFromGithub({
+      owner,
+      repo,
+      pathInRepo: remoteSkill.path,
+      slug,
+      destDir: skillsDir,
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new UserError(`Failed to install '${slug}' from ${remoteSkill.source}: ${msg}`)
+  }
 
   const regSource = remoteSkill.source.startsWith("github:") ? remoteSkill.source : "chain-hub-registry"
   addSkill({ slug, source: regSource, version: remoteSkill.version, bucket: "chain_hub" })

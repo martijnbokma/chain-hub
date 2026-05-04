@@ -1,14 +1,22 @@
 ---
 name: create-rule
 description: >-
-  Create Cursor rules for persistent AI guidance. Use when you want to create a
-  rule, add coding standards, set up project conventions, configure
-  file-specific patterns, create RULE.md files, or asks about .cursor/rules/ or
-  AGENTS.md.
+  Create persistent AI rules: Cursor .mdc rules, Chain Hub rules/, or
+  editor-specific instruction files (CLAUDE.md, AGENTS.md). Use when you want to
+  add coding standards, project conventions, file-specific patterns, or asks
+  about .cursor/rules/, rules/global.md, or AGENTS.md.
 ---
-# Creating Cursor Rules
+# Creating persistent AI rules
 
-Create project rules in `.cursor/rules/` to provide persistent context for the AI agent.
+Rules are long-lived instructions the agent loads by default or when certain files are in scope. **Which format and path depend on the editor** — pick the row that matches where the user works, or use **Chain Hub** as a single source of truth.
+
+## Chain Hub (all linked editors)
+
+If the project uses **Chain Hub**, prefer editing canonical rule files under **`CHAIN_HOME/rules/`** (for example `global.md`, `cursor-global.mdc`). Run `chain setup` so copies or symlinks land in each tool (Cursor global rules, Claude `CLAUDE.md`, Windsurf memories file, etc., per your adapter configuration). Check `chain status` for the active `CHAIN_HOME`.
+
+## Cursor: `.cursor/rules/*.mdc`
+
+Cursor loads **`.mdc` files** with YAML frontmatter from `.cursor/rules/` (nested dirs allowed). This is the format described in the rest of this skill.
 
 ## Gather Requirements
 
@@ -36,7 +44,19 @@ Use the AskQuestion tool when available to gather this efficiently.
 
 ---
 
-## Rule File Format
+## Claude Code and similar CLIs
+
+**Claude Code** typically uses project-root **`CLAUDE.md`** and optional **`~/.claude/CLAUDE.md`**: plain Markdown (no `.mdc` glob frontmatter in the Cursor sense). Split sections with headings; keep files focused. Subagents and skills are separate mechanisms — see the create-subagent skill.
+
+## Other IDEs
+
+- **VS Code + GitHub Copilot / Chat:** use **`.github/copilot-instructions.md`**, **`AGENTS.md`**, or workspace prompts per Microsoft’s current docs — not `.mdc`.
+- **Windsurf:** global rules often live under Codeium paths (Chain Hub can map `rules/global.md` for you).
+- **JetBrains AI:** built-in project instructions UI and optional repo files — follow JetBrains documentation, not `.cursor/rules/`.
+
+When the user’s editor is unknown, **ask** which environment they use before choosing a path.
+
+## Rule file format (Cursor `.mdc`)
 
 Rules are `.mdc` files in `.cursor/rules/` with YAML frontmatter:
 
@@ -158,7 +178,7 @@ alwaysApply: false
 
 ## Checklist
 
-- [ ] File is `.mdc` format in `.cursor/rules/`
-- [ ] Frontmatter configured correctly
-- [ ] Content under 500 lines
-- [ ] Includes concrete examples
+- [ ] Correct **target** chosen (Chain Hub `rules/`, Cursor `.cursor/rules/`, or `CLAUDE.md` / `AGENTS.md` as appropriate)
+- [ ] For Cursor `.mdc`: frontmatter and globs / `alwaysApply` configured correctly
+- [ ] Content under ~500 lines per focused rule (split large policies)
+- [ ] Includes concrete examples where it helps

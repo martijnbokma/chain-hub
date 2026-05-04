@@ -1,14 +1,16 @@
 ---
 name: create-subagent
 description: >-
-  Create custom subagents for specialized AI tasks. Use when you want to create
-  a new type of subagent, set up task-specific agents, configure code reviewers,
-  debuggers, or domain-specific assistants with custom prompts.
+  Create custom subagents for Cursor or Claude Code (markdown agent definitions).
+  Use when you want task-specific agents, code reviewers, debuggers, or
+  domain-specific assistants with custom prompts.
 disable-model-invocation: true
 ---
-# Creating Custom Subagents
+# Creating custom subagents
 
-This skill guides you through creating custom subagents for Cursor. Subagents are specialized AI assistants that run in isolated contexts with custom system prompts.
+This skill covers **markdown-defined subagents** for tools that support them — primarily **Cursor** (`.cursor/agents/`) and **Claude Code** (`.claude/agents/`). Subagents are specialized assistants with their own system prompt, invoked in isolation from the main chat.
+
+**Chain Hub:** Prefer `$CHAIN_HOME/agents/<name>.md` when the hub is your source of truth; `chain setup` links into Cursor and Claude Code agent directories (see `chain status` for active `CHAIN_HOME`).
 
 ## When to Use Subagents
 
@@ -21,7 +23,9 @@ Subagents help you:
 
 If you have previous conversation context, infer the subagent's purpose and behavior from what was discussed. Create the subagent based on specialized tasks or workflows that emerged in the conversation.
 
-## Subagent Locations
+## Subagent locations
+
+### Cursor
 
 | Location | Scope | Priority |
 |----------|-------|----------|
@@ -30,9 +34,24 @@ If you have previous conversation context, infer the subagent's purpose and beha
 
 When multiple subagents share the same name, the higher-priority location wins.
 
-**Project subagents** (`.cursor/agents/`): Ideal for codebase-specific agents. Check into version control to share with your team.
+**Project:** `.cursor/agents/` — share via git. **User:** `~/.cursor/agents/` — personal across projects.
 
-**User subagents** (`~/.cursor/agents/`): Personal agents available across all your projects.
+### Claude Code
+
+| Location | Scope |
+|----------|-------|
+| `.claude/agents/` | Current project |
+| `~/.claude/agents/` | User-wide |
+
+File format is the same idea: YAML frontmatter + markdown body as the agent prompt. Exact discovery rules follow Anthropic’s Claude Code docs.
+
+### Chain Hub
+
+| Location | Scope |
+|----------|-------|
+| `$CHAIN_HOME/agents/<name>.md` | Hub-managed; symlinked by `chain setup` |
+
+Use the hub when one definition should stay in sync across editors.
 
 ## Subagent File Format
 
@@ -173,21 +192,24 @@ Always ensure queries are efficient and cost-effective.
 
 ## Subagent Creation Workflow
 
-### Step 1: Decide the Scope
+### Step 1: Decide the scope and product
 
-- **Project-level** (`.cursor/agents/`): For codebase-specific agents shared with team
-- **User-level** (`~/.cursor/agents/`): For personal agents across all projects
+- **Chain Hub:** `$CHAIN_HOME/agents/` when using a single hub for all tools
+- **Cursor project:** `.cursor/agents/`
+- **Cursor user:** `~/.cursor/agents/`
+- **Claude Code project:** `.claude/agents/`
+- **Claude Code user:** `~/.claude/agents/`
 
-### Step 2: Create the File
+### Step 2: Create the file
 
 ```bash
-# For project-level
-mkdir -p .cursor/agents
-touch .cursor/agents/my-agent.md
+# Examples — use only the tree the user needs
 
-# For user-level
-mkdir -p ~/.cursor/agents
-touch ~/.cursor/agents/my-agent.md
+mkdir -p .cursor/agents && touch .cursor/agents/my-agent.md
+mkdir -p ~/.cursor/agents && touch ~/.cursor/agents/my-agent.md
+
+mkdir -p .claude/agents && touch .claude/agents/my-agent.md
+mkdir -p ~/.claude/agents && touch ~/.claude/agents/my-agent.md
 ```
 
 ### Step 3: Define Configuration
@@ -220,6 +242,6 @@ Use the my-agent subagent to [task description]
 ## Troubleshooting
 
 ### Subagent Not Found
-- Ensure file is in `.cursor/agents/` or `~/.cursor/agents/`
+- Ensure file is in the correct product path (`.cursor/agents/`, `.claude/agents/`, or `CHAIN_HOME/agents/` after `chain setup`)
 - Check file has `.md` extension
 - Verify YAML frontmatter syntax is valid

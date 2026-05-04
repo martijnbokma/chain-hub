@@ -1,20 +1,23 @@
 ---
 name: create-skill
 description: >-
-  Guides users through creating effective Agent Skills for Cursor. Use when you
-  want to create, write, or author a new skill, or asks about skill structure,
-  best practices, or SKILL.md format.
+  Guides users through creating effective agent skills (SKILL.md) for
+  Cursor, Claude Code, Windsurf, Gemini/Antigravity, and other Chain Hub–linked
+  editors. Use when you want to create, write, or author a new skill, or asks
+  about skill structure, best practices, or SKILL.md format.
 ---
-# Creating Skills in Cursor
+# Creating agent skills
 
-This skill guides you through creating effective Agent Skills for Cursor. Skills are markdown files that teach the agent how to perform specific tasks: reviewing PRs using team standards, generating commit messages in a preferred format, querying database schemas, or any specialized workflow.
+This skill guides you through creating **agent skills**: markdown instructions (usually `SKILL.md`) that teach the coding agent how to perform a focused task — PR review style, commit message format, database lookups, or any repeatable workflow.
+
+Skills work across editors that load the same directory layout (one folder per skill containing `SKILL.md`). **Chain Hub** is the recommended single source of truth: after `chain init`, edit skills under your hub’s `skills/<slug>/` and run `chain setup` so they appear in each linked editor (see **Where to store skills** below).
 
 ## Before You Begin: Gather Requirements
 
 Before creating a skill, gather essential information from the user about:
 
 1. **Purpose and scope**: What specific task or workflow should this skill help with?
-2. **Target location**: Should this be a personal skill (~/.cursor/skills/) or project skill (.cursor/skills/)?
+2. **Target location**: Personal vs project, and whether the user uses **Chain Hub** (`CHAIN_HOME/skills/`) or editor-native paths only?
 3. **Trigger scenarios**: When should the agent automatically apply this skill?
 4. **Key domain knowledge**: What specialized information does the agent need that it wouldn't already know?
 5. **Output format preferences**: Are there specific templates, formats, or styles required?
@@ -34,7 +37,7 @@ If you need clarification, use the AskQuestion tool when available:
 
 ```
 Example AskQuestion usage:
-- "Where should this skill be stored?" with options like ["Personal (~/.cursor/skills/)", "Project (.cursor/skills/)"]
+- "Where should this skill be stored?" with options like ["Chain Hub (`CHAIN_HOME/skills/`) — recommended", "Project-only (editor folder under repo)", "User-only (home directory for one editor)"]
 - "Should this skill include executable scripts?" with options like ["Yes", "No"]
 ```
 
@@ -58,14 +61,24 @@ skill-name/
     └── helper.sh
 ```
 
-### Storage Locations
+### Where to store skills
 
-| Type | Path | Scope |
-|------|------|-------|
-| Personal | ~/.cursor/skills/skill-name/ | Available across all your projects |
-| Project | .cursor/skills/skill-name/ | Shared with anyone using the repository |
+**Recommended (Chain Hub):** `$CHAIN_HOME/skills/<skill-name>/SKILL.md` (default `CHAIN_HOME` is `~/chain-hub`). One copy; `chain setup` symlinks into each detected editor. Resolve `CHAIN_HOME` with `chain status` or your hub docs.
 
-**IMPORTANT**: Never create skills in `~/.cursor/skills-cursor/`. This directory is reserved for Cursor's internal built-in skills and is managed automatically by the system.
+**Editor-native paths** (if you are not using the hub as source of truth — duplicate skills if you use several):
+
+| Editor / runtime | Typical user skills directory | Notes |
+|------------------|------------------------------|--------|
+| Cursor | `~/.cursor/skills/` | Project: `.cursor/skills/` in repo |
+| Claude Code | `~/.claude/skills/` | Project: `.claude/skills/` |
+| Universal (`.agents`) | `~/.agents/skills/` | Often used alongside other tools |
+| Windsurf | `~/.codeium/windsurf/skills/` | |
+| Mistral Vibe | `~/.vibe/skills/` | |
+| Trae | `~/.trae/skills/` | |
+| Antigravity | `~/.gemini/antigravity/skills/` | |
+| Kiro | `~/.kiro/hooks/skills/` | |
+
+**Cursor only:** Never create skills in `~/.cursor/skills-cursor/`. That directory is reserved for Cursor’s built-in skills.
 
 ### SKILL.md Structure
 

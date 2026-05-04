@@ -14,7 +14,7 @@ describe("runNew", () => {
     mkdirSync(join(tmp, "skills"), { recursive: true })
     writeFileSync(
       join(tmp, "skills-registry.yaml"),
-      "schema_version: 3\ncore: []\nchain_hub: []\npersonal: []\ncli_packages: []\n",
+      "schema_version: 3\nchain_hub: []\npersonal: []\ncli_packages: []\n",
     )
     originalChainHome = process.env.CHAIN_HOME
     process.env.CHAIN_HOME = tmp

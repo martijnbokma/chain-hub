@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs"
 import { join } from "path"
 import { parse, stringify } from "yaml"
 import { getChainHome } from "../utils/chain-home"
+import { isProtectedCoreSkill } from "./core"
 export { isProtectedCoreSkill } from "./core"
 
 /** Slugs you treat as your own work (editable; orthogonal to meta/pack/community buckets). */
@@ -20,8 +21,6 @@ export interface GithubSourceBundle {
 
 export interface SkillsRegistry {
   schema_version: number
-  /** Bundled / protected core skills mirrored under skills/ (from the shipped package). */
-  core?: string[]
   chain_hub: string[]
   personal: string[]
   packs?: string[]
@@ -36,7 +35,6 @@ export interface SkillsRegistry {
 
 export function collectRegistrySlugs(reg: SkillsRegistry): string[] {
   return [
-    ...(reg.core || []),
     ...(reg.chain_hub || []),
     ...(reg.personal || []),
     ...(reg.packs || []),
@@ -92,20 +90,38 @@ export function writeRegistry(registry: SkillsRegistry): void {
   writeFileSync(registryPath(), stringify(registry), "utf8")
 }
 
+export type InstallBucket = "chain_hub" | "personal" | "packs" | "community" | "cli_packages"
+
+export const ALL_BUCKETS = ["chain_hub", "personal", "packs", "community", "cli_packages"] as const satisfies readonly InstallBucket[]
+
+const BUCKET_KEY_MAP: Record<InstallBucket, InstallBucket> = {
+  chain_hub: "chain_hub",
+  personal: "personal",
+  packs: "packs",
+  community: "community",
+  cli_packages: "cli_packages",
+}
+
+function resolveInstallBucket(
+  bucket: InstallBucket | undefined,
+): keyof Pick<SkillsRegistry, "chain_hub" | "personal" | "packs" | "community" | "cli_packages"> {
+  return BUCKET_KEY_MAP[bucket ?? "personal"]
+}
+
 export function addSkill(opts: {
   slug: string
   source?: string
   version?: string
   credits?: string
-  bucket?: "core" | "chain_hub" | "personal"
+  bucket?: InstallBucket
 }): void {
+  if (isProtectedCoreSkill(opts.slug)) return
+
   const reg = readRegistry()
 
   if (collectRegistrySlugs(reg).includes(opts.slug)) return
 
-  const bucket = opts.bucket ?? "personal"
-  const bucketKey: keyof Pick<SkillsRegistry, "core" | "chain_hub" | "personal"> =
-    bucket === "chain_hub" ? "chain_hub" : bucket === "core" ? "core" : "personal"
+  const bucketKey = resolveInstallBucket(opts.bucket)
   if (!reg[bucketKey]) reg[bucketKey] = []
   ;(reg[bucketKey] as string[]).push(opts.slug)
   ;(reg[bucketKey] as string[]).sort()
@@ -119,7 +135,7 @@ export function addSkill(opts: {
 
 function filterSlugFromBucket(
   reg: SkillsRegistry,
-  key: keyof Pick<SkillsRegistry, "core" | "chain_hub" | "personal" | "packs" | "community" | "cli_packages">,
+  key: keyof Pick<SkillsRegistry, "chain_hub" | "personal" | "packs" | "community" | "cli_packages">,
   slug: string,
 ): void {
   if (reg[key]) reg[key] = (reg[key] as string[]).filter((s) => s !== slug)
@@ -127,7 +143,7 @@ function filterSlugFromBucket(
 
 export function removeSkill(slug: string): void {
   const reg = readRegistry()
-  for (const key of ["core", "chain_hub", "personal", "packs", "community", "cli_packages"] as const) {
+  for (const key of ALL_BUCKETS) {
     filterSlugFromBucket(reg, key, slug)
   }
   if (reg.authorship?.self) {

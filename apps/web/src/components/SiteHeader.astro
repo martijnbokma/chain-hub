@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import BrandLogo from './BrandLogo.astro';
 
 export interface SiteHeaderNavItem {
   href: string;
@@ -51,17 +52,7 @@ const desktopMenuCtaClass =
       class="flex min-h-11 min-w-0 items-center gap-2 sm:gap-[9px] font-display text-base font-bold tracking-[-0.055em] text-text no-underline sm:text-lg"
       aria-label="Chain Hub home"
     >
-      <svg width="22" height="22" viewBox="0 0 56 56" fill="none" aria-hidden="true" class="size-8 shrink-0 sm:size-9">
-        <rect x="10" y="10" width="36" height="36" rx="12" stroke="#8b7cff" stroke-width="3" fill="rgba(139,124,255,.1)"></rect>
-        <path
-          d="M21 22L27 28L21 34"
-          stroke="#8b7cff"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-linejoin="round"></path>
-        <path d="M31 34H37" stroke="#5ee0a8" stroke-width="3" stroke-linecap="round"></path>
-        <path d="M39 13L43 17M43 13L39 17" stroke="#8f96b2" stroke-width="1.8" stroke-linecap="round"></path>
-      </svg>
+      <BrandLogo class="size-8 shrink-0 sm:size-9" />
       Chain Hub
     </a>
     <ul

@@ -18,29 +18,18 @@ function markdownSlugsInDir(dir: string): string[] {
 // ---------------------------------------------------------------------------
 
 interface OriginSets {
-  coreSet: Set<string>
   chainHubSet: Set<string>
   personalSet: Set<string>
   packsSet: Set<string>
   communitySet: Set<string>
 }
 
-function resolveOriginLabel(slug: string, sets: OriginSets): string {
-  if (sets.coreSet.has(slug)) return kleur.dim("core")
-  if (sets.chainHubSet.has(slug)) return kleur.dim("chain-hub")
-  if (sets.personalSet.has(slug)) return kleur.dim("personal")
-  if (sets.packsSet.has(slug)) return kleur.dim("pack")
-  if (sets.communitySet.has(slug)) return kleur.dim("community")
-  return kleur.dim("unknown")
-}
-
-function resolveOriginDot(slug: string, sets: OriginSets): string {
-  if (sets.coreSet.has(slug)) return kleur.blue("●")
-  if (sets.chainHubSet.has(slug)) return kleur.blue("●")
-  if (sets.personalSet.has(slug)) return kleur.green("●")
-  if (sets.packsSet.has(slug)) return kleur.magenta("●")
-  if (sets.communitySet.has(slug)) return kleur.cyan("●")
-  return kleur.dim("○")
+function resolveOriginMeta(slug: string, sets: OriginSets): { label: string; dot: string } {
+  if (sets.chainHubSet.has(slug)) return { label: kleur.dim("chain-hub"), dot: kleur.blue("●") }
+  if (sets.personalSet.has(slug)) return { label: kleur.dim("personal"), dot: kleur.green("●") }
+  if (sets.packsSet.has(slug)) return { label: kleur.dim("pack"), dot: kleur.magenta("●") }
+  if (sets.communitySet.has(slug)) return { label: kleur.dim("community"), dot: kleur.cyan("●") }
+  return { label: kleur.dim("unknown"), dot: kleur.dim("○") }
 }
 
 function printSkillRow(
@@ -51,8 +40,7 @@ function printSkillRow(
   slugGithubRef: Map<string, string>,
   selfAuthoredSet: Set<string>,
 ): void {
-  const dot = resolveOriginDot(slug, sets)
-  const origin = resolveOriginLabel(slug, sets)
+  const { label: origin, dot } = resolveOriginMeta(slug, sets)
   const authorship = selfAuthoredSet.has(slug) ? kleur.yellow("you") : kleur.dim("upstream")
   const gh = slugGithubRef.get(slug)
   let ghPlain = "—"
@@ -179,7 +167,6 @@ export async function runList(): Promise<void> {
 
   const registry = readRegistry()
   const sets: OriginSets = {
-    coreSet: new Set(registry.core || []),
     chainHubSet: new Set(registry.chain_hub || []),
     personalSet: new Set(registry.personal || []),
     packsSet: new Set(registry.packs || []),

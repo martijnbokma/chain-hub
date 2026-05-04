@@ -17,7 +17,6 @@ describe("runList", () => {
     writeFileSync(
       join(tmp, "skills-registry.yaml"),
       `schema_version: 3
-core: []
 chain_hub: []
 personal:
   - personal-skill
@@ -66,7 +65,6 @@ protected:
     writeFileSync(
       join(tmp, "skills-registry.yaml"),
       `schema_version: 3
-core: []
 chain_hub: []
 personal: []
 cli_packages: []

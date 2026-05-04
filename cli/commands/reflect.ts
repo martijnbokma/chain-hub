@@ -1,6 +1,7 @@
 import kleur from "kleur"
 import { join } from "path"
 import { getChainHome } from "../utils/chain-home"
+import { UserError } from "../utils/errors"
 import { distillLearnings } from "../utils/learnings"
 
 export async function runReflect(opts: { dryRun?: boolean }): Promise<void> {
@@ -8,7 +9,13 @@ export async function runReflect(opts: { dryRun?: boolean }): Promise<void> {
   
   console.log(kleur.bold("\n  chain reflect\n"))
 
-  const body = distillLearnings(chainHome, opts.dryRun)
+  let body: string | null
+  try {
+    body = distillLearnings(chainHome, opts.dryRun)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    throw new UserError(`Could not distill learnings: ${msg}`)
+  }
 
   if (!body) {
     console.log(kleur.yellow("  No queued events (inbox empty)."))

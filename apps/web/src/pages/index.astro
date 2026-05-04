@@ -1,56 +1,101 @@
 ---
 export const prerender = true;
+import { buildHomePageTerminalScriptItems } from 'chain-setup-display-paths';
 import SiteHeader from '../components/SiteHeader.astro';
 import Hero from '../components/sections/Hero.astro';
 import Problem from '../components/sections/Problem.astro';
+import Comparison from '../components/sections/Comparison.astro';
+import UseCases from '../components/sections/UseCases.astro';
+import LibraryPreview from '../components/sections/LibraryPreview.astro';
+import SimpleText from '../components/sections/SimpleText.astro';
 import HowItWorks from '../components/sections/HowItWorks.astro';
 import Editors from '../components/sections/Editors.astro';
 import SkillsAnatomy from '../components/sections/SkillsAnatomy.astro';
 import CliReference from '../components/sections/CliReference.astro';
 import Install from '../components/sections/Install.astro';
+import Faq from '../components/sections/Faq.astro';
 import Footer from '../components/sections/Footer.astro';
+import SeoHead from '../components/SeoHead.astro';
 
 const base = import.meta.env.BASE_URL;
+const siteOrigin = Astro.site?.origin ?? 'https://www.chainhub.one';
+
+const pageTitle = 'Chain Hub | One brain for all your AI assistants';
+const pageDescription =
+  'Chain Hub connects your AI tools to a single source of knowledge. Sync your expert instructions, brand voice, and custom skills across Claude Code, Cursor, Windsurf, Gemini CLI, Antigravity, Kiro, Trae, Mistral Vibe, and more.';
+
+const ogImageObject = {
+  '@type': 'ImageObject',
+  url: `${siteOrigin}/og.png`,
+  width: 1200,
+  height: 630,
+};
+
+const homeTermScriptItems = buildHomePageTerminalScriptItems();
+
+const homeJsonLd: Record<string, unknown>[] = [
+  {
+    '@type': 'WebSite',
+    name: 'Chain Hub',
+    url: `${siteOrigin}/`,
+    description: pageDescription,
+    inLanguage: 'en',
+    image: ogImageObject,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Chain Hub',
+      url: siteOrigin,
+    },
+  },
+  {
+    '@type': 'SoftwareApplication',
+    name: 'Chain Hub CLI',
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Windows, macOS, Linux',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    downloadUrl: 'https://www.npmjs.com/package/chain-hub',
+  },
+];
 
 const headerNavItems = [
   { href: `${base}docs/`, label: 'Docs' },
-  { href: '#how', label: 'How it works' },
-  { href: '#editors', label: 'Editors' },
-  { href: '#skills', label: 'Skills' },
-  { href: '#commands', label: 'CLI' },
+  { href: '#comparison', label: 'Why?' },
+  { href: '#use-cases', label: 'Use Cases' },
+  { href: '#text-first', label: 'Simplicity' },
+  { href: '#faq', label: 'FAQ' },
   { href: '#install', label: 'Get started', cta: true },
 ];
 ---
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Chain Hub — One Source of Truth for Every AI Assistant</title>
-  <meta name="description" content="chainhub.one — One Chain Hub to sync your skills, workflows, and rules across every AI editor. Curated core, your library, one symlinked home.">
-  <link rel="canonical" href="https://www.chainhub.one/">
-  <meta property="og:url" content="https://www.chainhub.one/">
-  <meta property="og:title" content="Chain Hub — One Source of Truth for Every AI Assistant">
-  <meta property="og:description" content="chainhub.one — One Chain Hub to sync skills, workflows, and rules across Claude Code, Cursor, Windsurf, Gemini CLI, and more.">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <SeoHead
+    title={pageTitle}
+    description={pageDescription}
+    path="/"
+    ogType="website"
+    jsonLd={homeJsonLd}
+  />
 </head>
 <body class="ch-site bg-bg text-text font-mono text-[13px] leading-[1.65] antialiased overflow-x-hidden pb-[env(safe-area-inset-bottom,0px)] [text-size-adjust:100%]">
 
 <SiteHeader items={headerNavItems} />
 
-<Hero base={base} />
+<Hero />
 <Problem />
+<Comparison />
+<UseCases />
+<LibraryPreview />
+<SimpleText />
 <HowItWorks />
 <Editors />
 <SkillsAnatomy />
 <CliReference />
 <Install />
-<Footer base={base} />
+<Faq />
+<Footer />
 
+<script is:inline type="application/json" id="chain-home-term-json" set:html={JSON.stringify(homeTermScriptItems)}></script>
 <script is:inline>
   const nav = document.getElementById('nav');
   function syncNav() {
@@ -74,20 +119,15 @@ const headerNavItems = [
     'pl-4 opacity-0 translate-y-[3px] transition-[opacity,transform] duration-[280ms]';
   var termShown = 'opacity-100 translate-y-0';
 
-  var termScript = [
-    { type: 'cmd',   text: 'chain setup' },
-    { type: 'out',   text: '  Scanning for installed IDEs…', cls: 'text-text-dim' },
-    { type: 'out',   text: '  ✓  Claude Code   →  ~/.claude/skills', cls: 'text-green' },
-    { type: 'out',   text: '  ✓  Cursor        →  ~/.cursor/rules',  cls: 'text-green' },
-    { type: 'out',   text: '  ✓  Windsurf      →  ~/.codeium/windsurf', cls: 'text-green' },
-    { type: 'out',   text: '  ✓  Gemini CLI    →  ~/.gemini/skills', cls: 'text-green' },
-    { type: 'out',   text: '  ✓  Kiro          →  ~/.kiro/skills',   cls: 'text-green' },
-    { type: 'out',   text: '  ✓  Trae          →  ~/.trae/skills',   cls: 'text-green' },
-    { type: 'out',   text: '  ✓  Mistral Vibe  →  ~/.vibe/skills', cls: 'text-green' },
-    { type: 'blank' },
-    { type: 'out',   text: '  Hub linked. Core + symlinks ready — build your library (chain new, chain add …).', cls: 'text-accent' },
-    { type: 'cur' },
-  ];
+  var termJson = document.getElementById('chain-home-term-json');
+  var termScript = termJson ? JSON.parse(termJson.textContent || '[]') : [];
+  if (!termScript.length) {
+    termScript = [
+      { type: 'cmd', text: 'chain setup' },
+      { type: 'out', text: '  (Install block could not load terminal preview.)', cls: 'text-text-dim' },
+      { type: 'cur' },
+    ];
+  }
 
   var termBody = document.getElementById('term-body');
   var termIdx  = 0;

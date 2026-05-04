@@ -8,7 +8,9 @@ apps/web/dist/
 apps/web/.astro/
 apps/web/.output/
 apps/web/.vercel/
+apps/web/scripts/og-image.generated.svg
 cli/core/
+cli/registry/bundled-index.yaml
 cli/templates/
 cli/*.tgz
 

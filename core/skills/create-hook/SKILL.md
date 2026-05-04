@@ -1,16 +1,34 @@
 ---
 name: create-hook
 description: >-
-  Create Cursor hooks. Use when you want to create a hook, write hooks.json, add
-  hook scripts, or automate behavior around agent events.
+  Create agent hooks for Cursor (hooks.json + scripts) or Claude Code
+  (settings.json hooks blocks). Use when you want to run custom logic before or
+  after agent events, gate or audit tool calls, or automate workflows triggered
+  by agent actions.
 ---
-# Creating Cursor Hooks
+# Creating agent hooks
 
-Create hooks when you want Cursor to run custom logic before or after agent events. Hooks are scripts or prompt-based checks that exchange JSON over stdin/stdout and can observe, block, modify, or follow up on behavior.
+Hooks let you run custom logic before or after agent events: gate or audit tool calls, rewrite inputs, inject context, or chain follow-up workflows. **Which format and config file depend on the editor** — confirm the target first, then follow the matching section below.
+
+## Choose your editor
+
+| Editor / CLI | Hook config | Jump to |
+|---|---|---|
+| **Cursor** (IDE or CLI) | `.cursor/hooks.json` or `~/.cursor/hooks.json` | [Cursor hooks](#cursor-hooks) |
+| **Claude Code** (CLI) | `.claude/settings.json` or `~/.claude/settings.json` | [Claude Code hooks](#claude-code-hooks) |
+| **Windsurf / other** | No standardized hook API yet — check the product's docs | — |
+
+If the user's editor is unclear, ask once before creating any files.
+
+---
+
+## Cursor hooks
+
+**Scope:** Cursor's `hooks.json` hook system. Hooks are scripts or prompt-based checks that exchange JSON over stdin/stdout and can observe, block, modify, or follow up on behavior.
 
 When the user asks for a hook, don't stop at describing the format. Gather the missing requirements, then create or update the hook files directly.
 
-## Gather Requirements
+### Gather Requirements
 
 Before you write anything, determine:
 
@@ -23,7 +41,7 @@ Before you write anything, determine:
 
 Infer these from the conversation when possible. Only ask for the missing pieces.
 
-## Choose the Right Location
+### Choose the Right Location
 
 - **Project hooks**: `.cursor/hooks.json` and `.cursor/hooks/*`
 - **User hooks**: `~/.cursor/hooks.json` and `~/.cursor/hooks/*`
@@ -35,11 +53,11 @@ Path behavior matters:
 
 Prefer **project hooks** when the behavior should be shared with the repository and checked into version control.
 
-## Choose the Hook Event
+### Choose the Hook Event
 
 Use the narrowest event that matches the user's goal.
 
-### Common Agent events
+#### Common Agent events
 
 - `sessionStart`, `sessionEnd`: set up or audit a session
 - `preToolUse`, `postToolUse`, `postToolUseFailure`: work across all tools
@@ -52,12 +70,12 @@ Use the narrowest event that matches the user's goal.
 - `stop`: handle agent completion
 - `afterAgentResponse`, `afterAgentThought`: track agent output or reasoning
 
-### Tab events
+#### Tab events
 
 - `beforeTabFileRead`: control file access for inline completions
 - `afterTabFileEdit`: post-process edits made by Tab
 
-### Quick event chooser
+#### Quick event chooser
 
 - **Block or approve shell commands** -> `beforeShellExecution`
 - **Audit shell output** -> `afterShellExecution`
@@ -69,7 +87,7 @@ Use the narrowest event that matches the user's goal.
 - **Check prompts for secrets or policy violations** -> `beforeSubmitPrompt`
 - **Protect MCP calls** -> `beforeMCPExecution`
 
-## Hooks File Format
+### Hooks File Format
 
 Create a `hooks.json` file with schema version 1:
 
@@ -95,7 +113,7 @@ Each hook definition can include:
 - `failClosed`: block the action when the hook crashes, times out, or returns invalid JSON
 - `loop_limit`: mainly for `stop` and `subagentStop` follow-up loops
 
-## Matchers
+### Matchers
 
 Use matchers to avoid running the hook on every event.
 
@@ -112,9 +130,7 @@ Important matcher warning:
 - Do not use POSIX classes like `[[:space:]]`; use JavaScript equivalents like `\s`
 - If the matcher is at all tricky, start by getting the hook working without one or with a very simple matcher, then tighten it after the hook is confirmed to load and fire
 
-If the user wants a hook for only one risky command family, prefer script-side filtering for the first working version and add a matcher afterward only if it is simple and clearly correct.
-
-## Command Hooks
+### Command Hooks
 
 Command hooks are the default. They receive JSON on stdin and can return JSON on stdout.
 
@@ -126,7 +142,7 @@ Before using a command hook, verify that every executable it depends on will act
 
 Do not assume a binary exists just because it is common on your machine.
 
-### Minimal project-level example
+#### Minimal project-level example
 
 ```json
 {
@@ -169,7 +185,7 @@ Important behavior:
 
 Always make hook scripts executable after creating them.
 
-## Prompt Hooks
+### Prompt Hooks
 
 Prompt hooks are useful when the policy is easier to describe than to script.
 
@@ -190,7 +206,7 @@ Prompt hooks are useful when the policy is easier to describe than to script.
 
 Use prompt hooks for lightweight policy decisions. Prefer command hooks when the logic must be deterministic or when the user needs exact, auditable behavior.
 
-## Event Output Cheat Sheet
+### Event Output Cheat Sheet
 
 Use the event's supported output fields only.
 
@@ -202,7 +218,7 @@ Use the event's supported output fields only.
 
 When the user wants to rewrite a tool call, prefer `preToolUse`. When they want to gate only shell commands, prefer `beforeShellExecution`.
 
-## Implementation Workflow
+### Implementation Workflow (Cursor)
 
 1. Pick the correct location and event
 2. Create or update the correct `hooks.json` file
@@ -216,7 +232,7 @@ When the user wants to rewrite a tool call, prefer `preToolUse`. When they want 
 
 If you are editing an existing hooks setup, preserve unrelated hooks and only change the minimum necessary entries.
 
-## Validation and Troubleshooting
+### Validation and Troubleshooting (Cursor)
 
 - Cursor watches `hooks.json` and reloads on save
 - If hooks still do not load, restart Cursor
@@ -228,12 +244,215 @@ If you are editing an existing hooks setup, preserve unrelated hooks and only ch
 - If the hook should block on failure, set `failClosed: true`
 - If a command hook should intentionally block, returning exit code `2` is valid
 
+---
+
+## Claude Code hooks
+
+**Scope:** Claude Code's hook system configured in `settings.json`. Hooks run shell commands at defined lifecycle events. They receive context on stdin and can block, approve, or inject feedback.
+
+### Configuration location
+
+| Scope | Path |
+|---|---|
+| Project (checked into repo) | `.claude/settings.json` |
+| User (all projects) | `~/.claude/settings.json` |
+
+Prefer **project-level** when the hook enforces team conventions. Use **user-level** for personal preferences or cross-project policies.
+
+### Settings format
+
+Add a `hooks` key to `settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/check-command.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Each entry under a hook type is a **matcher group**: a `matcher` regex and an array of `hooks` to run when it matches.
+
+### Hook event types
+
+| Event | When it fires | Can block? |
+|---|---|---|
+| `PreToolUse` | Before any tool call | Yes — return `{"decision": "block", "reason": "..."}` |
+| `PostToolUse` | After a tool call completes | No — informational only |
+| `Notification` | When Claude sends a notification | No |
+| `Stop` | When the main agent finishes | No |
+| `SubagentStop` | When a subagent finishes | No |
+
+### Matchers
+
+`matcher` is a regex matched against the tool name (e.g. `"Bash"`, `"Write"`, `"Read"`, `"Edit"`). An empty string or omitted matcher matches all tools.
+
+```json
+{ "matcher": "Bash" }           // only shell commands
+{ "matcher": "Write|Edit" }     // file writes and edits
+{ "matcher": "" }               // all tools
+```
+
+### Stdin payload
+
+Each hook receives a JSON object on stdin:
+
+```json
+{
+  "session_id": "abc123",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "npm test"
+  }
+}
+```
+
+For `PostToolUse`, the payload also includes:
+
+```json
+{
+  "tool_response": {
+    "output": "...",
+    "is_error": false
+  }
+}
+```
+
+### Return values
+
+**PreToolUse — approve:**
+```bash
+echo '{"decision": "approve"}'
+# or simply exit 0 with no output
+```
+
+**PreToolUse — block:**
+```bash
+echo '{"decision": "block", "reason": "Network calls are not allowed in this project."}'
+exit 0
+```
+
+**PreToolUse — ask the user:**
+```bash
+echo '{"decision": "ask", "user_message": "This command touches production. Continue?"}'
+exit 0
+```
+
+**PostToolUse — inject context:**
+```bash
+echo '{"output": "Lint passed. No issues found."}'
+```
+
+Non-zero exit codes block the action regardless of stdout content.
+
+### Minimal example — audit shell commands
+
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/audit-shell.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`.claude/hooks/audit-shell.sh`:
+
+```bash
+#!/bin/bash
+input=$(cat)
+cmd=$(echo "$input" | jq -r '.tool_input.command // empty')
+
+if [[ "$cmd" =~ (curl|wget|ssh|scp) ]]; then
+  echo "{\"decision\": \"block\", \"reason\": \"Network commands require manual approval: $cmd\"}"
+  exit 0
+fi
+
+echo '{"decision": "approve"}'
+exit 0
+```
+
+Make it executable: `chmod +x .claude/hooks/audit-shell.sh`
+
+### Post-edit formatting example
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/format.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`.claude/hooks/format.sh`:
+
+```bash
+#!/bin/bash
+input=$(cat)
+file=$(echo "$input" | jq -r '.tool_input.path // empty')
+
+if [[ "$file" =~ \.(ts|tsx|js|jsx)$ ]]; then
+  npx prettier --write "$file" 2>/dev/null
+fi
+exit 0
+```
+
+### Implementation workflow (Claude Code)
+
+1. Choose project-level (`.claude/`) or user-level (`~/.claude/`)
+2. Add or update the `hooks` key in `settings.json`
+3. Write the hook script; give it a shebang and make it executable
+4. Verify dependencies (`jq`, linters, etc.) are on `$PATH`
+5. Trigger the relevant action manually to test
+6. Check Claude Code output for hook errors
+
+### Validation and Troubleshooting (Claude Code)
+
+- Claude Code reads `settings.json` at startup — restart the CLI after changes
+- Hook scripts must be executable (`chmod +x`)
+- Use `echo '...' | your-script.sh` with mock JSON to test scripts without the agent
+- If the hook should fail closed on error, exit with a non-zero code and return a block decision
+
+---
+
 ## Final Checklist
 
-- [ ] Used the correct hook location and path style
-- [ ] Chose the narrowest correct event
-- [ ] Added a matcher when appropriate
-- [ ] Returned only fields supported by that hook event
-- [ ] Made the script executable
-- [ ] Tested the hook by triggering the real event
-- [ ] Checked the Hooks tab or Hooks output channel if debugging was needed
+- [ ] Confirmed which editor the user is targeting (Cursor vs Claude Code)
+- [ ] Used the correct config file and path style for that editor
+- [ ] Chose the narrowest event that covers the goal
+- [ ] Added a matcher when appropriate (regex, not POSIX)
+- [ ] Returned only output fields supported by that hook event
+- [ ] Made scripts executable
+- [ ] Verified helper binaries exist on `$PATH`
+- [ ] Tested by triggering the real event

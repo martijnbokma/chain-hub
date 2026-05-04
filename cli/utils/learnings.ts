@@ -1,5 +1,5 @@
 import { join } from "path"
-import { appendFileSync, readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, renameSync } from "fs"
+import { appendFileSync, readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "fs"
 
 export interface LearningRecord {
   ts?: string
@@ -10,16 +10,31 @@ export interface LearningRecord {
   session_id?: string
 }
 
+const LEARNING_SUBDIRS = ["queue", "drafts", "archive", "shared"] as const
+
+/** Ensures `learnings/` and all standard subfolders exist (idempotent). */
 export function getLearningsDir(chainHome: string) {
   const dir = join(chainHome, "learnings")
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
-    mkdirSync(join(dir, "queue"), { recursive: true })
-    mkdirSync(join(dir, "drafts"), { recursive: true })
-    mkdirSync(join(dir, "archive"), { recursive: true })
-    mkdirSync(join(dir, "shared"), { recursive: true })
+  }
+  for (const sub of LEARNING_SUBDIRS) {
+    mkdirSync(join(dir, sub), { recursive: true })
   }
   return dir
+}
+
+function parseInboxJsonl(raw: string): LearningRecord[] {
+  const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l.length > 0)
+  const records: LearningRecord[] = []
+  for (let i = 0; i < lines.length; i++) {
+    try {
+      records.push(JSON.parse(lines[i]) as LearningRecord)
+    } catch {
+      throw new Error(`learnings inbox line ${i + 1}: invalid JSON (${lines[i].slice(0, 80)}${lines[i].length > 80 ? "…" : ""})`)
+    }
+  }
+  return records
 }
 
 export function captureLearning(chainHome: string, record: LearningRecord) {
@@ -43,8 +58,7 @@ export function distillLearnings(chainHome: string, dryRun = false): string | nu
   const content = readFileSync(queueFile, "utf-8").trim()
   if (!content) return null
 
-  const lines = content.split("\n")
-  const records: LearningRecord[] = lines.map(l => JSON.parse(l))
+  const records = parseInboxJsonl(content)
 
   const bySkill: Record<string, LearningRecord[]> = {}
   for (const r of records) {

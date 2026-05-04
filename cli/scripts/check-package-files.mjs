@@ -8,6 +8,8 @@ const packageRoot = path.resolve(__dirname, "..");
 
 const requiredPaths = [
   "dist/chain.js",
+  "dist/registry-index.yaml",
+  "registry/bundled-index.yaml",
   "core/registry.yaml",
   "core/templates/components.json",
   "CHANGELOG.md",

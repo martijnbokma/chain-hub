@@ -1,10 +1,13 @@
 import { join } from "path"
 import { readFileSync, readdirSync, statSync, existsSync, lstatSync } from "fs"
 import yaml from "yaml"
+import { ALL_BUCKETS } from "../../registry/local"
+import { readProtectedCoreAssets } from "../../registry/core"
 
 export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
   const registryPath = join(chainHome, "skills-registry.yaml")
   const skillsDir = join(chainHome, "skills")
+  const protectedCoreSkillSet = new Set(readProtectedCoreAssets(chainHome).skills)
 
   if (!existsSync(registryPath)) {
     errors.push(
@@ -17,14 +20,7 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
     const registryContent = readFileSync(registryPath, "utf-8")
     const registry = yaml.parse(registryContent)
 
-    const registeredSlugs: string[] = [
-      ...(registry.core || []),
-      ...(registry.chain_hub || []),
-      ...(registry.personal || []),
-      ...(registry.packs || []),
-      ...(registry.community || []),
-      ...(registry.cli_packages || []),
-    ].map((s) => String(s))
+    const registeredSlugs = ALL_BUCKETS.flatMap((key) => (registry[key] || []).map((s: unknown) => String(s)))
 
     const seen = new Set<string>()
     for (const slug of registeredSlugs) {
@@ -38,7 +34,7 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
     for (const slug of selfSlugs) {
       if (!registeredSlugs.includes(slug)) {
         errors.push(
-          "authorship.self slug '" + slug + "' is not listed in core, chain_hub, personal, packs, community, or cli_packages",
+          "authorship.self slug '" + slug + "' is not listed in chain_hub, personal, packs, community, or cli_packages",
         )
       }
     }
@@ -56,7 +52,7 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
       for (const slug of skills) {
         if (!registeredSlugs.includes(slug)) {
           errors.push(
-            "github_sources skill '" + slug + "' is not in core, chain_hub, personal, packs, community, or cli_packages",
+            "github_sources skill '" + slug + "' is not in chain_hub, personal, packs, community, or cli_packages",
           )
         }
         if (githubBundled.has(slug)) {
@@ -83,7 +79,7 @@ export function validateRegistryIntegrity(chainHome: string, errors: string[]) {
       })
 
       for (const dir of actualDirs) {
-        if (!registeredSlugs.includes(dir)) {
+        if (!registeredSlugs.includes(dir) && !protectedCoreSkillSet.has(dir)) {
           errors.push("Directory '" + dir + "' in skills/ is not in registry")
         }
       }

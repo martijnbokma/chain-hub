@@ -32,6 +32,14 @@ function applyChainHomeOverrideFromArgv(argv: string[]): string[] {
 ;(async () => {
   const argv = applyChainHomeOverrideFromArgv(process.argv)
 
+  async function runChainRegistrySearch(
+    query: string,
+    opts: { hubOnly?: boolean },
+  ): Promise<void> {
+    const { runSearch } = await import("./commands/search")
+    await runSearch(query, { hubOnly: Boolean(opts.hubOnly) })
+  }
+
   const program = new Command()
     .name("chain")
     .description("Chain Hub — manage AI agent skills across IDEs")
@@ -79,6 +87,10 @@ Hub location resolution:
     program.command("add <slug>")
     .description("Install a skill from registry or github:<owner>/<repo>")
     .option("--skill <name>", "Install only a specific skill from the source")
+    .option(
+      "--pack",
+      "For github: installs — register skills under the packs bucket (curated bundles; chain update refreshes via github_sources)",
+    )
     .action(async (slug, opts) => {
       const { runAdd } = await import("./commands/add")
       await runAdd(slug, opts)
@@ -104,12 +116,21 @@ Hub location resolution:
   )
 
   withChainHomeOption(
-    program.command("search <query>")
-    .description("Search skills in all registries")
-    .action(async (query) => {
-      const { runSearch } = await import("./commands/search")
-      await runSearch(query)
-    }),
+    program
+      .command("search <query>")
+      .description(
+        "Search Chain Hub registry and the skills.sh open directory (set SKILLS_API_URL to override)",
+      )
+      .option("--hub-only", "Only search the Chain Hub registry index (skip skills.sh)")
+      .action(runChainRegistrySearch),
+  )
+
+  withChainHomeOption(
+    program
+      .command("find <query>")
+      .description("Same as `chain search` — alias for users of `npx skills find`")
+      .option("--hub-only", "Only search the Chain Hub registry index (skip skills.sh)")
+      .action(runChainRegistrySearch),
   )
 
   withChainHomeOption(

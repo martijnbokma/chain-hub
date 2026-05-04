@@ -9,6 +9,8 @@
   --color-text-dim: #8f96b2;
   --color-text-muted: #a0a7c4;
   --color-text-faint: #31364d;
+  /* Section overlines (// Quick start): readable on bg/surface without competing with body copy */
+  --color-text-kicker: #9aa3be;
   --color-text-faint-docs: #5b6077;
   --color-accent: #8b7cff;
   --color-green: #5ee0a8;
@@ -73,7 +75,7 @@
 }
 
 @utility layout-wrap-docs {
-  @apply mx-auto w-full min-w-0 max-w-[980px] px-4 sm:px-6;
+  @apply mx-auto w-full min-w-0 max-w-[1180px] px-4 sm:px-6 lg:px-14;
   padding-left: max(1rem, env(safe-area-inset-left, 0px));
   padding-right: max(1rem, env(safe-area-inset-right, 0px));
 }

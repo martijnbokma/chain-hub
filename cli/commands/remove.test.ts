@@ -14,7 +14,7 @@ describe("runRemove", () => {
     mkdirSync(join(tmp, "skills"), { recursive: true })
     writeFileSync(
       join(tmp, "skills-registry.yaml"),
-      "schema_version: 3\ncore: []\nchain_hub: []\npersonal:\n  - installed-skill\ncli_packages: []\n",
+      "schema_version: 3\nchain_hub: []\npersonal:\n  - installed-skill\ncli_packages: []\n",
     )
     mkdirSync(join(tmp, "skills", "installed-skill"), { recursive: true })
     originalChainHome = process.env.CHAIN_HOME

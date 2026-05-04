@@ -19,7 +19,6 @@ describe("project validation", () => {
   test("allows reserved names for github-sourced skills", () => {
     writeRegistry(`
 schema_version: 3
-core: []
 chain_hub: []
 personal:
   - claude-api
@@ -40,7 +39,6 @@ github_sources:
   test("rejects reserved names for non-github-sourced skills", () => {
     writeRegistry(`
 schema_version: 3
-core: []
 chain_hub: []
 personal:
   - claude-api
@@ -56,7 +54,6 @@ cli_packages: []
   test("reports missing protected core skill assets", () => {
     writeRegistry(`
 schema_version: 3
-core: []
 chain_hub: []
 personal: []
 cli_packages: []
@@ -65,7 +62,7 @@ cli_packages: []
 schema_version: 1
 protected:
   skills:
-    - canvas
+    - phantom-skill
   rules: []
   agents: []
   workflows: []
@@ -73,13 +70,14 @@ protected:
 
     const result = validateProject(tmp)
 
-    expect(result.errors).toContain("Core skill 'canvas' is listed in core/registry.yaml but missing from core/skills/")
+    expect(result.errors).toContain(
+      "Core skill 'phantom-skill' is listed in core/registry.yaml but missing from core/skills/",
+    )
   })
 
   test("accepts present protected core skill and rule assets", () => {
     writeRegistry(`
 schema_version: 3
-core: []
 chain_hub: []
 personal: []
 cli_packages: []
@@ -88,13 +86,13 @@ cli_packages: []
 schema_version: 1
 protected:
   skills:
-    - canvas
+    - create-hook
   rules:
     - global
   agents: []
   workflows: []
 `)
-    writeCoreSkill("canvas", "canvas")
+    writeCoreSkill("create-hook", "create-hook")
     mkdirSync(join(tmp, "core", "rules"), { recursive: true })
     writeFileSync(join(tmp, "core", "rules", "global.md"), "# Global Rule\n")
 

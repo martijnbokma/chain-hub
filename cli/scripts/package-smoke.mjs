@@ -46,14 +46,14 @@ try {
     "chain init must preserve user-installed skills",
   );
 
-  const removeCore = spawnSync("node", [chainBin, "remove", "canvas"], {
+  const removeCore = spawnSync("node", [chainBin, "remove", "chain-hub"], {
     cwd: installDir,
     env: { ...process.env, CHAIN_HOME: chainHome },
     encoding: "utf8",
   });
-  assert(removeCore.status !== 0, "chain remove canvas must fail because canvas is protected core");
+  assert(removeCore.status !== 0, "chain remove chain-hub must fail because chain-hub is protected core");
   assert(
-    existsSync(path.join(chainHome, "core", "skills", "canvas", "SKILL.md")),
+    existsSync(path.join(chainHome, "core", "skills", "chain-hub", "SKILL.md")),
     "protected core skill must remain after failed remove",
   );
 

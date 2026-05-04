@@ -74,7 +74,6 @@ describe("local registry", () => {
     mkdirSync(join(skillsDir, "pack-skill"), { recursive: true })
     writeRegistry({
       schema_version: 3,
-      core: [],
       chain_hub: [],
       personal: [],
       packs: ["pack-skill"],

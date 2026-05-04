@@ -5,34 +5,34 @@ import TerminalCommand from "../TerminalCommand.astro";
 <section class="border-y border-border py-32 max-md:py-20" id="commands">
   <div class="layout-wrap">
     <div class="fi opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
-      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">CLI reference</div>
+      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-kicker before:text-[rgba(139,124,255,0.62)] before:content-['//_']">CLI reference</div>
       <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Everything from<br><em class="not-italic text-accent">one command.</em></h2>
       <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">The <code class="text-[rgba(139,124,255,0.62)]">chain</code> CLI handles the full lifecycle — from initial setup to publishing new skills.</p>
     </div>
     <div class="mt-[60px] grid grid-cols-1 gap-0.5 bg-border sm:grid-cols-2 lg:grid-cols-3">
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
         <TerminalCommand command="chain setup" size="sm" class="mb-4" />
-        <div class="text-xs leading-[1.6] text-text-dim">Detect all installed IDEs and create or repair symlinks from your hub into each editor.</div>
+        <div class="text-xs leading-[1.6] text-text-dim">Automatically connect all your AI tools to your central knowledge hub.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
         <TerminalCommand command="chain validate" size="sm" class="mb-4" />
-        <div class="text-xs leading-[1.6] text-text-dim">Lint all skill frontmatter and structure. Run before every commit — also enforced as a pre-commit hook.</div>
+        <div class="text-xs leading-[1.6] text-text-dim">Check your library for errors and ensure everything is formatted correctly for your AI.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
         <TerminalCommand command="chain list" size="sm" class="mb-4" />
-        <div class="text-xs leading-[1.6] text-text-dim">Show all active skills with their source, type, and sync status across editors.</div>
+        <div class="text-xs leading-[1.6] text-text-dim">See a complete overview of all the skills and rules you have in your library.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
         <TerminalCommand command="chain new <slug>" size="sm" class="mb-4" />
-        <div class="text-xs leading-[1.6] text-text-dim">Scaffold a new skill from the canonical template with correct frontmatter pre-filled.</div>
+        <div class="text-xs leading-[1.6] text-text-dim">Start a new skill or guide from a ready-to-use template.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
         <TerminalCommand command="chain add github:…" size="sm" class="mb-4" />
-        <div class="text-xs leading-[1.6] text-text-dim">Install a skill directly from any GitHub repository. Pulled into your hub and linked instantly.</div>
+        <div class="text-xs leading-[1.6] text-text-dim">Instantly download and install pre-made skills from other experts or the community.</div>
       </div>
       <div class="fi flex flex-col border border-border bg-surface p-5 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 md:p-6 [&.in]:translate-y-0 [&.in]:opacity-100">
         <TerminalCommand command="chain reflect" size="sm" class="mb-4" />
-        <div class="text-xs leading-[1.6] text-text-dim">Analyze recent session logs and surface patterns worth encoding as permanent skills or rules.</div>
+        <div class="text-xs leading-[1.6] text-text-dim">Roll queued learning events into a reviewable draft under <code class="text-text/90">learnings/drafts/</code> — then you or an agent apply changes safely.</div>
       </div>
     </div>
   </div>

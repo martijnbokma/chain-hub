@@ -1,45 +1,42 @@
 ---
+import { formatInstallCommentLine, getMarketingSymlinkRows } from 'chain-setup-display-paths';
+
+const installAdapterCommentLines = getMarketingSymlinkRows().map(formatInstallCommentLine);
 ---
 <!-- ── INSTALL ────────────────────────────────────────────────────── -->
 <section class="border-y border-border py-32 max-md:py-20" id="install">
   <div class="layout-wrap">
     <div class="grid min-w-0 grid-cols-1 items-start gap-12 md:grid-cols-2 md:gap-20 lg:gap-x-20">
       <div class="fi min-w-0 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Quick start</div>
-        <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Up in<br><em class="not-italic text-accent">three steps.</em></h2>
+        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-kicker before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Quick start</div>
+        <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Simple setup,<br><em class="not-italic text-accent">infinite power.</em></h2>
         <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">
-          Clone, initialize core, link editors. Then invest in <strong class="font-semibold text-text">your</strong> skills and rules —
-          the bundled set is a launch pad, not the ceiling. Chain Hub still finds each editor's paths on its own.
+          Set up your hub, connect your apps, and start building your AI library. 
+          Chain Hub takes care of the technical heavy lifting so you can focus on your knowledge.
         </p>
         <div class="mt-9 flex flex-col [&>div:last-child]:border-b-0">
           <div class="flex gap-3.5 border-b border-border py-[18px]">
             <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
             <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
-              <strong>Self-healing</strong> — broken symlinks are automatically repaired on the next <code>chain setup</code>.
+              <strong>Smart Sync</strong> — If anything gets disconnected, one command fixes and restores everything automatically.
             </div>
           </div>
           <div class="flex gap-3.5 border-b border-border py-[18px]">
             <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
             <div class="text-xs leading-[1.65] text-text-dim [&_strong]:font-normal [&_strong]:text-text">
-              <strong>Compiled binary</strong> — the CLI builds to a native Bun binary. No runtime required in production.
+              <strong>Lightweight</strong> — Fast, efficient, and runs directly on your computer without slowing you down.
             </div>
           </div>
           <div class="flex gap-3.5 border-b border-border py-[18px]">
             <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
             <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
-              <strong>Validated on commit</strong> — the pre-commit hook runs <code>chain validate</code> and blocks broken skills automatically.
+              <strong>Quality Control</strong> — Built-in checks ensure your instructions are always clear and ready for your AI.
             </div>
           </div>
           <div class="flex gap-3.5 border-b border-border py-[18px]">
             <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
             <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
-              <strong>Extensible</strong> — bring any skill from GitHub with <code>chain add github:owner/repo</code>.
-            </div>
-          </div>
-          <div class="flex gap-3.5 border-b border-border py-[18px]">
-            <div class="shrink-0 text-accent" aria-hidden="true">↳</div>
-            <div class="text-xs leading-[1.65] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)] [&_strong]:font-normal [&_strong]:text-text">
-              <strong>Flexible hub path</strong> — default is <code>~/chain-hub</code>, or persist your own path with <code>chain config set chain_home &lt;path&gt;</code>.
+              <strong>Community Ready</strong> — Easily add expert knowledge shared by others with a single command.
             </div>
           </div>
         </div>
@@ -77,13 +74,9 @@
             <span class="text-text">chain config set chain_home ~/my-chain-home</span>
           </div>
           <br>
-          <span class="block text-green"># ✓  Claude Code  →  ~/.claude/skills</span>
-          <span class="block text-green"># ✓  Cursor       →  ~/.cursor/rules</span>
-          <span class="block text-green"># ✓  Windsurf     →  ~/.codeium/windsurf</span>
-          <span class="block text-green"># ✓  Gemini CLI   →  ~/.gemini/skills</span>
-          <span class="block text-green"># ✓  Kiro         →  ~/.kiro/skills</span>
-          <span class="block text-green"># ✓  Trae         →  ~/.trae/skills</span>
-          <span class="block text-green"># ✓  Mistral Vibe →  ~/.vibe/skills</span>
+          {installAdapterCommentLines.map((line) => (
+            <span class="block text-green">{line}</span>
+          ))}
           <br>
           <span class="block text-accent"># Example: detected IDEs linked. Then extend skills/, workflows/, rules/.</span>
         </div>

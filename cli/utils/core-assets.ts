@@ -1,7 +1,7 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "fs"
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { fileURLToPath } from "url"
-import { parse } from "yaml"
+import { parse, stringify } from "yaml"
 import { getChainHome } from "./chain-home"
 
 interface EnsureCoreAssetsOptions {
@@ -32,11 +32,14 @@ export function ensureUserRegistry(options: Pick<EnsureCoreAssetsOptions, "chain
   mkdirSync(chainHome, { recursive: true })
   mkdirSync(join(chainHome, "skills"), { recursive: true })
 
-  if (existsSync(registryPath)) return
+  if (existsSync(registryPath)) {
+    migrateLegacyCoreField(registryPath, join(chainHome, "skills"))
+    return
+  }
 
   writeFileSync(
     registryPath,
-    "schema_version: 3\ncore: []\nchain_hub: []\npersonal: []\ncli_packages: []\n",
+    "schema_version: 3\nchain_hub: []\npersonal: []\ncli_packages: []\n",
     "utf8",
   )
 }
@@ -99,4 +102,30 @@ function normalizeSlugList(value: unknown): string[] {
   if (!Array.isArray(value)) return []
 
   return value.map((item) => String(item)).filter((slug) => slug.length > 0)
+}
+
+// One-time migration: drop the legacy `core:` bucket that was removed in schema_version 4.
+// Skill directories that were only registered under `core:` and are no longer protected are
+// deleted from skills/ to avoid false "not in registry" validator errors.
+function migrateLegacyCoreField(registryPath: string, skillsDir: string): void {
+  let raw: Record<string, unknown>
+  try {
+    raw = (parse(readFileSync(registryPath, "utf8")) as Record<string, unknown>) ?? {}
+  } catch {
+    return
+  }
+
+  if (!Array.isArray(raw.core)) return
+
+  const coreSlugs = (raw.core as unknown[]).map((s) => String(s))
+  delete raw.core
+
+  for (const slug of coreSlugs) {
+    const dir = join(skillsDir, slug)
+    if (existsSync(dir)) {
+      try { rmSync(dir, { recursive: true, force: true }) } catch { /* best-effort */ }
+    }
+  }
+
+  writeFileSync(registryPath, stringify(raw), "utf8")
 }

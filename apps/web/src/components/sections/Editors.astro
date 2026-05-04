@@ -8,22 +8,26 @@
   <div class="layout-wrap">
     <div class="fi mb-14 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
       <div>
-        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-faint before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Supported editors</div>
-        <h2 class="mb-0 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Works where<br><em class="not-italic text-accent">you work.</em></h2>
+        <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-kicker before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Supported editors</div>
+        <h2 class="mb-0 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">One brain,<br><em class="not-italic text-accent">every app.</em></h2>
         <p class="mt-5 max-w-[520px] text-sm leading-[1.75] text-text-dim">
-          Targets the environments people use most. <strong class="font-semibold text-text">chain setup</strong> only links editors
-          it detects on your machine — you grow skills and rules in the hub; the CLI wires them through.
+          Chain Hub works where you work. It detects the AI tools on your machine and 
+          wires your central knowledge directly into them. Update once, and every app is instantly smarter.
         </p>
       </div>
     </div>
-    <div class="fi grid gap-3 delay-100 opacity-0 [grid-template-columns:repeat(auto-fit,minmax(min(100%,148px),1fr))] translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
-      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener noreferrer" aria-label="Open Claude Code in a new tab">
-        <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
-          <img class="size-9 object-contain" src="/assets/logos/claude-code.svg" alt="" loading="lazy" decoding="async">
+    <div class="fi grid grid-cols-2 sm:grid-cols-4 gap-3 delay-100 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+
+      <!-- Featured: Claude Code (spans 2 rows on desktop) -->
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100 sm:row-span-2" href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener noreferrer" aria-label="Open Claude Code in a new tab">
+        <div class="relative z-10 flex size-[62px] sm:size-20 items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 sm:size-11 object-contain" src="/assets/logos/claude-code.svg" alt="" loading="lazy" decoding="async">
         </div>
-        <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Claude Code</div>
+        <div class="relative z-10 text-xs sm:text-sm font-medium tracking-[-0.02em] text-text">Claude Code</div>
         <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
       </a>
+
+      <!-- Regular cards -->
       <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100" href="https://cursor.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Cursor in a new tab">
         <div class="relative z-10 flex size-[62px] items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
           <img class="size-9 object-contain" src="/assets/logos/cursor.svg" alt="" loading="lazy" decoding="async">
@@ -66,6 +70,19 @@
         <div class="relative z-10 text-xs tracking-[-0.02em] text-text">Mistral Vibe</div>
         <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green">Live</div>
       </a>
+
+      <!-- Wide bottom card: Antigravity (spans full width on desktop) -->
+      <a class="group relative flex min-h-[172px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[18px] border border-border bg-gradient-to-b from-white/[0.035] to-surface px-[18px] pb-[22px] pt-7 text-center text-inherit no-underline transition-[transform,border-color,background,box-shadow] duration-[220ms] hover:-translate-y-0.5 hover:border-[rgba(139,124,255,0.26)] hover:bg-gradient-to-b hover:from-[rgba(139,124,255,0.08)] hover:to-surface-2 hover:shadow-[0_22px_60px_rgba(0,0,0,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_50%_0%,rgba(139,124,255,0.16),transparent_58%)] before:opacity-0 before:transition-opacity before:duration-[220ms] before:content-[''] hover:before:opacity-100 focus-visible:before:opacity-100 sm:col-span-4 sm:flex-row sm:justify-start sm:text-left sm:gap-6 sm:px-10 sm:py-6 sm:min-h-[100px]" href="https://antigravity.google/" target="_blank" rel="noopener noreferrer" aria-label="Open Antigravity in a new tab">
+        <div class="relative z-10 flex size-[62px] shrink-0 items-center justify-center rounded-[18px] border border-border-bright bg-[rgba(239,242,255,0.045)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-[transform,border-color,background] duration-[220ms] group-hover:scale-[1.04] group-hover:border-[rgba(139,124,255,0.26)] group-hover:bg-[rgba(139,124,255,0.095)]" aria-hidden="true">
+          <img class="size-9 object-contain" src="/assets/logos/antigravity.svg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="relative z-10">
+          <div class="text-xs sm:text-sm font-medium tracking-[-0.02em] text-text">Antigravity</div>
+          <div class="mt-1.5 text-[11px] leading-relaxed text-text-dim hidden sm:block">Google's agentic development platform, powered by Gemini.</div>
+        </div>
+        <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green sm:ml-auto">Live</div>
+      </a>
+
     </div>
   </div>
 </section>
