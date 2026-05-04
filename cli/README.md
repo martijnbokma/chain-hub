@@ -70,7 +70,7 @@ Resolution priority for hub location:
 
 - **One root:** All user data for Chain Hub lives under **`CHAIN_HOME`**. The npm package (or a local source checkout for development) only delivers the **`chain`** binary and bundled **`core/`** source packaged into the CLI; it is not your personal library location unless you deliberately set `CHAIN_HOME` inside a checkout.
 - **Core vs user:** **`CHAIN_HOME/core/`** is the protected copy installed by **`chain init`**. **Your** skills, agents, workflows, and custom rules belong in **`CHAIN_HOME/skills/`**, **`agents/`**, **`workflows/`**, **`rules/`** (plus registry files at the hub root). This matches common “flat top-level folders + `skills/<slug>/SKILL.md`” patterns used by agent tooling ecosystems.
-- **`skills-registry.yaml` buckets:** **`core`** lists bundled/protected skills mirrored under **`skills/`** (optional; keeps them distinct from **`personal`**). **`chain_hub`** lists skills installed via **`chain add`** from the Chain Hub registry index. **`personal`** is for your own scaffolds / GitHub installs / manual entries.
+- **`skills-registry.yaml` buckets:** **`core`** lists bundled/protected skills mirrored under **`skills/`** (optional; keeps them distinct from **`personal`**). **`chain_hub`** lists skills installed via **`chain add`** from the Chain Hub registry index. **`personal`** is for your own scaffolds / ad-hoc GitHub installs / manual entries. **`packs`** is for curated multi-skill bundles (for example a **premium pack**): install with **`chain add github:org/repo --pack`** so skills stay out of **`core`**, appear under the pack label in **`chain list`**, and refresh together via **`github_sources`** on **`chain update`**. Add **`credits`** in YAML for attribution.
 - **`~/.agents`:** Some adapters symlink hub **`skills/`** and **`agents/`** into **`~/.agents/`** for tools that expect that layout. Treat **`~/.agents`** as an **IDE-facing mirror**, not a separate primary library — edit and back up **`CHAIN_HOME`**.
 - **Sandboxes:** For contributors or experiments, point **`CHAIN_HOME`** at a throwaway directory so **`chain init`** / **`chain add`** never touch another hub or a git working tree you care about.
 
@@ -107,7 +107,7 @@ You typically do **not** install the CLI per project. After `chain setup`, IDEs 
 | `chain status` | Show symlink health per IDE |
 | `chain list` | List skills with registry labels and optional GitHub bundle info |
 | `chain search <query>` | Search remote/registry sources (when configured) |
-| `chain add <slug>` | Install from registry or `github:owner/repo` |
+| `chain add <slug>` | Install from registry or `github:owner/repo` (use `--pack` for curated GitHub bundles / premium packs) |
 | `chain update` | Refresh registry and GitHub-bundle skills from their sources |
 | `chain remove <slug>` | Remove a registry-installed skill |
 | `chain new <slug>` | Scaffold a skill under `CHAIN_HOME/skills/` and register it under `personal` in `skills-registry.yaml` |
@@ -128,6 +128,7 @@ chain setup --ide cursor
 chain --chain-home ~/.chain-sandbox init
 chain config set chain_home ~/my-chain-home
 chain add github:owner/repo
+chain add github:your-org/chain-hub-pro --pack
 chain validate
 chain validate --fix
 ```
