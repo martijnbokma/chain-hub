@@ -54,6 +54,7 @@ const docsJsonLd: Record<string, unknown>[] = [
 
 const headerNavItems = [
   { href: '#quickstart', label: 'Quickstart' },
+  { href: '#what-is-a-skill', label: 'Skills' },
   { href: '#up-to-date', label: 'Updates' },
   { href: '#location', label: 'Location' },
   { href: '#install-content', label: 'Content', mobileLabel: 'Content types' },
@@ -68,6 +69,10 @@ const headerMobilePrefix = [{ href: baseUrl, label: 'Home' }];
 
 const tocItems = [
   { href: '#intro', label: 'New to Chain Hub?' },
+  { href: '#what-is-a-skill', label: 'What is a skill?' },
+  { href: '#first-skill', label: 'Your first skill' },
+  { href: '#hub-layout', label: 'Hub layout' },
+  { href: '#editor-setup', label: 'Editor setup' },
   { href: '#quickstart', label: 'Quickstart' },
   { href: '#up-to-date', label: 'Keeping your Hub up to date' },
   { href: '#location', label: 'Where is your Hub located?' },
@@ -75,7 +80,7 @@ const tocItems = [
   { href: '#concepts', label: 'Core concepts' },
   { href: '#continual-learning', label: 'Continual learning' },
   { href: '#commands', label: 'Command overview' },
-  { href: '#local-dev', label: 'Local dev' },
+  { href: '#local-dev', label: 'Local development' },
   { href: '#troubleshooting', label: 'Troubleshooting' },
 ] as const;
 ---
@@ -154,14 +159,122 @@ const tocItems = [
       <section id="intro">
       <h2>New to Chain Hub?</h2>
       <p>
-        Think of Chain Hub as a <strong>central library</strong> for everything your AI assistants need to know. 
-        Instead of teaching each AI tool (like Claude Code, Cursor, Antigravity, or Gemini) the same things over and over, 
-        you store that knowledge in one place.
+        Chain Hub is a directory on your machine (<code>~/chain-hub</code>) that syncs to every AI editor you use.
+        You write instructions once as Markdown files. <code>chain setup</code> creates symlinks so Cursor, Claude Code,
+        Windsurf, and others load them automatically. Update a file in your hub — every editor picks it up instantly.
       </p>
-      <p>
-        When you update a file in your "Hub", every AI tool you use is instantly updated with that new information. 
-        It's the easiest way to keep your AI smart, consistent, and perfectly aligned with your work.
-      </p>
+      </section>
+
+      <section id="what-is-a-skill">
+        <h2>What is a skill?</h2>
+        <p>
+          A skill is a folder with one file — <code>SKILL.md</code>. That file tells the AI when to use the skill
+          and what to do.
+        </p>
+        <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">~/chain-hub/skills/
+  debug/
+    SKILL.md    ← one file per skill</pre>
+        <p>Each <code>SKILL.md</code> has two parts: a YAML frontmatter block and a body.</p>
+        <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">---
+name: debug          ← how the skill is stored and found
+description: &gt;-
+  Systematic debugging workflow. Use when hitting an error,
+  test failure, or unexpected behavior.
+                     ↑ when the AI chooses this skill (the trigger)
+---
+
+## Steps            ← what the AI does
+1. Reproduce with a minimal case
+2. Isolate: data, logic, or environment?
+3. Fix the root cause, not the symptom
+4. Add a regression test</pre>
+        <Callout>
+          Skills work in every linked editor — the same <code>SKILL.md</code> file is read by Cursor, Claude Code,
+          Windsurf, and others after <code>chain setup</code>.
+        </Callout>
+      </section>
+
+      <section id="first-skill">
+        <h2>Your first skill in 5 minutes</h2>
+        <ol class="ml-[18px] text-text-dim [&_li]:mb-3">
+          <li>
+            <strong>Scaffold a new skill</strong> — run <code>chain new my-skill</code> to create the folder and template file.
+            <TerminalBlock code={`$ chain new my-skill`} />
+          </li>
+          <li>
+            <strong>Open the file</strong> — <code>~/chain-hub/skills/my-skill/SKILL.md</code> opens in your editor.
+            The template is already filled in with a name and placeholder description.
+          </li>
+          <li>
+            <strong>Write your instructions</strong> — edit the <code>description</code> field (when to use this skill)
+            and the body (what to do). Keep it focused and under 200 lines.
+          </li>
+          <li>
+            <strong>Validate</strong> — run <code>chain validate</code> to check frontmatter and structure.
+            <TerminalBlock code={`$ chain validate`} />
+          </li>
+          <li>
+            <strong>Use it in your editor</strong> — mention the skill by name or describe the scenario it covers.
+            The AI picks it up automatically from the linked directory.
+          </li>
+        </ol>
+        <Callout>
+          No restart needed — skills are loaded fresh each session. If a skill doesn't appear, run
+          <code>chain setup</code> and reopen your editor.
+        </Callout>
+      </section>
+
+      <section id="hub-layout">
+        <h2>Hub layout</h2>
+        <p>After <code>chain init</code>, your hub has this structure:</p>
+        <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">~/chain-hub/
+  core/                    ← bundled skills (read-only, updated by chain init)
+  skills/                  ← your skills (create and edit here)
+    debug/
+      SKILL.md
+  rules/
+    global.md              ← applies to all linked editors
+  agents/                  ← agent personas
+  workflows/               ← step-by-step procedures
+  skills-registry.yaml     ← tracks what is installed</pre>
+        <ul>
+          <li><code>core/</code> — protected bundled content from the npm package; refreshed by <code>chain init</code>; do not edit directly.</li>
+          <li><code>skills/</code> — your personal and registry-installed skills; edit freely.</li>
+          <li><code>rules/</code> — persistent instructions loaded by all editors (e.g. coding style, language preferences).</li>
+          <li><code>agents/</code> — named agent personas for focused sessions.</li>
+          <li><code>workflows/</code> — step-by-step procedures for recurring tasks.</li>
+          <li><code>skills-registry.yaml</code> — tracks provenance and buckets for installed skills.</li>
+        </ul>
+      </section>
+
+      <section id="editor-setup">
+        <h2>Editor setup</h2>
+        <p>
+          After <code>chain setup</code>, the <code>debug</code> skill lands or is made available depending on the editor:
+        </p>
+        <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1 max-[560px]:mx-0 max-[560px]:overflow-visible max-[560px]:px-0">
+          <table class="w-full min-w-[560px] border-collapse max-[560px]:block max-[560px]:min-w-0 [&_tbody_td]:border-b [&_tbody_td]:border-border [&_tbody_td]:px-2 [&_tbody_td]:py-2.5 [&_tbody_td]:text-left [&_tbody_td]:align-top [&_tbody_td]:text-text-dim [&_td]:max-[560px]:block [&_td]:max-[560px]:w-full [&_td]:max-[560px]:border-none [&_td]:max-[560px]:p-0 [&_td]:max-[560px]:last:text-sm [&_td]:max-[560px]:last:leading-snug [&_td_code]:max-[560px]:break-words [&_th]:max-[560px]:hidden [&_thead]:max-[560px]:hidden [&_tr]:max-[560px]:mb-2.5 [&_tr]:max-[560px]:block [&_tr]:max-[560px]:rounded-[10px] [&_tr]:max-[560px]:border [&_tr]:max-[560px]:border-border-bright [&_tr]:max-[560px]:bg-surface-2 [&_tr]:max-[560px]:p-3 [&_tr]:max-[560px]:last:mb-0 [&_tr_td:first-child]:max-[560px]:mb-2 [&_tr_td:first-child]:max-[560px]:border-b [&_tr_td:first-child]:max-[560px]:border-border [&_tr_td:first-child]:max-[560px]:pb-2">
+            <thead>
+              <tr>
+                <th class="border-b border-border px-2 py-2.5 text-left align-top text-xs uppercase tracking-[0.08em] text-text-dim">Editor</th>
+                <th class="border-b border-border px-2 py-2.5 text-left align-top text-xs uppercase tracking-[0.08em] text-text-dim">Path after <code>chain setup</code></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Claude Code</td><td><code>~/.claude/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Cursor</td><td><code>~/.cursor/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Antigravity</td><td><code>~/.gemini/antigravity/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Gemini CLI (via Universal)</td><td><code>~/.agents/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Kiro</td><td><code>~/.kiro/hooks/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Trae</td><td><code>~/.trae/skills/debug/SKILL.md</code></td></tr>
+              <tr><td>Mistral Vibe</td><td><code>~/.vibe/skills/debug/SKILL.md</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <Callout>
+          Run <code>chain status</code> to verify which editors are linked and whether symlinks are healthy.
+        </Callout>
       </section>
 
       <section id="quickstart">
@@ -191,8 +304,8 @@ const tocItems = [
         <section id="location">
           <h2>Where is your Hub located?</h2>
           <p>
-            By default, your knowledge hub is stored in a folder called <code>chain-hub</code> in your home directory. 
-            This makes it easy to find and back up your AI instructions. 
+            By default, your knowledge hub is stored in a folder called <code>chain-hub</code> in your home directory.
+            This makes it easy to find and back up your AI instructions.
           </p>
           <p>
             If you're an advanced user, you can also set a custom location using the <code>CHAIN_HOME</code> setting.
@@ -289,6 +402,28 @@ const tocItems = [
             If you see an old alias (for example <code>bun run …/Code/chain/cli/chain.ts</code> after renaming or moving the monorepo),
             update <code>CHAIN_HUB_REPO</code> / the alias target to your current clone (see <code>cli/README.md</code>), remove the stale line from your shell profile,
             then run <code>unalias chain</code> and open a new terminal.
+          </p>
+
+          <p><strong>Skill doesn't appear in your editor?</strong></p>
+          <p>
+            Check symlink health with <code>chain status</code>, then recreate links with <code>chain setup</code>.
+            Reopen the editor afterward — some editors cache skill paths at startup.
+          </p>
+          <TerminalBlock code={`$ chain status\n$ chain setup`} />
+
+          <p><strong><code>chain validate</code> reports a nested or unknown layout?</strong></p>
+          <p>
+            Skills must use a flat layout — only <code>skills/&lt;slug&gt;/SKILL.md</code> is valid.
+            Nested category folders are not supported. Move or flatten the directory.
+          </p>
+          <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">✓  skills/debug/SKILL.md
+✗  skills/utilities/debug/SKILL.md   ← nested, not supported</pre>
+
+          <p><strong>Skills disappeared after Syncthing or Dropbox sync?</strong></p>
+          <p>
+            Syncing a hub without <code>.git/</code> can propagate deletions from a partial replica.
+            Use a single writer for the hub, or exclude <code>skills/</code> from bidirectional sync.
+            Restore from backup or re-run <code>chain add</code> for registry sources.
           </p>
         </section>
       </article>

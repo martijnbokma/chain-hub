@@ -4,3 +4,28 @@ alwaysApply: true
 ---
 
 @global.md
+
+## Cursor rule authoring (.mdc)
+
+When writing or editing Cursor `.mdc` rule files, follow these conventions:
+
+**`alwaysApply: true`**
+Use for universal conventions that apply to every session (code style, naming, project-wide constraints).
+Keep these minimal and high-signal — every always-on rule adds to every prompt.
+
+**`globs:`**
+Use for file-type-specific rules. Examples: `**/*.ts`, `src/api/**`, `**/*.test.ts`.
+Omit `alwaysApply` or set it to `false` when using globs — the rule fires only on matching files.
+
+**`description:`**
+Shown in the rule picker. Write what the rule *enforces*, not just its name.
+Good: `"Enforce snake_case for Python identifiers and 4-space indent"`
+Avoid: `"Python rules"`
+
+**Splitting rules**
+Prefer multiple focused `.mdc` files over one large monolithic rule file.
+A rule named `api-contracts.mdc` is easier to toggle and review than a 200-line catch-all.
+
+**Scope**
+- Rules under `.cursor/rules/` are **project-scoped** (checked in, shared with the team)
+- Rules under `~/.cursor/rules/` are **user-global** (apply to all your projects)

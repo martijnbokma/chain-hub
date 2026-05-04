@@ -2,10 +2,13 @@ schema_version: 1
 protected:
   skills:
     - chain-hub
+    - code-review
+    - commit
     - create-hook
     - create-rule
     - create-skill
     - create-subagent
+    - debug
     - find-skills
     - migrate-to-skills
     - update-cli-config

@@ -110,9 +110,9 @@ When summarizing changes:
 
 ## Key references
 
-- [README.md](../../../README.md) — product overview and quick start
-- [CLAUDE.md](../../../CLAUDE.md) — monorepo architecture for agents
-- [cli/README.md](../../../cli/README.md) — full CLI command reference
+- [README.md](https://github.com/martijnbokma/chain-hub/blob/main/README.md) — product overview and quick start
+- [CLAUDE.md](https://github.com/martijnbokma/chain-hub/blob/main/CLAUDE.md) — monorepo architecture for agents
+- [cli/README.md](https://github.com/martijnbokma/chain-hub/blob/main/cli/README.md) — full CLI command reference
 
 ## Quality metrics
 

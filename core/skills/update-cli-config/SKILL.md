@@ -122,3 +122,70 @@ These are internal/cached state and should not be edited manually:
 - `authInfo` — cached authentication info
 - `showSandboxIntro` — one-time UI flag
 - `conversationClassificationScoredConversations` — internal cache
+
+---
+
+## Claude Code — `settings.json` (detailed reference)
+
+The following applies **only** when the user is on **Claude Code** and the target file is **`~/.claude/settings.json`** (user-level) or **`.claude/settings.json`** (project-level, checked in to the repo).
+
+### How to modify
+
+Read the target `settings.json`, apply changes, and write it back. The file is standard JSON. Changes take effect after restarting Claude Code.
+
+Project-level (`.claude/settings.json`) overrides user-level (`~/.claude/settings.json`) for any keys they share.
+
+### Available settings
+
+#### `permissions`
+
+Controls which tool calls Claude Code may execute without asking.
+
+- `allow`: string[] — patterns for auto-approved tool calls (e.g. `"Bash(**)"`, `"Write(**)"`, `"Mcp(server-name, tool-name)"`)
+- `deny`: string[] — patterns for always-denied tool calls
+
+Pattern syntax mirrors Cursor CLI: glob-style matching on tool name and arguments.
+
+#### `approvalMode`
+
+Controls the default approval behavior for tool calls:
+
+- `"default"` — ask before sensitive operations (file writes, shell commands, etc.)
+- `"acceptEdits"` — auto-accept file edits; still ask for shell commands and other operations
+- `"bypassPermissions"` — auto-approve all tool calls (use with caution; equivalent to yolo mode)
+
+#### `hooks`
+
+Event-driven shell commands executed around Claude Code tool calls. See the **`create-hook`** skill for the full hooks reference.
+
+Hooks live under the `hooks` key and are keyed by event type:
+
+| Event | Fires |
+|-------|-------|
+| `PreToolUse` | Before a tool call executes |
+| `PostToolUse` | After a tool call completes |
+| `Notification` | When Claude Code sends a notification |
+| `Stop` | When the top-level agent stops |
+| `SubagentStop` | When a subagent stops |
+
+#### `env`
+
+Key-value pairs injected as environment variables for the entire Claude Code session:
+
+```json
+{
+  "env": {
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "debug"
+  }
+}
+```
+
+### Fields you should NOT modify (Claude Code)
+
+These are internal/authentication state managed by Claude Code itself:
+
+- `oauthAccount` — linked OAuth account info
+- `primaryApiKey` — managed by Claude Code authentication
+- `cachedCredentials` — cached auth tokens
+- Any field prefixed with `_` or documented as internal state in the Claude Code release notes

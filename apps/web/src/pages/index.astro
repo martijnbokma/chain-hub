@@ -9,8 +9,10 @@ import UseCases from '../components/sections/UseCases.astro';
 import LibraryPreview from '../components/sections/LibraryPreview.astro';
 import SimpleText from '../components/sections/SimpleText.astro';
 import HowItWorks from '../components/sections/HowItWorks.astro';
+import Architecture from '../components/sections/Architecture.astro';
 import Editors from '../components/sections/Editors.astro';
 import SkillsAnatomy from '../components/sections/SkillsAnatomy.astro';
+import SkillsAgentsWorkflows from '../components/sections/SkillsAgentsWorkflows.astro';
 import CliReference from '../components/sections/CliReference.astro';
 import Install from '../components/sections/Install.astro';
 import Faq from '../components/sections/Faq.astro';
@@ -20,9 +22,9 @@ import SeoHead from '../components/SeoHead.astro';
 const base = import.meta.env.BASE_URL;
 const siteOrigin = Astro.site?.origin ?? 'https://www.chainhub.one';
 
-const pageTitle = 'Chain Hub | One brain for all your AI assistants';
+const pageTitle = 'Chain Hub | One hub. Every AI editor.';
 const pageDescription =
-  'Chain Hub connects your AI tools to a single source of knowledge. Sync your expert instructions, brand voice, and custom skills across Claude Code, Cursor, Windsurf, Gemini CLI, Antigravity, Kiro, Trae, Mistral Vibe, and more.';
+  'Chain Hub syncs your skills, rules, and agents across Claude Code, Cursor, Windsurf, Gemini CLI, Antigravity, Kiro, Trae, Mistral Vibe, and more — from a single directory on your machine.';
 
 const ogImageObject = {
   '@type': 'ImageObject',
@@ -32,6 +34,11 @@ const ogImageObject = {
 };
 
 const homeTermScriptItems = buildHomePageTerminalScriptItems();
+
+const sitebehaviourSecret =
+  typeof import.meta.env.PUBLIC_SITEBEHAVIOUR_SECRET === 'string'
+    ? import.meta.env.PUBLIC_SITEBEHAVIOUR_SECRET.trim()
+    : '';
 
 const homeJsonLd: Record<string, unknown>[] = [
   {
@@ -60,8 +67,13 @@ const homeJsonLd: Record<string, unknown>[] = [
 const headerNavItems = [
   { href: `${base}docs/`, label: 'Docs' },
   { href: '#comparison', label: 'Why?' },
-  { href: '#use-cases', label: 'Use Cases' },
+  { href: '#architecture', label: 'How it works' },
   { href: '#text-first', label: 'Simplicity' },
+  {
+    href: '#skills-agents-workflows',
+    label: 'Skills & agents',
+    mobileLabel: 'Skills, agents & workflows',
+  },
   { href: '#faq', label: 'FAQ' },
   { href: '#install', label: 'Get started', cta: true },
 ];
@@ -76,6 +88,33 @@ const headerNavItems = [
     ogType="website"
     jsonLd={homeJsonLd}
   />
+  {sitebehaviourSecret ? (
+    <script is:inline define:vars={{ sitebehaviourSecret }}>
+      (function () {
+        try {
+          if (
+            window.location &&
+            window.location.search &&
+            window.location.search.indexOf('capture-sitebehaviour-heatmap') !== -1
+          ) {
+            sessionStorage.setItem('capture-sitebehaviour-heatmap', '_');
+          }
+
+          var sbSiteSecret = sitebehaviourSecret;
+          window.sitebehaviourTrackingSecret = sbSiteSecret;
+          var scriptElement = document.createElement('script');
+          scriptElement.defer = true;
+          scriptElement.id = 'site-behaviour-script-v2';
+          scriptElement.src =
+            'https://sitebehaviour-cdn.fra1.cdn.digitaloceanspaces.com/index.min.js?sitebehaviour-secret=' +
+            sbSiteSecret;
+          document.head.appendChild(scriptElement);
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+    </script>
+  ) : null}
 </head>
 <body class="ch-site bg-bg text-text font-mono text-[13px] leading-[1.65] antialiased overflow-x-hidden pb-[env(safe-area-inset-bottom,0px)] [text-size-adjust:100%]">
 
@@ -88,8 +127,10 @@ const headerNavItems = [
 <LibraryPreview />
 <SimpleText />
 <HowItWorks />
+<Architecture />
 <Editors />
 <SkillsAnatomy />
+<SkillsAgentsWorkflows />
 <CliReference />
 <Install />
 <Faq />

@@ -4,6 +4,8 @@ bun.lockb
 cli/dist/
 
 # --- apps/web (Astro marketing site) ---
+apps/web/.env
+apps/web/.env.local
 apps/web/dist/
 apps/web/.astro/
 apps/web/.output/

@@ -4,67 +4,61 @@
 <section class="py-32 max-md:py-20 bg-surface border-y border-border" id="library-preview">
   <div class="layout-wrap">
     <div class="fi mb-16 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100 text-center flex flex-col items-center">
-      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-kicker before:text-[rgba(139,124,255,0.62)] before:content-['//_']">Library Preview</div>
-      <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Ready-to-use<br><em class="not-italic text-accent">knowledge packs.</em></h2>
+      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-kicker before:text-[rgba(139,124,255,0.62)] before:content-['//_']">What ships in core</div>
+      <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">What ships in core.<br><em class="not-italic text-accent">Ready after chain init.</em></h2>
       <p class="max-w-[600px] text-sm leading-[1.75] text-text-dim">
-        Chain Hub comes with a curated set of starter skills. Here are some examples of what you can instantly link to your AI assistants.
+        Every Chain Hub installation includes these skills out of the box. No configuration needed.
       </p>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      <!-- Pack 1: Brand Voice -->
-      <div class="fi group flex flex-col p-6 rounded-xl border border-border bg-surface-2 opacity-0 translate-y-[18px] transition-all duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.3)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="text-xl mb-4 group-hover:scale-110 transition-transform origin-left">🎙️</div>
-        <h3 class="text-[13px] font-bold mb-2">Brand Voice Expert</h3>
-        <p class="text-[11px] text-text-dim leading-relaxed mb-4">
-          Ensures your AI always writes in your company's unique tone and style.
-        </p>
-        <div class="mt-auto flex items-center gap-2 text-[9px] uppercase tracking-wider text-accent">
-          <span>Skill</span>
-          <span class="size-1 rounded-full bg-border"></span>
-          <span>Marketing</span>
+    <div class="fi opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <div class="rounded-xl border border-border bg-surface-2 overflow-hidden shadow-2xl">
+        <div class="flex items-center gap-[7px] border-b border-border bg-surface px-4 py-[11px]">
+          <div class="size-2.5 rounded-full bg-[#ff5f57]"></div>
+          <div class="size-2.5 rounded-full bg-[#febc2e]"></div>
+          <div class="size-2.5 rounded-full bg-[#28c840]"></div>
+          <div class="min-w-0 flex-1 truncate text-center text-[10px] tracking-[0.05em] text-text-dim">~/chain-hub/core/skills/</div>
         </div>
-      </div>
-
-      <!-- Pack 2: Legal Review -->
-      <div class="fi group flex flex-col p-6 rounded-xl border border-border bg-surface-2 opacity-0 translate-y-[18px] transition-all delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.3)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="text-xl mb-4 group-hover:scale-110 transition-transform origin-left">⚖️</div>
-        <h3 class="text-[13px] font-bold mb-2">Contract Reviewer</h3>
-        <p class="text-[11px] text-text-dim leading-relaxed mb-4">
-          A specialized playbook for identifying risks and missing clauses in agreements.
-        </p>
-        <div class="mt-auto flex items-center gap-2 text-[9px] uppercase tracking-wider text-accent">
-          <span>Workflow</span>
-          <span class="size-1 rounded-full bg-border"></span>
-          <span>Legal</span>
-        </div>
-      </div>
-
-      <!-- Pack 3: SEO Audit -->
-      <div class="fi group flex flex-col p-6 rounded-xl border border-border bg-surface-2 opacity-0 translate-y-[18px] transition-all delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.3)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="text-xl mb-4 group-hover:scale-110 transition-transform origin-left">🔍</div>
-        <h3 class="text-[13px] font-bold mb-2">SEO Optimizer</h3>
-        <p class="text-[11px] text-text-dim leading-relaxed mb-4">
-          Step-by-step procedures to optimize content for search engines and readability.
-        </p>
-        <div class="mt-auto flex items-center gap-2 text-[9px] uppercase tracking-wider text-accent">
-          <span>Skill</span>
-          <span class="size-1 rounded-full bg-border"></span>
-          <span>Growth</span>
-        </div>
-      </div>
-
-      <!-- Pack 4: Customer Support -->
-      <div class="fi group flex flex-col p-6 rounded-xl border border-border bg-surface-2 opacity-0 translate-y-[18px] transition-all delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.3)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] [&.in]:translate-y-0 [&.in]:opacity-100">
-        <div class="text-xl mb-4 group-hover:scale-110 transition-transform origin-left">🤝</div>
-        <h3 class="text-[13px] font-bold mb-2">Support Hero</h3>
-        <p class="text-[11px] text-text-dim leading-relaxed mb-4">
-          Guidelines for empathetic, helpful, and brand-aligned customer communications.
-        </p>
-        <div class="mt-auto flex items-center gap-2 text-[9px] uppercase tracking-wider text-accent">
-          <span>Rules</span>
-          <span class="size-1 rounded-full bg-border"></span>
-          <span>Support</span>
+        <div class="p-6 sm:p-8 font-mono text-[12px] sm:text-[13px] leading-[2]">
+          <div class="text-text-dim mb-2">core/skills/</div>
+          <div class="pl-4 space-y-0.5">
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">commit/</span>
+              <span class="text-accent text-[10px] tracking-wider">← NEW</span>
+              <span class="text-text-dim text-[11px]">Generates conventional commit messages</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">debug/</span>
+              <span class="text-accent text-[10px] tracking-wider">← NEW</span>
+              <span class="text-text-dim text-[11px]">Systematic debugging with root-cause analysis</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">code-review/</span>
+              <span class="text-accent text-[10px] tracking-wider">← NEW</span>
+              <span class="text-text-dim text-[11px]">Structured code review with actionable feedback</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">create-skill/</span>
+              <span class="text-text-dim text-[11px] ml-[calc(4rem+3px)]">Author new skills with correct frontmatter</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">create-rule/</span>
+              <span class="text-text-dim text-[11px] ml-[calc(4rem+3px)]">Create editor rules from scratch</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">create-hook/</span>
+              <span class="text-text-dim text-[11px] ml-[calc(4rem+3px)]">Scaffold git hooks</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">chain-hub/</span>
+              <span class="text-text-dim text-[11px] ml-[calc(4rem+3px)]">Navigate and manage your hub</span>
+            </div>
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="text-text">find-skills/</span>
+              <span class="text-text-dim text-[11px] ml-[calc(4rem+3px)]">Discover skills in the registry</span>
+            </div>
+            <div class="mt-3 text-text-dim text-[11px]">+ 4 more…</div>
+          </div>
         </div>
       </div>
     </div>
