@@ -1,6 +1,7 @@
 import kleur from "kleur"
 import { existsSync } from "fs"
 import { isAbsolute, join, normalize, resolve, sep } from "path"
+import { fileURLToPath } from "url"
 import { getChainHomeResolution } from "../utils/chain-home"
 import { UserError } from "../utils/errors"
 import {
@@ -88,13 +89,27 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
   return data as Record<string, unknown>
 }
 
+export function resolveStaticRoot(
+  currentDir: string,
+  pathExists: (path: string) => boolean = existsSync,
+): string {
+  const sourceHub = join(currentDir, "..", "..", "apps", "hub")
+  const sourceCheckout = pathExists(sourceHub)
+
+  const packagedDistHub = join(currentDir, "..", "hub")
+  const localDistHub = join(currentDir, "dist", "hub")
+  const localHub = join(currentDir, "hub")
+
+  const candidates = sourceCheckout
+    ? [sourceHub, packagedDistHub, localDistHub, localHub]
+    : [packagedDistHub, localDistHub, localHub, sourceHub]
+
+  return candidates.find((path) => pathExists(path)) ?? candidates[0]!
+}
+
 function getStaticRoot(): string {
-  const candidates = [
-    join(import.meta.dir, "dist", "hub"),
-    join(import.meta.dir, "hub"),
-    join(import.meta.dir, "..", "..", "apps", "hub"),
-  ]
-  return candidates.find((path) => existsSync(path)) ?? candidates[0]!
+  const currentDir = resolve(fileURLToPath(new URL(".", import.meta.url)))
+  return resolveStaticRoot(currentDir)
 }
 
 function openBrowser(url: string): void {

@@ -23,6 +23,7 @@
     "build": "bun build --target=node --outfile dist/chain.js chain.ts && cp registry/bundled-index.yaml dist/registry-index.yaml && rm -rf dist/hub && cp -R ../apps/hub dist/hub",
     "prepack": "node ./scripts/sync-package-assets.mjs && bun run build && node ./scripts/check-package-files.mjs",
     "pack:check": "node ./scripts/sync-package-assets.mjs && bun run build && node ./scripts/check-package-files.mjs",
+    "smoke:hub": "node ./scripts/hub-smoke.mjs",
     "smoke:package": "node ./scripts/package-smoke.mjs",
     "check:components-json": "node ./scripts/check-components-json.mjs",
     "changelog": "git-cliff -r .. -c ../cliff.toml -o CHANGELOG.md",

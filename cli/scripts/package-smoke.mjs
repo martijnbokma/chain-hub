@@ -20,6 +20,9 @@ try {
   const files = packResult.files.map((file) => file.path);
 
   assert(files.includes("dist/chain.js"), "tarball must include dist/chain.js");
+  assert(files.includes("dist/hub/index.html"), "tarball must include dist/hub/index.html");
+  assert(files.includes("dist/hub/main.js"), "tarball must include dist/hub/main.js");
+  assert(files.includes("dist/hub/styles.css"), "tarball must include dist/hub/styles.css");
   assert(files.includes("core/registry.yaml"), "tarball must include core/registry.yaml");
   assert(files.includes("core/templates/components.json"), "tarball must include core/templates/components.json");
   assert(!files.some((file) => file.startsWith("skills/")), "tarball must not include private skills/");

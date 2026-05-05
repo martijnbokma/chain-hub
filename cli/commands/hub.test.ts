@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
-import { buildSkillsListResponse } from "./hub"
+import { buildSkillsListResponse, resolveStaticRoot } from "./hub"
 
 describe("buildSkillsListResponse", () => {
   let hub: string
@@ -37,5 +37,40 @@ describe("buildSkillsListResponse", () => {
     const payload = buildSkillsListResponse(hub, "env")
     expect(payload.initialized).toBe(true)
     expect(Array.isArray(payload.skills)).toBe(true)
+  })
+})
+
+describe("resolveStaticRoot", () => {
+  let sandbox: string
+
+  beforeEach(() => {
+    sandbox = join(tmpdir(), `chain-hub-static-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+    mkdirSync(sandbox, { recursive: true })
+  })
+
+  afterEach(() => {
+    rmSync(sandbox, { recursive: true, force: true })
+  })
+
+  test("prefers live apps/hub when running from a source checkout", () => {
+    const commandsDir = join(sandbox, "repo", "cli", "commands")
+    const distHub = join(sandbox, "repo", "cli", "dist", "hub")
+    const sourceHub = join(sandbox, "repo", "apps", "hub")
+    mkdirSync(commandsDir, { recursive: true })
+    mkdirSync(distHub, { recursive: true })
+    mkdirSync(sourceHub, { recursive: true })
+
+    const resolved = resolveStaticRoot(commandsDir)
+    expect(resolved).toBe(sourceHub)
+  })
+
+  test("prefers dist/hub when running from packaged dist commands", () => {
+    const distCommandsDir = join(sandbox, "install", "node_modules", "chain-hub", "dist", "commands")
+    const distHub = join(sandbox, "install", "node_modules", "chain-hub", "dist", "hub")
+    mkdirSync(distCommandsDir, { recursive: true })
+    mkdirSync(distHub, { recursive: true })
+
+    const resolved = resolveStaticRoot(distCommandsDir)
+    expect(resolved).toBe(distHub)
   })
 })
