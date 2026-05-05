@@ -4,6 +4,8 @@ import { parse } from "yaml"
 import { readRegistry, addSkill, removeSkill as registryRemoveSkill } from "../registry/local"
 import { isProtectedCoreSkill, readProtectedCoreAssets } from "../registry/core"
 import { UserError } from "../utils/errors"
+import { assertSafeSkillPathSegment, assertValidSkillSlug } from "../utils/skill-slug"
+import { ensureCoreAssets, ensureUserRegistry } from "../utils/core-assets"
 import type { InstallBucket } from "../registry/local"
 
 export interface SkillEntry {
@@ -12,6 +14,15 @@ export interface SkillEntry {
   bucket: InstallBucket | "core" | "unknown"
   isCore: boolean
   githubRef?: string
+}
+
+export interface SkillsListPayload {
+  skills: SkillEntry[]
+  initialized: boolean
+}
+
+export function isHubInitialized(chainHome: string): boolean {
+  return existsSync(join(chainHome, "skills-registry.yaml")) && existsSync(join(chainHome, "core", "registry.yaml"))
 }
 
 const SKILL_TEMPLATE = `---
@@ -102,57 +113,83 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
   return { coreSkills, userSkills }
 }
 
+export function listSkillsPayload(chainHome: string): SkillsListPayload {
+  ensureCoreAssets({ chainHome })
+  ensureUserRegistry({ chainHome })
+  const initialized = isHubInitialized(chainHome)
+  const { coreSkills, userSkills } = listSkills(chainHome)
+  return { skills: [...coreSkills, ...userSkills], initialized }
+}
+
+function resolveUserSkillDir(chainHome: string, slug: string): { safeSlug: string; dir: string } {
+  const safeSlug = assertSafeSkillPathSegment(slug)
+  return { safeSlug, dir: join(chainHome, "skills", safeSlug) }
+}
+
 export function readSkill(chainHome: string, slug: string): { content: string; isCore: boolean } {
-  const isCore = isProtectedCoreSkill(slug, chainHome)
-  const dir = isCore ? join(chainHome, "core", "skills", slug) : join(chainHome, "skills", slug)
+  ensureCoreAssets({ chainHome })
+  ensureUserRegistry({ chainHome })
+  const safeSlug = assertSafeSkillPathSegment(slug)
+  const isCore = isProtectedCoreSkill(safeSlug, chainHome)
+  const dir = isCore ? join(chainHome, "core", "skills", safeSlug) : resolveUserSkillDir(chainHome, safeSlug).dir
   const skillMdPath = join(dir, "SKILL.md")
 
   if (!existsSync(skillMdPath)) {
-    throw new UserError(`Skill '${slug}' not found.`)
+    throw new UserError(`Skill '${safeSlug}' not found.`)
   }
 
   return { content: readFileSync(skillMdPath, "utf8"), isCore }
 }
 
 export function writeSkill(chainHome: string, slug: string, content: string): void {
-  if (isProtectedCoreSkill(slug, chainHome)) {
-    throw new UserError(`'${slug}' is a protected core skill and cannot be modified.`)
+  ensureCoreAssets({ chainHome })
+  ensureUserRegistry({ chainHome })
+  const safeSlug = assertSafeSkillPathSegment(slug)
+  if (isProtectedCoreSkill(safeSlug, chainHome)) {
+    throw new UserError(`'${safeSlug}' is a protected core skill and cannot be modified.`)
   }
 
-  const skillMdPath = join(chainHome, "skills", slug, "SKILL.md")
-  if (!existsSync(join(chainHome, "skills", slug))) {
-    throw new UserError(`Skill '${slug}' does not exist. Use createSkill to create it first.`)
+  const { dir } = resolveUserSkillDir(chainHome, safeSlug)
+  const skillMdPath = join(dir, "SKILL.md")
+  if (!existsSync(dir)) {
+    throw new UserError(`Skill '${safeSlug}' does not exist. Use createSkill to create it first.`)
   }
 
   writeFileSync(skillMdPath, content, "utf8")
 }
 
 export function createSkill(chainHome: string, slug: string): void {
-  if (isProtectedCoreSkill(slug, chainHome)) {
-    throw new UserError(`'${slug}' is a protected core skill and cannot be overwritten.`)
+  ensureCoreAssets({ chainHome })
+  ensureUserRegistry({ chainHome })
+  const safeSlug = assertValidSkillSlug(slug)
+  if (isProtectedCoreSkill(safeSlug, chainHome)) {
+    throw new UserError(`'${safeSlug}' is a protected core skill and cannot be overwritten.`)
   }
 
-  const dest = join(chainHome, "skills", slug)
+  const dest = join(chainHome, "skills", safeSlug)
   if (existsSync(dest)) {
-    throw new UserError(`Skill '${slug}' already exists at ${dest}.`)
+    throw new UserError(`Skill '${safeSlug}' already exists at ${dest}.`)
   }
 
   mkdirSync(dest, { recursive: true })
-  writeFileSync(join(dest, "SKILL.md"), SKILL_TEMPLATE.replace(/SLUG/g, slug), "utf8")
-  addSkill({ slug, bucket: "personal", chainHome })
+  writeFileSync(join(dest, "SKILL.md"), SKILL_TEMPLATE.replace(/SLUG/g, safeSlug), "utf8")
+  addSkill({ slug: safeSlug, bucket: "personal", chainHome })
 }
 
 export function removeSkill(chainHome: string, slug: string): void {
-  if (isProtectedCoreSkill(slug, chainHome)) {
+  ensureCoreAssets({ chainHome })
+  ensureUserRegistry({ chainHome })
+  const safeSlug = assertSafeSkillPathSegment(slug)
+  if (isProtectedCoreSkill(safeSlug, chainHome)) {
     throw new UserError(
-      `'${slug}' is a protected Chain Hub core skill and cannot be removed.`,
+      `'${safeSlug}' is a protected Chain Hub core skill and cannot be removed.`,
     )
   }
 
-  const skillDir = join(chainHome, "skills", slug)
+  const { dir: skillDir } = resolveUserSkillDir(chainHome, safeSlug)
   if (existsSync(skillDir)) {
     rmSync(skillDir, { recursive: true })
   }
 
-  registryRemoveSkill(slug, chainHome)
+  registryRemoveSkill(safeSlug, chainHome)
 }

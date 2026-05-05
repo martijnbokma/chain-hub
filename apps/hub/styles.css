@@ -313,6 +313,39 @@ body {
   color: #ff7b72;
 }
 
+.validation-results {
+  margin-top: 0.7rem;
+  border: 1px solid #252525;
+  background: #121212;
+  padding: 0.6rem 0.7rem;
+}
+
+.validation-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0.35rem 0;
+}
+
+.validation-list {
+  margin: 0 0 0.6rem;
+  padding-left: 1.1rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.validation-list:last-child {
+  margin-bottom: 0;
+}
+
+.validation-errors {
+  color: #ff7b72;
+}
+
+.validation-warnings {
+  color: #f0ad4e;
+}
+
 .modal-root {
   position: fixed;
   inset: 0;

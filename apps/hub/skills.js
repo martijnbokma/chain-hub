@@ -7,19 +7,12 @@ function el(tag, className, text) {
   return node
 }
 
-function ensureInitializedBanner(error, setBanner) {
-  const message = error?.message ?? String(error ?? "")
-  if (message.toLowerCase().includes("skills-registry.yaml")) {
-    setBanner("Hub not initialized. Run `chain init` and refresh this page.")
-    return true
-  }
-  return false
-}
-
 export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest, modal }) {
   let skills = []
   let selectedSlug = null
   let selectedDetail = null
+  let selectedDraft = ""
+  let selectedValidation = null
   let feedback = ""
   let feedbackKind = "ok"
 
@@ -31,27 +24,44 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     setBanner("")
     try {
       const payload = await apiRequest("/api/skills")
-      skills = Array.isArray(payload.skills) ? payload.skills : []
+      const hasValidShape =
+        payload &&
+        typeof payload === "object" &&
+        Array.isArray(payload.skills) &&
+        typeof payload.chainHome === "string" &&
+        typeof payload.source === "string" &&
+        typeof payload.initialized === "boolean"
+      if (!hasValidShape) {
+        throw new Error("Malformed /api/skills response. Expected { skills, chainHome, source, initialized }.")
+      }
+      skills = payload.skills
       setChainHomeBar(payload.chainHome, payload.source)
+      if (!payload.initialized) {
+        setBanner("Hub metadata is still initializing. Retry in a moment.")
+      }
       if (!preserveSelection || !selectedSlug || !findSkill(selectedSlug)) {
         selectedSlug = null
         selectedDetail = null
+        selectedDraft = ""
+        selectedValidation = null
       }
     } catch (error) {
-      if (!ensureInitializedBanner(error, setBanner)) {
-        setBanner(error.message)
-      }
+      setBanner(error.message)
       skills = []
       selectedSlug = null
       selectedDetail = null
+      selectedDraft = ""
+      selectedValidation = null
     }
   }
 
   async function openSkill(slug) {
     feedback = ""
+    selectedValidation = null
     try {
       selectedDetail = await apiRequest(`/api/skills/${encodeURIComponent(slug)}`)
       selectedSlug = slug
+      selectedDraft = selectedDetail.content ?? ""
       render()
     } catch (error) {
       feedback = error.message
@@ -62,15 +72,14 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
   async function saveCurrentSkill() {
     if (!selectedSlug || !selectedDetail || selectedDetail.isCore) return
-    const editor = root.querySelector("#skill-editor")
-    if (!(editor instanceof HTMLTextAreaElement)) return
+    const content = selectedDraft
     feedback = ""
     try {
       await apiRequest(`/api/skills/${encodeURIComponent(selectedSlug)}`, {
         method: "PUT",
-        body: { content: editor.value },
+        body: { content },
       })
-      selectedDetail.content = editor.value
+      selectedDetail.content = content
       feedback = "Saved successfully."
       feedbackKind = "ok"
       await loadSkills()
@@ -86,11 +95,11 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     if (!selectedSlug) return
     feedback = ""
     try {
-      const result = await apiRequest(`/api/skills/${encodeURIComponent(selectedSlug)}/validate`, {
+      selectedValidation = await apiRequest(`/api/skills/${encodeURIComponent(selectedSlug)}/validate`, {
         method: "POST",
       })
-      const errors = Array.isArray(result.errors) ? result.errors : []
-      const warnings = Array.isArray(result.warnings) ? result.warnings : []
+      const errors = Array.isArray(selectedValidation.errors) ? selectedValidation.errors : []
+      const warnings = Array.isArray(selectedValidation.warnings) ? selectedValidation.warnings : []
       if (errors.length === 0 && warnings.length === 0) {
         feedback = "Validation passed."
         feedbackKind = "ok"
@@ -108,6 +117,7 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     } catch (error) {
       feedback = error.message
       feedbackKind = "err"
+      selectedValidation = null
       render()
     }
   }
@@ -209,7 +219,6 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
   function renderDetail() {
     const skillMeta = findSkill(selectedSlug) ?? { slug: selectedSlug, bucket: "unknown" }
-    const content = selectedDetail?.content ?? ""
     const isCore = Boolean(selectedDetail?.isCore)
 
     const wrapper = document.createDocumentFragment()
@@ -251,14 +260,15 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
     const editor = el("textarea", "editor-textarea")
     editor.id = "skill-editor"
-    editor.value = content
+    editor.value = selectedDraft
     editor.disabled = isCore
 
     const preview = el("div", "preview")
     preview.id = "skill-preview"
-    preview.replaceChildren(renderMarkdown(content))
+    preview.replaceChildren(renderMarkdown(selectedDraft))
 
     editor.addEventListener("input", () => {
+      selectedDraft = editor.value
       preview.replaceChildren(renderMarkdown(editor.value))
     })
 
@@ -270,6 +280,28 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
     if (isCore) {
       wrapper.appendChild(el("div", "msg warn-text", "Protected core skill: read-only."))
+    }
+    if (selectedValidation && (Array.isArray(selectedValidation.errors) || Array.isArray(selectedValidation.warnings))) {
+      const validationBlock = el("div", "validation-results")
+      const errors = Array.isArray(selectedValidation.errors) ? selectedValidation.errors : []
+      const warnings = Array.isArray(selectedValidation.warnings) ? selectedValidation.warnings : []
+      if (errors.length > 0) {
+        validationBlock.appendChild(el("div", "validation-title err", "Errors"))
+        const list = el("ul", "validation-list validation-errors")
+        for (const message of errors) {
+          list.appendChild(el("li", "validation-item", message))
+        }
+        validationBlock.appendChild(list)
+      }
+      if (warnings.length > 0) {
+        validationBlock.appendChild(el("div", "validation-title warn-text", "Warnings"))
+        const list = el("ul", "validation-list validation-warnings")
+        for (const message of warnings) {
+          list.appendChild(el("li", "validation-item", message))
+        }
+        validationBlock.appendChild(list)
+      }
+      wrapper.appendChild(validationBlock)
     }
     renderFeedback(wrapper)
 

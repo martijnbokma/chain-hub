@@ -50,4 +50,19 @@ describe("runRemove", () => {
     const reg = (await import("../registry/local")).readRegistry()
     expect(reg.personal).not.toContain("installed-skill")
   })
+
+  test("rejects invalid slug input", async () => {
+    await expect(runRemove("../escape")).rejects.toBeInstanceOf(UserError)
+  })
+
+  test("removes tracked legacy slug that is not kebab-case", async () => {
+    writeFileSync(
+      join(tmp, "skills-registry.yaml"),
+      "schema_version: 3\nchain_hub: []\npersonal:\n  - LegacySkill\ncli_packages: []\n",
+    )
+    mkdirSync(join(tmp, "skills", "LegacySkill"), { recursive: true })
+
+    await runRemove("LegacySkill")
+    expect(existsSync(join(tmp, "skills", "LegacySkill"))).toBe(false)
+  })
 })

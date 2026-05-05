@@ -119,4 +119,27 @@ describe("getStatus — echoes the input chainHome and optional source", () => {
     const result = getStatus("/hub")
     expect(result.source).toBeUndefined()
   })
+
+  test("StatusResult.initialized is false when hub assets are missing", async () => {
+    const { getStatus } = await import("./status-service")
+    const result = getStatus("/definitely/missing/chain-home")
+    expect(result.initialized).toBe(false)
+  })
+
+  test("StatusResult.initialized is true when hub assets exist", async () => {
+    const hub = join(tmpdir(), `chain-status-init-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+    mkdirSync(join(hub, "core"), { recursive: true })
+    writeFileSync(join(hub, "skills-registry.yaml"), "schema_version: 1\nchain_hub: []\npersonal: []\ncli_packages: []\n")
+    writeFileSync(
+      join(hub, "core", "registry.yaml"),
+      "schema_version: 1\nprotected:\n  skills: []\n  rules: []\n  agents: []\n  workflows: []\n",
+    )
+    try {
+      const { getStatus } = await import("./status-service")
+      const result = getStatus(hub)
+      expect(result.initialized).toBe(true)
+    } finally {
+      rmSync(hub, { recursive: true, force: true })
+    }
+  })
 })

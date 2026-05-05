@@ -5,7 +5,7 @@ import { getChainHomeResolution } from "../utils/chain-home"
 import { UserError } from "../utils/errors"
 import {
   createSkill,
-  listSkills,
+  listSkillsPayload,
   readSkill,
   removeSkill,
   writeSkill,
@@ -14,6 +14,7 @@ import { getStatus } from "../services/status-service"
 import { fetchRegistry, installSkill } from "../services/registry-service"
 import { runSetupService } from "../services/setup-service"
 import { validateSkill } from "../services/validation-service"
+import { assertValidSkillSlug } from "../utils/skill-slug"
 
 interface HubOptions {
   port?: number | string
@@ -24,7 +25,24 @@ interface ApiErrorShape {
   code: string
 }
 
+interface SkillsListApiResponse {
+  skills: ReturnType<typeof listSkillsPayload>["skills"]
+  initialized: boolean
+  chainHome: string
+  source: string
+}
+
 const DEFAULT_PORT = 2342
+
+export function buildSkillsListResponse(chainHome: string, source: string): SkillsListApiResponse {
+  const payload = listSkillsPayload(chainHome)
+  return {
+    skills: payload.skills,
+    initialized: payload.initialized,
+    chainHome,
+    source,
+  }
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -154,8 +172,7 @@ export async function runHub(opts: HubOptions = {}): Promise<void> {
 
         try {
           if (pathname === "/api/skills" && request.method === "GET") {
-            const { coreSkills, userSkills } = listSkills(chainHome)
-            return json([...coreSkills, ...userSkills])
+            return json(buildSkillsListResponse(chainHome, resolution.source))
           }
 
           const skillMatch = pathname.match(/^\/api\/skills\/([^/]+)$/)
@@ -182,7 +199,7 @@ export async function runHub(opts: HubOptions = {}): Promise<void> {
             if (typeof slug !== "string" || slug.trim().length === 0) {
               throw new UserError("Field 'slug' is required and must be a non-empty string.")
             }
-            createSkill(chainHome, slug.trim())
+            createSkill(chainHome, assertValidSkillSlug(slug))
             return json({ ok: true }, 201)
           }
 

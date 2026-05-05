@@ -111,6 +111,12 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
       return
     }
 
+    if (statusData.initialized === false) {
+      container.appendChild(
+        el("div", "banner", "Hub not initialized yet. Use Fix actions below to initialize in-place."),
+      )
+    }
+
     const adapters = Array.isArray(statusData.adapters) ? statusData.adapters : []
     const issues = buildSummary(adapters)
     if (issues > 0) {

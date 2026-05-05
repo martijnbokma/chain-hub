@@ -4,6 +4,7 @@ import { tmpdir } from "os"
 import { join } from "path"
 import { runNew } from "./new"
 import { readRegistry } from "../registry/local"
+import { UserError } from "../utils/errors"
 
 describe("runNew", () => {
   let tmp: string
@@ -31,5 +32,9 @@ describe("runNew", () => {
     expect(existsSync(join(tmp, "skills", "my-fresh-skill", "SKILL.md"))).toBe(true)
     const reg = readRegistry()
     expect(reg.personal ?? []).toContain("my-fresh-skill")
+  })
+
+  test("rejects invalid slug input", async () => {
+    await expect(runNew("../escape")).rejects.toBeInstanceOf(UserError)
   })
 })

@@ -1,6 +1,7 @@
 import { realpathSync } from "fs"
 import { allAdapters } from "../adapters"
 import { isSymlink } from "../utils/fs"
+import { isHubInitialized } from "./skills-service"
 
 export function classifyLink(description: string, linkPath: string, chainHome: string): LinkStatus {
   if (!isSymlink(linkPath)) {
@@ -46,6 +47,7 @@ export interface AdapterStatus {
 export interface StatusResult {
   chainHome: string
   source?: string
+  initialized: boolean
   adapters: AdapterStatus[]
 }
 
@@ -68,5 +70,5 @@ export function getStatus(chainHome: string, source?: string): StatusResult {
     return { name: adapter.name, infoUrl: adapter.infoUrl, detected: true, links }
   })
 
-  return { chainHome, source, adapters }
+  return { chainHome, source, initialized: isHubInitialized(chainHome), adapters }
 }
