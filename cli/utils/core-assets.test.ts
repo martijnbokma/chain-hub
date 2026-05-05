@@ -70,6 +70,29 @@ protected:
     expect(readFileSync(join(chainHome, "workflows", "chain-quickstart.md"), "utf8")).toContain("# Quickstart")
   })
 
+  test("installs protected rules into chain home rules/", () => {
+    writeFileSync(
+      join(packageRoot, "core", "registry.yaml"),
+      `schema_version: 1
+protected:
+  skills: []
+  agents: []
+  workflows: []
+  rules:
+    - global
+    - cursor-global
+`,
+    )
+    mkdirSync(join(packageRoot, "core", "rules"), { recursive: true })
+    writeFileSync(join(packageRoot, "core", "rules", "global.md"), "# Global rules\n")
+    writeFileSync(join(packageRoot, "core", "rules", "cursor-global.mdc"), "---\nname: cursor\ndescription: x\n---\n")
+
+    ensureCoreAssets({ chainHome, packageRoot })
+
+    expect(readFileSync(join(chainHome, "rules", "global.md"), "utf8")).toContain("# Global rules")
+    expect(readFileSync(join(chainHome, "rules", "cursor-global.mdc"), "utf8")).toContain("name: cursor")
+  })
+
   test("creates an empty user registry when missing", () => {
     ensureUserRegistry({ chainHome })
 

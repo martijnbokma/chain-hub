@@ -52,16 +52,18 @@ describe("resolveStaticRoot", () => {
     rmSync(sandbox, { recursive: true, force: true })
   })
 
-  test("prefers live apps/hub when running from a source checkout", () => {
+  test("prefers apps/hub/dist (Astro output) when running from a source checkout", () => {
     const commandsDir = join(sandbox, "repo", "cli", "commands")
-    const distHub = join(sandbox, "repo", "cli", "dist", "hub")
+    const packagedHub = join(sandbox, "repo", "cli", "dist", "hub")
     const sourceHub = join(sandbox, "repo", "apps", "hub")
+    const sourceHubDist = join(sourceHub, "dist")
     mkdirSync(commandsDir, { recursive: true })
-    mkdirSync(distHub, { recursive: true })
-    mkdirSync(sourceHub, { recursive: true })
+    mkdirSync(packagedHub, { recursive: true })
+    mkdirSync(sourceHubDist, { recursive: true })
+    writeFileSync(join(sourceHubDist, "index.html"), "<!doctype html><html></html>")
 
     const resolved = resolveStaticRoot(commandsDir)
-    expect(resolved).toBe(sourceHub)
+    expect(resolved).toBe(sourceHubDist)
   })
 
   test("prefers dist/hub when running from packaged dist commands", () => {

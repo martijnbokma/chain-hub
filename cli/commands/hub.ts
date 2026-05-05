@@ -2,7 +2,7 @@ import kleur from "kleur"
 import { existsSync } from "fs"
 import { isAbsolute, join, normalize, resolve, sep } from "path"
 import { fileURLToPath } from "url"
-import { getChainHomeResolution } from "../utils/chain-home"
+import { getChainHomeResolution, type ChainHomeResolution } from "../utils/chain-home"
 import { UserError } from "../utils/errors"
 import {
   createSkill,
@@ -94,6 +94,7 @@ export function resolveStaticRoot(
   pathExists: (path: string) => boolean = existsSync,
 ): string {
   const sourceHub = join(currentDir, "..", "..", "apps", "hub")
+  const sourceHubDist = join(sourceHub, "dist")
   const sourceCheckout = pathExists(sourceHub)
 
   const packagedDistHub = join(currentDir, "..", "hub")
@@ -101,8 +102,8 @@ export function resolveStaticRoot(
   const localHub = join(currentDir, "hub")
 
   const candidates = sourceCheckout
-    ? [sourceHub, packagedDistHub, localDistHub, localHub]
-    : [packagedDistHub, localDistHub, localHub, sourceHub]
+    ? [sourceHubDist, packagedDistHub, localDistHub, localHub]
+    : [packagedDistHub, localDistHub, localHub, sourceHubDist]
 
   return candidates.find((path) => pathExists(path)) ?? candidates[0]!
 }
@@ -172,103 +173,109 @@ function parsePort(portArg?: number | string): number {
   return parsedPort
 }
 
+export async function handleRequest(
+  request: Request,
+  chainHome: string,
+  resolution: ChainHomeResolution,
+): Promise<Response> {
+  const staticRoot = getStaticRoot()
+  const url = new URL(request.url)
+  const pathname = url.pathname
+
+  try {
+    if (pathname === "/api/skills" && request.method === "GET") {
+      return json(buildSkillsListResponse(chainHome, resolution.source))
+    }
+
+    const skillMatch = pathname.match(/^\/api\/skills\/([^/]+)$/)
+    if (skillMatch && request.method === "GET") {
+      const slug = decodeURIComponent(skillMatch[1]!)
+      const skill = readSkill(chainHome, slug)
+      return json({ slug, ...skill })
+    }
+
+    if (skillMatch && request.method === "PUT") {
+      const slug = decodeURIComponent(skillMatch[1]!)
+      const body = await readJsonBody(request)
+      const content = body.content
+      if (typeof content !== "string") {
+        throw new UserError("Field 'content' is required and must be a string.")
+      }
+      writeSkill(chainHome, slug, content)
+      return json({ ok: true })
+    }
+
+    if (pathname === "/api/skills" && request.method === "POST") {
+      const body = await readJsonBody(request)
+      const slug = body.slug
+      if (typeof slug !== "string" || slug.trim().length === 0) {
+        throw new UserError("Field 'slug' is required and must be a non-empty string.")
+      }
+      createSkill(chainHome, assertValidSkillSlug(slug))
+      return json({ ok: true }, 201)
+    }
+
+    if (skillMatch && request.method === "DELETE") {
+      const slug = decodeURIComponent(skillMatch[1]!)
+      removeSkill(chainHome, slug)
+      return json({ ok: true })
+    }
+
+    const validateMatch = pathname.match(/^\/api\/skills\/([^/]+)\/validate$/)
+    if (validateMatch && request.method === "POST") {
+      const slug = decodeURIComponent(validateMatch[1]!)
+      return json(validateSkill(chainHome, slug))
+    }
+
+    if (pathname === "/api/status" && request.method === "GET") {
+      return json(getStatus(chainHome, resolution.source))
+    }
+
+    if (pathname === "/api/setup" && request.method === "POST") {
+      const body =
+        request.headers.get("content-length") === "0" ? {} : await readJsonBody(request)
+      const ide = typeof body.ide === "string" ? body.ide : undefined
+      const result = await runSetupService(chainHome, { ide })
+      return json(result)
+    }
+
+    if (pathname === "/api/registry" && request.method === "GET") {
+      return json(await fetchRegistry())
+    }
+
+    if (pathname === "/api/registry/install" && request.method === "POST") {
+      const body = await readJsonBody(request)
+      const slug = body.slug
+      if (typeof slug !== "string" || slug.trim().length === 0) {
+        throw new UserError("Field 'slug' is required and must be a non-empty string.")
+      }
+
+      const skill = typeof body.skill === "string" ? body.skill : undefined
+      const pack = Boolean(body.pack)
+      const result = await installSkill(chainHome, slug.trim(), { skill, pack })
+      return json(result, 201)
+    }
+
+    if (pathname.startsWith("/api/")) {
+      return jsonError(404, "API route not found.", "not_found")
+    }
+
+    return await serveStatic(pathname, staticRoot)
+  } catch (error) {
+    const mapped = mapError(error)
+    return jsonError(mapped.status, mapped.message, mapped.code)
+  }
+}
+
 export async function runHub(opts: HubOptions = {}): Promise<void> {
   const port = parsePort(opts.port)
   const resolution = getChainHomeResolution()
   const chainHome = resolution.path
-  const staticRoot = getStaticRoot()
 
   try {
     const server = Bun.serve({
       port,
-      fetch: async (request) => {
-        const url = new URL(request.url)
-        const pathname = url.pathname
-
-        try {
-          if (pathname === "/api/skills" && request.method === "GET") {
-            return json(buildSkillsListResponse(chainHome, resolution.source))
-          }
-
-          const skillMatch = pathname.match(/^\/api\/skills\/([^/]+)$/)
-          if (skillMatch && request.method === "GET") {
-            const slug = decodeURIComponent(skillMatch[1]!)
-            const skill = readSkill(chainHome, slug)
-            return json({ slug, ...skill })
-          }
-
-          if (skillMatch && request.method === "PUT") {
-            const slug = decodeURIComponent(skillMatch[1]!)
-            const body = await readJsonBody(request)
-            const content = body.content
-            if (typeof content !== "string") {
-              throw new UserError("Field 'content' is required and must be a string.")
-            }
-            writeSkill(chainHome, slug, content)
-            return json({ ok: true })
-          }
-
-          if (pathname === "/api/skills" && request.method === "POST") {
-            const body = await readJsonBody(request)
-            const slug = body.slug
-            if (typeof slug !== "string" || slug.trim().length === 0) {
-              throw new UserError("Field 'slug' is required and must be a non-empty string.")
-            }
-            createSkill(chainHome, assertValidSkillSlug(slug))
-            return json({ ok: true }, 201)
-          }
-
-          if (skillMatch && request.method === "DELETE") {
-            const slug = decodeURIComponent(skillMatch[1]!)
-            removeSkill(chainHome, slug)
-            return json({ ok: true })
-          }
-
-          const validateMatch = pathname.match(/^\/api\/skills\/([^/]+)\/validate$/)
-          if (validateMatch && request.method === "POST") {
-            const slug = decodeURIComponent(validateMatch[1]!)
-            return json(validateSkill(chainHome, slug))
-          }
-
-          if (pathname === "/api/status" && request.method === "GET") {
-            return json(getStatus(chainHome, resolution.source))
-          }
-
-          if (pathname === "/api/setup" && request.method === "POST") {
-            const body =
-              request.headers.get("content-length") === "0" ? {} : await readJsonBody(request)
-            const ide = typeof body.ide === "string" ? body.ide : undefined
-            const result = await runSetupService(chainHome, { ide })
-            return json(result)
-          }
-
-          if (pathname === "/api/registry" && request.method === "GET") {
-            return json(await fetchRegistry())
-          }
-
-          if (pathname === "/api/registry/install" && request.method === "POST") {
-            const body = await readJsonBody(request)
-            const slug = body.slug
-            if (typeof slug !== "string" || slug.trim().length === 0) {
-              throw new UserError("Field 'slug' is required and must be a non-empty string.")
-            }
-
-            const skill = typeof body.skill === "string" ? body.skill : undefined
-            const pack = Boolean(body.pack)
-            const result = await installSkill(chainHome, slug.trim(), { skill, pack })
-            return json(result, 201)
-          }
-
-          if (pathname.startsWith("/api/")) {
-            return jsonError(404, "API route not found.", "not_found")
-          }
-
-          return await serveStatic(pathname, staticRoot)
-        } catch (error) {
-          const mapped = mapError(error)
-          return jsonError(mapped.status, mapped.message, mapped.code)
-        }
-      },
+      fetch: (request) => handleRequest(request, chainHome, resolution),
       error(error) {
         const mapped = mapError(error)
         return jsonError(mapped.status, mapped.message, mapped.code)

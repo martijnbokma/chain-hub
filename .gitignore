@@ -8,6 +8,8 @@ apps/web/.env
 apps/web/.env.local
 apps/web/dist/
 apps/web/.astro/
+apps/hub/dist/
+apps/hub/.astro/
 apps/web/.output/
 apps/web/.vercel/
 apps/web/scripts/og-image.generated.svg

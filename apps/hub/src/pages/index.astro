@@ -1,0 +1,174 @@
+---
+import "../styles/global.css"
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chain Hub</title>
+    <link rel="icon" href="/chain-hub-logo.svg" type="image/svg+xml" />
+  </head>
+  <body
+    class="m-0 min-h-screen bg-hub-bg bg-[radial-gradient(circle_at_4%_0%,rgba(139,124,255,0.16)_0%,transparent_34%),radial-gradient(circle_at_100%_0%,rgba(94,224,168,0.08)_0%,transparent_28%)] font-hub-mono text-hub-text"
+  >
+    <div
+      class="app-shell group relative flex min-h-screen items-stretch max-[980px]:block"
+    >
+      <aside
+        id="primary-sidebar"
+        class="z-30 flex w-[206px] shrink-0 flex-col self-stretch border-r border-hub-border bg-[rgba(12,15,26,0.93)] backdrop-blur-sm max-[980px]:fixed max-[980px]:top-0 max-[980px]:left-0 max-[980px]:h-screen max-[980px]:max-h-screen max-[980px]:min-h-0 max-[980px]:w-[min(78vw,280px)] max-[980px]:max-w-none max-[980px]:-translate-x-full max-[980px]:self-auto max-[980px]:overflow-y-auto max-[980px]:border-r-hub-border-strong max-[980px]:transition-transform max-[980px]:duration-150 max-[980px]:ease-in-out group-[.sidebar-open]:max-[980px]:translate-x-0"
+      >
+        <div
+          class="sticky top-0 max-h-screen shrink-0 overflow-y-auto max-[980px]:static max-[980px]:max-h-none max-[980px]:flex-1 max-[980px]:overflow-y-visible"
+        >
+          <div class="border-b border-hub-border p-4">
+            <div class="flex min-w-0 items-center gap-[0.7rem]">
+              <img
+                class="block size-9 shrink-0"
+                src="/chain-hub-logo.svg"
+                width="36"
+                height="36"
+                alt=""
+                decoding="async"
+              />
+              <div class="min-w-0 flex-1 [&_strong]:block [&_strong]:font-hub-display [&_strong]:text-[0.95rem] [&_strong]:tracking-wide [&_strong]:text-[#f5f8ff]">
+                <strong>Chain Hub</strong>
+              </div>
+            </div>
+          </div>
+          <nav class="sidebar-nav" aria-label="Primary">
+            <a
+              href="#skills"
+              data-nav="skills"
+              class="block border-l-2 border-transparent px-4 py-[0.62rem] text-hub-text-faint no-underline transition-[background-color,color,border-color] duration-[140ms] ease-in-out hover:bg-[rgba(110,168,255,0.06)] hover:text-hub-text-dim aria-[current=page]:border-l-hub-accent aria-[current=page]:bg-[rgba(110,168,255,0.12)] aria-[current=page]:text-[#f4f7ff]"
+              aria-current="page"
+              >Skills</a
+            >
+            <a
+              href="#status"
+              data-nav="status"
+              class="block border-l-2 border-transparent px-4 py-[0.62rem] text-hub-text-faint no-underline transition-[background-color,color,border-color] duration-[140ms] ease-in-out hover:bg-[rgba(110,168,255,0.06)] hover:text-hub-text-dim aria-[current=page]:border-l-hub-accent aria-[current=page]:bg-[rgba(110,168,255,0.12)] aria-[current=page]:text-[#f4f7ff]"
+              >Status</a
+            >
+            <a
+              href="#registry"
+              data-nav="registry"
+              class="block border-l-2 border-transparent px-4 py-[0.62rem] text-hub-text-faint no-underline transition-[background-color,color,border-color] duration-[140ms] ease-in-out hover:bg-[rgba(110,168,255,0.06)] hover:text-hub-text-dim aria-[current=page]:border-l-hub-accent aria-[current=page]:bg-[rgba(110,168,255,0.12)] aria-[current=page]:text-[#f4f7ff]"
+              >Registry</a
+            >
+          </nav>
+        </div>
+      </aside>
+      <button
+        id="sidebar-backdrop"
+        class="fixed inset-0 z-20 hidden cursor-pointer border-0 bg-[rgba(2,4,10,0.52)] p-0"
+        type="button"
+        aria-hidden="true"
+      ></button>
+
+      <main
+        class="flex min-h-screen min-h-dvh min-w-0 flex-1 flex-col px-[1.2rem] py-[1.05rem] max-[980px]:p-[0.85rem]"
+      >
+        <header
+          class="mb-[0.85rem] hidden shrink-0 items-center justify-between gap-[0.8rem] border border-hub-border bg-[rgba(12,15,26,0.88)] p-[0.6rem] px-[0.7rem] max-[980px]:flex"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-center gap-[0.7rem]">
+              <img
+                class="block size-9 shrink-0"
+                src="/chain-hub-logo.svg"
+                width="36"
+                height="36"
+                alt=""
+                decoding="async"
+              />
+              <div class="min-w-0 flex-1 [&_strong]:block [&_strong]:font-hub-display [&_strong]:text-[0.95rem] [&_strong]:tracking-wide [&_strong]:text-[#f5f8ff]">
+                <strong>Chain Hub</strong>
+              </div>
+            </div>
+          </div>
+          <button
+            id="sidebar-toggle"
+            class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-hub-border-strong bg-[color-mix(in_oklab,var(--color-hub-surface-2)_90%,transparent)] text-[#f3f6ff] transition-[filter,border-color,background-color] duration-[120ms] ease-in-out hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hub-accent disabled:cursor-not-allowed disabled:opacity-55 disabled:brightness-100"
+            type="button"
+            aria-controls="primary-sidebar"
+            aria-expanded="false"
+            aria-label="Open menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
+              <path
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                d="M1 1h16M1 7h16M1 13h16"
+              />
+            </svg>
+          </button>
+        </header>
+        <div
+          id="chain-home-bar"
+          class="mb-[0.85rem] shrink-0 border border-hub-border bg-[rgba(16,24,44,0.72)] px-[0.74rem] py-[0.6rem] text-[0.78rem] text-hub-text-dim"
+          aria-live="polite"
+        ></div>
+        <div
+          id="global-banner"
+          class="mb-[0.9rem] hidden shrink-0 border border-[color-mix(in_oklab,var(--color-hub-warn)_50%,transparent)] bg-[color-mix(in_oklab,var(--color-hub-warn)_12%,transparent)] px-[0.8rem] py-[0.65rem] text-[0.79rem] text-[#ffe3b3]"
+          role="status"
+        ></div>
+        <section id="view-root" class="min-w-0"></section>
+      </main>
+    </div>
+
+    <div
+      id="modal-root"
+      class="fixed inset-0 z-40 hidden grid place-items-center bg-[rgba(0,0,0,0.58)]"
+      aria-hidden="true"
+    ></div>
+    <div
+      id="preview-modal-root"
+      class="preview-modal fixed inset-0 z-[45] m-0 flex hidden flex-col p-0"
+      aria-hidden="true"
+    >
+      <button
+        type="button"
+        class="preview-modal__backdrop absolute inset-0 z-0 m-0 cursor-pointer border-0 bg-[rgba(0,0,0,0.55)] p-0"
+        aria-label="Close preview"
+      ></button>
+      <div
+        class="preview-modal__panel relative z-[1] flex min-h-0 w-full flex-1 flex-col border-none bg-[#0a1020] shadow-none"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preview-modal-title"
+      >
+        <header
+          class="preview-modal__header flex shrink-0 items-center justify-between gap-3 border-b border-hub-border bg-[rgba(11,16,32,0.96)] pt-[max(0.55rem,env(safe-area-inset-top,0px))] pr-[max(0.7rem,env(safe-area-inset-right,0px))] pb-[0.55rem] pl-[max(0.7rem,env(safe-area-inset-left,0px))]"
+        >
+          <h2
+            id="preview-modal-title"
+            class="preview-modal__title m-0 font-hub-mono text-[0.78rem] font-semibold tracking-wide text-hub-text-faint uppercase"
+          >
+            Preview
+          </h2>
+          <button
+            type="button"
+            class="preview-modal__close shrink-0 cursor-pointer rounded-[5px] border border-[color-mix(in_oklab,var(--color-hub-accent)_68%,var(--color-hub-border-strong))] bg-[color-mix(in_oklab,var(--color-hub-surface-2)_90%,transparent)] px-[0.72rem] py-[0.42rem] font-inherit text-[0.75rem] text-hub-accent transition-[filter,border-color,background-color] duration-[120ms] ease-in-out hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hub-accent disabled:cursor-not-allowed disabled:opacity-55 disabled:brightness-100"
+          >
+            Close
+          </button>
+        </header>
+        <div
+          class="preview-modal__body preview min-h-0 flex-1 overflow-y-auto px-[max(0.75rem,env(safe-area-inset-left,0px))] pt-[0.75rem] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))]"
+        ></div>
+      </div>
+    </div>
+    <div
+      id="toast-root"
+      class="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[max(1rem,env(safe-area-inset-bottom,0px))] z-[10000] flex flex-col items-end gap-[0.45rem]"
+      aria-live="polite"
+    ></div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

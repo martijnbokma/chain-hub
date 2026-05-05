@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@source "../**/*.{astro,html}";
+@source "../../public/**/*.js";
+
+@theme {
+  --color-hub-bg: #070912;
+  --color-hub-surface-1: #0c0f1a;
+  --color-hub-surface-2: #101421;
+  --color-hub-surface-3: #171c2d;
+  --color-hub-border: rgba(239, 242, 255, 0.08);
+  --color-hub-border-strong: rgba(139, 124, 255, 0.3);
+  --color-hub-text: #eff2ff;
+  --color-hub-text-dim: #8f96b2;
+  --color-hub-text-faint: #5b6077;
+  --color-hub-accent: #8b7cff;
+  --color-hub-core: #8b7cff;
+  --color-hub-user: #4ee0a1;
+  --color-hub-warn: #ffca73;
+  --color-hub-err: #ff8989;
+  --font-hub-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-hub-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+/**
+ * Markdown preview (inline + modal): HTML is injected by `renderMarkdown()`.
+ * Typography plugin + utilities; child selectors only where prose modifiers are awkward.
+ */
+/* Mobile drawer backdrop: invisible on desktop even when .hidden is toggled off. */
+@layer components {
+  @media (max-width: 980px) {
+    #sidebar-backdrop:not(.hidden) {
+      @apply block;
+    }
+  }
+
+  @media (min-width: 981px) {
+    #sidebar-backdrop {
+      @apply hidden;
+    }
+  }
+
+  .preview {
+    @apply prose prose-invert prose-sm max-w-none text-hub-text-dim leading-[1.55];
+
+    @apply prose-headings:font-hub-display prose-headings:font-semibold prose-headings:text-[#f3f6ff];
+    @apply prose-headings:my-[0.85rem] prose-headings:mb-[0.4rem];
+
+    @apply prose-h1:text-[1.2rem];
+    @apply prose-h2:text-[1.05rem];
+    @apply prose-h3:text-[0.95rem];
+    @apply prose-h4:text-[0.9rem];
+    @apply prose-h5:text-[0.85rem] prose-h6:text-[0.85rem];
+
+    @apply prose-p:my-[0.4rem];
+    @apply prose-a:text-hub-accent prose-a:underline prose-a:underline-offset-2 hover:prose-a:brightness-110;
+
+    @apply prose-strong:text-[#e8ecff] prose-strong:font-semibold;
+    @apply prose-em:italic;
+    @apply [&_del]:opacity-[0.88] [&_del]:line-through;
+
+    @apply prose-code:font-hub-mono prose-code:text-[0.78em];
+    @apply prose-code:rounded prose-code:border prose-code:border-hub-border;
+    @apply prose-code:bg-[rgba(20,25,40,0.95)] prose-code:px-[0.35em] prose-code:py-[0.1em];
+
+    @apply prose-pre:my-2 prose-pre:rounded-md prose-pre:border prose-pre:border-hub-border;
+    @apply prose-pre:bg-[#070b14] prose-pre:px-3 prose-pre:py-[0.65rem];
+
+    @apply prose-pre:prose-code:bg-transparent prose-pre:prose-code:border-0 prose-pre:prose-code:p-0;
+    @apply prose-pre:prose-code:text-[0.8em] prose-pre:prose-code:leading-[1.45];
+
+    @apply prose-ul:my-[0.4rem] prose-ol:my-[0.4rem] prose-ul:pl-[1.35rem] prose-ol:pl-[1.35rem];
+    @apply prose-li:my-[0.2rem];
+
+    @apply prose-blockquote:my-2 prose-blockquote:border-l-[3px];
+    @apply prose-blockquote:border-[color-mix(in_oklab,var(--color-hub-accent)_45%,var(--color-hub-border))];
+    @apply prose-blockquote:bg-[rgba(12,15,26,0.35)] prose-blockquote:rounded-r;
+    @apply prose-blockquote:py-[0.35rem] prose-blockquote:pl-[0.85rem] prose-blockquote:pr-0;
+
+    @apply prose-hr:my-[0.85rem] prose-hr:border-hub-border;
+
+    @apply prose-table:w-full prose-table:border-collapse prose-table:text-[0.8rem] prose-table:my-[0.55rem];
+    @apply prose-th:border prose-th:border-hub-border prose-th:px-[0.55rem] prose-th:py-[0.4rem];
+    @apply prose-th:align-top prose-th:text-left prose-th:font-semibold;
+    @apply prose-th:bg-[rgba(12,15,26,0.92)] prose-th:text-[#e8ecff];
+    @apply prose-td:border prose-td:border-hub-border prose-td:px-[0.55rem] prose-td:py-[0.4rem];
+    @apply prose-td:align-top;
+
+    @apply prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-hub-border;
+    @apply prose-img:my-[0.4rem] prose-img:h-auto;
+
+    @apply [&_h1:first-child]:mt-0 [&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0;
+    @apply [&_li::marker]:text-hub-text-faint;
+    @apply [&_tbody_tr:nth-child(even)_td]:bg-[rgba(8,11,22,0.35)];
+    @apply [&_blockquote_p]:my-1;
+  }
+}

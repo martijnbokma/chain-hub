@@ -1,5 +1,5 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } from "fs"
-import { dirname, join, resolve } from "path"
+import { dirname, join, relative, resolve } from "path"
 import { fileURLToPath } from "url"
 import { parse, stringify } from "yaml"
 import { getChainHome } from "./chain-home"
@@ -22,7 +22,7 @@ export function ensureCoreAssets(options: EnsureCoreAssetsOptions = {}): void {
     cpSync(sourceCore, targetCore, { recursive: true, force: true })
   }
 
-  syncProtectedAgentsAndWorkflowsToUserDirs({ chainHome, packageRoot })
+  syncProtectedAgentsWorkflowsAndRulesToUserDirs({ chainHome, packageRoot })
 }
 
 // One-time registry migration (schema v3 → v4)
@@ -93,10 +93,21 @@ interface PackageCoreRegistry {
   protected?: {
     agents?: unknown
     workflows?: unknown
+    rules?: unknown
   }
 }
 
-function syncProtectedAgentsAndWorkflowsToUserDirs(options: EnsureCoreAssetsOptions): void {
+/** Resolve `core/rules/<slug>.md` or `core/rules/<slug>.mdc` from packaged core. */
+function resolvePackagedRuleSource(packageRoot: string, slug: string): string | null {
+  const base = join(packageRoot, "core", "rules")
+  const md = join(base, `${slug}.md`)
+  if (existsSync(md)) return md
+  const mdc = join(base, `${slug}.mdc`)
+  if (existsSync(mdc)) return mdc
+  return null
+}
+
+function syncProtectedAgentsWorkflowsAndRulesToUserDirs(options: EnsureCoreAssetsOptions): void {
   const chainHome = options.chainHome ?? getChainHome()
   const packageRoot = options.packageRoot ?? getPackageRoot()
   const registryPath = join(packageRoot, "core", "registry.yaml")
@@ -106,9 +117,11 @@ function syncProtectedAgentsAndWorkflowsToUserDirs(options: EnsureCoreAssetsOpti
   const raw = parse(readFileSync(registryPath, "utf8")) as PackageCoreRegistry
   const agents = normalizeSlugList(raw?.protected?.agents)
   const workflows = normalizeSlugList(raw?.protected?.workflows)
+  const rules = normalizeSlugList(raw?.protected?.rules)
 
   const destAgents = join(chainHome, "agents")
   const destWorkflows = join(chainHome, "workflows")
+  const destRules = join(chainHome, "rules")
 
   for (const slug of agents) {
     const src = join(packageRoot, "core", "agents", `${slug}.md`)
@@ -122,6 +135,15 @@ function syncProtectedAgentsAndWorkflowsToUserDirs(options: EnsureCoreAssetsOpti
     if (!existsSync(src)) continue
     mkdirSync(destWorkflows, { recursive: true })
     cpSync(src, join(destWorkflows, `${slug}.md`), { force: true })
+  }
+
+  const packagedRulesDir = join(packageRoot, "core", "rules")
+  for (const slug of rules) {
+    const src = resolvePackagedRuleSource(packageRoot, slug)
+    if (!src) continue
+    mkdirSync(destRules, { recursive: true })
+    const destName = relative(packagedRulesDir, src)
+    cpSync(src, join(destRules, destName), { force: true })
   }
 }
 

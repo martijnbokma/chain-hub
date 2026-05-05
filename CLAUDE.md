@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |------|---------|
 | `cli/` | npm package `chain-hub` — the `chain` binary; Bun runtime |
 | `apps/web/` | Marketing site + docs at chainhub.one — Astro + Tailwind CSS v4 |
+| `apps/hub/` | Local `chain hub` dashboard — Astro (static) + Tailwind v4; build → `apps/hub/dist/`, packaged as `cli/dist/hub` |
 | `core/` | Bundled protected assets (skills, agents, workflows, rules, `registry.yaml`) shipped inside the npm package and copied to `CHAIN_HOME/core/` on `chain init` |
 
 ---

@@ -17,6 +17,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile
+        working-directory: apps/hub
       - run: bun run test
       - run: bun run pack:check
       - run: bun run smoke:package

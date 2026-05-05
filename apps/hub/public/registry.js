@@ -1,9 +1,5 @@
-function el(tag, className, text) {
-  const node = document.createElement(tag)
-  if (className) node.className = className
-  if (typeof text === "string") node.textContent = text
-  return node
-}
+import { btn, btnPrimary, btnInstalled, msgClassForKind, focusRing, pageHeader, pageTitle, sectionLabel } from "./ui-classes.js"
+import { el } from "./dom.js"
 
 function normalizeSearchValue(value) {
   return value.trim().toLowerCase()
@@ -14,6 +10,28 @@ function formatSourceLabel(source) {
   if (source === "live") return "live"
   return source ?? "unknown"
 }
+
+const registrySearchRow = "mb-[0.6rem]"
+
+const registrySearchInput = `w-full rounded-[5px] border border-hub-border-strong bg-[#0a1020] px-[0.55rem] py-[0.45rem] font-inherit text-hub-text focus:border-hub-accent focus:outline-none ${focusRing}`
+
+const registryGithubRow =
+  "mb-[0.8rem] grid grid-cols-[auto_1fr_auto] items-center gap-2 border border-hub-border bg-[rgba(16,24,44,0.64)] p-[0.6rem] max-[980px]:grid-cols-1"
+
+const registryGithubLabel = "text-[0.78rem] text-hub-text-faint"
+
+const registryCards = "grid gap-1"
+
+const registryCard =
+  "flex items-start gap-3 border border-hub-border bg-[color-mix(in_oklab,var(--color-hub-surface-1)_85%,transparent)] p-[0.65rem]"
+
+const registryCardInfo = "min-w-0 flex-1"
+
+const registryCardSlug = "mb-[0.2rem] text-[0.82rem] text-[#f3f6ff]"
+
+const registryCardDesc = "text-[0.76rem] leading-snug text-hub-text-dim"
+
+const registryCardMeta = "mt-1 text-[0.7rem] text-hub-text-faint"
 
 export function createRegistryView({ root, setBanner, setChainHomeBar, apiRequest }) {
   let allSkills = []
@@ -120,7 +138,11 @@ export function createRegistryView({ root, setBanner, setChainHomeBar, apiReques
   function createInstallButton(skill) {
     const slug = typeof skill.slug === "string" ? skill.slug : ""
     const isInstalled = installed.has(slug)
-    const button = el("button", `btn ${isInstalled ? "installed" : "primary"}`, isInstalled ? "Installed" : "Install")
+    const button = el(
+      "button",
+      isInstalled ? btnInstalled : btnPrimary,
+      isInstalled ? "Installed" : "Install",
+    )
     button.type = "button"
     button.disabled = isInstalled || loading
 
@@ -132,13 +154,13 @@ export function createRegistryView({ root, setBanner, setChainHomeBar, apiReques
   }
 
   function renderCard(skill) {
-    const card = el("div", "registry-card")
-    const info = el("div", "registry-card-info")
-    const slug = el("div", "registry-card-slug", skill.slug ?? "")
-    const description = el("div", "registry-card-desc", skill.description ?? "")
+    const card = el("div", registryCard)
+    const info = el("div", registryCardInfo)
+    const slug = el("div", registryCardSlug, skill.slug ?? "")
+    const description = el("div", registryCardDesc, skill.description ?? "")
     const sourceText = typeof skill.source === "string" ? skill.source : "unknown source"
     const versionText = typeof skill.version === "string" ? skill.version : "unknown version"
-    const meta = el("div", "registry-card-meta", `${versionText} · ${sourceText}`)
+    const meta = el("div", registryCardMeta, `${versionText} · ${sourceText}`)
 
     info.append(slug, description, meta)
     card.append(info, createInstallButton(skill))
@@ -146,16 +168,21 @@ export function createRegistryView({ root, setBanner, setChainHomeBar, apiReques
   }
 
   function render() {
+    root.className = "min-w-0"
     const wrapper = document.createDocumentFragment()
-    const header = el("div", "page-header")
-    header.appendChild(el("h1", "page-title", "Registry"))
+    const header = el("div", pageHeader)
+    header.appendChild(el("h1", pageTitle, "Registry"))
     wrapper.appendChild(header)
 
-    const sourceLabel = el("div", "section-label", `Official registry (${allSkills.length}) · ${formatSourceLabel(source)}`)
+    const sourceLabel = el(
+      "div",
+      sectionLabel,
+      `Official registry (${allSkills.length}) · ${formatSourceLabel(source)}`,
+    )
     wrapper.appendChild(sourceLabel)
 
-    const searchRow = el("div", "registry-search-row")
-    const searchInput = el("input", "registry-search-input")
+    const searchRow = el("div", registrySearchRow)
+    const searchInput = el("input", registrySearchInput)
     searchInput.type = "search"
     searchInput.placeholder = "Search by slug or description"
     searchInput.value = search
@@ -166,9 +193,9 @@ export function createRegistryView({ root, setBanner, setChainHomeBar, apiReques
     searchRow.appendChild(searchInput)
     wrapper.appendChild(searchRow)
 
-    const githubRow = el("div", "registry-github-row")
-    const githubLabel = el("label", "registry-github-label", "github:")
-    const githubInputEl = el("input", "registry-github-input")
+    const githubRow = el("div", registryGithubRow)
+    const githubLabel = el("label", registryGithubLabel, "github:")
+    const githubInputEl = el("input", registrySearchInput)
     githubInputEl.type = "text"
     githubInputEl.placeholder = "owner/repo"
     githubInputEl.value = githubInput
@@ -181,17 +208,19 @@ export function createRegistryView({ root, setBanner, setChainHomeBar, apiReques
         void installFromGithubInput()
       }
     })
-    const githubButton = el("button", "btn primary", loading ? "Installing..." : "Install")
+    const githubButton = el("button", btnPrimary, loading ? "Installing..." : "Install")
     githubButton.type = "button"
     githubButton.disabled = loading
     githubButton.addEventListener("click", () => void installFromGithubInput())
     githubRow.append(githubLabel, githubInputEl, githubButton)
     wrapper.appendChild(githubRow)
 
-    const cards = el("div", "registry-cards")
+    const cards = el("div", registryCards)
     const filtered = filteredSkills()
     if (filtered.length === 0) {
-      cards.appendChild(el("div", "msg warn-text", "No registry skills match this filter."))
+      cards.appendChild(
+        el("div", `${msgClassForKind("warn-text")} mt-0`, "No registry skills match this filter."),
+      )
     } else {
       for (const skill of filtered) {
         cards.appendChild(renderCard(skill))
@@ -200,7 +229,7 @@ export function createRegistryView({ root, setBanner, setChainHomeBar, apiReques
     wrapper.appendChild(cards)
 
     if (feedback) {
-      wrapper.appendChild(el("div", `msg ${feedbackKind}`, feedback))
+      wrapper.appendChild(el("div", msgClassForKind(feedbackKind), feedback))
     }
 
     root.replaceChildren(wrapper)
