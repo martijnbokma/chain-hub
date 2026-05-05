@@ -29,16 +29,16 @@ function applyChainHomeOverrideFromArgv(argv: string[]): string[] {
   return nextArgv
 }
 
+async function runChainRegistrySearch(
+  query: string,
+  opts: { hubOnly?: boolean },
+): Promise<void> {
+  const { runSearch } = await import("./commands/search")
+  await runSearch(query, { hubOnly: Boolean(opts.hubOnly) })
+}
+
 ;(async () => {
   const argv = applyChainHomeOverrideFromArgv(process.argv)
-
-  async function runChainRegistrySearch(
-    query: string,
-    opts: { hubOnly?: boolean },
-  ): Promise<void> {
-    const { runSearch } = await import("./commands/search")
-    await runSearch(query, { hubOnly: Boolean(opts.hubOnly) })
-  }
 
   const program = new Command()
     .name("chain")

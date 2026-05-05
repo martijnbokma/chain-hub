@@ -3,6 +3,26 @@ import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, lstatSy
 import kleur from "kleur"
 import { getChainHome } from "../utils/chain-home"
 
+const skillRequiredSections: Record<string, string> = {
+  "## When to Use": "Use this skill when:\n- [Add specific use cases]\n",
+  "## NOT When to Use": "Do not use this skill when:\n- [Add alternative scenarios]\n",
+  "## Key Principles": "- [Principle 1]\n- [Principle 2]\n- [Principle 3]\n",
+  "## Output Format": "```markdown\n[Output format template]\n```\n",
+  "## Constraints": "- [Constraint 1]\n- [Constraint 2]\n",
+  "## Examples": "### Success Example\n[Example description]\n\n### Common Pitfalls\n- [Pitfall]: [Description]\n"
+}
+
+const workflowRequiredSections: Record<string, string> = {
+  "## When to Use": "Use this workflow when:\n- [Scenario 1]\n",
+  "## NOT When to Use": "Do not use this workflow when:\n- [Scenario where alternative is better]\n",
+  "## AI Execution Guidelines": "### Style & Tone\n- [Rule 1]\n### Task Nuances\n- [Rule 2]\n",
+  "## Process": "1. [Step 1]\n2. [Step 2]\n",
+  "## Output": "### Format\n[Format description]\n### Delivery\n[Delivery method]\n",
+  "## Verification Checklist": "- [ ] [Check 1]\n- [ ] [Check 2]\n",
+  "## Related Skills": "- [Skill Name](../skill-slug/SKILL.md)\n",
+  "## Related Workflows": "- [Workflow Name](../workflow-slug.md)\n"
+}
+
 export async function runFix(): Promise<void> {
   const chainHome = getChainHome()
   const skillsDir = join(chainHome, "skills")
@@ -73,26 +93,6 @@ function fixFile(filePath: string, type: "skill" | "workflow"): boolean {
   }
 
   // Fix Sections
-  const skillRequiredSections: Record<string, string> = {
-    "## When to Use": "Use this skill when:\n- [Add specific use cases]\n",
-    "## NOT When to Use": "Do not use this skill when:\n- [Add alternative scenarios]\n", 
-    "## Key Principles": "- [Principle 1]\n- [Principle 2]\n- [Principle 3]\n",
-    "## Output Format": "```markdown\n[Output format template]\n```\n",
-    "## Constraints": "- [Constraint 1]\n- [Constraint 2]\n",
-    "## Examples": "### Success Example\n[Example description]\n\n### Common Pitfalls\n- [Pitfall]: [Description]\n"
-  }
-
-  const workflowRequiredSections: Record<string, string> = {
-    "## When to Use": "Use this workflow when:\n- [Scenario 1]\n",
-    "## NOT When to Use": "Do not use this workflow when:\n- [Scenario where alternative is better]\n", 
-    "## AI Execution Guidelines": "### Style & Tone\n- [Rule 1]\n### Task Nuances\n- [Rule 2]\n",
-    "## Process": "1. [Step 1]\n2. [Step 2]\n",
-    "## Output": "### Format\n[Format description]\n### Delivery\n[Delivery method]\n",
-    "## Verification Checklist": "- [ ] [Check 1]\n- [ ] [Check 2]\n",
-    "## Related Skills": "- [Skill Name](../skill-slug/SKILL.md)\n",
-    "## Related Workflows": "- [Workflow Name](../workflow-slug.md)\n"
-  }
-
   const targetSections = type === "skill" ? skillRequiredSections : workflowRequiredSections
 
   for (const [section, template] of Object.entries(targetSections)) {

@@ -5,6 +5,14 @@ import { readRegistry, addSkill } from "../registry/local"
 import { fetchRemoteIndex } from "../registry/remote"
 import { downloadFromGithub, downloadSkillDirectoryFromGithub } from "../utils/providers/github"
 
+function parseGithubRef(ref: string): { owner: string; repo: string } | null {
+  const [, ownerRepo] = ref.split("github:")
+  if (!ownerRepo) return null
+  const [owner, repo] = ownerRepo.split("/")
+  if (!owner || !repo) return null
+  return { owner, repo }
+}
+
 export async function runUpdate(): Promise<void> {
   const chainHome = getChainHome()
   const skillsDir = join(chainHome, "skills")
@@ -22,7 +30,11 @@ export async function runUpdate(): Promise<void> {
 
     let remoteIndex
     try {
-      remoteIndex = await fetchRemoteIndex()
+      const result = await fetchRemoteIndex()
+      if (result.source === "bundled") {
+        console.warn(kleur.yellow("  Warning: Remote registry unavailable; using bundled catalog — updates may be stale."))
+      }
+      remoteIndex = result
     } catch {
       console.error(kleur.yellow("  Warning: Could not reach remote registry. Skipping registry skills."))
     }
@@ -36,12 +48,12 @@ export async function runUpdate(): Promise<void> {
           continue
         }
 
-        const [, ownerRepo] = remote.source.split("github:")
-        const [owner, repo] = ownerRepo.split("/")
-        if (!owner || !repo) {
+        const parsed = parseGithubRef(remote.source)
+        if (!parsed) {
           console.error(kleur.red(`  ✗ ${slug}: invalid registry source (expected github:<owner>/<repo>)`))
           continue
         }
+        const { owner, repo } = parsed
 
         try {
           await downloadSkillDirectoryFromGithub({
@@ -70,8 +82,12 @@ export async function runUpdate(): Promise<void> {
     console.log(kleur.bold(`\n  Refreshing ${bundles.length} GitHub bundle(s)...`))
 
     for (const bundle of bundles) {
-      const [, ownerRepo] = bundle.github.split("github:")
-      const [owner, repo] = ownerRepo.split("/")
+      const bundleParsed = parseGithubRef(bundle.github)
+      if (!bundleParsed) {
+        console.error(kleur.red(`  ✗ ${bundle.github}: invalid GitHub source (expected github:<owner>/<repo>)`))
+        continue
+      }
+      const { owner, repo } = bundleParsed
 
       try {
         const installed = await downloadFromGithub({

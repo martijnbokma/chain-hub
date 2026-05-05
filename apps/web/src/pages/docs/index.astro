@@ -6,9 +6,16 @@ import TerminalBlock from '../../components/docs/TerminalBlock.astro';
 import Callout from '../../components/docs/Callout.astro';
 import TocLink from '../../components/docs/TocLink.astro';
 import SeoHead from '../../components/SeoHead.astro';
+import {
+  getEditorFeedbackDiscussionsUrl,
+  getEditorFeedbackFormUrl,
+} from '../../lib/editor-feedback-links';
 
 const baseUrl = import.meta.env.BASE_URL;
 const siteOrigin = Astro.site?.origin ?? 'https://www.chainhub.one';
+
+const editorFeedbackDiscussionsUrl = getEditorFeedbackDiscussionsUrl();
+const editorFeedbackFormUrl = getEditorFeedbackFormUrl();
 
 const pageTitle = 'Chain Hub documentation | CLI, CHAIN_HOME & quickstart';
 const pageDescription =
@@ -272,6 +279,22 @@ description: &gt;-
             </tbody>
           </table>
         </div>
+        <Callout>
+          <strong class="text-text">Want another editor supported?</strong>
+          {' '}
+          Open a thread in
+          {' '}
+          <a class="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent" href={editorFeedbackDiscussionsUrl} target="_blank" rel="noopener noreferrer">GitHub Discussions</a>
+          {editorFeedbackFormUrl ? (
+            <>
+              {' '}
+              or use the
+              {' '}
+              <a class="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent" href={editorFeedbackFormUrl} target="_blank" rel="noopener noreferrer">short survey</a>
+            </>
+          ) : null}
+          . Mention the product name, how you use skills or rules there, and a doc link if you have one. Requests help prioritize adapter work; they are not commitments on the public roadmap.
+        </Callout>
         <Callout>
           Run <code>chain status</code> to verify which editors are linked and whether symlinks are healthy.
         </Callout>

@@ -14,6 +14,8 @@ export interface RemoteSkill {
 export interface RemoteIndex {
   schema_version: number
   skills: RemoteSkill[]
+  /** Populated by fetchRemoteIndex: "live" when fetched from network, "bundled" when using the offline fallback. */
+  source?: "live" | "bundled"
 }
 
 const INDEX_URL =
@@ -37,22 +39,18 @@ export async function fetchRemoteIndex(): Promise<RemoteIndex> {
   try {
     const res = await fetch(INDEX_URL)
     if (res.ok) {
-      return parse(await res.text()) as RemoteIndex
+      return { ...(parse(await res.text()) as RemoteIndex), source: "live" }
     }
     const offline = readBundledRegistryIndex()
     if (offline) {
-      console.warn(
-        `[chain] Registry index unavailable (${res.status} ${res.statusText}); using bundled catalog. Publish registry/index.yaml on main for live updates.`,
-      )
-      return offline
+      return { ...offline, source: "bundled" }
     }
     throw new Error(`Failed to fetch registry index: ${res.status} ${res.statusText}`)
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("Failed to fetch registry index:")) throw e
     const offline = readBundledRegistryIndex()
     if (offline) {
-      console.warn("[chain] Registry index fetch failed; using bundled catalog.")
-      return offline
+      return { ...offline, source: "bundled" }
     }
     throw e instanceof Error ? e : new Error(String(e))
   }

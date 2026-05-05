@@ -55,6 +55,9 @@ export async function runAdd(slug: string, opts: { skill?: string; pack?: boolea
   let remoteSkill
   try {
     const index = await fetchRemoteIndex()
+    if (index.source === "bundled") {
+      console.warn(kleur.yellow(`  Warning: Remote registry unavailable; using bundled catalog — install results may be stale.`))
+    }
     remoteSkill = index.skills.find((s) => s.slug === slug)
   } catch {
     console.error(kleur.yellow(`  Warning: Could not reach remote registry. Trying local only.`))

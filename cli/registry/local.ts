@@ -43,8 +43,8 @@ export function collectRegistrySlugs(reg: SkillsRegistry): string[] {
   ].map((s) => String(s))
 }
 
-function registryPath(): string {
-  return join(getChainHome(), "skills-registry.yaml")
+function registryPath(chainHome?: string): string {
+  return join(chainHome ?? getChainHome(), "skills-registry.yaml")
 }
 
 export function defaultGithubCredits(githubRef: string): string {
@@ -75,8 +75,8 @@ function upsertGithubBundle(reg: SkillsRegistry, githubRef: string, slug: string
   reg.github_sources.sort((a, b) => a.github.localeCompare(b.github))
 }
 
-export function readRegistry(): SkillsRegistry {
-  const path = registryPath()
+export function readRegistry(chainHome?: string): SkillsRegistry {
+  const path = registryPath(chainHome)
   if (!existsSync(path)) {
     return { schema_version: 1, chain_hub: [], personal: [], cli_packages: [] }
   }
@@ -84,28 +84,16 @@ export function readRegistry(): SkillsRegistry {
   return (parse(content) as SkillsRegistry) ?? { schema_version: 1, chain_hub: [], personal: [], cli_packages: [] }
 }
 
-export function writeRegistry(registry: SkillsRegistry): void {
-  // Maintain comments if possible? Yaml-lib doesn't do this easily.
-  // For now, simple write.
-  writeFileSync(registryPath(), stringify(registry), "utf8")
+export function writeRegistry(registry: SkillsRegistry, chainHome?: string): void {
+  writeFileSync(registryPath(chainHome), stringify(registry), "utf8")
 }
 
 export type InstallBucket = "chain_hub" | "personal" | "packs" | "community" | "cli_packages"
 
 export const ALL_BUCKETS = ["chain_hub", "personal", "packs", "community", "cli_packages"] as const satisfies readonly InstallBucket[]
 
-const BUCKET_KEY_MAP: Record<InstallBucket, InstallBucket> = {
-  chain_hub: "chain_hub",
-  personal: "personal",
-  packs: "packs",
-  community: "community",
-  cli_packages: "cli_packages",
-}
-
-function resolveInstallBucket(
-  bucket: InstallBucket | undefined,
-): keyof Pick<SkillsRegistry, "chain_hub" | "personal" | "packs" | "community" | "cli_packages"> {
-  return BUCKET_KEY_MAP[bucket ?? "personal"]
+function resolveInstallBucket(bucket: InstallBucket | undefined): InstallBucket {
+  return bucket ?? "personal"
 }
 
 export function addSkill(opts: {
@@ -114,10 +102,11 @@ export function addSkill(opts: {
   version?: string
   credits?: string
   bucket?: InstallBucket
+  chainHome?: string
 }): void {
-  if (isProtectedCoreSkill(opts.slug)) return
+  if (isProtectedCoreSkill(opts.slug, opts.chainHome)) return
 
-  const reg = readRegistry()
+  const reg = readRegistry(opts.chainHome)
 
   if (collectRegistrySlugs(reg).includes(opts.slug)) return
 
@@ -130,7 +119,7 @@ export function addSkill(opts: {
     upsertGithubBundle(reg, opts.source, opts.slug, opts.credits)
   }
 
-  writeRegistry(reg)
+  writeRegistry(reg, opts.chainHome)
 }
 
 function filterSlugFromBucket(
@@ -141,8 +130,8 @@ function filterSlugFromBucket(
   if (reg[key]) reg[key] = (reg[key] as string[]).filter((s) => s !== slug)
 }
 
-export function removeSkill(slug: string): void {
-  const reg = readRegistry()
+export function removeSkill(slug: string, chainHome?: string): void {
+  const reg = readRegistry(chainHome)
   for (const key of ALL_BUCKETS) {
     filterSlugFromBucket(reg, key, slug)
   }
@@ -158,5 +147,5 @@ export function removeSkill(slug: string): void {
       .filter((b) => b.skills.length > 0)
     if (reg.github_sources.length === 0) delete reg.github_sources
   }
-  writeRegistry(reg)
+  writeRegistry(reg, chainHome)
 }

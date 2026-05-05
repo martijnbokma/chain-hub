@@ -1,4 +1,11 @@
 ---
+import {
+  getEditorFeedbackDiscussionsUrl,
+  getEditorFeedbackFormUrl,
+} from '../../lib/editor-feedback-links';
+
+const editorFeedbackDiscussionsUrl = getEditorFeedbackDiscussionsUrl();
+const editorFeedbackFormUrl = getEditorFeedbackFormUrl();
 ---
 <!-- ── EDITORS ────────────────────────────────────────────────────── -->
 <section
@@ -83,6 +90,35 @@
         <div class="relative z-10 rounded-full border border-green/20 bg-green/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.08em] text-green sm:ml-auto">Live</div>
       </a>
 
+    </div>
+
+    <div class="fi mt-12 max-w-[640px] border-t border-border pt-10 delay-150 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <p class="text-sm leading-[1.75] text-text-dim">
+        Missing an editor you rely on? Tell us which product and why it matters — it directly informs adapter priorities.
+      </p>
+      <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <a
+          class="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-sm border border-accent bg-accent px-5 py-2.5 font-mono text-xs font-medium tracking-[0.03em] text-bg no-underline transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88]"
+          href={editorFeedbackDiscussionsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub Discussions
+        </a>
+        {editorFeedbackFormUrl ? (
+          <a
+            class="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-sm border border-border-bright bg-surface-2 px-5 py-2.5 font-mono text-xs font-medium tracking-[0.03em] text-text no-underline transition-[border-color,background,color] duration-200 hover:border-[rgba(139,124,255,0.26)] hover:text-accent"
+            href={editorFeedbackFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Short survey
+          </a>
+        ) : null}
+      </div>
+      <p class="mt-3 text-[11px] leading-relaxed text-text-dim">
+        No timeline guarantees — we read everything and use it to rank what we build next.
+      </p>
     </div>
   </div>
 </section>
