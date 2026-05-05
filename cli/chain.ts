@@ -194,6 +194,16 @@ Hub location resolution:
   )
 
   withChainHomeOption(
+    program.command("hub")
+    .description("Start the local Chain Hub web dashboard server")
+    .option("--port <number>", "Port to bind (use 0 for an available port)")
+    .action(async (opts) => {
+      const { runHub } = await import("./commands/hub")
+      await runHub({ port: opts.port })
+    }),
+  )
+
+  withChainHomeOption(
     program.command("fetch-prompts")
     .description("Download design-style prompts from designprompts.dev")
     .action(async () => {
