@@ -9,6 +9,7 @@ const packageRoot = path.resolve(__dirname, "..");
 const requiredPaths = [
   "dist/chain.js",
   "dist/registry-index.yaml",
+  "dist/hub/index.html",
   "registry/bundled-index.yaml",
   "core/registry.yaml",
   "core/templates/components.json",

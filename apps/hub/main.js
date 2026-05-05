@@ -1,5 +1,6 @@
 import { createSkillsView } from "./skills.js"
 import { createStatusView } from "./status.js"
+import { createRegistryView } from "./registry.js"
 
 const viewRoot = document.querySelector("#view-root")
 const chainHomeBar = document.querySelector("#chain-home-bar")
@@ -126,6 +127,7 @@ function setActiveNav(route) {
 const modal = createModalManager()
 const skillsView = createSkillsView({ root: viewRoot, setChainHomeBar, setBanner, apiRequest, modal })
 const statusView = createStatusView({ root: viewRoot, setChainHomeBar, apiRequest })
+const registryView = createRegistryView({ root: viewRoot, setBanner, setChainHomeBar, apiRequest })
 
 async function renderRoute() {
   const route = window.location.hash.replace(/^#/, "") || "skills"
@@ -138,6 +140,10 @@ async function renderRoute() {
   }
   if (route === "status") {
     await statusView.mount()
+    return
+  }
+  if (route === "registry") {
+    await registryView.mount()
     return
   }
 

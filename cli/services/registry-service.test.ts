@@ -58,3 +58,47 @@ describe("installSkill — registry failure modes", () => {
     expect(err.message).not.toMatch(/registry is unavailable/i)
   })
 })
+
+describe("fetchRegistry", () => {
+  afterEach(() => {
+    mock.restore()
+  })
+
+  test("returns bundled source when remote index falls back to bundled", async () => {
+    mock.module("../registry/remote", () => ({
+      fetchRemoteIndex: async () => ({
+        schema_version: 1,
+        source: "bundled",
+        skills: [
+          {
+            slug: "fallback-skill",
+            description: "offline copy",
+            version: "1.0.0",
+            source: "github:owner/repo",
+            path: "skills/fallback-skill",
+          },
+        ],
+      }),
+    }))
+
+    const { fetchRegistry } = await import("./registry-service")
+    const result = await fetchRegistry()
+
+    expect(result.source).toBe("bundled")
+    expect(result.skills.map((skill) => skill.slug)).toEqual(["fallback-skill"])
+  })
+
+  test("defaults source to live when remote index omits source", async () => {
+    mock.module("../registry/remote", () => ({
+      fetchRemoteIndex: async () => ({
+        schema_version: 1,
+        skills: [],
+      }),
+    }))
+
+    const { fetchRegistry } = await import("./registry-service")
+    const result = await fetchRegistry()
+
+    expect(result.source).toBe("live")
+  })
+})
