@@ -6,9 +6,9 @@ Based on the current state of Chain Hub, there are four natural directions.
 
 ## Direction 1 — Registry & discovery expansion
 
-- [Open] Add `commit`, `debug`, and `code-review` so they can be installed via `chain add`
-- [Open] Registry page on the website (`chainhub.one/registry`) with search
-- [Open] Improve `chain search` results with better ranking
+- [Implemented] Add `commit`, `debug`, and `code-review` so they can be installed via `chain add`
+- [Implemented] Registry page on the website (`chainhub.one/registry`) with search
+- [Implemented] Improve `chain search` results with better ranking
 
 ## Direction 2 — Premium skill packs (separate track)
 
@@ -95,16 +95,16 @@ Based on the current state of Chain Hub, there are four natural directions.
 
 ## Direction 4 — Chain Hub UI (web dashboard)
 
-- [Open] Visual hub manager in the browser
-- [Open] View, edit, and install skills without CLI
-- [Open] Integration with `chain status` output
+- [Implemented] Visual hub manager in the browser
+- [Implemented] View, edit, and install skills without CLI
+- [Implemented] Integration with `chain status` output
 
 ## Direction 5 — Autonomous self-improving engine
 
-- [Open] Add proposal-based improvement loop on top of `chain reflect`
-- [Open] Generate reviewable change proposals for `skills`, `workflows`, `agents`, and `rules`
-- [Open] Add guarded apply flow with validation and policy gates
-- [Open] Add run history, telemetry, and rollback metadata
-- [Open] Start with human-approved batches, then progress to controlled low-risk automation
+- [Implemented] Add proposal-based improvement loop on top of `chain reflect` (Linked to `learnings/drafts`)
+- [Implemented] Generate reviewable change proposals for `skills` using local reflection evidence
+- [Implemented] Add guarded apply flow with validation and policy gates
+- [Implemented] Add run history, telemetry, and rollback mechanism (revert backups via Hub UI)
+- [Implemented] Human-approved batches ready for production maintenance
 
 Reference blueprint: `docs/self-improving-engine.md`

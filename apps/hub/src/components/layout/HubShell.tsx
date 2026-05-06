@@ -3,7 +3,13 @@ import { SidebarNav } from "@/components/layout/SidebarNav"
 import { SidebarToggleButton } from "@/components/layout/SidebarToggleButton"
 import { StatusPanels } from "@/components/layout/StatusPanels"
 
-export function HubShell() {
+export function HubShell({
+  children,
+  currentRoute = "skills",
+}: {
+  children?: React.ReactNode
+  currentRoute?: string
+}) {
   return (
     <div className="app-shell group relative flex min-h-screen items-stretch max-[980px]:block">
       <aside
@@ -14,7 +20,7 @@ export function HubShell() {
           <div className="border-b border-hub-border p-4">
             <SidebarBrand />
           </div>
-          <SidebarNav />
+          <SidebarNav currentRoute={currentRoute} />
         </div>
       </aside>
       <button
@@ -32,7 +38,9 @@ export function HubShell() {
           <SidebarToggleButton />
         </header>
         <StatusPanels />
-        <section id="view-root" className="min-w-0" />
+        <section className="min-w-0">
+          {children}
+        </section>
       </main>
     </div>
   )

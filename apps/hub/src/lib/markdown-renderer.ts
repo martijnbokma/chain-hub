@@ -1,9 +1,9 @@
 /**
  * Client-side Markdown → DOM for the hub skill preview (no external deps).
- * Covers common SKILL.md / GFM-style patterns: headings, lists, tables, code, links, blockquotes.
+ * Ported from public/markdown.js to TypeScript for use in React.
  */
 
-function safeHref(href) {
+function safeHref(href: string) {
   const t = href.trim()
   if (/^https?:\/\//i.test(t) || t.startsWith("/") || t.startsWith("./") || t.startsWith("../") || t.startsWith("#")) {
     return t
@@ -11,14 +11,11 @@ function safeHref(href) {
   return null
 }
 
-function safeSrc(src) {
+function safeSrc(src: string) {
   return safeHref(src)
 }
 
-/**
- * Parse inline formatting: `code`, **bold**, *italic*, ~~strike~~, [text](url), ![alt](url)
- */
-function appendInline(parent, text) {
+function appendInline(parent: HTMLElement, text: string) {
   if (!text) return
 
   const pattern =
@@ -87,21 +84,21 @@ function appendInline(parent, text) {
   }
 }
 
-function flushParagraph(fragment, buffer) {
-  if (buffer.length === 0) return
-  const text = buffer.join(" ").trim()
-  buffer.length = 0
+function flushParagraph(fragment: DocumentFragment | HTMLElement, paragraphBuffer: string[]) {
+  if (paragraphBuffer.length === 0) return
+  const text = paragraphBuffer.join(" ").trim()
+  paragraphBuffer.length = 0
   if (!text) return
   const p = document.createElement("p")
   appendInline(p, text)
   fragment.appendChild(p)
 }
 
-function isTableRow(line) {
+function isTableRow(line: string) {
   return line.includes("|") && line.trim().length > 0
 }
 
-function isTableSeparator(line) {
+function isTableSeparator(line: string) {
   const cells = splitTableCells(line)
   if (cells.length < 1) return false
   return cells.every((c) => {
@@ -111,7 +108,7 @@ function isTableSeparator(line) {
   })
 }
 
-function splitTableCells(line) {
+function splitTableCells(line: string) {
   let s = line.trim()
   if (s.startsWith("|")) s = s.slice(1).trimStart()
   if (s.endsWith("|")) s = s.slice(0, -1).trimEnd()
@@ -119,7 +116,7 @@ function splitTableCells(line) {
   return s.split("|").map((c) => c.trim())
 }
 
-function tryConsumeTable(lines, start, fragment) {
+function tryConsumeTable(lines: string[], start: number, fragment: DocumentFragment | HTMLElement) {
   if (start + 1 >= lines.length) return start
   const headerLine = lines[start]
   const sepLine = lines[start + 1]
@@ -164,8 +161,8 @@ function tryConsumeTable(lines, start, fragment) {
   return i
 }
 
-function tryConsumeBlockquote(lines, start, fragment) {
-  const parts = []
+function tryConsumeBlockquote(lines: string[], start: number, fragment: DocumentFragment | HTMLElement) {
+  const parts: string[] = []
   let i = start
   while (i < lines.length) {
     const line = lines[i]
@@ -187,21 +184,20 @@ function tryConsumeBlockquote(lines, start, fragment) {
   return i
 }
 
-/** Parse block content without outer wrapper (for blockquotes). */
-function renderMarkdownBlockInner(raw) {
+function renderMarkdownBlockInner(raw: string) {
   const lines = raw.replace(/\r\n/g, "\n").split("\n")
   const fragment = document.createDocumentFragment()
   parseBlockLines(lines, fragment)
   return fragment
 }
 
-function parseBlockLines(lines, fragment) {
+function parseBlockLines(lines: string[], fragment: DocumentFragment | HTMLElement) {
   let i = 0
   let inCode = false
-  let codeBuffer = []
+  let codeBuffer: string[] = []
   let codeLang = ""
-  let paragraphBuffer = []
-  let listEl = null
+  let paragraphBuffer: string[] = []
+  let listEl: HTMLElement | null = null
   let listOrdered = false
 
   const closeList = () => {
@@ -326,13 +322,13 @@ function parseBlockLines(lines, fragment) {
   flushParagraph(fragment, paragraphBuffer)
 }
 
-function stripLeadingYamlFrontmatter(text) {
+function stripLeadingYamlFrontmatter(text: string) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\s*\r?\n?/)
   if (!m) return text
   return text.slice(m[0].length)
 }
 
-export function renderMarkdown(raw) {
+export function renderMarkdown(raw: string) {
   const body = stripLeadingYamlFrontmatter(raw.replace(/^\uFEFF/, ""))
   const fragment = document.createDocumentFragment()
   const lines = body.replace(/\r\n/g, "\n").split("\n")

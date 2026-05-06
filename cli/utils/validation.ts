@@ -1,16 +1,20 @@
-import { join, resolve } from "path"
+import { join, resolve, extname } from "path"
 import { readdirSync, statSync, existsSync, lstatSync, readlinkSync, readFileSync } from "fs"
 import yaml from "yaml"
 import { readProtectedCoreAssets } from "../registry/core"
 import { validateRegistryIntegrity } from "./validators/registry"
 import { validateSkillContent } from "./validators/skill"
 import { validateWorkflowContent } from "./validators/workflow"
+import { validateAgentContent } from "./validators/agent"
+import { validateRuleContent } from "./validators/rule"
 
 export interface ValidationResult {
   errors: string[]
   warnings: string[]
   skillsProcessed: number
   workflowsProcessed: number
+  agentsProcessed: number
+  rulesProcessed: number
 }
 
 export function validateProject(chainHome: string): ValidationResult {
@@ -18,11 +22,15 @@ export function validateProject(chainHome: string): ValidationResult {
     errors: [],
     warnings: [],
     skillsProcessed: 0,
-    workflowsProcessed: 0
+    workflowsProcessed: 0,
+    agentsProcessed: 0,
+    rulesProcessed: 0
   }
 
   const skillsDir = join(chainHome, "skills")
   const workflowsDir = join(chainHome, "workflows")
+  const agentsDir = join(chainHome, "agents")
+  const rulesDir = join(chainHome, "rules")
   const githubSourceSkills = readGithubSourceSkills(chainHome)
 
   // 1. Registry Integrity Check
@@ -70,6 +78,33 @@ export function validateProject(chainHome: string): ValidationResult {
     }
   }
 
+  // 5. Validate Agents
+  if (existsSync(agentsDir)) {
+    const agents = readdirSync(agentsDir)
+    for (const agent of agents) {
+      if (agent.startsWith("_") || !agent.endsWith(".md")) continue
+      const agentPath = join(agentsDir, agent)
+      if (statSync(agentPath).isFile()) {
+        result.agentsProcessed++
+        validateAgentContent(agentPath, result.errors, result.warnings)
+      }
+    }
+  }
+
+  // 6. Validate Rules
+  if (existsSync(rulesDir)) {
+    const rules = readdirSync(rulesDir)
+    for (const rule of rules) {
+      const ext = extname(rule)
+      if (rule.startsWith("_") || (ext !== ".md" && ext !== ".mdc")) continue
+      const rulePath = join(rulesDir, rule)
+      if (statSync(rulePath).isFile()) {
+        result.rulesProcessed++
+        validateRuleContent(rulePath, result.errors, result.warnings)
+      }
+    }
+  }
+
   return result
 }
 
@@ -96,6 +131,12 @@ function validateProtectedCoreAssets(chainHome: string, result: ValidationResult
   for (const slug of core.rules) {
     if (!coreRuleExists(coreDir, slug)) {
       result.errors.push(`Core rule '${slug}' is listed in core/registry.yaml but missing from core/rules/`)
+    } else {
+      result.rulesProcessed++
+      const rulePath = existsSync(join(coreDir, "rules", `${slug}.mdc`))
+        ? join(coreDir, "rules", `${slug}.mdc`)
+        : join(coreDir, "rules", `${slug}.md`)
+      validateRuleContent(rulePath, result.errors, result.warnings)
     }
   }
 
@@ -103,6 +144,9 @@ function validateProtectedCoreAssets(chainHome: string, result: ValidationResult
     const agentPath = join(coreDir, "agents", `${slug}.md`)
     if (!existsSync(agentPath)) {
       result.errors.push(`Core agent '${slug}' is listed in core/registry.yaml but missing from core/agents/`)
+    } else {
+      result.agentsProcessed++
+      validateAgentContent(agentPath, result.errors, result.warnings)
     }
   }
 
@@ -110,6 +154,9 @@ function validateProtectedCoreAssets(chainHome: string, result: ValidationResult
     const workflowPath = join(coreDir, "workflows", `${slug}.md`)
     if (!existsSync(workflowPath)) {
       result.errors.push(`Core workflow '${slug}' is listed in core/registry.yaml but missing from core/workflows/`)
+    } else {
+      result.workflowsProcessed++
+      validateWorkflowContent(workflowPath, result.errors, result.warnings)
     }
   }
 }
@@ -134,3 +181,4 @@ function readGithubSourceSkills(chainHome: string): Set<string> {
     return new Set()
   }
 }
+

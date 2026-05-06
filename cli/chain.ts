@@ -37,7 +37,7 @@ async function runChainRegistrySearch(
   await runSearch(query, { hubOnly: Boolean(opts.hubOnly) })
 }
 
-;(async () => {
+; (async () => {
   const argv = applyChainHomeOverrideFromArgv(process.argv)
 
   const program = new Command()
@@ -57,62 +57,62 @@ Hub location resolution:
 
   withChainHomeOption(
     program.command("init")
-    .description("Initialize Chain Hub: core assets, user skills/ directory, and skills-registry.yaml")
-    .action(async () => {
-      const { runInit } = await import("./commands/init")
-      await runInit()
-    }),
+      .description("Initialize Chain Hub: core assets, user skills/ directory, and skills-registry.yaml")
+      .action(async () => {
+        const { runInit } = await import("./commands/init")
+        await runInit()
+      }),
   )
 
   withChainHomeOption(
     program.command("setup")
-    .description("Create symlinks for all detected IDEs")
-    .option("--ide <name>", "Only set up a specific IDE")
-    .action(async (opts) => {
-      const { runSetup } = await import("./commands/setup")
-      await runSetup(opts)
-    }),
+      .description("Create symlinks for all detected IDEs")
+      .option("--ide <name>", "Only set up a specific IDE")
+      .action(async (opts) => {
+        const { runSetup } = await import("./commands/setup")
+        await runSetup(opts)
+      }),
   )
 
   withChainHomeOption(
     program.command("status")
-    .description("Show symlink health per IDE")
-    .action(async () => {
-      const { runStatus } = await import("./commands/status")
-      await runStatus()
-    }),
+      .description("Show symlink health per IDE")
+      .action(async () => {
+        const { runStatus } = await import("./commands/status")
+        await runStatus()
+      }),
   )
 
   withChainHomeOption(
     program.command("add <slug>")
-    .description("Install a skill from registry or github:<owner>/<repo>")
-    .option("--skill <name>", "Install only a specific skill from the source")
-    .option(
-      "--pack",
-      "For github: installs — register skills under the packs bucket (curated bundles; chain update refreshes via github_sources)",
-    )
-    .action(async (slug, opts) => {
-      const { runAdd } = await import("./commands/add")
-      await runAdd(slug, opts)
-    }),
+      .description("Install a skill from registry or github:<owner>/<repo>")
+      .option("--skill <name>", "Install only a specific skill from the source")
+      .option(
+        "--pack",
+        "For github: installs — register skills under the packs bucket (curated bundles; chain update refreshes via github_sources)",
+      )
+      .action(async (slug, opts) => {
+        const { runAdd } = await import("./commands/add")
+        await runAdd(slug, opts)
+      }),
   )
 
   withChainHomeOption(
     program.command("remove <slug>")
-    .description("Remove an installed skill")
-    .action(async (slug) => {
-      const { runRemove } = await import("./commands/remove")
-      await runRemove(slug)
-    }),
+      .description("Remove an installed skill")
+      .action(async (slug) => {
+        const { runRemove } = await import("./commands/remove")
+        await runRemove(slug)
+      }),
   )
 
   withChainHomeOption(
     program.command("list")
-    .description("List all skills with source label")
-    .action(async () => {
-      const { runList } = await import("./commands/list")
-      await runList()
-    }),
+      .description("List all skills with source label")
+      .action(async () => {
+        const { runList } = await import("./commands/list")
+        await runList()
+      }),
   )
 
   withChainHomeOption(
@@ -135,84 +135,86 @@ Hub location resolution:
 
   withChainHomeOption(
     program.command("new <slug>")
-    .description("Scaffold a new skill from template")
-    .action(async (slug) => {
-      const { runNew } = await import("./commands/new")
-      await runNew(slug)
-    }),
+      .description("Scaffold a new skill from template")
+      .action(async (slug) => {
+        const { runNew } = await import("./commands/new")
+        await runNew(slug)
+      }),
   )
 
   withChainHomeOption(
     program.command("validate")
-    .description("Validate skills and workflows")
-    .option("--fix", "Try to auto-fix issues after validation")
-    .action(async (opts) => {
-      const { runValidate } = await import("./commands/validate")
-      await runValidate(opts)
-    }),
+      .description("Validate skills and workflows")
+      .option("--fix", "Try to auto-fix issues after validation")
+      .action(async (opts) => {
+        const { runValidate } = await import("./commands/validate")
+        await runValidate(opts)
+      }),
   )
 
   withChainHomeOption(
     program.command("update")
-    .description("Update installed skills from their source (registry or GitHub)")
-    .action(async () => {
-      const { runUpdate } = await import("./commands/update")
-      await runUpdate()
-    }),
+      .description("Update installed skills from their source (registry or GitHub)")
+      .action(async () => {
+        const { runUpdate } = await import("./commands/update")
+        await runUpdate()
+      }),
   )
 
   withChainHomeOption(
     program.command("fix")
-    .description("Auto-fix missing sections and frontmatter in skills and workflows")
-    .action(async () => {
-      const { runFix } = await import("./commands/fix")
-      await runFix()
-    }),
+      .description("Auto-fix missing sections and frontmatter in skills and workflows")
+      .action(async () => {
+        const { runFix } = await import("./commands/fix")
+        await runFix()
+      }),
   )
 
   withChainHomeOption(
     program.command("reflect")
-    .description("Analyze recent learnings and propose improvements")
-    .option("--dry-run", "Only show what would be analyzed")
-    .action(async (opts) => {
-      const { runReflect } = await import("./commands/reflect")
-      await runReflect(opts)
-    }),
+      .description("Analyze recent learnings and propose improvements")
+      .option("--improve", "Autonomous mode: generate proposals immediately after reflection")
+      .option("--dry-run", "Only show what would be analyzed")
+      .action(async (opts) => {
+        const { runReflect } = await import("./commands/reflect")
+        await runReflect(opts)
+      }),
   )
 
   withChainHomeOption(
     program.command("capture")
-    .description("Record a learning event (success, failure, correction, note)")
-    .requiredOption("--event <type>", "Event type (success|failure|correction|note)")
-    .requiredOption("--skill <slug>", "Skill slug (e.g. bug-fix)")
-    .requiredOption("--summary <text>", "Short summary of what was learned")
-    .option("--repo <hint>", "Repository or path hint")
-    .action(async (opts) => {
-      const { runCapture } = await import("./commands/capture")
-      await runCapture(opts)
-    }),
+      .description("Record a learning event (success, failure, correction, note)")
+      .requiredOption("--event <type>", "Event type (success|failure|correction|note)")
+      .requiredOption("--skill <slug>", "Skill slug (e.g. bug-fix)")
+      .requiredOption("--summary <text>", "Short summary of what was learned")
+      .option("--repo <hint>", "Repository or path hint")
+      .action(async (opts) => {
+        const { runCapture } = await import("./commands/capture")
+        await runCapture(opts)
+      }),
   )
 
   withChainHomeOption(
     program.command("hub")
-    .description("Start the local Chain Hub web dashboard server")
-    .option(
-      "--port <number>",
-      "Port to bind (defaults to 2342; without --port it auto-selects an available port if 2342 is busy; use 0 to always pick an available port)",
-    )
-    .action(async (opts) => {
-      const { runHub } = await import("./commands/hub")
-      await runHub({ port: opts.port })
-    }),
+      .description("Start the local Chain Hub web dashboard server")
+      .option(
+        "--port <number>",
+        "Port to bind (defaults to 2342; without --port it auto-selects an available port if 2342 is busy; use 0 to always pick an available port)",
+      )
+      .option("--no-open", "Do not open the browser automatically")
+      .action(async (opts) => {
+        const { runHub } = await import("./commands/hub")
+        await runHub({ port: opts.port, open: opts.open })
+      }),
   )
 
   withChainHomeOption(
     program.command("fetch-prompts")
-    .description("Download design-style prompts from designprompts.dev")
-    .action(async () => {
-      const { runFetchPrompts } = await import("./commands/fetch-prompts")
-      await runFetchPrompts()
-    }),
+      .description("Download design-style prompts from designprompts.dev")
+      .action(async () => {
+        const { runFetchPrompts } = await import("./commands/fetch-prompts")
+        await runFetchPrompts()
+      }),
   )
 
   for (const kind of ["rules", "agents", "workflows"] as const) {

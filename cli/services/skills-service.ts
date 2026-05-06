@@ -1,12 +1,16 @@
 import { join } from "path"
-import { existsSync, readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync, statSync } from "fs"
+import { existsSync, readFileSync, statSync } from "fs"
 import { parse } from "yaml"
 import { readRegistry, addSkill, removeSkill as registryRemoveSkill } from "../registry/local"
-import { isProtectedCoreSkill, readProtectedCoreAssets } from "../registry/core"
-import { UserError } from "../utils/errors"
-import { assertSafeSkillPathSegment, assertValidSkillSlug } from "../utils/skill-slug"
 import { ensureCoreAssets, ensureUserRegistry } from "../utils/core-assets"
 import type { InstallBucket } from "../registry/local"
+import {
+  createContent,
+  deleteContent,
+  listContent,
+  readContent,
+  updateContent,
+} from "./content-service"
 
 function ensureInitialized(chainHome: string): void {
   ensureCoreAssets({ chainHome })
@@ -56,8 +60,7 @@ TODO
 - [ ] TODO
 `
 
-function readSkillDescription(skillDir: string): string {
-  const skillMdPath = join(skillDir, "SKILL.md")
+function readSkillDescription(skillMdPath: string): string {
   if (!existsSync(skillMdPath)) return ""
   try {
     const content = readFileSync(skillMdPath, "utf8")
@@ -70,8 +73,7 @@ function readSkillDescription(skillDir: string): string {
   }
 }
 
-function readSkillAddedAt(skillDir: string): number | null {
-  const skillMdPath = join(skillDir, "SKILL.md")
+function readSkillAddedAt(skillMdPath: string): number | null {
   if (!existsSync(skillMdPath)) return null
   try {
     return statSync(skillMdPath).mtimeMs
@@ -81,9 +83,7 @@ function readSkillAddedAt(skillDir: string): number | null {
 }
 
 export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userSkills: SkillEntry[] } {
-  const core = readProtectedCoreAssets(chainHome)
   const registry = readRegistry(chainHome)
-
   const githubRef = new Map<string, string>()
   for (const bundle of registry.github_sources ?? []) {
     for (const slug of bundle.skills ?? []) {
@@ -100,33 +100,28 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
     return "unknown"
   }
 
-  const coreSkillsDir = join(chainHome, "core", "skills")
-  const coreSkills: SkillEntry[] = core.skills.map((slug) => ({
-    slug,
-    description: readSkillDescription(join(coreSkillsDir, slug)),
-    bucket: "core",
-    isCore: true,
-    addedAt: readSkillAddedAt(join(coreSkillsDir, slug)),
-    githubRef: githubRef.get(slug),
-  }))
+  const allSkills = listContent(chainHome, "skills")
+  const coreSkills: SkillEntry[] = allSkills
+    .filter((s) => s.isCore)
+    .map((s) => ({
+      slug: s.slug,
+      description: readSkillDescription(s.path),
+      bucket: "core",
+      isCore: true,
+      addedAt: readSkillAddedAt(s.path),
+      githubRef: githubRef.get(s.slug),
+    }))
 
-  const userSkillsDir = join(chainHome, "skills")
-  const userSlugs = existsSync(userSkillsDir)
-    ? readdirSync(userSkillsDir, { withFileTypes: true })
-        .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith("_"))
-        .map((e) => e.name)
-        .filter((slug) => !core.skills.includes(slug))
-        .sort()
-    : []
-
-  const userSkills: SkillEntry[] = userSlugs.map((slug) => ({
-    slug,
-    description: readSkillDescription(join(userSkillsDir, slug)),
-    bucket: bucketFor(slug),
-    isCore: false,
-    addedAt: readSkillAddedAt(join(userSkillsDir, slug)),
-    githubRef: githubRef.get(slug),
-  }))
+  const userSkills: SkillEntry[] = allSkills
+    .filter((s) => !s.isCore)
+    .map((s) => ({
+      slug: s.slug,
+      description: readSkillDescription(s.path),
+      bucket: bucketFor(s.slug),
+      isCore: false,
+      addedAt: readSkillAddedAt(s.path),
+      githubRef: githubRef.get(s.slug),
+    }))
 
   return { coreSkills, userSkills }
 }
@@ -138,81 +133,31 @@ export function listSkillsPayload(chainHome: string): SkillsListPayload {
   return { skills: [...coreSkills, ...userSkills], initialized }
 }
 
-function resolveUserSkillDir(chainHome: string, slug: string): { safeSlug: string; dir: string } {
-  const safeSlug = assertSafeSkillPathSegment(slug)
-  return { safeSlug, dir: join(chainHome, "skills", safeSlug) }
-}
-
 export function readSkill(chainHome: string, slug: string): { content: string; isCore: boolean } {
-  ensureInitialized(chainHome)
-  const safeSlug = assertSafeSkillPathSegment(slug)
-  const isCore = isProtectedCoreSkill(safeSlug, chainHome)
-  const dir = isCore ? join(chainHome, "core", "skills", safeSlug) : resolveUserSkillDir(chainHome, safeSlug).dir
-  const skillMdPath = join(dir, "SKILL.md")
-
-  if (!existsSync(skillMdPath)) {
-    throw new UserError(`Skill '${safeSlug}' not found.`)
-  }
-
-  return { content: readFileSync(skillMdPath, "utf8"), isCore }
+  const result = readContent(chainHome, "skills", slug)
+  return { content: result.content, isCore: result.isCore }
 }
 
 export function writeSkill(chainHome: string, slug: string, content: string): void {
-  ensureInitialized(chainHome)
-  const safeSlug = assertSafeSkillPathSegment(slug)
-  if (isProtectedCoreSkill(safeSlug, chainHome)) {
-    throw new UserError(`'${safeSlug}' is a protected core skill and cannot be modified.`)
-  }
-
-  const { dir } = resolveUserSkillDir(chainHome, safeSlug)
-  const skillMdPath = join(dir, "SKILL.md")
-  if (!existsSync(dir)) {
-    throw new UserError(`Skill '${safeSlug}' does not exist. Use createSkill to create it first.`)
-  }
-
-  writeFileSync(skillMdPath, content, "utf8")
+  updateContent(chainHome, { kind: "skills", slug, content })
 }
 
 export function createSkill(chainHome: string, slug: string, description?: string): void {
-  ensureInitialized(chainHome)
-  const safeSlug = assertValidSkillSlug(slug)
-  if (isProtectedCoreSkill(safeSlug, chainHome)) {
-    throw new UserError(`'${safeSlug}' is a protected core skill and cannot be overwritten.`)
-  }
-
-  const dest = join(chainHome, "skills", safeSlug)
-  if (existsSync(dest)) {
-    throw new UserError(`Skill '${safeSlug}' already exists at ${dest}.`)
-  }
-
   const normalizedDescription = typeof description === "string" ? description.trim() : ""
   const templateDescription =
     normalizedDescription || "TODO: describe this skill in one sentence. Include trigger terms for discovery."
   const skillContent = SKILL_TEMPLATE
-    .replace(/SLUG/g, safeSlug)
+    .replace(/SLUG/g, slug)
     .replace(
       "TODO: describe this skill in one sentence. Include trigger terms for discovery.",
       templateDescription,
     )
 
-  mkdirSync(dest, { recursive: true })
-  writeFileSync(join(dest, "SKILL.md"), skillContent, "utf8")
-  addSkill({ slug: safeSlug, bucket: "personal", chainHome })
+  createContent(chainHome, { kind: "skills", slug, content: skillContent })
+  addSkill({ slug, bucket: "personal", chainHome })
 }
 
 export function removeSkill(chainHome: string, slug: string): void {
-  ensureInitialized(chainHome)
-  const safeSlug = assertSafeSkillPathSegment(slug)
-  if (isProtectedCoreSkill(safeSlug, chainHome)) {
-    throw new UserError(
-      `'${safeSlug}' is a protected Chain Hub core skill and cannot be removed.`,
-    )
-  }
-
-  const { dir: skillDir } = resolveUserSkillDir(chainHome, safeSlug)
-  if (existsSync(skillDir)) {
-    rmSync(skillDir, { recursive: true })
-  }
-
-  registryRemoveSkill(safeSlug, chainHome)
+  deleteContent(chainHome, "skills", slug)
+  registryRemoveSkill(slug, chainHome)
 }

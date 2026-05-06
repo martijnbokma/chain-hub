@@ -101,6 +101,50 @@ protected:
     expect(result.errors).toEqual([])
   })
 
+  test("validates user rules and agents", () => {
+    writeRegistry(`
+schema_version: 3
+chain_hub: []
+personal: []
+cli_packages: []
+`)
+    // Valid agent
+    mkdirSync(join(tmp, "agents"), { recursive: true })
+    writeFileSync(
+      join(tmp, "agents", "my-agent.md"),
+      `---
+name: My Agent
+description: A helpful agent.
+---
+# Content
+`,
+    )
+
+    // Invalid agent (missing description)
+    writeFileSync(
+      join(tmp, "agents", "bad-agent.md"),
+      `---
+name: Bad Agent
+---
+# Content
+`,
+    )
+
+    // Valid rule
+    mkdirSync(join(tmp, "rules"), { recursive: true })
+    writeFileSync(join(tmp, "rules", "my-rule.md"), "# Rule Content\n")
+
+    // Too long rule
+    writeFileSync(join(tmp, "rules", "long-rule.md"), "A".repeat(50001))
+
+    const result = validateProject(tmp)
+
+    expect(result.agentsProcessed).toBe(2)
+    expect(result.rulesProcessed).toBe(2)
+    expect(result.errors).toContain("Agent bad-agent.md: Missing 'description' in frontmatter")
+    expect(result.errors).toContain("Rule long-rule.md: Exceeds 50,000 character limit")
+  })
+
   function writeRegistry(content: string) {
     writeFileSync(join(tmp, "skills-registry.yaml"), content.trimStart())
   }

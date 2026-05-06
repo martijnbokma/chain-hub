@@ -2,7 +2,6 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 
 const ASTRO_ARGS = ["dev", "--host", "127.0.0.1", "--port", "4321"];
-const FIREFOX_APP_NAME = "Firefox Developer Edition";
 const LOCAL_URL_REGEX = /Local\s+(http:\/\/[^\s/]+(?::\d+)?\/?)/i;
 const ANSI_ESCAPE_REGEX = /\u001b\[[0-9;]*m/g;
 
@@ -19,38 +18,45 @@ function maybeOpenBrowser(rawLine, hasOpenedBrowserRef) {
 
   const url = match[1];
   hasOpenedBrowserRef.value = true;
-  console.log(`Opening ${url} in ${FIREFOX_APP_NAME}...`);
   openInFirefox(url);
 }
 
 function openInFirefox(url) {
-  const opener = spawn("open", ["-a", FIREFOX_APP_NAME, url], {
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
-  opener.on("error", (error) => {
-    console.error(`Failed to open ${url} in ${FIREFOX_APP_NAME}:`, error);
-  });
-
-  let stderrBuffer = "";
-  opener.stderr.on("data", (chunk) => {
-    stderrBuffer += String(chunk);
-  });
-
-  opener.on("exit", (code) => {
-    if (code && code !== 0) {
-      const details = stderrBuffer.trim();
-      if (details.length > 0) {
-        console.error(
-          `Open command failed for ${url} in ${FIREFOX_APP_NAME} (exit ${code}): ${details}`
-        );
-      } else {
-        console.error(
-          `Open command failed for ${url} in ${FIREFOX_APP_NAME} (exit ${code}).`
-        );
-      }
+  // Try Firefox Developer Edition first, then regular Firefox
+  const apps = ["Firefox Developer Edition", "Firefox"];
+  
+  const tryOpen = (index) => {
+    if (index >= apps.length) {
+      console.error(`Failed to open ${url} in any Firefox version.`);
+      return;
     }
-  });
+
+    const app = apps[index];
+    const opener = spawn("open", ["-a", app, url], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    opener.on("error", (error) => {
+      console.error(`Failed to open ${url} in ${app}:`, error);
+      tryOpen(index + 1);
+    });
+
+    let stderrBuffer = "";
+    opener.stderr.on("data", (chunk) => {
+      stderrBuffer += String(chunk);
+    });
+
+    opener.on("exit", (code) => {
+      if (code && code !== 0) {
+        // If it failed with a non-zero exit code (e.g. app not found), try next
+        tryOpen(index + 1);
+      } else {
+        console.log(`Successfully opened ${url} in ${app}.`);
+      }
+    });
+  };
+
+  tryOpen(0);
 }
 
 function run() {

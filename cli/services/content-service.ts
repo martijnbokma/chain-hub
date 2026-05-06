@@ -58,6 +58,8 @@ function assertCreateSlug(kind: ContentKind, slug: string): string {
   return assertSafeSlug(slug)
 }
 
+// Resolves a rule file by slug, trying extensions in preference order.
+// Returns the matched path+ext or null if neither extension exists.
 function resolveRuleBySlug(baseDir: string, slug: string, preferredExt?: ContentFileExt): { path: string; ext: ContentFileExt } | null {
   const preferred = preferredExt === ".mdc" ? [".mdc", ".md"] : [".md", ".mdc"]
   for (const ext of preferred) {
@@ -67,31 +69,39 @@ function resolveRuleBySlug(baseDir: string, slug: string, preferredExt?: Content
   return null
 }
 
+// Resolves the canonical SKILL.md path inside a skill directory.
 function resolveSkillPath(baseDir: string, slug: string): string {
   return join(baseDir, slug, "SKILL.md")
 }
 
+// Resolves a flat single-file path (agents, workflows, or rules with explicit ext).
 function resolveFlatPath(baseDir: string, slug: string, ext: ContentFileExt = ".md"): string {
   return join(baseDir, `${slug}${ext}`)
+}
+
+// Returns the base directory for a given kind, selecting core vs user subtree.
+function kindBaseDir(chainHome: string, kind: ContentKind, isCore: boolean): string {
+  return isCore ? join(chainHome, "core", kind) : join(chainHome, kind)
 }
 
 function resolveReadPath(chainHome: string, kind: ContentKind, slug: string): { path: string; ext?: ContentFileExt; isCore: boolean } {
   const safeSlug = assertSafeSlug(slug)
   const core = isProtected(chainHome, kind, safeSlug)
+  const base = kindBaseDir(chainHome, kind, core)
+
   if (kind === "skills") {
-    const base = core ? join(chainHome, "core", "skills") : join(chainHome, "skills")
     const path = resolveSkillPath(base, safeSlug)
     if (!existsSync(path)) throw new UserError(`'${safeSlug}' not found.`)
     return { path, isCore: core }
   }
 
-  const base = core ? join(chainHome, "core", kind) : join(chainHome, kind)
   if (kind === "rules") {
     const found = resolveRuleBySlug(base, safeSlug)
     if (!found) throw new UserError(`'${safeSlug}' not found.`)
     return { path: found.path, ext: found.ext, isCore: core }
   }
 
+  // agents and workflows: flat .md file
   const path = resolveFlatPath(base, safeSlug)
   if (!existsSync(path)) throw new UserError(`'${safeSlug}' not found.`)
   return { path, ext: ".md", isCore: core }
@@ -108,72 +118,71 @@ function assertExt(kind: ContentKind, ext?: ContentFileExt): ContentFileExt | un
   return ext
 }
 
+// Collects user entries for skills (directory-per-skill layout).
+function listSkillEntries(chainHome: string, coreSlugs: string[]): ContentListEntry[] {
+  const dir = join(chainHome, "skills")
+  if (!existsSync(dir)) return []
+
+  const slugs = readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && !entry.name.startsWith("_"))
+    .map((entry) => entry.name)
+    .filter((slug) => !coreSlugs.includes(slug))
+    .sort()
+
+  const entries: ContentListEntry[] = []
+  for (const slug of slugs) {
+    const path = resolveSkillPath(dir, slug)
+    if (!existsSync(path)) continue
+    entries.push({ kind: "skills", slug, isCore: false, path })
+  }
+  return entries
+}
+
+// Collects user entries for flat-file kinds (rules, agents, workflows).
+function listFlatKindEntries(chainHome: string, kind: ContentKind, coreSlugs: string[]): ContentListEntry[] {
+  const dir = join(chainHome, kind)
+  if (!existsSync(dir)) return []
+
+  const files = readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && !entry.name.startsWith("_"))
+    .map((entry) => entry.name)
+
+  // Deduplicate slugs; for rules prefer .md over .mdc when both exist.
+  const slugs = new Map<string, ContentFileExt>()
+  for (const name of files) {
+    const ext = extname(name)
+    if (ext !== ".md" && ext !== ".mdc") continue
+    if (kind !== "rules" && ext !== ".md") continue
+    const slug = basename(name, ext)
+    if (!slug || coreSlugs.includes(slug)) continue
+    if (kind === "rules") {
+      if (!slugs.has(slug) || ext === ".md") slugs.set(slug, ext as ContentFileExt)
+    } else {
+      slugs.set(slug, ".md")
+    }
+  }
+
+  return [...slugs.keys()].sort().map((slug) => {
+    const ext = slugs.get(slug)!
+    return { kind, slug, isCore: false, path: resolveFlatPath(dir, slug, ext), ext }
+  })
+}
+
 export function listContent(chainHome: string, kind: ContentKind): ContentListEntry[] {
   ensureInitialized(chainHome)
   const contentKind = assertContentKind(kind)
   const protectedAssets = readProtectedCoreAssets(chainHome)
   const coreSlugs = protectedAssets[contentKind]
-  const coreEntries: ContentListEntry[] = []
-  const userEntries: ContentListEntry[] = []
 
-  for (const slug of coreSlugs) {
+  const coreEntries: ContentListEntry[] = coreSlugs.map((slug) => {
     const read = resolveReadPath(chainHome, contentKind, slug)
-    coreEntries.push({
-      kind: contentKind,
-      slug,
-      isCore: true,
-      path: read.path,
-      ext: read.ext,
-    })
-  }
+    return { kind: contentKind, slug, isCore: true, path: read.path, ext: read.ext }
+  })
 
-  if (contentKind === "skills") {
-    const dir = join(chainHome, "skills")
-    if (existsSync(dir)) {
-      const slugs = readdirSync(dir, { withFileTypes: true })
-        .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && !entry.name.startsWith("_"))
-        .map((entry) => entry.name)
-        .filter((slug) => !coreSlugs.includes(slug))
-        .sort()
-      for (const slug of slugs) {
-        const path = resolveSkillPath(dir, slug)
-        if (!existsSync(path)) continue
-        userEntries.push({ kind: contentKind, slug, isCore: false, path })
-      }
-    }
-  } else {
-    const dir = join(chainHome, contentKind)
-    if (existsSync(dir)) {
-      const files = readdirSync(dir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && !entry.name.startsWith("_"))
-        .map((entry) => entry.name)
-      const slugs = new Map<string, ContentFileExt>()
-      for (const name of files) {
-        const ext = extname(name)
-        if (ext !== ".md" && ext !== ".mdc") continue
-        if (contentKind !== "rules" && ext !== ".md") continue
-        const slug = basename(name, ext)
-        if (!slug || coreSlugs.includes(slug)) continue
-        if (contentKind === "rules") {
-          if (!slugs.has(slug) || ext === ".md") {
-            slugs.set(slug, ext)
-          }
-        } else {
-          slugs.set(slug, ".md")
-        }
-      }
-      for (const slug of [...slugs.keys()].sort()) {
-        const ext = slugs.get(slug)!
-        userEntries.push({
-          kind: contentKind,
-          slug,
-          isCore: false,
-          path: resolveFlatPath(dir, slug, ext),
-          ext,
-        })
-      }
-    }
-  }
+  const userEntries =
+    contentKind === "skills"
+      ? listSkillEntries(chainHome, coreSlugs)
+      : listFlatKindEntries(chainHome, contentKind, coreSlugs)
 
   return [...coreEntries, ...userEntries]
 }

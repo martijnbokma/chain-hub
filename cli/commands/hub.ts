@@ -8,6 +8,7 @@ export { resolveStaticRoot } from "../services/hub-static"
 
 interface HubOptions {
   port?: number | string
+  open?: boolean
 }
 
 interface SkillsListApiResponse {
@@ -126,10 +127,12 @@ export async function runHub(opts: HubOptions = {}): Promise<void> {
     }
     console.log(kleur.green(`   Running at ${url}\n`))
 
-    try {
-      openBrowser(url)
-    } catch {
-      // Browser-open is best-effort; server remains running.
+    if (opts.open !== false) {
+      try {
+        openBrowser(url)
+      } catch {
+        // Browser-open is best-effort; server remains running.
+      }
     }
 
     await new Promise(() => {})

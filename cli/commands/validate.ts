@@ -17,7 +17,9 @@ export async function runValidate(opts: ValidateOptions = {}): Promise<void> {
 
   console.log(kleur.bold("  Summary:"))
   console.log(`    Skills processed:   ${result.skillsProcessed}`)
-  console.log(`    Workflows processed: ${result.workflowsProcessed}\n`)
+  console.log(`    Workflows processed: ${result.workflowsProcessed}`)
+  console.log(`    Agents processed:    ${result.agentsProcessed}`)
+  console.log(`    Rules processed:     ${result.rulesProcessed}\n`)
 
   if (result.errors.length === 0) {
     if (result.warnings.length > 0) {
