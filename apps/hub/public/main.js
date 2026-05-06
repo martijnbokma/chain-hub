@@ -2,6 +2,7 @@ import { createSkillsView } from "./skills.js"
 import { createStatusView } from "./status.js"
 import { createRegistryView } from "./registry.js"
 import { createConfigView } from "./config.js"
+import { createReflectView } from "./reflect.js"
 import { btn, btnPrimary, btnDanger, focusRing, msgErr } from "./ui-classes.js"
 
 const viewRoot = document.querySelector("#view-root")
@@ -396,6 +397,7 @@ const configView = createConfigView({
   getUiPrefs: () => ({ ...uiPrefs }),
   updateUiPrefs,
 })
+const reflectView = createReflectView({ root: viewRoot, setChainHomeBar, apiRequest })
 
 async function renderRoute() {
   const route = window.location.hash.replace(/^#/, "") || uiPrefs.defaultRoute || "skills"
@@ -418,6 +420,10 @@ async function renderRoute() {
   }
   if (route === "registry") {
     await registryView.mount()
+    return
+  }
+  if (route === "reflect") {
+    await reflectView.mount()
     return
   }
 }

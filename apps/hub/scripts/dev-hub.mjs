@@ -82,7 +82,7 @@ async function run() {
 
   const child = spawn(
     "bun",
-    ["../../cli/chain.ts", "hub", "--port", String(port)],
+    ["--watch", "../../cli/chain.ts", "hub", "--port", String(port)],
     { stdio: "inherit" }
   );
 

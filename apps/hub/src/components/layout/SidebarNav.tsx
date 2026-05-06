@@ -2,6 +2,7 @@ const navItems = [
   { href: "#skills", key: "skills", label: "Skills", isCurrent: true },
   { href: "#config", key: "config", label: "Config" },
   { href: "#status", key: "status", label: "Status" },
+  { href: "#reflect", key: "reflect", label: "Reflect" },
   { href: "#registry", key: "registry", label: "Registry" },
 ] as const
 

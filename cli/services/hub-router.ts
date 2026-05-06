@@ -18,6 +18,7 @@ import { validateSkill } from "./validation-service"
 import { assertValidSkillSlug } from "../utils/skill-slug"
 import { json, jsonError, mapError, readJsonBody } from "./hub-http-utils"
 import { getStaticRoot, serveStatic } from "./hub-static"
+import { previewReflect, runReflect } from "./reflect-service"
 
 function buildSkillsListResponse(
   chainHome: string,
@@ -125,6 +126,14 @@ export async function routeRequest(
       const ide = typeof body.ide === "string" ? body.ide : undefined
       const result = await runSetupService(chainHome, { ide })
       return json(result)
+    }
+
+    if (pathname === "/api/reflect/preview" && request.method === "POST") {
+      return json(previewReflect(chainHome))
+    }
+
+    if (pathname === "/api/reflect/run" && request.method === "POST") {
+      return json(runReflect(chainHome))
     }
 
     if (pathname === "/api/config" && request.method === "GET") {
