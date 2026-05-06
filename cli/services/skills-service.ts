@@ -1,5 +1,5 @@
 import { join } from "path"
-import { existsSync, readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync } from "fs"
+import { existsSync, readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync, statSync } from "fs"
 import { parse } from "yaml"
 import { readRegistry, addSkill, removeSkill as registryRemoveSkill } from "../registry/local"
 import { isProtectedCoreSkill, readProtectedCoreAssets } from "../registry/core"
@@ -18,6 +18,7 @@ export interface SkillEntry {
   description: string
   bucket: InstallBucket | "core" | "unknown"
   isCore: boolean
+  addedAt: number | null
   githubRef?: string
 }
 
@@ -69,6 +70,16 @@ function readSkillDescription(skillDir: string): string {
   }
 }
 
+function readSkillAddedAt(skillDir: string): number | null {
+  const skillMdPath = join(skillDir, "SKILL.md")
+  if (!existsSync(skillMdPath)) return null
+  try {
+    return statSync(skillMdPath).mtimeMs
+  } catch {
+    return null
+  }
+}
+
 export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userSkills: SkillEntry[] } {
   const core = readProtectedCoreAssets(chainHome)
   const registry = readRegistry(chainHome)
@@ -95,6 +106,7 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
     description: readSkillDescription(join(coreSkillsDir, slug)),
     bucket: "core",
     isCore: true,
+    addedAt: readSkillAddedAt(join(coreSkillsDir, slug)),
     githubRef: githubRef.get(slug),
   }))
 
@@ -112,6 +124,7 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
     description: readSkillDescription(join(userSkillsDir, slug)),
     bucket: bucketFor(slug),
     isCore: false,
+    addedAt: readSkillAddedAt(join(userSkillsDir, slug)),
     githubRef: githubRef.get(slug),
   }))
 
@@ -160,7 +173,7 @@ export function writeSkill(chainHome: string, slug: string, content: string): vo
   writeFileSync(skillMdPath, content, "utf8")
 }
 
-export function createSkill(chainHome: string, slug: string): void {
+export function createSkill(chainHome: string, slug: string, description?: string): void {
   ensureInitialized(chainHome)
   const safeSlug = assertValidSkillSlug(slug)
   if (isProtectedCoreSkill(safeSlug, chainHome)) {
@@ -172,8 +185,18 @@ export function createSkill(chainHome: string, slug: string): void {
     throw new UserError(`Skill '${safeSlug}' already exists at ${dest}.`)
   }
 
+  const normalizedDescription = typeof description === "string" ? description.trim() : ""
+  const templateDescription =
+    normalizedDescription || "TODO: describe this skill in one sentence. Include trigger terms for discovery."
+  const skillContent = SKILL_TEMPLATE
+    .replace(/SLUG/g, safeSlug)
+    .replace(
+      "TODO: describe this skill in one sentence. Include trigger terms for discovery.",
+      templateDescription,
+    )
+
   mkdirSync(dest, { recursive: true })
-  writeFileSync(join(dest, "SKILL.md"), SKILL_TEMPLATE.replace(/SLUG/g, safeSlug), "utf8")
+  writeFileSync(join(dest, "SKILL.md"), skillContent, "utf8")
   addSkill({ slug: safeSlug, bucket: "personal", chainHome })
 }
 

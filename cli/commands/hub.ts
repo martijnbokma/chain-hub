@@ -154,7 +154,11 @@ export async function handleRequest(
       if (typeof slug !== "string" || slug.trim().length === 0) {
         throw new UserError("Field 'slug' is required and must be a non-empty string.")
       }
-      createSkill(chainHome, assertValidSkillSlug(slug))
+      const description = body.description
+      if (typeof description !== "undefined" && typeof description !== "string") {
+        throw new UserError("Field 'description' must be a string when provided.")
+      }
+      createSkill(chainHome, assertValidSkillSlug(slug), description)
       return json({ ok: true }, 201)
     }
 

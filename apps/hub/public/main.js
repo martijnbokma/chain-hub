@@ -178,7 +178,7 @@ function createModalManager() {
   }
 
   return {
-    open({ title, placeholder, onSubmit }) {
+    open({ title, placeholder, fields, onSubmit }) {
       const card = document.createElement("div")
       card.className =
         `hub-modal-card w-[min(500px,calc(100vw-2rem))] rounded-lg border border-hub-border-strong bg-[#0f172e] p-[0.9rem] shadow-[0_30px_70px_rgba(2,4,10,0.5)]`
@@ -186,14 +186,49 @@ function createModalManager() {
       const heading = document.createElement("h2")
       heading.className = "mb-[0.7rem] mt-0 text-[0.9rem]"
       heading.textContent = title
-      const input = document.createElement("input")
-      input.type = "text"
-      input.placeholder = placeholder
-      input.autofocus = true
-      input.className = `w-full rounded-[5px] border border-hub-border-strong bg-[#0a1020] px-[0.55rem] py-[0.45rem] font-inherit text-hub-text ${focusRing} focus:border-hub-accent focus:outline-none`
+      const normalizedFields = Array.isArray(fields) && fields.length > 0
+        ? fields
+        : [{ key: "value", placeholder, required: true, autofocus: true }]
+      const inputsByKey = new Map()
+      const inputGroup = document.createElement("div")
+      inputGroup.className = "space-y-2"
+      let initialFocusInput = null
+
+      for (const field of normalizedFields) {
+        const fieldKey = String(field.key ?? "").trim()
+        if (!fieldKey) continue
+        const wrapper = document.createElement("label")
+        wrapper.className = "block"
+        const fieldLabel = document.createElement("div")
+        fieldLabel.className = "mb-[0.3rem] text-[0.72rem] uppercase tracking-wide text-hub-text-faint"
+        const labelText = String(field.label ?? fieldKey)
+        fieldLabel.textContent = field.required ? labelText : `${labelText}`
+
+        const wantsTextarea = field.type === "textarea"
+        const input = wantsTextarea
+          ? document.createElement("textarea")
+          : document.createElement("input")
+        if (!wantsTextarea) {
+          input.type = "text"
+        }
+        input.placeholder = String(field.placeholder ?? "")
+        input.required = Boolean(field.required)
+        input.className = `w-full rounded-[5px] border border-hub-border-strong bg-[#0a1020] px-[0.55rem] py-[0.45rem] font-inherit text-hub-text ${focusRing} focus:border-hub-accent focus:outline-none`
+        if (wantsTextarea) {
+          const rows = Number(field.rows)
+          input.rows = Number.isFinite(rows) ? Math.max(2, rows) : 3
+          input.className = `${input.className} resize-y leading-relaxed`
+        }
+        wrapper.append(fieldLabel, input)
+        inputGroup.appendChild(wrapper)
+        inputsByKey.set(fieldKey, input)
+        if (!initialFocusInput || field.autofocus) {
+          initialFocusInput = input
+        }
+      }
 
       const errorLine = document.createElement("div")
-      errorLine.className = msgErr
+      errorLine.className = `${msgErr} hidden`
 
       const actions = document.createElement("div")
       actions.className = "mt-[0.8rem] flex justify-end gap-2"
@@ -209,23 +244,36 @@ function createModalManager() {
 
       cancelButton.addEventListener("click", close)
       createButton.addEventListener("click", async () => {
-        const ok = await onSubmit(input.value, {
+        errorLine.textContent = ""
+        errorLine.classList.add("hidden")
+        const values = {}
+        for (const [key, input] of inputsByKey.entries()) {
+          values[key] = input.value
+        }
+        const ok = await onSubmit(values, {
           setInlineError(message) {
-            errorLine.textContent = message
+            const normalizedMessage = String(message ?? "").trim()
+            errorLine.textContent = normalizedMessage
+            errorLine.classList.toggle("hidden", !normalizedMessage)
           },
         })
         if (ok) close()
       })
-      input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault()
-          createButton.click()
-        }
-      })
+      for (const input of inputsByKey.values()) {
+        input.addEventListener("keydown", (event) => {
+          if (input instanceof HTMLTextAreaElement) {
+            return
+          }
+          if (event.key === "Enter") {
+            event.preventDefault()
+            createButton.click()
+          }
+        })
+      }
 
       actions.append(cancelButton, createButton)
-      card.append(heading, input, errorLine, actions)
-      openCard(card, { initialFocus: input })
+      card.append(heading, inputGroup, errorLine, actions)
+      openCard(card, { initialFocus: initialFocusInput })
     },
     async confirm({ title, message, confirmLabel = "Confirm", cancelLabel = "Cancel", danger = false }) {
       return await new Promise((resolve) => {

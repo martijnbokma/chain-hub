@@ -1,100 +1,100 @@
-# Aanbevolen scope voor het volgende epic
+# Recommended scope for the next epic
 
-Op basis van de huidige staat van Chain Hub zijn er vier natuurlijke richtingen.
+Based on the current state of Chain Hub, there are four natural directions.
 
-**Status-legenda:** `Geïmplementeerd` | `Gedeeltelijk` | `Open`
+**Status legend:** `Implemented` | `Partial` | `Open`
 
-## Richting 1 — Registry & discovery uitbreiding
+## Direction 1 — Registry & discovery expansion
 
-- [Open] `commit`, `debug` en `code-review` toevoegen zodat ze via `chain add` installeerbaar zijn
-- [Open] Registry-pagina op de website (`chainhub.one/registry`) met zoekfunctie
-- [Open] `chain search`-resultaten verbeteren met betere ranking
+- [Open] Add `commit`, `debug`, and `code-review` so they can be installed via `chain add`
+- [Open] Registry page on the website (`chainhub.one/registry`) with search
+- [Open] Improve `chain search` results with better ranking
 
-## Richting 2 — Premium skill packs (aparte track)
+## Direction 2 — Premium skill packs (separate track)
 
-- [Gedeeltelijk] Skill-pack infrastructuur: apart npm-pakket, eigen versioning, `chain add --pack`
-- [Geïmplementeerd] Eerste premium pack definiëren (bijv. TypeScript-specifiek, React of Python)
-- [Open] Billing/access-model bepalen (los van `core/`)
+- [Partial] Skill-pack infrastructure: separate npm package, independent versioning, `chain add --pack`
+- [Implemented] Define first premium pack (for example TypeScript-specific, React, or Python)
+- [Open] Define billing/access model (separate from `core/`)
 
-### Huidige status (mei 2026)
+### Current status (May 2026)
 
-- [Gedeeltelijk] `chain add github:<owner>/<repo> --pack` installeert skills en registreert onder `packs`
-- [Gedeeltelijk] pack-specifieke versioning via `chain-hub-pro/pack.yaml` (niet via npm-releaseflow)
-- [Geïmplementeerd] Eerste premium pack bestaat als private `chain-hub-pro` repository met skills + companion assets
-- [Open] Apart npm-pakket voor Pro pack-delivery
-- [Open] Billing/licentie-flow buiten GitHub-toegang
+- [Partial] `chain add github:<owner>/<repo> --pack` installs skills and registers under `packs`
+- [Partial] Pack-specific versioning via `chain-hub-pro/pack.yaml` (not via npm release flow)
+- [Implemented] First premium pack exists as private `chain-hub-pro` repository with skills + companion assets
+- [Open] Separate npm package for Pro pack delivery
+- [Open] Billing/license flow outside GitHub access
 
-### Volgende milestones (concreet)
+### Next milestones (concrete)
 
-- **M1 — CLI pack-manifest ondersteuning**
-  - Laat `chain add ... --pack` `pack.yaml` lezen
-  - Installeer naast `skills/` ook `agents/`, `workflows/` en `rules/` volgens manifest
-  - Voeg regressietests toe voor manifest parsing + install-contract
-- **M2 — Delivery model kiezen en vastzetten**
-  - Keuze A: private GitHub-only (huidig model, verbeterde DX)
-  - Keuze B: apart npm-pakket (`@chain-hub/pro-pack`) met semver en publish-pipeline
-  - Beslismoment: onderhoudslast, toegang en enterprise-verwachtingen
+- **M1 — CLI pack manifest support**
+  - Make `chain add ... --pack` read `pack.yaml`
+  - Install `agents/`, `workflows/`, and `rules/` alongside `skills/` based on manifest
+  - Add regression tests for manifest parsing + install contract
+- **M2 — Choose and lock delivery model**
+  - Option A: private GitHub-only (current model, improved DX)
+  - Option B: separate npm package (`@chain-hub/pro-pack`) with semver and publish pipeline
+  - Decision criteria: maintenance load, access control, and enterprise expectations
 - **M3 — Access/billing MVP**
-  - Definieer entitlement-bron (GitHub org/team, licentie-token of Stripe-backed licentieservice)
-  - Voeg `chain pro login` + `chain pro status` (of equivalent) toe
-  - Blokkeer pack-update/install met heldere foutmelding bij ontbrekende entitlement
-- **M4 — Release en update policy**
-  - Contract: core blijft open-source track, Pro pack updatebaar op eigen cadence
-  - Versiecompatibiliteitsmatrix: minimale `chain` CLI-versie per Pro pack-release
-  - Operator-runbook: install, update, rollback
+  - Define entitlement source (GitHub org/team, license token, or Stripe-backed licensing service)
+  - Add `chain pro login` + `chain pro status` (or equivalent)
+  - Block pack update/install with clear error when entitlement is missing
+- **M4 — Release and update policy**
+  - Contract: core remains open-source track, Pro pack updates on its own cadence
+  - Version compatibility matrix: minimum `chain` CLI version per Pro pack release
+  - Operator runbook: install, update, rollback
 
-### Definition of done voor Richting 2
+### Definition of done for Direction 2
 
-- `chain add --pack` levert een complete pack-install zonder handmatige companion-sync
-- Pro pack heeft eigen versie- en releaseproces, los van `core/`
-- Access-model is technisch afgedwongen (niet alleen private repo-toegang)
-- Documentatie voor install/update/troubleshooting staat in docs + Pro-repo-workflow
+- `chain add --pack` delivers a complete pack install without manual companion sync
+- Pro pack has its own versioning and release process, separate from `core/`
+- Access model is technically enforced (not just private repo access)
+- Install/update/troubleshooting documentation exists in docs + Pro repo workflow
 
 ## Chain Hub Pro Monetization & Delivery
 
-### Positionering en packaging (besliskader)
+### Positioning and packaging (decision frame)
 
-- [Open] Chain Hub Pro positioneren als **tiered add-on** bovenop Chain Pro (`Hub Pro Team`, `Hub Pro Business`, `Hub Pro Enterprise`)
-- [Open] Per tier expliciet vastleggen: featuregrenzen, seat/workspace-limieten, retention, support-SLA
-- [Open] Segmentkeuze bevestigen: Team/Business self-serve, Enterprise contractueel
+- [Open] Position Chain Hub Pro as a **tiered add-on** on top of Chain Pro (`Hub Pro Team`, `Hub Pro Business`, `Hub Pro Enterprise`)
+- [Open] Explicitly define per-tier limits: feature boundaries, seat/workspace limits, retention, support SLA
+- [Open] Confirm segment strategy: Team/Business self-serve, Enterprise contract-led
 
-### Entitlements en licenties (hybride model)
+### Entitlements and licensing (hybrid model)
 
-- [Open] Hybride entitlement-model formaliseren: cloud als bron + offline CLI fallback met tijdgebonden tokens
-- [Open] Entitlement-velden vastzetten: `workspace_id`, `plan_tier`, `seats`, `status`, `renewal_date`, `grace_period_days`, `offline_token_expiry`
-- [Open] Grace policy definiëren (duur + gedrag na expiratie): Pro-functies read-only, geen hard lock van basisdata
+- [Open] Formalize hybrid entitlement model: cloud as source + offline CLI fallback with time-bound tokens
+- [Open] Lock entitlement fields: `workspace_id`, `plan_tier`, `seats`, `status`, `renewal_date`, `grace_period_days`, `offline_token_expiry`
+- [Open] Define grace policy (duration + post-expiry behavior): Pro features read-only, no hard lock of base data
 
-### Billing, betaalmethoden en facturatie
+### Billing, payment methods, and invoicing
 
-- [Open] MVP betaalmethoden: kaart + SEPA/ACH voor self-serve, invoice billing voor enterprise
-- [Open] Facturatielogica vastleggen: maand/jaar, proratie bij seatwijziging en mid-cycle add-on activatie
-- [Open] Dunning en retries uitwerken: 3-level retry, reminders, grace window, downgradepad
-- [Open] Belasting/compliance requirements per regio documenteren (o.a. EU-btw, bedrijfsgegevens)
+- [Open] MVP payment methods: card + SEPA/ACH for self-serve, invoice billing for enterprise
+- [Open] Define invoicing logic: monthly/yearly, proration for seat changes and mid-cycle add-on activation
+- [Open] Define dunning and retries: 3-level retry, reminders, grace window, downgrade path
+- [Open] Document tax/compliance requirements per region (including EU VAT, company details)
 
-### Updates, uitrol en compatibiliteit
+### Updates, rollout, and compatibility
 
-- [Open] Releasekanalen vastzetten: `stable` (default) + optioneel `early-access`
-- [Open] Rolloutstrategie implementeren: canary intern/design partners, daarna 10% -> 50% -> 100% met rollback switch
-- [Open] Updatecontract vastleggen: Chain Hub Pro release compatibel met specifieke Chain Pro/CLI versies
-- [Open] Offline update-pad documenteren met signed manifest en entitlement-validatie
+- [Open] Lock release channels: `stable` (default) + optional `early-access`
+- [Open] Implement rollout strategy: internal/design-partner canary, then 10% -> 50% -> 100% with rollback switch
+- [Open] Define update contract: Chain Hub Pro release compatible with specific Chain Pro/CLI versions
+- [Open] Document offline update path with signed manifest and entitlement validation
 
-### Operations, support en launch readiness
+### Operations, support, and launch readiness
 
-- [Open] Supportmodel per tier finaliseren met responstijden en escalatiepad
-- [Open] Runbooks afronden: failed payment, entitlement mismatch (cloud/local), upgrade/downgrade impact
-- [Open] In-product activatieflow specificeren: contextuele upsell, 14-daagse trial, automatische trial-expiry
-- [Open] KPI-set voor GTM en operations activeren: attach rate, trial->paid, churn, failed payment rate, tickets per 100 workspaces
-- [Open] Juridische/commerciële launch artifacts opleveren: add-on terms, pricing FAQ, facturatie FAQ
-- [Open] Beslisronde afronden op basis van `docs/chain-hub-pro-decision-log.md` (4 open productkeuzes)
+- [Open] Finalize support model per tier with response times and escalation path
+- [Open] Finalize runbooks: failed payment, entitlement mismatch (cloud/local), upgrade/downgrade impact
+- [Open] Specify in-product activation flow: contextual upsell, 14-day trial, automatic trial expiry
+- [Open] Activate KPI set for GTM and operations: attach rate, trial->paid, churn, failed payment rate, tickets per 100 workspaces
+- [Open] Deliver legal/commercial launch artifacts: add-on terms, pricing FAQ, billing FAQ
+- [Open] Close decision round based on `docs/chain-hub-pro-decision-log.md` (4 open product decisions)
 
-## Richting 3 — Multi-hub & teamondersteuning
+## Direction 3 — Multi-hub & team support
 
-- [Open] Gedeelde hub voor teams: `chain init --shared` of team-registry
-- [Open] `skills-registry.yaml` uitbreiden met team-bucket
-- [Open] Conflictresolutie bij overlappende skills tussen personal en team
+- [Open] Shared hub for teams: `chain init --shared` or team registry
+- [Open] Extend `skills-registry.yaml` with team bucket
+- [Open] Conflict resolution for overlapping skills between personal and team
 
-## Richting 4 — Chain Hub UI (web dashboard)
+## Direction 4 — Chain Hub UI (web dashboard)
 
-- [Open] Visuele hub-manager in de browser
-- [Open] Skills bekijken, bewerken en installeren zonder CLI
-- [Open] Integratie met `chain status`-output
+- [Open] Visual hub manager in the browser
+- [Open] View, edit, and install skills without CLI
+- [Open] Integration with `chain status` output

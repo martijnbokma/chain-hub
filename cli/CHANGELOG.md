@@ -1,6 +1,6 @@
 # Changelog
 
-Notabele gebruikers-impact van **chain-hub** (CLI + gebundelde `core/`). Interne werkzaamheden (chores, refactor, docs, tests, CI, registry-sync) worden niet opgenomen.
+Notable user-facing impact of **chain-hub** (CLI + bundled `core/`). Internal work (chores, refactor, docs, tests, CI, registry-sync) is not included.
 
 ## Pre-1.0 (beta)
 

@@ -1,0 +1,22 @@
+---
+interface Props {
+  title: string
+}
+
+const { title } = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" href="/chain-hub-logo.svg" type="image/svg+xml" />
+  </head>
+  <body
+    class="m-0 min-h-screen bg-hub-bg bg-[radial-gradient(circle_at_4%_0%,rgba(139,124,255,0.16)_0%,transparent_34%),radial-gradient(circle_at_100%_0%,rgba(94,224,168,0.08)_0%,transparent_28%)] font-hub-mono text-hub-text"
+  >
+    <slot />
+  </body>
+</html>

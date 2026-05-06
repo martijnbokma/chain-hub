@@ -4,6 +4,8 @@ import { defineConfig } from "astro/config"
 import icon from "astro-icon"
 import tailwindcss from "@tailwindcss/vite"
 
+import react from "@astrojs/react";
+
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 const monorepoRoot = path.resolve(rootDir, "..")
 
@@ -11,7 +13,7 @@ const monorepoRoot = path.resolve(rootDir, "..")
 export default defineConfig({
   output: "static",
   compressHTML: true,
-  integrations: [icon()],
+  integrations: [icon(), react()],
   vite: {
     plugins: [tailwindcss()],
     server: {

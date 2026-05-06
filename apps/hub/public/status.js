@@ -1,5 +1,15 @@
 import { el } from "./dom.js"
 import { btn, btnWarn, btnDetailHeader, msgClassForKind, pageHeader, pageTitle } from "./ui-classes.js"
+import {
+  buildSetupMetrics,
+  completeRun,
+  createMaintenanceRun,
+  failRun,
+  markStep,
+  pushRunEvent,
+  renderMaintenancePanel,
+  waitForStep,
+} from "./maintenance-ui.js"
 import { showToast } from "./toast.js"
 
 function statusMark(status) {
@@ -32,6 +42,7 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
   let feedback = ""
   let feedbackClass = "ok"
   let setupInProgress = false
+  let maintenanceRun = null
 
   async function pullStatus() {
     statusData = await apiRequest("/api/status")
@@ -55,17 +66,54 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
     setupInProgress = true
     feedback = ""
     feedbackClass = "ok"
+    maintenanceRun = createMaintenanceRun(ide ? `Target: ${ide}` : "Target: all detected adapters")
+    pushRunEvent(maintenanceRun, ide ? `Maintenance started for ${ide}.` : "Maintenance started for all detected adapters.")
     showToast(ide ? `Running maintenance for ${ide}...` : "Running maintenance...", "warn", {
       id: "status-maintenance-progress",
       durationMs: 2000,
     })
     render()
     try {
-      await apiRequest("/api/setup", {
+      markStep(maintenanceRun, "request", { status: "running" })
+      pushRunEvent(maintenanceRun, "Connecting to setup API...")
+      render()
+      const setupResult = await apiRequest("/api/setup", {
         method: "POST",
         body: ide ? { ide } : {},
       })
+      await waitForStep(450)
+      markStep(maintenanceRun, "request", { status: "ok", note: "Connected to local hub API." })
+      pushRunEvent(maintenanceRun, "Setup API accepted the request.", "ok")
+      markStep(maintenanceRun, "apply", { status: "running", note: "Applying setup actions..." })
+      pushRunEvent(maintenanceRun, "Applying link repairs and core sync...")
+      render()
+      await waitForStep(520)
+      markStep(maintenanceRun, "apply", {
+        status: "ok",
+        note: "Setup completed on backend. Gathering updated status...",
+      })
+      markStep(maintenanceRun, "refresh", { status: "running" })
+      pushRunEvent(maintenanceRun, "Refreshing status checks...")
+      render()
+      await waitForStep(320)
       await pullStatus()
+      await waitForStep(360)
+      markStep(maintenanceRun, "refresh", { status: "ok", note: "Status refreshed with latest link checks." })
+      const metrics = buildSetupMetrics(setupResult)
+      markStep(maintenanceRun, "apply", {
+        status: "ok",
+        note:
+          metrics.failedLinks > 0
+            ? `Setup completed with ${metrics.failedLinks} link error(s).`
+            : `Setup completed for ${metrics.adapterCount} adapter(s), ${metrics.totalLinks} link(s).`,
+      })
+      pushRunEvent(
+        maintenanceRun,
+        metrics.failedLinks > 0
+          ? `Completed with ${metrics.failedLinks} link error(s).`
+          : `Completed: ${metrics.adapterCount} adapters, ${metrics.totalLinks} links.`,
+        metrics.failedLinks > 0 ? "warn" : "ok",
+      )
       const adapters = Array.isArray(statusData?.adapters) ? statusData.adapters : []
       const issues = buildSummary(adapters)
       feedback = ide
@@ -80,9 +128,14 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
         feedbackClass = "ok"
         showToast(feedback, "ok", { id: "status-maintenance-result" })
       }
+      completeRun(maintenanceRun, feedback, metrics, setupResult)
     } catch (error) {
       feedback = error.message
       feedbackClass = "err"
+      markStep(maintenanceRun, "apply", { status: "err", note: "Maintenance stopped before completion." })
+      markStep(maintenanceRun, "refresh", { status: "pending", note: "Skipped because setup did not complete." })
+      pushRunEvent(maintenanceRun, `Maintenance failed: ${error.message}`, "err")
+      failRun(maintenanceRun, error.message)
       showToast(error.message, "err", { id: "status-maintenance-result" })
     } finally {
       setupInProgress = false
@@ -171,6 +224,10 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
       container.appendChild(
         el("div", initBanner, "Hub not initialized yet. Use maintenance actions below to initialize in-place."),
       )
+    }
+    const maintenancePanel = renderMaintenancePanel(maintenanceRun)
+    if (maintenancePanel) {
+      container.appendChild(maintenancePanel)
     }
 
     const adapters = Array.isArray(statusData.adapters) ? statusData.adapters : []

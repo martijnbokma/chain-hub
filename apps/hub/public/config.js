@@ -1,5 +1,15 @@
 import { el } from "./dom.js"
 import { btn, btnPrimary, btnWarn, msgClassForKind, pageHeader, pageTitle, focusRing } from "./ui-classes.js"
+import {
+  buildSetupMetrics,
+  completeRun,
+  createMaintenanceRun,
+  failRun,
+  markStep,
+  pushRunEvent,
+  renderMaintenancePanel,
+  waitForStep,
+} from "./maintenance-ui.js"
 import { showToast } from "./toast.js"
 
 const cardClass =
@@ -40,6 +50,7 @@ export function createConfigView({
   let feedback = ""
   let feedbackKind = "ok"
   let uiPrefs = getUiPrefs()
+  let maintenanceRun = null
 
   async function loadConfig() {
     try {
@@ -100,20 +111,67 @@ export function createConfigView({
   async function runSetup(ide) {
     runningSetup = true
     feedback = ""
+    maintenanceRun = createMaintenanceRun(ide ? `Target: ${ide}` : "Target: all detected adapters")
+    pushRunEvent(maintenanceRun, ide ? `Maintenance started for ${ide}.` : "Maintenance started for all detected adapters.")
     showToast(ide ? `Running maintenance for ${ide}...` : "Running maintenance...", "warn", {
       id: "config-maintenance-progress",
       durationMs: 2000,
     })
     render()
     try {
-      await apiRequest("/api/setup", { method: "POST", body: ide ? { ide } : {} })
+      markStep(maintenanceRun, "request", { status: "running" })
+      pushRunEvent(maintenanceRun, "Connecting to setup API...")
+      render()
+      const setupResult = await apiRequest("/api/setup", { method: "POST", body: ide ? { ide } : {} })
+      await waitForStep(450)
+      markStep(maintenanceRun, "request", { status: "ok", note: "Connected to local hub API." })
+      pushRunEvent(maintenanceRun, "Setup API accepted the request.", "ok")
+      markStep(maintenanceRun, "apply", { status: "running", note: "Applying setup actions..." })
+      pushRunEvent(maintenanceRun, "Applying link repairs and core sync...")
+      render()
+      await waitForStep(520)
+      markStep(maintenanceRun, "apply", {
+        status: "ok",
+        note: "Setup completed on backend. Refreshing configuration view...",
+      })
+      markStep(maintenanceRun, "refresh", { status: "running" })
+      pushRunEvent(maintenanceRun, "Refreshing config and adapter status...")
+      render()
+      await waitForStep(320)
       await loadConfig()
-      feedback = ide ? `Setup completed for ${ide}.` : "Setup completed for all detected adapters."
-      feedbackKind = "ok"
-      showToast(feedback, "ok", { id: "config-maintenance-result" })
+      await waitForStep(360)
+      markStep(maintenanceRun, "refresh", { status: "ok", note: "Config and adapter health updated." })
+      const metrics = buildSetupMetrics(setupResult)
+      feedback =
+        ide
+          ? `Setup completed for ${ide}.`
+          : metrics.failedLinks > 0
+            ? `Setup completed with ${metrics.failedLinks} link issue(s) still needing attention.`
+            : "Setup completed for all detected adapters."
+      feedbackKind = metrics.failedLinks > 0 ? "warn" : "ok"
+      markStep(maintenanceRun, "apply", {
+        status: "ok",
+        note:
+          metrics.failedLinks > 0
+            ? `Setup completed with ${metrics.failedLinks} link error(s).`
+            : `Setup completed for ${metrics.adapterCount} adapter(s), ${metrics.totalLinks} link(s).`,
+      })
+      pushRunEvent(
+        maintenanceRun,
+        metrics.failedLinks > 0
+          ? `Completed with ${metrics.failedLinks} link error(s).`
+          : `Completed: ${metrics.adapterCount} adapters, ${metrics.totalLinks} links.`,
+        metrics.failedLinks > 0 ? "warn" : "ok",
+      )
+      completeRun(maintenanceRun, feedback, metrics, setupResult)
+      showToast(feedback, metrics.failedLinks > 0 ? "warn" : "ok", { id: "config-maintenance-result" })
     } catch (error) {
       feedback = error.message
       feedbackKind = "err"
+      markStep(maintenanceRun, "apply", { status: "err", note: "Maintenance stopped before completion." })
+      markStep(maintenanceRun, "refresh", { status: "pending", note: "Skipped because setup did not complete." })
+      pushRunEvent(maintenanceRun, `Maintenance failed: ${error.message}`, "err")
+      failRun(maintenanceRun, error.message)
       showToast(error.message, "err", { id: "config-maintenance-result" })
     } finally {
       runningSetup = false
@@ -283,6 +341,11 @@ export function createConfigView({
     maintenanceButton.addEventListener("click", () => void runSetup(undefined))
     runtimeCard.appendChild(el("div", actionRowClass)).appendChild(maintenanceButton)
     wrapper.appendChild(runtimeCard)
+
+    const maintenancePanel = renderMaintenancePanel(maintenanceRun)
+    if (maintenancePanel) {
+      wrapper.appendChild(maintenancePanel)
+    }
 
     renderAdapters(wrapper)
 

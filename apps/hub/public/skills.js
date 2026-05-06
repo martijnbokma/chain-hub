@@ -82,7 +82,7 @@ const editorTextarea = `min-h-0 w-full flex-1 resize-none overflow-y-auto border
 const previewBody = "preview min-h-0 flex-1 overflow-y-auto p-3"
 const focusModalEditorTextarea = `h-full w-full resize-none border-0 bg-[#0a1020] p-[0.9rem] font-inherit text-hub-text outline-none focus:outline-none ${focusRing}`
 const focusModalCloseBtn =
-  "fixed right-[max(0.9rem,env(safe-area-inset-right,0px))] top-[max(0.9rem,env(safe-area-inset-top,0px))] z-[60] pointer-events-auto cursor-pointer rounded-[6px] border border-[color-mix(in_oklab,var(--color-hub-accent)_68%,var(--color-hub-border-strong))] bg-[color-mix(in_oklab,var(--color-hub-surface-2)_94%,transparent)] px-[0.7rem] py-[0.42rem] font-inherit text-[0.75rem] text-hub-accent transition-[filter,border-color,background-color] duration-[120ms] ease-in-out hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hub-accent"
+  "fixed right-[max(0.9rem,env(safe-area-inset-right,0px))] top-[max(0.9rem,env(safe-area-inset-top,0px))] z-[60] inline-flex size-10 shrink-0 items-center justify-center pointer-events-auto cursor-pointer rounded-lg border border-[color-mix(in_oklab,var(--color-hub-accent)_62%,var(--color-hub-border-strong))] bg-[color-mix(in_oklab,var(--color-hub-surface-2)_88%,transparent)] p-0 text-hub-accent shadow-[0_10px_26px_rgba(2,4,10,0.48)] backdrop-blur-[1.5px] transition-[transform,filter,border-color,background-color] duration-[140ms] ease-out hover:-translate-y-px hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hub-accent disabled:cursor-not-allowed disabled:opacity-55 disabled:brightness-100"
 
 const validationResults =
   "mt-[0.7rem] border border-hub-border bg-[rgba(10,16,32,0.76)] px-[0.7rem] py-[0.6rem]"
@@ -94,6 +94,26 @@ const validationList =
   "mb-[0.6rem] ml-0 list-disc pl-[1.1rem] text-[0.75rem] leading-snug last:mb-0"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
+const listControlsRow = "mb-3 flex flex-wrap items-end gap-2"
+const listControlGroup = "flex min-w-[170px] flex-col gap-1"
+const listControlLabel = "text-[0.66rem] tracking-wide text-hub-text-faint uppercase"
+const listControlInput =
+  "w-full rounded-md border border-hub-border-strong bg-[#0a1020] px-2 py-1.5 text-[0.74rem] text-hub-text outline-none focus:border-hub-accent"
+const listControlButtonDisabled = "opacity-55 cursor-not-allowed hover:translate-y-0 hover:brightness-100"
+const emptyState =
+  "rounded-md border border-hub-border bg-[rgba(11,16,32,0.68)] px-3 py-2 text-[0.75rem] text-hub-text-dim"
+
+const BUCKET_LABELS = {
+  core: "Core",
+  chain_hub: "Chain Hub",
+  personal: "Personal",
+  packs: "Packs",
+  community: "Community",
+  cli_packages: "CLI packages",
+  unknown: "Unknown",
+}
+
+const BUCKET_ORDER = ["core", "chain_hub", "personal", "packs", "community", "cli_packages", "unknown"]
 
 /**
  * Builds a compact Lucide-style "expand" icon for focus/fullscreen actions.
@@ -157,11 +177,11 @@ function createCloseIcon() {
   svg.setAttribute("viewBox", "0 0 24 24")
   svg.setAttribute("fill", "none")
   svg.setAttribute("stroke", "currentColor")
-  svg.setAttribute("stroke-width", "2")
+  svg.setAttribute("stroke-width", "1.85")
   svg.setAttribute("stroke-linecap", "round")
   svg.setAttribute("stroke-linejoin", "round")
   svg.setAttribute("aria-hidden", "true")
-  svg.setAttribute("class", "size-[18px]")
+  svg.setAttribute("class", "size-[17px]")
 
   const pathA = document.createElementNS(SVG_NS, "path")
   pathA.setAttribute("d", "M18 6L6 18")
@@ -188,6 +208,9 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
   let previewModalDomWired = false
   let focusModalMode = "preview"
   let onFocusEditorInput = null
+  let listCategoryFilter = "all"
+  let listRecencyFilter = "all"
+  let listSortMode = "category"
 
   function getPreviewModalEls() {
     const rootEl = document.getElementById("preview-modal-root")
@@ -347,6 +370,37 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
   function findSkill(slug) {
     return skills.find((item) => item.slug === slug) ?? null
+  }
+
+  function sortByNewest(a, b) {
+    const aStamp = typeof a.addedAt === "number" ? a.addedAt : 0
+    const bStamp = typeof b.addedAt === "number" ? b.addedAt : 0
+    if (aStamp !== bStamp) return bStamp - aStamp
+    return a.slug.localeCompare(b.slug)
+  }
+
+  function getFilteredSkills() {
+    const now = Date.now()
+    const recencyWindowMs =
+      listRecencyFilter === "7d"
+        ? 7 * 24 * 60 * 60 * 1000
+        : listRecencyFilter === "30d"
+          ? 30 * 24 * 60 * 60 * 1000
+          : null
+
+    return skills.filter((skill) => {
+      if (listCategoryFilter !== "all" && skill.bucket !== listCategoryFilter) {
+        return false
+      }
+      if (recencyWindowMs === null) return true
+      if (typeof skill.addedAt !== "number") return false
+      return now - skill.addedAt <= recencyWindowMs
+    })
+  }
+
+  function getCategoryBuckets() {
+    const seen = new Set(skills.map((skill) => skill.bucket))
+    return BUCKET_ORDER.filter((bucket) => seen.has(bucket))
   }
 
   /**
@@ -520,8 +574,8 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     }
   }
 
-  async function createNewSkill(slug) {
-    await apiRequest("/api/skills", { method: "POST", body: { slug } })
+  async function createNewSkill(slug, description = "") {
+    await apiRequest("/api/skills", { method: "POST", body: { slug, description } })
     await loadSkills({ preserveSelection: false })
     await openSkill(slug)
   }
@@ -548,13 +602,30 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     return row
   }
 
-  function createSection(title, list) {
-    const container = document.createDocumentFragment()
-    container.appendChild(el("div", sectionLabel, `${title} (${list.length})`))
+  function createSection(title, list, { defaultOpen = true } = {}) {
+    const section = el("details", "group mb-2", "")
+    section.open = defaultOpen
+
+    const summary = el(
+      "summary",
+      `${sectionLabel} flex cursor-pointer list-none items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-[color-mix(in_oklab,var(--color-hub-surface-2)_78%,transparent)]`,
+      "",
+    )
+    const label = el("span", "", `${title} (${list.length})`)
+    const indicator = el(
+      "span",
+      "text-hub-text-faint transition-transform duration-150 ease-out group-open:rotate-90",
+      "›",
+    )
+    summary.append(label, indicator)
+    section.appendChild(summary)
+
+    const content = el("div", "mt-1 space-y-2", "")
     for (const skill of list) {
-      container.appendChild(createSkillRow(skill))
+      content.appendChild(createSkillRow(skill))
     }
-    return container
+    section.appendChild(content)
+    return section
   }
 
   function renderList() {
@@ -570,15 +641,32 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     newButton.addEventListener("click", () => {
       modal.open({
         title: "Create New Skill",
-        placeholder: "skill-slug",
-        onSubmit: async (value, { setInlineError }) => {
-          const slug = value.trim()
+        fields: [
+          {
+            key: "slug",
+            label: "Slug",
+            placeholder: "skill-slug",
+            required: true,
+            autofocus: true,
+          },
+          {
+            key: "description",
+            label: "Description (optional)",
+            placeholder: "One sentence for the skill frontmatter description",
+            type: "textarea",
+            rows: 4,
+            required: false,
+          },
+        ],
+        onSubmit: async (values, { setInlineError }) => {
+          const slug = String(values.slug ?? "").trim()
+          const description = String(values.description ?? "").trim()
           if (!slug) {
             setInlineError("Slug is required.")
             return false
           }
           try {
-            await createNewSkill(slug)
+            await createNewSkill(slug, description)
             return true
           } catch (error) {
             setInlineError(error.message)
@@ -591,19 +679,105 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     header.append(title, newButton)
     wrapper.appendChild(header)
 
+    const controls = el("div", listControlsRow)
+    const categoryGroup = el("label", listControlGroup)
+    const categoryLabel = el("span", listControlLabel, "Category")
+    const categorySelect = el("select", listControlInput)
+    categorySelect.appendChild(el("option", "", "All categories"))
+    categorySelect.lastChild.value = "all"
+    for (const bucket of getCategoryBuckets()) {
+      const option = el("option", "", BUCKET_LABELS[bucket] ?? bucket)
+      option.value = bucket
+      categorySelect.appendChild(option)
+    }
+    categorySelect.value = listCategoryFilter
+    categorySelect.addEventListener("change", () => {
+      listCategoryFilter = categorySelect.value
+      render()
+    })
+    categoryGroup.append(categoryLabel, categorySelect)
+
+    const recencyGroup = el("label", listControlGroup)
+    const recencyLabel = el("span", listControlLabel, "Added")
+    const recencySelect = el("select", listControlInput)
+    const recencyOptions = [
+      { value: "all", label: "All" },
+      { value: "7d", label: "Last 7 days" },
+      { value: "30d", label: "Last 30 days" },
+    ]
+    for (const optionConfig of recencyOptions) {
+      const option = el("option", "", optionConfig.label)
+      option.value = optionConfig.value
+      recencySelect.appendChild(option)
+    }
+    recencySelect.value = listRecencyFilter
+    recencySelect.addEventListener("change", () => {
+      listRecencyFilter = recencySelect.value
+      render()
+    })
+    recencyGroup.append(recencyLabel, recencySelect)
+
+    const sortGroup = el("label", listControlGroup)
+    const sortLabel = el("span", listControlLabel, "Sortering")
+    const sortSelect = el("select", listControlInput)
+    const sortOptions = [
+      { value: "category", label: "Badge/category" },
+      { value: "newest", label: "Nieuwste eerst" },
+    ]
+    for (const optionConfig of sortOptions) {
+      const option = el("option", "", optionConfig.label)
+      option.value = optionConfig.value
+      sortSelect.appendChild(option)
+    }
+    sortSelect.value = listSortMode
+    sortSelect.addEventListener("change", () => {
+      listSortMode = sortSelect.value
+      render()
+    })
+    sortGroup.append(sortLabel, sortSelect)
+    const resetFiltersButton = el("button", btn, "Reset filters")
+    resetFiltersButton.type = "button"
+    resetFiltersButton.classList.add("h-[34px]")
+    const filtersAtDefault =
+      listCategoryFilter === "all" && listRecencyFilter === "all" && listSortMode === "category"
+    resetFiltersButton.disabled = filtersAtDefault
+    resetFiltersButton.classList.toggle(listControlButtonDisabled, filtersAtDefault)
+    resetFiltersButton.addEventListener("click", () => {
+      listCategoryFilter = "all"
+      listRecencyFilter = "all"
+      listSortMode = "category"
+      render()
+    })
+    controls.append(categoryGroup, recencyGroup, sortGroup, resetFiltersButton)
+    wrapper.appendChild(controls)
+
     const gridHeader = el("div", skillGridHeader)
     gridHeader.append(
       el("span", skillGridHeaderCell, ""),
       el("span", skillGridHeaderCell, "Skill"),
       el("span", `${skillGridHeaderCell} max-[980px]:[grid-column:2/4]`, "Description"),
-      el("span", skillGridHeaderCell, "Bucket"),
+      el("span", `${skillGridHeaderCell} max-[980px]:hidden`, "Bucket"),
     )
     wrapper.appendChild(gridHeader)
 
-    const coreSkills = skills.filter((skill) => skill.isCore)
-    const userSkills = skills.filter((skill) => !skill.isCore)
-    wrapper.appendChild(createSection("Protected core skills", coreSkills))
-    wrapper.appendChild(createSection("User-installed skills", userSkills))
+    const filteredSkills = getFilteredSkills()
+    if (filteredSkills.length === 0) {
+      wrapper.appendChild(el("div", emptyState, "No skills found for the selected filters."))
+      renderFeedback(wrapper)
+      root.replaceChildren(wrapper)
+      return
+    }
+
+    if (listSortMode === "newest") {
+      const newest = [...filteredSkills].sort(sortByNewest)
+      wrapper.appendChild(createSection("All matching skills (newest first)", newest, { defaultOpen: true }))
+    } else {
+      for (const bucket of BUCKET_ORDER) {
+        const inBucket = filteredSkills.filter((skill) => skill.bucket === bucket).sort(sortByNewest)
+        if (inBucket.length === 0) continue
+        wrapper.appendChild(createSection(`${BUCKET_LABELS[bucket] ?? bucket} skills`, inBucket, { defaultOpen: true }))
+      }
+    }
     renderFeedback(wrapper)
 
     root.replaceChildren(wrapper)
@@ -615,6 +789,9 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
     root.className = "flex min-h-0 min-w-0 flex-1 flex-col"
     const wrapper = document.createDocumentFragment()
+    if (isCore) {
+      wrapper.appendChild(el("div", `${msgClassForKind("warn-text")}`, "Protected core skill: read-only."))
+    }
     const shell = el("div", detailShell)
     const header = el("div", detailHeader)
 
@@ -862,10 +1039,6 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     grid.append(editorPane, previewPane)
     shell.append(header, grid)
     wrapper.appendChild(shell)
-
-    if (isCore) {
-      wrapper.appendChild(el("div", `${msgClassForKind("warn-text")}`, "Protected core skill: read-only."))
-    }
     if (selectedValidation && (Array.isArray(selectedValidation.errors) || Array.isArray(selectedValidation.warnings))) {
       const validationBlock = el("div", validationResults)
       const errors = Array.isArray(selectedValidation.errors) ? selectedValidation.errors : []
