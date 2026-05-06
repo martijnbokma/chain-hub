@@ -1,6 +1,7 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { defineConfig } from "astro/config"
+import icon from "astro-icon"
 import tailwindcss from "@tailwindcss/vite"
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
@@ -10,6 +11,7 @@ const monorepoRoot = path.resolve(rootDir, "..")
 export default defineConfig({
   output: "static",
   compressHTML: true,
+  integrations: [icon()],
   vite: {
     plugins: [tailwindcss()],
     server: {

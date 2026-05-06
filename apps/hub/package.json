@@ -4,14 +4,16 @@
   "type": "module",
   "scripts": {
     "build": "astro build",
-    "dev": "concurrently -k -n hub,astro -c magenta,cyan \"bun run dev:hub\" \"bun run dev:astro\"",
-    "dev:astro": "astro dev --host 127.0.0.1 --port 4321",
-    "dev:hub": "bun ../../cli/chain.ts hub --port 2342",
+    "dev": "concurrently -k --success first -n hub,astro -c magenta,cyan \"bun run dev:hub\" \"bun run dev:astro\"",
+    "dev:astro": "bun ./scripts/dev-astro.mjs",
+    "dev:hub": "bun ./scripts/dev-hub.mjs",
     "preview": "astro preview --host 127.0.0.1 --port 4321"
   },
   "dependencies": {
+    "@iconify-json/lucide": "^1.2.105",
     "@tailwindcss/vite": "^4.2.4",
     "astro": "^6.2.2",
+    "astro-icon": "^1.1.5",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

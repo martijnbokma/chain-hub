@@ -1,0 +1,31 @@
+---
+import Callout from './Callout.astro';
+---
+<section id="what-is-a-skill">
+  <h2>What is a skill?</h2>
+  <p>
+    A skill is a folder with one file — <code>SKILL.md</code>. That file tells the AI when to use the skill
+    and what to do.
+  </p>
+  <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">~/chain-hub/skills/
+  debug/
+    SKILL.md    ← one file per skill</pre>
+  <p>Each <code>SKILL.md</code> has two parts: a YAML frontmatter block and a body.</p>
+  <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">---
+name: debug          ← how the skill is stored and found
+description: &gt;-
+  Systematic debugging workflow. Use when hitting an error,
+  test failure, or unexpected behavior.
+                     ↑ when the AI chooses this skill (the trigger)
+---
+
+## Steps            ← what the AI does
+1. Reproduce with a minimal case
+2. Isolate: data, logic, or environment?
+3. Fix the root cause, not the symptom
+4. Add a regression test</pre>
+  <Callout>
+    Skills work in every linked editor — the same <code>SKILL.md</code> file is read by Cursor, Claude Code,
+    Windsurf, and others after <code>chain setup</code>.
+  </Callout>
+</section>

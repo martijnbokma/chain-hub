@@ -1,0 +1,26 @@
+---
+import TerminalBlock from './TerminalBlock.astro';
+---
+<section id="quickstart">
+  <h2>Quickstart</h2>
+  <p>Install from npm, initialize your hub, then link all supported IDEs.</p>
+  <TerminalBlock code={`$ npm install -g chain-hub\n$ chain init\n$ chain setup\n$ chain list`} />
+  <p>
+    By default your hub lives at <code>~/chain-hub</code> (visible in your home folder). You can override this with
+    <code>CHAIN_HOME</code> when needed.
+  </p>
+</section>
+
+<section id="up-to-date">
+  <h2>CLI and hub updates</h2>
+  <p>
+    The <code>chain</code> command is installed from the <code>chain-hub</code> npm package.
+    Update the CLI by running the same global install as for a fresh setup:
+  </p>
+  <TerminalBlock code={`$ npm install -g chain-hub\n$ chain --version`} />
+  <p>
+    After upgrading the CLI, run <code>chain init</code> so <code>CHAIN_HOME/core/</code> matches the bundled core in that release.
+    Run <code>chain setup</code> again if release notes mention IDE symlink changes.
+    For skills installed from the registry or GitHub bundles, use <code>chain update</code>.
+  </p>
+</section>

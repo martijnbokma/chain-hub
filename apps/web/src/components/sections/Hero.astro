@@ -1,4 +1,5 @@
 ---
+import { Icon } from "astro-icon/components";
 ---
 <!-- ── HERO ─────────────────────────────────────────────────────── -->
 <section class="relative flex min-h-dvh min-h-screen items-center overflow-hidden pt-[calc(4.5rem+env(safe-area-inset-top,0px))] sm:pt-20" id="home">
@@ -26,16 +27,12 @@
       </p>
       <div class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
         <a href="#install" class="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-sm border border-accent bg-accent px-6 py-3 font-mono text-xs font-medium tracking-[0.03em] text-bg no-underline transition-[opacity,transform] duration-200 hover:-translate-y-px hover:opacity-[0.88] sm:w-auto">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-            <path d="M6.5 1v8M3 6l3.5 3.5L10 6M1.5 12h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Icon name="lucide:download" class="size-[13px]" aria-hidden="true" />
           Quick install
         </a>
         <a href="/docs/" class="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 border border-transparent bg-transparent px-4 py-3 font-mono text-xs font-medium tracking-[0.03em] text-text-dim no-underline transition-colors hover:text-text sm:w-auto sm:justify-start sm:border-none sm:px-0 sm:py-2">
           Read docs
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-            <path d="M1 6.5h11M8 3l4 3.5L8 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Icon name="lucide:arrow-right" class="size-[13px]" aria-hidden="true" />
         </a>
       </div>
       <div class="mt-11 flex flex-wrap gap-2.5 border-t border-border pt-9">

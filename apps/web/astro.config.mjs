@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import icon from 'astro-icon';
 import tailwindcss from '@tailwindcss/vite';
 
 const monorepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -9,7 +10,7 @@ const monorepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 export default defineConfig({
   site: 'https://www.chainhub.one',
   compressHTML: true,
-  integrations: [sitemap()],
+  integrations: [sitemap(), icon()],
   vite: {
     plugins: [tailwindcss()],
     resolve: {

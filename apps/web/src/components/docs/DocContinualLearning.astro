@@ -1,0 +1,18 @@
+---
+---
+<section id="continual-learning">
+  <h2>Continual learning</h2>
+  <p>
+    Chain Hub can queue short learning events (success, failure, correction, or note) and roll them into a
+    <strong>markdown draft</strong> you or an agent reviews before changing real skills.
+  </p>
+  <ul>
+    <li><code>chain capture --event … --skill … --summary …</code> — append one JSON line to <code>learnings/queue/inbox.jsonl</code>.</li>
+    <li><code>chain reflect</code> — group the inbox by skill slug, write <code>learnings/drafts/distill-*.md</code>, and archive the inbox. Use <code>--dry-run</code> to preview without moving files.</li>
+    <li><strong>After reflect:</strong> inspect the draft, then copy vetted bullets into <code>learnings/shared/&lt;skill-slug&gt;/OVERLAY.md</code> or edit <code>skills/&lt;slug&gt;/SKILL.md</code> deliberately. Run <code>chain validate</code> before you consider the hub clean.</li>
+  </ul>
+  <p>
+    The bundled <strong>hub-gardener</strong> workflow (under <code>workflows/</code> after <code>chain init</code>) describes a safe checklist:
+    distill → read draft → validate → propose patches (hub-first; repo changes via PR only).
+  </p>
+</section>

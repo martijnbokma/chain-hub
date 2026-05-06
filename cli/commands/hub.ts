@@ -1,8 +1,9 @@
 import kleur from "kleur"
-import { existsSync } from "fs"
-import { isAbsolute, join, normalize, resolve, sep } from "path"
-import { fileURLToPath } from "url"
-import { getChainHomeResolution, type ChainHomeResolution } from "../utils/chain-home"
+import { existsSync, mkdirSync, statSync } from "fs"
+import { join, resolve } from "path"
+import { homedir } from "os"
+import { getChainHomeResolution } from "../utils/chain-home"
+import { getChainConfigPath, readChainConfig, writeChainConfig } from "../utils/chain-config"
 import { UserError } from "../utils/errors"
 import {
   createSkill,
@@ -16,14 +17,12 @@ import { fetchRegistry, installSkill } from "../services/registry-service"
 import { runSetupService } from "../services/setup-service"
 import { validateSkill } from "../services/validation-service"
 import { assertValidSkillSlug } from "../utils/skill-slug"
+import { json, jsonError, mapError, readJsonBody } from "../services/hub-http-utils"
+import { getStaticRoot, serveStatic } from "../services/hub-static"
+export { resolveStaticRoot } from "../services/hub-static"
 
 interface HubOptions {
   port?: number | string
-}
-
-interface ApiErrorShape {
-  error: string
-  code: string
 }
 
 interface SkillsListApiResponse {
@@ -35,6 +34,31 @@ interface SkillsListApiResponse {
 
 const DEFAULT_PORT = 2342
 
+function normalizeChainHomePath(input: string): string {
+  const trimmed = input.trim()
+  if (trimmed.startsWith("~/")) {
+    return resolve(join(homedir(), trimmed.slice(2)))
+  }
+  return resolve(trimmed)
+}
+
+function validateChainHomeTarget(path: string): void {
+  try {
+    const stats = statSync(path)
+    if (!stats.isDirectory()) {
+      throw new UserError(`CHAIN_HOME must be a directory path, but "${path}" is not a directory.`)
+    }
+    return
+  } catch (error) {
+    if (error instanceof UserError) throw error
+    // Path does not exist yet; ensure parent is creatable.
+    const parent = resolve(path, "..")
+    if (!existsSync(parent)) {
+      throw new UserError(`Parent directory does not exist: ${parent}`)
+    }
+  }
+}
+
 export function buildSkillsListResponse(chainHome: string, source: string): SkillsListApiResponse {
   const payload = listSkillsPayload(chainHome)
   return {
@@ -43,74 +67,6 @@ export function buildSkillsListResponse(chainHome: string, source: string): Skil
     chainHome,
     source,
   }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  })
-}
-
-function jsonError(status: number, error: string, code: string): Response {
-  const payload: ApiErrorShape = { error, code }
-  return json(payload, status)
-}
-
-function mapError(error: unknown): { status: number; code: string; message: string } {
-  if (error instanceof UserError) {
-    const message = error.message
-    if (message.toLowerCase().includes("not found")) {
-      return { status: 404, code: "not_found", message }
-    }
-    return { status: 400, code: "bad_request", message }
-  }
-
-  if (error instanceof SyntaxError) {
-    return { status: 400, code: "invalid_json", message: "Request body must be valid JSON." }
-  }
-
-  if (error instanceof Error) {
-    return { status: 500, code: "internal_error", message: error.message }
-  }
-
-  return { status: 500, code: "internal_error", message: String(error) }
-}
-
-async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
-  const contentType = request.headers.get("content-type") ?? ""
-  if (!contentType.toLowerCase().includes("application/json")) {
-    throw new UserError("Expected Content-Type: application/json.")
-  }
-  const data = await request.json()
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new UserError("JSON request body must be an object.")
-  }
-  return data as Record<string, unknown>
-}
-
-export function resolveStaticRoot(
-  currentDir: string,
-  pathExists: (path: string) => boolean = existsSync,
-): string {
-  const sourceHub = join(currentDir, "..", "..", "apps", "hub")
-  const sourceHubDist = join(sourceHub, "dist")
-  const sourceCheckout = pathExists(sourceHub)
-
-  const packagedDistHub = join(currentDir, "..", "hub")
-  const localDistHub = join(currentDir, "dist", "hub")
-  const localHub = join(currentDir, "hub")
-
-  const candidates = sourceCheckout
-    ? [sourceHubDist, packagedDistHub, localDistHub, localHub]
-    : [packagedDistHub, localDistHub, localHub, sourceHubDist]
-
-  return candidates.find((path) => pathExists(path)) ?? candidates[0]!
-}
-
-function getStaticRoot(): string {
-  const currentDir = resolve(fileURLToPath(new URL(".", import.meta.url)))
-  return resolveStaticRoot(currentDir)
 }
 
 function openBrowser(url: string): void {
@@ -127,30 +83,6 @@ function openBrowser(url: string): void {
     stdout: "ignore",
     stderr: "ignore",
   })
-}
-
-async function serveStatic(pathname: string, staticRoot: string): Promise<Response> {
-  const requestedPath =
-    pathname === "/" || pathname === "" ? "index.html" : pathname.replace(/^\/+/, "")
-  const normalizedRelativePath = normalize(requestedPath)
-  const resolvedStaticRoot = resolve(staticRoot)
-  const resolvedFilePath = resolve(resolvedStaticRoot, normalizedRelativePath)
-  const pathEscapesStaticRoot =
-    normalizedRelativePath.startsWith("..") ||
-    isAbsolute(normalizedRelativePath) ||
-    (resolvedFilePath !== resolvedStaticRoot &&
-      !resolvedFilePath.startsWith(`${resolvedStaticRoot}${sep}`))
-
-  if (pathEscapesStaticRoot) {
-    return jsonError(404, "Static file not found.", "not_found")
-  }
-
-  const filePath = join(resolvedStaticRoot, normalizedRelativePath)
-  const file = Bun.file(filePath)
-  if (!(await file.exists())) {
-    return jsonError(404, "Static file not found.", "not_found")
-  }
-  return new Response(file)
 }
 
 function parsePort(portArg?: number | string): number {
@@ -173,18 +105,29 @@ function parsePort(portArg?: number | string): number {
   return parsedPort
 }
 
+function isPortInUseError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  const normalizedMessage = message.toLowerCase()
+  return (
+    message.includes("EADDRINUSE") ||
+    normalizedMessage.includes("address already in use") ||
+    normalizedMessage.includes("failed to start server. is port") ||
+    (normalizedMessage.includes("port") && normalizedMessage.includes("in use"))
+  )
+}
+
 export async function handleRequest(
   request: Request,
-  chainHome: string,
-  resolution: ChainHomeResolution,
 ): Promise<Response> {
   const staticRoot = getStaticRoot()
   const url = new URL(request.url)
   const pathname = url.pathname
+  const activeResolution = getChainHomeResolution()
+  const chainHome = activeResolution.path
 
   try {
     if (pathname === "/api/skills" && request.method === "GET") {
-      return json(buildSkillsListResponse(chainHome, resolution.source))
+      return json(buildSkillsListResponse(chainHome, activeResolution.source))
     }
 
     const skillMatch = pathname.match(/^\/api\/skills\/([^/]+)$/)
@@ -228,7 +171,7 @@ export async function handleRequest(
     }
 
     if (pathname === "/api/status" && request.method === "GET") {
-      return json(getStatus(chainHome, resolution.source))
+      return json(getStatus(chainHome, activeResolution.source))
     }
 
     if (pathname === "/api/setup" && request.method === "POST") {
@@ -237,6 +180,44 @@ export async function handleRequest(
       const ide = typeof body.ide === "string" ? body.ide : undefined
       const result = await runSetupService(chainHome, { ide })
       return json(result)
+    }
+
+    if (pathname === "/api/config" && request.method === "GET") {
+      const config = readChainConfig()
+      return json({
+        chainHome,
+        source: activeResolution.source,
+        configPath: getChainConfigPath(),
+        configuredChainHome: config.chain_home ?? null,
+        envOverrideActive: activeResolution.source === "env",
+        status: getStatus(chainHome, activeResolution.source),
+      })
+    }
+
+    if (pathname === "/api/config/chain-home" && request.method === "POST") {
+      const body = await readJsonBody(request)
+      const rawChainHome = body.chainHome
+      if (typeof rawChainHome !== "string" || rawChainHome.trim().length === 0) {
+        throw new UserError("Field 'chainHome' is required and must be a non-empty string.")
+      }
+
+      const nextChainHome = normalizeChainHomePath(rawChainHome)
+      validateChainHomeTarget(nextChainHome)
+      mkdirSync(nextChainHome, { recursive: true })
+
+      const config = readChainConfig()
+      config.chain_home = nextChainHome
+      writeChainConfig(config)
+
+      const refreshedResolution = getChainHomeResolution()
+      return json({
+        ok: true,
+        chainHome: refreshedResolution.path,
+        source: refreshedResolution.source,
+        requestedChainHome: nextChainHome,
+        envOverrideActive: refreshedResolution.source === "env",
+        status: getStatus(refreshedResolution.path, refreshedResolution.source),
+      })
     }
 
     if (pathname === "/api/registry" && request.method === "GET") {
@@ -268,24 +249,45 @@ export async function handleRequest(
 }
 
 export async function runHub(opts: HubOptions = {}): Promise<void> {
-  const port = parsePort(opts.port)
+  const requestedPort = parsePort(opts.port)
   const resolution = getChainHomeResolution()
   const chainHome = resolution.path
+  const shouldAutoFallbackToAvailablePort = typeof opts.port === "undefined"
 
-  try {
-    const server = Bun.serve({
+  const startServer = (port: number): Server =>
+    Bun.serve({
       port,
-      fetch: (request) => handleRequest(request, chainHome, resolution),
+      fetch: (request) => handleRequest(request),
       error(error) {
         const mapped = mapError(error)
         return jsonError(mapped.status, mapped.message, mapped.code)
       },
     })
 
+  try {
+    let server: Server
+    let usedFallbackPort = false
+
+    try {
+      server = startServer(requestedPort)
+    } catch (error) {
+      const addrInUse = isPortInUseError(error)
+
+      if (addrInUse && shouldAutoFallbackToAvailablePort && requestedPort !== 0) {
+        usedFallbackPort = true
+        server = startServer(0)
+      } else {
+        throw error
+      }
+    }
+
     const actualPort = server.port
     const url = `http://localhost:${actualPort}`
     console.log(kleur.bold("\n🌐 chain hub"))
     console.log(kleur.dim(`   CHAIN_HOME: ${chainHome} (${resolution.source})`))
+    if (usedFallbackPort) {
+      console.log(kleur.yellow(`   Port ${requestedPort} was in use, selected available port ${actualPort}.`))
+    }
     console.log(kleur.green(`   Running at ${url}\n`))
 
     try {
@@ -296,13 +298,11 @@ export async function runHub(opts: HubOptions = {}): Promise<void> {
 
     await new Promise(() => {})
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const addrInUse =
-      message.includes("EADDRINUSE") || message.toLowerCase().includes("address already in use")
+    const addrInUse = isPortInUseError(error)
 
-    if (addrInUse && port !== 0) {
+    if (addrInUse && requestedPort !== 0) {
       throw new UserError(
-        `Port ${port} is already in use. Use --port <n> to pick another port or --port 0 for an available port.`,
+        `Port ${requestedPort} is already in use. Use --port <n> to pick another port or --port 0 for an available port.`,
       )
     }
 

@@ -1,0 +1,33 @@
+---
+interface Props {
+  command: string;
+  size?: "sm" | "md";
+  class?: string;
+}
+const { command, size = "md", class: className } = Astro.props;
+
+const isSm = size === "sm";
+const shadow = isSm
+  ? "shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+  : "shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_14px_34px_rgba(0,0,0,0.18)]";
+const titlebarPad = isSm ? "px-2.5 py-1.5" : "px-3 py-2";
+const dotSize = isSm ? "size-1.5" : "size-[7px]";
+const contentPad = isSm ? "px-3 py-2.5" : "px-3.5 py-3";
+---
+<div
+  class:list={["overflow-hidden rounded-lg border border-border bg-[#060814]", shadow, className]}
+  aria-label={`Terminal command: ${command}`}
+>
+  <div
+    class:list={["flex items-center gap-1.25 border-b border-border bg-gradient-to-b from-[rgba(239,242,255,0.045)] to-[rgba(239,242,255,0.012)]", titlebarPad]}
+    aria-hidden="true"
+  >
+    <span class:list={[dotSize, "rounded-full bg-[#ff5f57]"]}></span>
+    <span class:list={[dotSize, "rounded-full bg-[#febc2e]"]}></span>
+    <span class:list={[dotSize, "rounded-full bg-[#28c840]"]}></span>
+  </div>
+  <div class:list={["flex gap-2 overflow-x-auto whitespace-nowrap text-xs leading-[1.45]", contentPad]}>
+    <span class="shrink-0 text-accent">$</span>
+    <span class="text-text">{command}</span>
+  </div>
+</div>

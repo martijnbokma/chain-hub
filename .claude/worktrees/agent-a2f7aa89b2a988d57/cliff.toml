@@ -1,0 +1,51 @@
+# git-cliff — automatische CHANGELOG voor chain-hub (alleen gebruikersrelevante commits)
+# Zie https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """# Changelog
+
+Notabele gebruikers-impact van **chain-hub** (CLI + gebundelde `core/`). Interne werkzaamheden (chores, refactor, docs, tests, CI, registry-sync) worden niet opgenomen.
+
+## Pre-1.0 (beta)
+
+Versions **below 1.0.0** may change CLI behaviour, defaults, and bundled `core/` layout without a full semver story. This file may stay minimal until **1.0.0**; use `npm show chain-hub version`, git history, or release tags for finer detail during beta. From **1.0.0** onward, run `bun run changelog` in `cli/` before publishing so user-facing changes are listed here.
+
+"""
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat=\"v\") }}] - {{ timestamp | date(format=\"%Y-%m-%d\") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute=\"group\") %}
+    ### {{ group }}
+    {% for commit in commits %}
+        - {% if commit.breaking %}**Breaking:** {% endif %}\
+            {% if commit.scope %}*{{ commit.scope }}:* {% endif %}\
+            {{ commit.message | upper_first }}\
+    {% endfor %}
+{% endfor %}
+"""
+trim = true
+render_always = true
+postprocessors = []
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+protect_breaking_commits = true
+split_commits = false
+sort_commits = "oldest"
+topo_order_commits = true
+# Alleen wijzigingen die het npm-pakket raken (CLI + core-assets)
+include_path = ["cli/**", "core/**"]
+commit_preprocessors = []
+commit_parsers = [
+    { message = "^chore\\(release\\): prepare for", skip = true },
+    { message = "^feat(\\(.*\\))?!?:", group = "Features" },
+    { message = "^fix(\\(.*\\))?!?:", group = "Fixes" },
+    { message = "^revert", group = "Reverts" },
+    { message = ".*", skip = true },
+]
+filter_commits = false
+link_parsers = []

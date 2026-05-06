@@ -1,0 +1,55 @@
+---
+import Callout from './Callout.astro';
+
+interface Props {
+  editorFeedbackDiscussionsUrl: string;
+  editorFeedbackFormUrl: string | undefined;
+}
+
+const { editorFeedbackDiscussionsUrl, editorFeedbackFormUrl } = Astro.props;
+---
+<section id="editor-setup">
+  <h2>Editor setup</h2>
+  <p>
+    After <code>chain setup</code>, the <code>debug</code> skill lands or is made available depending on the editor:
+  </p>
+  <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1 max-[560px]:mx-0 max-[560px]:overflow-visible max-[560px]:px-0">
+    <table class="w-full min-w-[560px] border-collapse max-[560px]:block max-[560px]:min-w-0 [&_tbody_td]:border-b [&_tbody_td]:border-border [&_tbody_td]:px-2 [&_tbody_td]:py-2.5 [&_tbody_td]:text-left [&_tbody_td]:align-top [&_tbody_td]:text-text-dim [&_td]:max-[560px]:block [&_td]:max-[560px]:w-full [&_td]:max-[560px]:border-none [&_td]:max-[560px]:p-0 [&_td]:max-[560px]:last:text-sm [&_td]:max-[560px]:last:leading-snug [&_td_code]:max-[560px]:break-words [&_th]:max-[560px]:hidden [&_thead]:max-[560px]:hidden [&_tr]:max-[560px]:mb-2.5 [&_tr]:max-[560px]:block [&_tr]:max-[560px]:rounded-[10px] [&_tr]:max-[560px]:border [&_tr]:max-[560px]:border-border-bright [&_tr]:max-[560px]:bg-surface-2 [&_tr]:max-[560px]:p-3 [&_tr]:max-[560px]:last:mb-0 [&_tr_td:first-child]:max-[560px]:mb-2 [&_tr_td:first-child]:max-[560px]:border-b [&_tr_td:first-child]:max-[560px]:border-border [&_tr_td:first-child]:max-[560px]:pb-2">
+      <thead>
+        <tr>
+          <th class="border-b border-border px-2 py-2.5 text-left align-top text-xs uppercase tracking-[0.08em] text-text-dim">Editor</th>
+          <th class="border-b border-border px-2 py-2.5 text-left align-top text-xs uppercase tracking-[0.08em] text-text-dim">Path after <code>chain setup</code></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Claude Code</td><td><code>~/.claude/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Cursor</td><td><code>~/.cursor/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Antigravity</td><td><code>~/.gemini/antigravity/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Gemini CLI (via Universal)</td><td><code>~/.agents/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Kiro</td><td><code>~/.kiro/hooks/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Trae</td><td><code>~/.trae/skills/debug/SKILL.md</code></td></tr>
+        <tr><td>Mistral Vibe</td><td><code>~/.vibe/skills/debug/SKILL.md</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <Callout>
+    <strong class="text-text">Want another editor supported?</strong>
+    {' '}
+    Open a thread in
+    {' '}
+    <a class="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent" href={editorFeedbackDiscussionsUrl} target="_blank" rel="noopener noreferrer">GitHub Discussions</a>
+    {editorFeedbackFormUrl ? (
+      <>
+        {' '}
+        or use the
+        {' '}
+        <a class="text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent" href={editorFeedbackFormUrl} target="_blank" rel="noopener noreferrer">short survey</a>
+      </>
+    ) : null}
+    . Mention the product name, how you use skills or rules there, and a doc link if you have one. Requests help prioritize adapter work; they are not commitments on the public roadmap.
+  </Callout>
+  <Callout>
+    Run <code>chain status</code> to verify which editors are linked and whether symlinks are healthy.
+  </Callout>
+</section>

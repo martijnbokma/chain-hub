@@ -1,0 +1,20 @@
+---
+import Callout from './Callout.astro';
+import TerminalBlock from './TerminalBlock.astro';
+---
+<section id="install-content">
+  <h2>Adding Knowledge</h2>
+  <p>
+    Chain Hub supports different ways to improve your AI. You can download pre-made expert "skills" or create your own custom instructions by adding files to your Hub folders.
+  </p>
+  <TerminalBlock code={`$ chain add github:owner/repo\n$ chain new my-skill\n$ chain setup\n$ chain validate`} />
+  <ul>
+    <li><strong>Skills:</strong> These are expert knowledge packs. You can download them or start a new one with <code>chain new</code>. They live in the <code>skills/</code> folder.</li>
+    <li><strong>Workflows:</strong> Step-by-step guides for tasks. Add your process files to the <code>workflows/</code> folder.</li>
+    <li><strong>Rules:</strong> General guidelines for tone and style. Place these in the <code>rules/</code> folder.</li>
+    <li><strong>Agents:</strong> Specialized AI personas. These live in the <code>agents/</code> folder.</li>
+  </ul>
+  <Callout>
+    <strong>Tip:</strong> After adding new files to your Hub, always run <code>chain setup</code> so your AI tools can see the changes instantly.
+  </Callout>
+</section>

@@ -1,0 +1,12 @@
+---
+import TerminalBlock from './TerminalBlock.astro';
+---
+<section id="local-dev">
+  <h2>Local development</h2>
+  <p>
+    If you work from a clone of the Chain Hub repo, run the CLI with Bun from <code>cli/</code> without publishing to npm. See
+    <a href="https://github.com/martijnbokma/chain-hub/blob/main/cli/README.md" target="_blank" rel="noopener noreferrer">cli/README.md</a>
+    for the full contributor workflow.
+  </p>
+  <TerminalBlock code={`$ cd cli\n$ bun install\n$ bun run dev -- --help`} />
+</section>

@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import BrandLogo from './BrandLogo.astro';
+import { Icon } from 'astro-icon/components';
 
 export interface SiteHeaderNavItem {
   href: string;
@@ -94,9 +95,7 @@ const desktopMenuCtaClass =
       <details class="group/menu relative">
         <summary class={desktopMenuSummaryClass}>
           <span>Sections</span>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" class="text-text-faint transition group-open/menu:rotate-180">
-            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-          </svg>
+          <Icon name="lucide:chevron-down" class="size-3 text-text-faint transition group-open/menu:rotate-180" aria-hidden="true" />
         </summary>
         <ul
           class="absolute top-[calc(100%+8px)] right-0 z-[300] max-h-[min(70vh,480px)] w-[min(calc(100vw-2rem),280px)] list-none overflow-y-auto rounded-xl border border-border bg-surface-2 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.45)]"

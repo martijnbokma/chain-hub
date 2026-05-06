@@ -30,6 +30,140 @@
  */
 /* Mobile drawer backdrop: invisible on desktop even when .hidden is toggled off. */
 @layer components {
+  [data-toolbar-tooltip] {
+    position: relative;
+  }
+
+  @media (hover: hover) {
+    [data-toolbar-tooltip]::after {
+      content: attr(data-toolbar-tooltip);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translate(-50%, 4px);
+      pointer-events: none;
+      opacity: 0;
+      white-space: nowrap;
+      z-index: 120;
+      border-radius: 6px;
+      border: 1px solid color-mix(in oklab, var(--color-hub-accent) 52%, var(--color-hub-border));
+      background: color-mix(in oklab, var(--color-hub-surface-2) 92%, transparent);
+      color: var(--color-hub-text);
+      padding: 0.28rem 0.5rem;
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      transition:
+        opacity 120ms ease,
+        transform 120ms ease;
+    }
+
+    [data-toolbar-tooltip]:hover::after,
+    [data-toolbar-tooltip]:focus-visible::after {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-hub-accent) 42%, var(--color-hub-border)) transparent;
+  }
+
+  body,
+  textarea,
+  .preview,
+  .preview-modal__body {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-hub-accent) 45%, var(--color-hub-border))
+      color-mix(in oklab, var(--color-hub-surface-1) 88%, transparent);
+  }
+
+  body::-webkit-scrollbar,
+  textarea::-webkit-scrollbar,
+  .preview::-webkit-scrollbar,
+  .preview-modal__body::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  body::-webkit-scrollbar-track,
+  textarea::-webkit-scrollbar-track,
+  .preview::-webkit-scrollbar-track,
+  .preview-modal__body::-webkit-scrollbar-track {
+    background: color-mix(in oklab, var(--color-hub-surface-1) 86%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-hub-border) 85%, transparent);
+    border-radius: 999px;
+  }
+
+  body::-webkit-scrollbar-thumb,
+  textarea::-webkit-scrollbar-thumb,
+  .preview::-webkit-scrollbar-thumb,
+  .preview-modal__body::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-hub-accent) 70%, #c9c1ff),
+      color-mix(in oklab, var(--color-hub-accent) 46%, var(--color-hub-border-strong))
+    );
+    border: 1px solid color-mix(in oklab, var(--color-hub-accent) 35%, var(--color-hub-border));
+  }
+
+  body::-webkit-scrollbar-thumb:hover,
+  textarea::-webkit-scrollbar-thumb:hover,
+  .preview::-webkit-scrollbar-thumb:hover,
+  .preview-modal__body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-hub-accent) 80%, #ddd7ff),
+      color-mix(in oklab, var(--color-hub-accent) 56%, var(--color-hub-border-strong))
+    );
+  }
+
+  body::-webkit-scrollbar-corner,
+  textarea::-webkit-scrollbar-corner,
+  .preview::-webkit-scrollbar-corner,
+  .preview-modal__body::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  #modal-root {
+    opacity: 0;
+    transition: opacity 180ms ease;
+    backdrop-filter: blur(1.5px);
+  }
+
+  #modal-root[aria-hidden="false"] {
+    opacity: 1;
+  }
+
+  .hub-modal-card {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+
+  #modal-root[aria-hidden="false"] .hub-modal-card {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #modal-root,
+    .hub-modal-card {
+      transition: none;
+    }
+
+    .hub-modal-card {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
   @media (max-width: 980px) {
     #sidebar-backdrop:not(.hidden) {
       @apply block;

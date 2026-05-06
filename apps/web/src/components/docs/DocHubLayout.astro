@@ -1,0 +1,24 @@
+---
+---
+<section id="hub-layout">
+  <h2>Hub layout</h2>
+  <p>After <code>chain init</code>, your hub has this structure:</p>
+  <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">~/chain-hub/
+  core/                    ← bundled skills (read-only, updated by chain init)
+  skills/                  ← your skills (create and edit here)
+    debug/
+      SKILL.md
+  rules/
+    global.md              ← applies to all linked editors
+  agents/                  ← agent personas
+  workflows/               ← step-by-step procedures
+  skills-registry.yaml     ← tracks what is installed</pre>
+  <ul>
+    <li><code>core/</code> — protected bundled content from the npm package; refreshed by <code>chain init</code>; do not edit directly.</li>
+    <li><code>skills/</code> — your personal and registry-installed skills; edit freely.</li>
+    <li><code>rules/</code> — persistent instructions loaded by all editors (e.g. coding style, language preferences).</li>
+    <li><code>agents/</code> — named agent personas for focused sessions.</li>
+    <li><code>workflows/</code> — step-by-step procedures for recurring tasks.</li>
+    <li><code>skills-registry.yaml</code> — tracks provenance and buckets for installed skills.</li>
+  </ul>
+</section>

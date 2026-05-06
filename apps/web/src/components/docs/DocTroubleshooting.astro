@@ -1,0 +1,35 @@
+---
+import TerminalBlock from './TerminalBlock.astro';
+---
+<section id="troubleshooting">
+  <h2>Troubleshooting</h2>
+  <p><strong><code>chain</code> runs the wrong binary?</strong> Check aliases first.</p>
+  <TerminalBlock code={`$ which -a chain\n$ type chain`} />
+  <p>
+    If you see an old alias (for example <code>bun run …/Code/chain/cli/chain.ts</code> after renaming or moving the monorepo),
+    update <code>CHAIN_HUB_REPO</code> / the alias target to your current clone (see <code>cli/README.md</code>), remove the stale line from your shell profile,
+    then run <code>unalias chain</code> and open a new terminal.
+  </p>
+
+  <p><strong>Skill doesn't appear in your editor?</strong></p>
+  <p>
+    Check symlink health with <code>chain status</code>, then recreate links with <code>chain setup</code>.
+    Reopen the editor afterward — some editors cache skill paths at startup.
+  </p>
+  <TerminalBlock code={`$ chain status\n$ chain setup`} />
+
+  <p><strong><code>chain validate</code> reports a nested or unknown layout?</strong></p>
+  <p>
+    Skills must use a flat layout — only <code>skills/&lt;slug&gt;/SKILL.md</code> is valid.
+    Nested category folders are not supported. Move or flatten the directory.
+  </p>
+  <pre class="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4 text-[12px] leading-[1.7] text-text-dim">✓  skills/debug/SKILL.md
+✗  skills/utilities/debug/SKILL.md   ← nested, not supported</pre>
+
+  <p><strong>Skills disappeared after Syncthing or Dropbox sync?</strong></p>
+  <p>
+    Syncing a hub without <code>.git/</code> can propagate deletions from a partial replica.
+    Use a single writer for the hub, or exclude <code>skills/</code> from bidirectional sync.
+    Restore from backup or re-run <code>chain add</code> for registry sources.
+  </p>
+</section>

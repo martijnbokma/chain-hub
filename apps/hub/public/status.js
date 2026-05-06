@@ -1,5 +1,6 @@
 import { el } from "./dom.js"
-import { btnWarn, btnDetailHeader, msgClassForKind, pageHeader, pageTitle } from "./ui-classes.js"
+import { btn, btnWarn, btnDetailHeader, msgClassForKind, pageHeader, pageTitle } from "./ui-classes.js"
+import { showToast } from "./toast.js"
 
 function statusMark(status) {
   if (status === "ok") return { icon: "✓", className: "text-hub-user" }
@@ -54,6 +55,10 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
     setupInProgress = true
     feedback = ""
     feedbackClass = "ok"
+    showToast(ide ? `Running maintenance for ${ide}...` : "Running maintenance...", "warn", {
+      id: "status-maintenance-progress",
+      durationMs: 2000,
+    })
     render()
     try {
       await apiRequest("/api/setup", {
@@ -70,12 +75,15 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
         feedback +=
           " Some links still show issues because files or folders are missing under CHAIN_HOME (for example rules/global.md). Run chain init from a terminal, or add those paths."
         feedbackClass = "warn"
+        showToast(feedback, "warn", { id: "status-maintenance-result" })
       } else {
         feedbackClass = "ok"
+        showToast(feedback, "ok", { id: "status-maintenance-result" })
       }
     } catch (error) {
       feedback = error.message
       feedbackClass = "err"
+      showToast(error.message, "err", { id: "status-maintenance-result" })
     } finally {
       setupInProgress = false
       render()
@@ -123,14 +131,24 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
       if (link.resolvedPath) {
         row.appendChild(el("span", adapterUrl, `→ ${link.resolvedPath}`))
       }
-      if (link.status !== "ok") {
-        const button = el("button", `${btnWarn} ${btnDetailHeader}`, setupInProgress ? "…" : "Fix")
-        button.type = "button"
-        button.disabled = setupInProgress
-        button.addEventListener("click", () => void runSetup(adapter.name))
-        row.appendChild(button)
-      }
       card.appendChild(row)
+    }
+
+    if (issues > 0) {
+      const actionRow = el(
+        "div",
+        "flex gap-2 border-t border-[color-mix(in_oklab,var(--color-hub-border)_74%,transparent)] px-[0.65rem] py-[0.55rem]",
+      )
+      const repairButton = el(
+        "button",
+        `${btnWarn} ${btnDetailHeader}`,
+        setupInProgress ? "Running..." : `Repair ${adapter.name} links`,
+      )
+      repairButton.type = "button"
+      repairButton.disabled = setupInProgress
+      repairButton.addEventListener("click", () => void runSetup(adapter.name))
+      actionRow.appendChild(repairButton)
+      card.appendChild(actionRow)
     }
 
     return card
@@ -151,7 +169,7 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
 
     if (statusData.initialized === false) {
       container.appendChild(
-        el("div", initBanner, "Hub not initialized yet. Use Fix actions below to initialize in-place."),
+        el("div", initBanner, "Hub not initialized yet. Use maintenance actions below to initialize in-place."),
       )
     }
 
@@ -160,11 +178,31 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
     if (issues > 0) {
       const summary = el("div", statusSummary)
       summary.appendChild(el("span", "", `${issues} issue(s) detected`))
-      const fixAll = el("button", `${btnWarn} ${btnDetailHeader}`, setupInProgress ? "Running setup…" : "Fix all")
-      fixAll.type = "button"
-      fixAll.disabled = setupInProgress
-      fixAll.addEventListener("click", () => void runSetup(undefined))
-      summary.appendChild(fixAll)
+      const repairAll = el(
+        "button",
+        `${btnWarn} ${btnDetailHeader}`,
+        setupInProgress ? "Running maintenance..." : "Repair all links",
+      )
+      repairAll.type = "button"
+      repairAll.disabled = setupInProgress
+      repairAll.addEventListener("click", () => void runSetup(undefined))
+      summary.appendChild(repairAll)
+      container.appendChild(summary)
+    } else {
+      const summary = el(
+        "div",
+        "mb-[0.8rem] flex items-center justify-between gap-[0.8rem] border border-[color-mix(in_oklab,var(--color-hub-user)_45%,var(--color-hub-border))] bg-[color-mix(in_oklab,var(--color-hub-user)_10%,transparent)] px-[0.7rem] py-[0.6rem] text-hub-user",
+      )
+      summary.appendChild(el("span", "", "All detected adapter links are healthy"))
+      const maintenance = el(
+        "button",
+        `${btn} ${btnDetailHeader}`,
+        setupInProgress ? "Running maintenance..." : "Run maintenance",
+      )
+      maintenance.type = "button"
+      maintenance.disabled = setupInProgress
+      maintenance.addEventListener("click", () => void runSetup(undefined))
+      summary.appendChild(maintenance)
       container.appendChild(summary)
     }
 

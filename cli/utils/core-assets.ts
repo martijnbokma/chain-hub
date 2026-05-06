@@ -1,8 +1,9 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } from "fs"
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "fs"
 import { dirname, join, relative, resolve } from "path"
 import { fileURLToPath } from "url"
-import { parse, stringify } from "yaml"
+import { parse } from "yaml"
 import { getChainHome } from "./chain-home"
+import { migrateLegacyCoreField, normalizeSlugList } from "./registry-migration"
 
 interface EnsureCoreAssetsOptions {
   chainHome?: string
@@ -23,33 +24,6 @@ export function ensureCoreAssets(options: EnsureCoreAssetsOptions = {}): void {
   }
 
   syncProtectedAgentsWorkflowsAndRulesToUserDirs({ chainHome, packageRoot })
-}
-
-// One-time registry migration (schema v3 → v4)
-// One-time migration: drop the legacy `core:` bucket that was removed in schema_version 4.
-// Skill directories that were only registered under `core:` and are no longer protected are
-// deleted from skills/ to avoid false "not in registry" validator errors.
-function migrateLegacyCoreField(registryPath: string, skillsDir: string): void {
-  let raw: Record<string, unknown>
-  try {
-    raw = (parse(readFileSync(registryPath, "utf8")) as Record<string, unknown>) ?? {}
-  } catch {
-    return
-  }
-
-  if (!Array.isArray(raw.core)) return
-
-  const coreSlugs = (raw.core as unknown[]).map((s) => String(s))
-  delete raw.core
-
-  for (const slug of coreSlugs) {
-    const dir = join(skillsDir, slug)
-    if (existsSync(dir)) {
-      try { rmSync(dir, { recursive: true, force: true }) } catch { /* best-effort */ }
-    }
-  }
-
-  writeFileSync(registryPath, stringify(raw), "utf8")
 }
 
 export function ensureUserRegistry(options: Pick<EnsureCoreAssetsOptions, "chainHome"> = {}): void {
@@ -145,10 +119,4 @@ function syncProtectedAgentsWorkflowsAndRulesToUserDirs(options: EnsureCoreAsset
     const destName = relative(packagedRulesDir, src)
     cpSync(src, join(destRules, destName), { force: true })
   }
-}
-
-function normalizeSlugList(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-
-  return value.map((item) => String(item)).filter((slug) => slug.length > 0)
 }

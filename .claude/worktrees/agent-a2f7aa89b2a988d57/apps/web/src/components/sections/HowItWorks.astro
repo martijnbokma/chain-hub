@@ -1,0 +1,46 @@
+---
+import TerminalCommand from "../TerminalCommand.astro";
+---
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
+<section class="py-32 max-md:py-20" id="how">
+  <div class="layout-wrap">
+    <div class="fi mb-0 opacity-0 translate-y-[18px] transition-[opacity,transform] duration-[650ms] ease-out [&.in]:translate-y-0 [&.in]:opacity-100">
+      <div class="mb-3.5 text-[10px] uppercase tracking-[0.2em] text-text-kicker before:text-[rgba(139,124,255,0.62)] before:content-['//_']">How it works</div>
+      <h2 class="mb-5 font-display text-[clamp(30px,3.5vw,50px)] font-bold leading-[1.02] tracking-[-0.06em]">Write once.<br><em class="not-italic text-accent">Run everywhere.</em></h2>
+      <p class="max-w-[520px] text-sm leading-[1.75] text-text-dim">
+        Chain Hub maintains one canonical directory for all your AI knowledge,
+        then connects it precisely to every editor — simultaneously.
+      </p>
+    </div>
+    <div class="mt-[60px] grid grid-cols-1 gap-0.5 bg-border md:grid-cols-3">
+      <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-100 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">01</div>
+        <div class="mb-2.5 text-[13px] font-medium text-text">Install the Hub</div>
+        <div class="mb-6 text-xs leading-[1.7] text-text-dim [&_a]:text-[rgba(139,124,255,0.62)] [&_a]:no-underline [&_a]:hover:underline [&_code]:text-[rgba(139,124,255,0.62)]">
+          Quickly install the Chain Hub engine on your computer. 
+          This adds the <code>chain</code> command to your system so you can manage your AI knowledge.
+        </div>
+        <TerminalCommand command="npm install -g chain-hub" class="mt-auto" />
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-200 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">02</div>
+        <div class="mb-2.5 text-[13px] font-medium text-text">Initialize your library</div>
+        <div class="mb-6 text-xs leading-[1.7] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)]">
+          Create your central library folder. This is where all your "brain power" 
+          and AI instructions will live.
+        </div>
+        <TerminalCommand command="chain init" class="mt-auto" />
+      </div>
+      <div class="fi flex flex-col border border-border bg-surface p-8 opacity-0 translate-y-[18px] transition-[opacity,transform,border-color,background] delay-300 duration-[650ms] ease-out hover:border-[rgba(139,124,255,0.26)] hover:bg-surface-2 [&.in]:translate-y-0 [&.in]:opacity-100">
+        <div class="mb-6 font-display text-[68px] font-bold leading-[0.9] tracking-[-0.08em] text-text-faint">03</div>
+        <div class="mb-2.5 text-[13px] font-medium text-text">Run setup and sync</div>
+        <div class="mb-6 text-xs leading-[1.7] text-text-dim [&_code]:text-[rgba(139,124,255,0.62)]">
+          Run <code>chain setup</code> once to detect installed IDEs and create connections.
+          Then maintain your playbooks in <code>skills/</code>, <code>agents/</code>,
+          <code>workflows/</code>, and <code>rules/</code>.
+        </div>
+        <TerminalCommand command="chain setup" class="mt-auto" />
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,33 @@
+---
+import Callout from './Callout.astro';
+import TerminalBlock from './TerminalBlock.astro';
+---
+<section id="first-skill">
+  <h2>Your first skill in 5 minutes</h2>
+  <ol class="ml-[18px] text-text-dim [&_li]:mb-3">
+    <li>
+      <strong>Scaffold a new skill</strong> — run <code>chain new my-skill</code> to create the folder and template file.
+      <TerminalBlock code={`$ chain new my-skill`} />
+    </li>
+    <li>
+      <strong>Open the file</strong> — <code>~/chain-hub/skills/my-skill/SKILL.md</code> opens in your editor.
+      The template is already filled in with a name and placeholder description.
+    </li>
+    <li>
+      <strong>Write your instructions</strong> — edit the <code>description</code> field (when to use this skill)
+      and the body (what to do). Keep it focused and under 200 lines.
+    </li>
+    <li>
+      <strong>Validate</strong> — run <code>chain validate</code> to check frontmatter and structure.
+      <TerminalBlock code={`$ chain validate`} />
+    </li>
+    <li>
+      <strong>Use it in your editor</strong> — mention the skill by name or describe the scenario it covers.
+      The AI picks it up automatically from the linked directory.
+    </li>
+  </ol>
+  <Callout>
+    No restart needed — skills are loaded fresh each session. If a skill doesn't appear, run
+    <code>chain setup</code> and reopen your editor.
+  </Callout>
+</section>

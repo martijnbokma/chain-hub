@@ -118,6 +118,7 @@ You typically do **not** install the CLI per project. After `chain setup`, IDEs 
 | `chain reflect` | Turn the inbox into `learnings/drafts/distill-*.md` and archive the queue (`--dry-run` to preview only) |
 | `chain fix` | Auto-fix some frontmatter/section issues |
 | `chain init` | Install/update protected core assets into `CHAIN_HOME` |
+| `chain hub` | Start the local Chain Hub dashboard (`http://localhost:2342` by default). If `2342` is busy and you did not pass `--port`, it auto-selects an available port. |
 | `chain config get chain_home` | Show active `CHAIN_HOME` and source |
 | `chain config set chain_home <path>` | Persist default hub path in user config |
 | `chain config unset chain_home` | Remove persisted hub path (falls back to env/default) |
@@ -134,6 +135,8 @@ chain config set chain_home ~/my-chain-home
 chain add github:owner/repo
 chain add github:your-org/chain-hub-pro --pack
 chain find typescript
+chain hub
+chain hub --port 0
 chain validate
 chain validate --fix
 ```

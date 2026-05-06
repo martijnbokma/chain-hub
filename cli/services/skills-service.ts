@@ -8,6 +8,11 @@ import { assertSafeSkillPathSegment, assertValidSkillSlug } from "../utils/skill
 import { ensureCoreAssets, ensureUserRegistry } from "../utils/core-assets"
 import type { InstallBucket } from "../registry/local"
 
+function ensureInitialized(chainHome: string): void {
+  ensureCoreAssets({ chainHome })
+  ensureUserRegistry({ chainHome })
+}
+
 export interface SkillEntry {
   slug: string
   description: string
@@ -114,8 +119,7 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
 }
 
 export function listSkillsPayload(chainHome: string): SkillsListPayload {
-  ensureCoreAssets({ chainHome })
-  ensureUserRegistry({ chainHome })
+  ensureInitialized(chainHome)
   const initialized = isHubInitialized(chainHome)
   const { coreSkills, userSkills } = listSkills(chainHome)
   return { skills: [...coreSkills, ...userSkills], initialized }
@@ -127,8 +131,7 @@ function resolveUserSkillDir(chainHome: string, slug: string): { safeSlug: strin
 }
 
 export function readSkill(chainHome: string, slug: string): { content: string; isCore: boolean } {
-  ensureCoreAssets({ chainHome })
-  ensureUserRegistry({ chainHome })
+  ensureInitialized(chainHome)
   const safeSlug = assertSafeSkillPathSegment(slug)
   const isCore = isProtectedCoreSkill(safeSlug, chainHome)
   const dir = isCore ? join(chainHome, "core", "skills", safeSlug) : resolveUserSkillDir(chainHome, safeSlug).dir
@@ -142,8 +145,7 @@ export function readSkill(chainHome: string, slug: string): { content: string; i
 }
 
 export function writeSkill(chainHome: string, slug: string, content: string): void {
-  ensureCoreAssets({ chainHome })
-  ensureUserRegistry({ chainHome })
+  ensureInitialized(chainHome)
   const safeSlug = assertSafeSkillPathSegment(slug)
   if (isProtectedCoreSkill(safeSlug, chainHome)) {
     throw new UserError(`'${safeSlug}' is a protected core skill and cannot be modified.`)
@@ -159,8 +161,7 @@ export function writeSkill(chainHome: string, slug: string, content: string): vo
 }
 
 export function createSkill(chainHome: string, slug: string): void {
-  ensureCoreAssets({ chainHome })
-  ensureUserRegistry({ chainHome })
+  ensureInitialized(chainHome)
   const safeSlug = assertValidSkillSlug(slug)
   if (isProtectedCoreSkill(safeSlug, chainHome)) {
     throw new UserError(`'${safeSlug}' is a protected core skill and cannot be overwritten.`)
@@ -177,8 +178,7 @@ export function createSkill(chainHome: string, slug: string): void {
 }
 
 export function removeSkill(chainHome: string, slug: string): void {
-  ensureCoreAssets({ chainHome })
-  ensureUserRegistry({ chainHome })
+  ensureInitialized(chainHome)
   const safeSlug = assertSafeSkillPathSegment(slug)
   if (isProtectedCoreSkill(safeSlug, chainHome)) {
     throw new UserError(

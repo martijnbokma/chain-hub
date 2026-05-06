@@ -1,0 +1,32 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+
+interface Props extends Omit<HTMLAttributes<"button">, "children"> {
+  icon: string;
+  label: string;
+  iconClass?: string;
+}
+
+const {
+  icon,
+  label,
+  iconClass = "h-4 w-4",
+  class: className,
+  type = "button",
+  ...buttonProps
+} = Astro.props;
+---
+
+<button
+  type={type}
+  aria-label={label}
+  class:list={[
+    "inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+    className,
+  ]}
+  {...buttonProps}
+>
+  <Icon name={icon} class={iconClass} aria-hidden="true" />
+  <span class="sr-only">{label}</span>
+</button>

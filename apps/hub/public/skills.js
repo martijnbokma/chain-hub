@@ -55,6 +55,8 @@ const editorGrid =
 const editorGridEditorOnly = "grid min-h-0 min-w-0 flex-1 grid-cols-1 items-stretch"
 
 const INLINE_PREVIEW_STORAGE_KEY = "chain-hub-inline-preview-visible"
+const INLINE_EDITOR_STORAGE_KEY = "chain-hub-inline-editor-visible"
+const EDITOR_FOCUS_START_STORAGE_KEY = "chain-hub-editor-focus-start-top"
 
 const pane = "flex min-h-0 min-w-0 flex-col"
 
@@ -66,14 +68,21 @@ const paneLabel =
 const paneLabelRow =
   "shrink-0 flex items-center justify-between gap-2 border-b border-hub-border px-[0.6rem] py-[0.45rem] text-[0.67rem] tracking-wide text-hub-text-faint uppercase"
 
-/** Opens the fullscreen preview modal (editor toolbars on all breakpoints). */
-const previewFocusBtn = `${btn} ${btnDetailHeader} inline-flex shrink-0 items-center justify-center px-[0.55rem] py-[0.28rem] text-[0.72rem] font-normal tracking-normal normal-case`
+/** Compact icon button used by editor toolbar controls. */
+const previewIconBtn = `${btn} ${btnDetailHeader} inline-flex size-9 shrink-0 items-center justify-center px-0 py-0 text-hub-text leading-none tracking-normal normal-case hover:brightness-110`
+
+/** Compact text button for focus-start mode (top vs cursor). */
+const focusStartModeBtn =
+  `${btn} ${btnDetailHeader} inline-flex h-9 shrink-0 items-center justify-center px-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.04em] text-hub-text hover:brightness-110`
 
 const editorToolbarActions = "flex flex-wrap items-center justify-end gap-1.5 shrink-0"
 
 const editorTextarea = `min-h-0 w-full flex-1 resize-none overflow-y-auto border-0 bg-[#0a1020] p-[0.7rem] font-inherit text-hub-text outline-none focus:outline-none ${focusRing}`
 
 const previewBody = "preview min-h-0 flex-1 overflow-y-auto p-3"
+const focusModalEditorTextarea = `h-full w-full resize-none border-0 bg-[#0a1020] p-[0.9rem] font-inherit text-hub-text outline-none focus:outline-none ${focusRing}`
+const focusModalCloseBtn =
+  "fixed right-[max(0.9rem,env(safe-area-inset-right,0px))] top-[max(0.9rem,env(safe-area-inset-top,0px))] z-[60] pointer-events-auto cursor-pointer rounded-[6px] border border-[color-mix(in_oklab,var(--color-hub-accent)_68%,var(--color-hub-border-strong))] bg-[color-mix(in_oklab,var(--color-hub-surface-2)_94%,transparent)] px-[0.7rem] py-[0.42rem] font-inherit text-[0.75rem] text-hub-accent transition-[filter,border-color,background-color] duration-[120ms] ease-in-out hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hub-accent"
 
 const validationResults =
   "mt-[0.7rem] border border-hub-border bg-[rgba(10,16,32,0.76)] px-[0.7rem] py-[0.6rem]"
@@ -83,6 +92,88 @@ const validationTitleBase =
 
 const validationList =
   "mb-[0.6rem] ml-0 list-disc pl-[1.1rem] text-[0.75rem] leading-snug last:mb-0"
+
+const SVG_NS = "http://www.w3.org/2000/svg"
+
+/**
+ * Builds a compact Lucide-style "expand" icon for focus/fullscreen actions.
+ */
+function createExpandIcon() {
+  const svg = document.createElementNS(SVG_NS, "svg")
+  svg.setAttribute("viewBox", "0 0 24 24")
+  svg.setAttribute("fill", "none")
+  svg.setAttribute("stroke", "currentColor")
+  svg.setAttribute("stroke-width", "2")
+  svg.setAttribute("stroke-linecap", "round")
+  svg.setAttribute("stroke-linejoin", "round")
+  svg.setAttribute("aria-hidden", "true")
+  svg.setAttribute("class", "size-[18px]")
+
+  const pathA = document.createElementNS(SVG_NS, "path")
+  pathA.setAttribute("d", "M15 3h6v6")
+  const pathB = document.createElementNS(SVG_NS, "path")
+  pathB.setAttribute("d", "M9 21H3v-6")
+  const pathC = document.createElementNS(SVG_NS, "path")
+  pathC.setAttribute("d", "M21 3l-7 7")
+  const pathD = document.createElementNS(SVG_NS, "path")
+  pathD.setAttribute("d", "M3 21l7-7")
+
+  svg.append(pathA, pathB, pathC, pathD)
+  return svg
+}
+
+/**
+ * Builds a compact plus/minus icon used for restore/minimize toggle controls.
+ */
+function createToggleIcon(showing) {
+  const svg = document.createElementNS(SVG_NS, "svg")
+  svg.setAttribute("viewBox", "0 0 24 24")
+  svg.setAttribute("fill", "none")
+  svg.setAttribute("stroke", "currentColor")
+  svg.setAttribute("stroke-width", "2")
+  svg.setAttribute("stroke-linecap", "round")
+  svg.setAttribute("stroke-linejoin", "round")
+  svg.setAttribute("aria-hidden", "true")
+  svg.setAttribute("class", "size-[18px]")
+
+  const horizontal = document.createElementNS(SVG_NS, "path")
+  horizontal.setAttribute("d", "M5 12h14")
+  svg.append(horizontal)
+
+  if (!showing) {
+    const vertical = document.createElementNS(SVG_NS, "path")
+    vertical.setAttribute("d", "M12 5v14")
+    svg.append(vertical)
+  }
+
+  return svg
+}
+
+/**
+ * Builds a compact close icon for modal close controls.
+ */
+function createCloseIcon() {
+  const svg = document.createElementNS(SVG_NS, "svg")
+  svg.setAttribute("viewBox", "0 0 24 24")
+  svg.setAttribute("fill", "none")
+  svg.setAttribute("stroke", "currentColor")
+  svg.setAttribute("stroke-width", "2")
+  svg.setAttribute("stroke-linecap", "round")
+  svg.setAttribute("stroke-linejoin", "round")
+  svg.setAttribute("aria-hidden", "true")
+  svg.setAttribute("class", "size-[18px]")
+
+  const pathA = document.createElementNS(SVG_NS, "path")
+  pathA.setAttribute("d", "M18 6L6 18")
+  const pathB = document.createElementNS(SVG_NS, "path")
+  pathB.setAttribute("d", "M6 6l12 12")
+  svg.append(pathA, pathB)
+  return svg
+}
+
+function setToolbarTooltip(node, text) {
+  node.setAttribute("data-toolbar-tooltip", text)
+}
 
 export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest, modal }) {
   let skills = []
@@ -95,6 +186,8 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
   let feedbackKind = "ok"
   let previewModalEscapeAc = null
   let previewModalDomWired = false
+  let focusModalMode = "preview"
+  let onFocusEditorInput = null
 
   function getPreviewModalEls() {
     const rootEl = document.getElementById("preview-modal-root")
@@ -102,8 +195,12 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     return {
       root: rootEl,
       backdrop: rootEl.querySelector(".preview-modal__backdrop"),
+      panel: rootEl.querySelector(".preview-modal__panel"),
+      header: rootEl.querySelector(".preview-modal__header"),
+      title: rootEl.querySelector(".preview-modal__title"),
       body: rootEl.querySelector(".preview-modal__body"),
       close: rootEl.querySelector(".preview-modal__close"),
+      focusClose: rootEl.querySelector(".preview-modal__focus-close"),
     }
   }
 
@@ -112,18 +209,72 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     if (!els || els.root.classList.contains("hidden")) return
     els.root.classList.add("hidden")
     els.root.setAttribute("aria-hidden", "true")
+    els.backdrop?.classList.remove("bg-[#0a1020]")
+    els.backdrop?.classList.add("bg-[rgba(0,0,0,0.55)]")
+    els.header?.classList.remove("hidden")
+    els.focusClose?.classList.add("hidden")
+    els.panel?.classList.remove("bg-[#070b16]")
+    els.root.classList.remove("overflow-hidden")
+    els.body.classList.add("preview")
+    els.body.classList.remove("overflow-hidden")
+    els.body.classList.add("overflow-y-auto")
+    els.body.replaceChildren()
     document.body.classList.remove("overflow-hidden")
+    document.documentElement.classList.remove("overflow-hidden")
     previewModalEscapeAc?.abort()
     previewModalEscapeAc = null
+    onFocusEditorInput = null
   }
 
-  function openPreviewModal(markdown) {
+  function openFocusModal({
+    mode,
+    markdown,
+    editorText,
+    startAtTop = true,
+    selectionStart = 0,
+    selectionEnd = 0,
+    inlineScrollTop = 0,
+  }) {
     const els = getPreviewModalEls()
     if (!els) return
-    els.body.replaceChildren(renderMarkdown(markdown))
+    focusModalMode = mode
+    els.backdrop?.classList.remove("bg-[rgba(0,0,0,0.55)]")
+    els.backdrop?.classList.add("bg-[#0a1020]")
+    els.header?.classList.add("hidden")
+    els.focusClose?.classList.remove("hidden")
+    els.panel?.classList.add("bg-[#070b16]")
+    els.root.classList.add("overflow-hidden")
+    if (mode === "editor") {
+      els.title.textContent = "Editor focus"
+      els.body.classList.remove("preview")
+      els.body.classList.remove("overflow-y-auto")
+      els.body.classList.add("overflow-hidden")
+      const modalEditor = el("textarea", focusModalEditorTextarea)
+      modalEditor.value = editorText
+      modalEditor.setAttribute("aria-label", "Focused editor")
+      modalEditor.addEventListener("input", () => {
+        if (typeof onFocusEditorInput === "function") onFocusEditorInput(modalEditor.value)
+      })
+      els.body.replaceChildren(modalEditor)
+      if (startAtTop) {
+        modalEditor.scrollTop = 0
+        modalEditor.setSelectionRange(0, 0)
+      } else {
+        modalEditor.scrollTop = Math.max(0, inlineScrollTop)
+        modalEditor.setSelectionRange(selectionStart, selectionEnd)
+      }
+    } else {
+      els.title.textContent = "Preview focus"
+      els.body.classList.add("preview")
+      els.body.classList.remove("overflow-hidden")
+      els.body.classList.add("overflow-y-auto")
+      els.body.replaceChildren(renderMarkdown(markdown))
+      els.body.scrollTop = 0
+    }
     els.root.classList.remove("hidden")
     els.root.setAttribute("aria-hidden", "false")
     document.body.classList.add("overflow-hidden")
+    document.documentElement.classList.add("overflow-hidden")
     previewModalEscapeAc?.abort()
     previewModalEscapeAc = new AbortController()
     window.addEventListener(
@@ -137,13 +288,23 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
       },
       { capture: true, signal: previewModalEscapeAc.signal },
     )
-    els.close?.focus()
+    if (mode === "editor") {
+      const modalEditor = els.body.querySelector("textarea")
+      if (startAtTop) {
+        modalEditor?.scrollTo({ top: 0, left: 0, behavior: "auto" })
+      }
+      modalEditor?.focus()
+    } else {
+      els.body.scrollTo({ top: 0, left: 0, behavior: "auto" })
+      els.focusClose?.focus()
+    }
   }
 
-  function syncOpenPreviewModalBody() {
+  function syncOpenPreviewModalBody(markdown) {
     const els = getPreviewModalEls()
     if (!els || els.root.classList.contains("hidden")) return
-    els.body.replaceChildren(renderMarkdown(selectedDraft))
+    if (focusModalMode !== "preview") return
+    els.body.replaceChildren(renderMarkdown(markdown))
   }
 
   function wirePreviewModalDom() {
@@ -151,20 +312,75 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     const els = getPreviewModalEls()
     if (!els) return
     previewModalDomWired = true
+    if (els.focusClose) {
+      els.focusClose.className = `preview-modal__focus-close ${focusModalCloseBtn}`
+      els.focusClose.type = "button"
+      els.focusClose.setAttribute("title", "Close focus")
+      els.focusClose.setAttribute("data-toolbar-tooltip", "Close focus")
+      els.focusClose.replaceChildren(createCloseIcon())
+      els.focusClose.classList.add("hidden")
+    }
     els.backdrop?.addEventListener("click", closePreviewModal)
     els.close?.addEventListener("click", closePreviewModal)
+    els.focusClose?.addEventListener("click", closePreviewModal)
+  }
+
+  function syncEditorToggleLabels(showing) {
+    for (const node of document.querySelectorAll("[data-inline-editor-toggle]")) {
+      if (!(node instanceof HTMLButtonElement)) continue
+      node.replaceChildren(createToggleIcon(showing))
+      node.setAttribute("aria-label", showing ? "Minimize editor" : "Restore editor")
+      node.setAttribute("title", showing ? "Minimize editor" : "Restore editor")
+      node.setAttribute("aria-pressed", showing ? "true" : "false")
+    }
   }
 
   function syncInlinePreviewToggleLabels(showing) {
     for (const node of document.querySelectorAll("[data-inline-preview-toggle]")) {
       if (!(node instanceof HTMLButtonElement)) continue
-      node.textContent = showing ? "Hide preview" : "Show preview"
+      node.replaceChildren(createToggleIcon(showing))
+      node.setAttribute("aria-label", showing ? "Minimize inline preview" : "Restore inline preview")
+      node.setAttribute("title", showing ? "Minimize preview" : "Restore preview")
       node.setAttribute("aria-pressed", showing ? "true" : "false")
     }
   }
 
   function findSkill(slug) {
     return skills.find((item) => item.slug === slug) ?? null
+  }
+
+  /**
+   * Ensures the detail view starts at the top after selecting a skill.
+   * We scroll both the page and the nearest scrollable container for robust behavior.
+   */
+  function scrollDetailIntoView() {
+    requestAnimationFrame(() => {
+      const detailNode = root.firstElementChild
+      if (detailNode instanceof HTMLElement) {
+        detailNode.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" })
+      }
+
+      if (root.parentElement instanceof HTMLElement) {
+        root.parentElement.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+      }
+
+      const mainContainer = root.closest("main")
+      if (mainContainer instanceof HTMLElement) {
+        mainContainer.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+      }
+
+      const editorNode = root.querySelector("#skill-editor")
+      if (editorNode instanceof HTMLElement) {
+        editorNode.scrollTop = 0
+      }
+
+      const previewNode = root.querySelector("#skill-preview")
+      if (previewNode instanceof HTMLElement) {
+        previewNode.scrollTop = 0
+      }
+
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+    })
   }
 
   async function loadSkills({ preserveSelection = true } = {}) {
@@ -211,6 +427,7 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
       selectedSlug = slug
       selectedDraft = selectedDetail.content ?? ""
       render()
+      scrollDetailIntoView()
     } catch (error) {
       feedback = error.message
       feedbackKind = "err"
@@ -278,7 +495,14 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
   async function removeCurrentSkill() {
     if (!selectedSlug || !selectedDetail || selectedDetail.isCore) return
-    if (!window.confirm(`Remove '${selectedSlug}'? This cannot be undone.`)) return
+    const confirmed = await modal.confirm({
+      title: "Remove skill",
+      message: `Remove "${selectedSlug}"? This cannot be undone.`,
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
+      danger: true,
+    })
+    if (!confirmed) return
     feedback = ""
     try {
       await apiRequest(`/api/skills/${encodeURIComponent(selectedSlug)}`, { method: "DELETE" })
@@ -422,48 +646,83 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
       header.append(removeButton, saveButton)
     }
 
-    const showInlinePreview = sessionStorage.getItem(INLINE_PREVIEW_STORAGE_KEY) !== "0"
+    let showInlinePreview = sessionStorage.getItem(INLINE_PREVIEW_STORAGE_KEY) !== "0"
+    let showInlineEditor = sessionStorage.getItem(INLINE_EDITOR_STORAGE_KEY) !== "0"
+    let editorFocusStartAtTop = sessionStorage.getItem(EDITOR_FOCUS_START_STORAGE_KEY) !== "0"
 
-    const grid = el("div", showInlinePreview ? editorGrid : editorGridEditorOnly)
+    const grid = el("div", editorGrid)
     const editorPane = el("div", pane)
-    const previewPane = el("div", showInlinePreview ? paneDivider : `${paneDivider} hidden`)
+    const previewPane = el("div", paneDivider)
 
+    const editorFileTitle = skillMeta.slug ? `${skillMeta.slug}.md` : "SKILL.md"
     const editorLabelDesktop = el("div", `${paneLabelRow} max-[980px]:hidden`)
-    const editorDesktopTitle = el("span", "min-w-0 truncate", "SKILL.md")
+    const editorDesktopTitle = el("span", "min-w-0 truncate", editorFileTitle)
     const desktopActions = el("div", editorToolbarActions)
-    const focusPreviewDesktop = el("button", previewFocusBtn, "Focus")
-    focusPreviewDesktop.type = "button"
-    focusPreviewDesktop.setAttribute("aria-haspopup", "dialog")
-    focusPreviewDesktop.setAttribute("aria-label", "Open rendered markdown preview fullscreen")
-    const togglePreviewDesktop = el(
-      "button",
-      `${previewFocusBtn}`,
-      showInlinePreview ? "Hide preview" : "Show preview",
+    const focusEditorDesktop = el("button", previewIconBtn)
+    focusEditorDesktop.type = "button"
+    focusEditorDesktop.setAttribute("aria-label", "Focus editor")
+    focusEditorDesktop.setAttribute("title", "Focus editor")
+    setToolbarTooltip(focusEditorDesktop, "Focus editor")
+    focusEditorDesktop.appendChild(createExpandIcon())
+    const focusStartDesktop = el("button", focusStartModeBtn)
+    focusStartDesktop.type = "button"
+    focusStartDesktop.setAttribute(
+      "aria-label",
+      editorFocusStartAtTop ? "Focus editor starts at top" : "Focus editor starts at cursor",
     )
-    togglePreviewDesktop.type = "button"
-    togglePreviewDesktop.setAttribute("data-inline-preview-toggle", "")
-    togglePreviewDesktop.setAttribute("aria-pressed", showInlinePreview ? "true" : "false")
-    togglePreviewDesktop.setAttribute("aria-controls", "skill-preview")
-    desktopActions.append(focusPreviewDesktop, togglePreviewDesktop)
+    focusStartDesktop.setAttribute(
+      "title",
+      editorFocusStartAtTop ? "Focus starts at top" : "Focus starts at cursor",
+    )
+    setToolbarTooltip(
+      focusStartDesktop,
+      editorFocusStartAtTop ? "Focus starts at top" : "Focus starts at cursor",
+    )
+    const toggleEditorDesktop = el("button", `${previewIconBtn}`)
+    toggleEditorDesktop.type = "button"
+    toggleEditorDesktop.setAttribute("data-inline-editor-toggle", "")
+    toggleEditorDesktop.setAttribute("aria-pressed", showInlineEditor ? "true" : "false")
+    toggleEditorDesktop.setAttribute("aria-controls", "skill-editor")
+    toggleEditorDesktop.setAttribute("aria-label", showInlineEditor ? "Minimize editor" : "Restore editor")
+    toggleEditorDesktop.setAttribute("title", showInlineEditor ? "Minimize editor" : "Restore editor")
+    setToolbarTooltip(toggleEditorDesktop, showInlineEditor ? "Minimize editor" : "Restore editor")
+    toggleEditorDesktop.appendChild(createToggleIcon(showInlineEditor))
+    desktopActions.append(focusEditorDesktop, focusStartDesktop, toggleEditorDesktop)
     editorLabelDesktop.append(editorDesktopTitle, desktopActions)
 
     const editorLabelMobile = el("div", `${paneLabelRow} min-[980px]:hidden flex-wrap`)
-    const editorLabelMobileTitle = el("span", "min-w-0 shrink", "SKILL.md")
+    const editorLabelMobileTitle = el("span", "min-w-0 shrink", editorFileTitle)
     const mobileActions = el("div", editorToolbarActions)
-    const focusPreviewMobile = el("button", previewFocusBtn, "Focus")
-    focusPreviewMobile.type = "button"
-    focusPreviewMobile.setAttribute("aria-haspopup", "dialog")
-    focusPreviewMobile.setAttribute("aria-label", "Open rendered markdown preview fullscreen")
-    const togglePreviewMobile = el(
-      "button",
-      `${previewFocusBtn}`,
-      showInlinePreview ? "Hide preview" : "Show preview",
+    const focusEditorMobile = el("button", previewIconBtn)
+    focusEditorMobile.type = "button"
+    focusEditorMobile.setAttribute("aria-label", "Focus editor")
+    focusEditorMobile.setAttribute("title", "Focus editor")
+    setToolbarTooltip(focusEditorMobile, "Focus editor")
+    focusEditorMobile.appendChild(createExpandIcon())
+    const focusStartMobile = el("button", focusStartModeBtn)
+    focusStartMobile.type = "button"
+    focusStartMobile.setAttribute(
+      "aria-label",
+      editorFocusStartAtTop ? "Focus editor starts at top" : "Focus editor starts at cursor",
     )
-    togglePreviewMobile.type = "button"
-    togglePreviewMobile.setAttribute("data-inline-preview-toggle", "")
-    togglePreviewMobile.setAttribute("aria-pressed", showInlinePreview ? "true" : "false")
-    togglePreviewMobile.setAttribute("aria-controls", "skill-preview")
-    mobileActions.append(focusPreviewMobile, togglePreviewMobile)
+    focusStartMobile.setAttribute(
+      "title",
+      editorFocusStartAtTop ? "Focus starts at top" : "Focus starts at cursor",
+    )
+    setToolbarTooltip(
+      focusStartMobile,
+      editorFocusStartAtTop ? "Focus starts at top" : "Focus starts at cursor",
+    )
+    const toggleEditorMobile = el("button", `${previewIconBtn}`)
+    toggleEditorMobile.type = "button"
+    toggleEditorMobile.setAttribute("data-inline-editor-toggle", "")
+    toggleEditorMobile.setAttribute("aria-pressed", showInlineEditor ? "true" : "false")
+    toggleEditorMobile.setAttribute("aria-controls", "skill-editor")
+    toggleEditorMobile.setAttribute("aria-label", showInlineEditor ? "Minimize editor" : "Restore editor")
+    toggleEditorMobile.setAttribute("title", showInlineEditor ? "Minimize editor" : "Restore editor")
+    setToolbarTooltip(toggleEditorMobile, showInlineEditor ? "Minimize editor" : "Restore editor")
+    toggleEditorMobile.appendChild(createToggleIcon(showInlineEditor))
+    mobileActions.append(focusEditorMobile, focusStartMobile, toggleEditorMobile)
     editorLabelMobile.append(editorLabelMobileTitle, mobileActions)
 
     const editor = el("textarea", editorTextarea)
@@ -473,35 +732,132 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
 
     const preview = el("div", previewBody)
     preview.id = "skill-preview"
+    preview.tabIndex = -1
     preview.replaceChildren(renderMarkdown(selectedDraft))
 
+    const previewPanelTitle = skillMeta.slug ? `Preview: ${skillMeta.slug}` : "Preview"
+    const previewLabelDesktop = el("div", `${paneLabelRow} max-[980px]:hidden`)
+    const previewDesktopTitle = el("span", "min-w-0 truncate", previewPanelTitle)
+    const previewDesktopActions = el("div", editorToolbarActions)
+    const focusPreviewInlineDesktop = el("button", previewIconBtn)
+    focusPreviewInlineDesktop.type = "button"
+    focusPreviewInlineDesktop.setAttribute("aria-label", "Focus preview")
+    focusPreviewInlineDesktop.setAttribute("title", "Focus preview")
+    setToolbarTooltip(focusPreviewInlineDesktop, "Focus preview")
+    focusPreviewInlineDesktop.appendChild(createExpandIcon())
+    const togglePreviewDesktop = el("button", previewIconBtn)
+    togglePreviewDesktop.type = "button"
+    togglePreviewDesktop.setAttribute("data-inline-preview-toggle", "")
+    togglePreviewDesktop.setAttribute("aria-controls", "skill-preview")
+    togglePreviewDesktop.setAttribute("aria-pressed", showInlinePreview ? "true" : "false")
+    togglePreviewDesktop.setAttribute("aria-label", showInlinePreview ? "Minimize inline preview" : "Restore inline preview")
+    togglePreviewDesktop.setAttribute("title", showInlinePreview ? "Minimize preview" : "Restore preview")
+    setToolbarTooltip(togglePreviewDesktop, showInlinePreview ? "Minimize preview" : "Restore preview")
+    togglePreviewDesktop.appendChild(createToggleIcon(showInlinePreview))
+    previewDesktopActions.append(focusPreviewInlineDesktop, togglePreviewDesktop)
+    previewLabelDesktop.append(previewDesktopTitle, previewDesktopActions)
+
+    const previewLabelMobile = el("div", `${paneLabelRow} min-[980px]:hidden flex-wrap`)
+    const previewMobileTitle = el("span", "min-w-0 shrink", previewPanelTitle)
+    const previewMobileActions = el("div", editorToolbarActions)
+    const focusPreviewInlineMobile = el("button", previewIconBtn)
+    focusPreviewInlineMobile.type = "button"
+    focusPreviewInlineMobile.setAttribute("aria-label", "Focus preview")
+    focusPreviewInlineMobile.setAttribute("title", "Focus preview")
+    setToolbarTooltip(focusPreviewInlineMobile, "Focus preview")
+    focusPreviewInlineMobile.appendChild(createExpandIcon())
+    const togglePreviewMobile = el("button", previewIconBtn)
+    togglePreviewMobile.type = "button"
+    togglePreviewMobile.setAttribute("data-inline-preview-toggle", "")
+    togglePreviewMobile.setAttribute("aria-controls", "skill-preview")
+    togglePreviewMobile.setAttribute("aria-pressed", showInlinePreview ? "true" : "false")
+    togglePreviewMobile.setAttribute("aria-label", showInlinePreview ? "Minimize inline preview" : "Restore inline preview")
+    togglePreviewMobile.setAttribute("title", showInlinePreview ? "Minimize preview" : "Restore preview")
+    setToolbarTooltip(togglePreviewMobile, showInlinePreview ? "Minimize preview" : "Restore preview")
+    togglePreviewMobile.appendChild(createToggleIcon(showInlinePreview))
+    previewMobileActions.append(focusPreviewInlineMobile, togglePreviewMobile)
+    previewLabelMobile.append(previewMobileTitle, previewMobileActions)
+
+    const focusPreviewInline = focusPreviewInlineDesktop
+    const focusPreviewInlineAlt = focusPreviewInlineMobile
+    const togglePreview = togglePreviewDesktop
+    const togglePreviewAlt = togglePreviewMobile
+
+    function syncDraft(nextValue) {
+      selectedDraft = nextValue
+      editor.value = nextValue
+      preview.replaceChildren(renderMarkdown(nextValue))
+      syncOpenPreviewModalBody(nextValue)
+    }
     editor.addEventListener("input", () => {
-      selectedDraft = editor.value
-      preview.replaceChildren(renderMarkdown(editor.value))
-      syncOpenPreviewModalBody()
+      syncDraft(editor.value)
     })
 
-    function openFocusPreview() {
-      openPreviewModal(editor.value)
+    function focusEditor() {
+      onFocusEditorInput = (nextValue) => syncDraft(nextValue)
+      openFocusModal({
+        mode: "editor",
+        editorText: selectedDraft,
+        markdown: selectedDraft,
+        startAtTop: editorFocusStartAtTop,
+        selectionStart: editor.selectionStart ?? 0,
+        selectionEnd: editor.selectionEnd ?? 0,
+        inlineScrollTop: editor.scrollTop ?? 0,
+      })
     }
-    focusPreviewDesktop.addEventListener("click", openFocusPreview)
-    focusPreviewMobile.addEventListener("click", openFocusPreview)
+    focusEditorDesktop.addEventListener("click", focusEditor)
+    focusEditorMobile.addEventListener("click", focusEditor)
+
+    function focusPreview() {
+      openFocusModal({ mode: "preview", markdown: selectedDraft, editorText: selectedDraft })
+    }
+    focusPreviewInline.addEventListener("click", focusPreview)
+    focusPreviewInlineAlt.addEventListener("click", focusPreview)
+
+    function syncFocusStartButtons() {
+      const label = editorFocusStartAtTop ? "Start: top" : "Start: cursor"
+      const ariaLabel = editorFocusStartAtTop ? "Focus editor starts at top" : "Focus editor starts at cursor"
+      const title = editorFocusStartAtTop ? "Focus starts at top" : "Focus starts at cursor"
+      for (const node of [focusStartDesktop, focusStartMobile]) {
+        node.textContent = label
+        node.setAttribute("aria-label", ariaLabel)
+        node.setAttribute("title", title)
+        setToolbarTooltip(node, title)
+      }
+    }
+
+    function toggleFocusStartMode() {
+      editorFocusStartAtTop = !editorFocusStartAtTop
+      sessionStorage.setItem(EDITOR_FOCUS_START_STORAGE_KEY, editorFocusStartAtTop ? "1" : "0")
+      syncFocusStartButtons()
+    }
+    syncFocusStartButtons()
+    focusStartDesktop.addEventListener("click", toggleFocusStartMode)
+    focusStartMobile.addEventListener("click", toggleFocusStartMode)
+
+    function onToggleInlineEditor() {
+      showInlineEditor = !showInlineEditor
+      sessionStorage.setItem(INLINE_EDITOR_STORAGE_KEY, showInlineEditor ? "1" : "0")
+      editor.classList.toggle("hidden", !showInlineEditor)
+      syncEditorToggleLabels(showInlineEditor)
+    }
+    toggleEditorDesktop.addEventListener("click", onToggleInlineEditor)
+    toggleEditorMobile.addEventListener("click", onToggleInlineEditor)
 
     function onToggleInlinePreview() {
-      const currentlyShowing = !previewPane.classList.contains("hidden")
-      const nextShow = !currentlyShowing
-      sessionStorage.setItem(INLINE_PREVIEW_STORAGE_KEY, nextShow ? "1" : "0")
-      previewPane.classList.toggle("hidden", !nextShow)
-      grid.className = nextShow ? editorGrid : editorGridEditorOnly
-      syncInlinePreviewToggleLabels(nextShow)
+      showInlinePreview = !showInlinePreview
+      sessionStorage.setItem(INLINE_PREVIEW_STORAGE_KEY, showInlinePreview ? "1" : "0")
+      preview.classList.toggle("hidden", !showInlinePreview)
+      syncInlinePreviewToggleLabels(showInlinePreview)
     }
-    togglePreviewDesktop.addEventListener("click", onToggleInlinePreview)
-    togglePreviewMobile.addEventListener("click", onToggleInlinePreview)
+    togglePreview.addEventListener("click", onToggleInlinePreview)
+    togglePreviewAlt.addEventListener("click", onToggleInlinePreview)
 
-    previewPane.appendChild(el("div", paneLabel, "Preview"))
     editorPane.appendChild(editorLabelDesktop)
     editorPane.appendChild(editorLabelMobile)
     editorPane.appendChild(editor)
+    previewPane.appendChild(previewLabelDesktop)
+    previewPane.appendChild(previewLabelMobile)
     previewPane.appendChild(preview)
     grid.append(editorPane, previewPane)
     shell.append(header, grid)
@@ -535,7 +891,11 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     renderFeedback(wrapper)
 
     root.replaceChildren(wrapper)
-    syncOpenPreviewModalBody()
+    editor.classList.toggle("hidden", !showInlineEditor)
+    preview.classList.toggle("hidden", !showInlinePreview)
+    syncEditorToggleLabels(showInlineEditor)
+    syncInlinePreviewToggleLabels(showInlinePreview)
+    syncOpenPreviewModalBody(selectedDraft)
   }
 
   function render() {
