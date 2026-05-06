@@ -144,9 +144,11 @@ async function handleContentRoutes(
     if (typeof ext !== "undefined" && ext !== ".md" && ext !== ".mdc") {
       throw new UserError("Field 'ext' must be either '.md' or '.mdc' when provided.")
     }
+    const newSlug = body.newSlug
     updateContent(chainHome, {
       kind,
       slug,
+      newSlug: typeof newSlug === "string" ? newSlug : undefined,
       content,
       ext: ext as ".md" | ".mdc" | undefined,
     })
@@ -194,7 +196,8 @@ async function handleSkillsRoutes(
     if (typeof content !== "string") {
       throw new UserError("Field 'content' is required and must be a string.")
     }
-    writeSkill(chainHome, slug, content)
+    const newSlug = body.newSlug
+    writeSkill(chainHome, slug, content, typeof newSlug === "string" ? newSlug : undefined)
     return json({ ok: true })
   }
 
@@ -223,6 +226,16 @@ async function handleSkillsRoutes(
     const slug = decodeURIComponent(validateMatch[1]!)
     return json(validateSkill(chainHome, slug))
   }
+  
+  const toggleMatch = pathname.match(/^\/api\/skills\/([^/]+)\/toggle$/)
+  if (toggleMatch && request.method === "POST") {
+    const slug = decodeURIComponent(toggleMatch[1]!)
+    const body = await readJsonBody(request)
+    const enabled = Boolean(body.enabled)
+    const { toggleSkill } = await import("./skills-service")
+    toggleSkill(chainHome, slug, enabled)
+    return json({ ok: true })
+  }
 
   return null
 }
@@ -242,6 +255,11 @@ async function handleImproveRoutes(
 
   if (pathname === "/api/improve/proposals" && request.method === "GET") {
     return json(listImproveProposals(chainHome))
+  }
+
+  if (pathname === "/api/improve/proposals/archive" && request.method === "POST") {
+    const { archiveProposals } = await import("./improve-service")
+    return json(archiveProposals(chainHome))
   }
 
   const proposalApproveMatch = pathname.match(/^\/api\/improve\/proposals\/([^/]+)\/approve$/)

@@ -10,16 +10,16 @@ describe("searchSkillsDirectory", () => {
 
   test("returns empty for very short query without calling fetch", async () => {
     let called = false
-    globalThis.fetch = () => {
+    globalThis.fetch = (() => {
       called = true
       return Promise.resolve(new Response("{}", { status: 200 }))
-    }
+    }) as any
     expect(await searchSkillsDirectory("a", 10)).toEqual([])
     expect(called).toBe(false)
   })
 
   test("maps skills.sh API response", async () => {
-    globalThis.fetch = async (input: RequestInfo | URL) => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
       expect(String(input)).toContain("/api/search?q=documentation")
       return new Response(
         JSON.stringify({
@@ -35,7 +35,7 @@ describe("searchSkillsDirectory", () => {
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       )
-    }
+    }) as any
     const r = await searchSkillsDirectory("documentation", 5)
     expect(r).toHaveLength(1)
     expect(r[0]?.source).toBe("anthropics/knowledge-work-plugins")
@@ -47,7 +47,7 @@ describe("searchSkillsDirectory", () => {
   })
 
   test("returns empty on non-OK response", async () => {
-    globalThis.fetch = () => Promise.resolve(new Response("", { status: 503 }))
+    globalThis.fetch = (() => Promise.resolve(new Response("", { status: 503 }))) as any
     expect(await searchSkillsDirectory("x", 10)).toEqual([])
   })
 })

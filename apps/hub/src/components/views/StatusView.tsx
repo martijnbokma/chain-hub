@@ -56,8 +56,81 @@ interface MaintenanceLog {
   }>
 }
 
+interface Step {
+  type: "asset" | "adapter"
+  label: string
+  icon: React.ReactNode
+  ok: boolean
+  adapterName?: string
+  links?: Array<{ description: string; result: string; error?: string }>
+}
+
 function MaintenanceReport({ log }: { log: MaintenanceLog }) {
   const [open, setOpen] = useState(true)
+  const [visibleSteps, setVisibleSteps] = useState<Step[]>([])
+  const [isAnimating, setIsAnimating] = useState(true)
+  const [progress, setProgress] = useState(0)
+  const [statusText, setStatusText] = useState("Preparing...")
+
+  // Flatten the log into a sequence of steps
+  const steps: Step[] = [
+    {
+      type: "asset",
+      label: "Core assets updated",
+      icon: <PackageCheck className="size-3.5" />,
+      ok: log.maintenance.coreAssetsUpdated,
+    },
+    {
+      type: "asset",
+      label: "User registry ensured",
+      icon: <ShieldCheck className="size-3.5" />,
+      ok: log.maintenance.userRegistryEnsured,
+    },
+  ]
+
+  if (log.maintenance.redundantGeminiSymlinkRemoved) {
+    steps.push({
+      type: "asset",
+      label: "Redundant Gemini symlink removed",
+      icon: <Link2 className="size-3.5" />,
+      ok: true,
+    })
+  }
+
+  for (const adapterResult of log.results) {
+    steps.push({
+      type: "adapter",
+      label: `${adapterResult.adapterName} links`,
+      adapterName: adapterResult.adapterName,
+      icon: <Link2 className="size-3.5" />,
+      ok: !adapterResult.links.some((l) => !!l.error || l.result === "failed"),
+      links: adapterResult.links,
+    })
+  }
+
+  useEffect(() => {
+    let current = 0
+    setVisibleSteps([])
+    setIsAnimating(true)
+    setProgress(0)
+    setStatusText("Analyzing maintenance results...")
+
+    const interval = setInterval(() => {
+      if (current < steps.length) {
+        const nextStep = steps[current]
+        setVisibleSteps((prev) => [...prev, nextStep])
+        setStatusText(`${nextStep.label}...`)
+        setProgress(((current + 1) / steps.length) * 100)
+        current++
+      } else {
+        setIsAnimating(false)
+        setStatusText("All operations completed.")
+        clearInterval(interval)
+      }
+    }, 600) // Slightly slower for better readability
+
+    return () => clearInterval(interval)
+  }, [log])
 
   const totalLinks = log.results.reduce((s, r) => s + r.links.length, 0)
   const failedLinks = log.results.reduce(
@@ -66,7 +139,15 @@ function MaintenanceReport({ log }: { log: MaintenanceLog }) {
   )
 
   return (
-    <div className="rounded-md border border-hub-border bg-hub-surface-1/60 overflow-hidden">
+    <div className="rounded-md border border-hub-border bg-hub-surface-1/60 overflow-hidden animate-slide-in-bottom shadow-lg">
+      {/* progress bar */}
+      <div className="h-1 w-full bg-hub-surface-2 overflow-hidden">
+        <div 
+          className={`h-full transition-all duration-500 ease-out ${isAnimating ? "bg-hub-accent animate-pulse" : "bg-hub-user"}`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
       {/* header */}
       <button
         type="button"
@@ -74,89 +155,83 @@ function MaintenanceReport({ log }: { log: MaintenanceLog }) {
         className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-hub-surface-2/40 transition-colors"
       >
         <div className="flex items-center gap-2 text-[0.78rem] font-semibold text-hub-text">
-          <Wrench className="size-3.5 text-hub-text-dim" />
+          <Wrench className={`size-3.5 text-hub-text-dim ${isAnimating ? "animate-spin-slow" : ""}`} />
           Maintenance report
           <span className="text-hub-text-faint font-normal">
             — {totalLinks} link{totalLinks !== 1 ? "s" : ""} processed
-            {failedLinks > 0 ? `, ${failedLinks} failed` : ", all succeeded"}
           </span>
         </div>
-        {open ? (
-          <ChevronDown className="size-3.5 text-hub-text-faint shrink-0" />
-        ) : (
-          <ChevronRight className="size-3.5 text-hub-text-faint shrink-0" />
-        )}
+        <div className="flex items-center gap-3">
+          <span className={`text-[0.68rem] font-mono uppercase tracking-wider ${isAnimating ? "text-hub-accent animate-pulse" : "text-hub-user"}`}>
+            {statusText}
+          </span>
+          {open ? (
+            <ChevronDown className="size-3.5 text-hub-text-faint shrink-0" />
+          ) : (
+            <ChevronRight className="size-3.5 text-hub-text-faint shrink-0" />
+          )}
+        </div>
       </button>
 
       {open && (
-        <div className="border-t border-hub-border divide-y divide-hub-border/50">
-          {/* Core assets & registry */}
-          <div className="px-3 py-2.5 space-y-1.5">
-            <div className="text-[0.68rem] uppercase tracking-wider text-hub-text-faint mb-2 font-semibold">
-              Hub assets
-            </div>
-            <LogRow
-              icon={<PackageCheck className="size-3.5" />}
-              label="Core assets updated"
-              ok={log.maintenance.coreAssetsUpdated}
-            />
-            <LogRow
-              icon={<ShieldCheck className="size-3.5" />}
-              label="User registry ensured"
-              ok={log.maintenance.userRegistryEnsured}
-            />
-            {log.maintenance.redundantGeminiSymlinkRemoved && (
-              <LogRow
-                icon={<Link2 className="size-3.5" />}
-                label="Redundant Gemini symlink removed"
-                ok={true}
-              />
-            )}
-          </div>
-
-          {/* Per-adapter link results */}
-          {log.results.map((adapterResult) => (
-            <div key={adapterResult.adapterName} className="px-3 py-2.5 space-y-1">
-              <div className="text-[0.68rem] uppercase tracking-wider text-hub-text-faint mb-2 font-semibold flex items-center gap-1.5">
-                <Link2 className="size-3" />
-                {adapterResult.adapterName} links
-              </div>
-              {adapterResult.links.length === 0 ? (
-                <div className="text-[0.73rem] text-hub-text-faint italic pl-1">No links configured</div>
+        <div className="border-t border-hub-border divide-y divide-hub-border/50 bg-black/10 max-h-[300px] overflow-y-auto">
+          {visibleSteps.map((step, idx) => (
+            <div
+              key={idx}
+              className="px-3 py-2.5 space-y-1.5 animate-slide-in-bottom fill-mode-both"
+              style={{ animationDelay: `${idx * 40}ms` }}
+            >
+              {step.type === "asset" ? (
+                <LogRow icon={step.icon} label={step.label} ok={step.ok} />
               ) : (
-                adapterResult.links.map((link, idx) => {
-                  const failed = !!link.error || link.result === "failed"
-                  return (
-                    <div key={idx} className="flex items-start gap-2 text-[0.73rem]">
-                      <div className="mt-0.5 shrink-0">
-                        {failed ? (
-                          <AlertCircle className="size-3.5 text-hub-err" />
-                        ) : (
-                          <CheckCircle2 className="size-3.5 text-hub-user" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className={failed ? "text-hub-err" : "text-hub-text"}>
-                          {link.description}
-                        </span>
-                        <span className="ml-1.5 text-hub-text-faint">
-                          —{" "}
-                          <span className="font-hub-mono text-[0.68rem]">
-                            {link.result}
-                          </span>
-                        </span>
-                        {link.error && (
-                          <div className="text-hub-err text-[0.68rem] mt-0.5 font-hub-mono truncate">
-                            {link.error}
-                          </div>
-                        )}
-                      </div>
+                <div className="space-y-1.5">
+                  <div className="text-[0.68rem] uppercase tracking-wider text-hub-text-faint mb-1 font-semibold flex items-center gap-1.5">
+                    {step.icon}
+                    {step.label}
+                  </div>
+                  {step.links && step.links.length === 0 ? (
+                    <div className="text-[0.73rem] text-hub-text-faint italic pl-1">
+                      No links configured
                     </div>
-                  )
-                })
+                  ) : (
+                    step.links?.map((link, lIdx) => {
+                      const failed = !!link.error || link.result === "failed"
+                      return (
+                        <div key={lIdx} className="flex items-start gap-2 text-[0.73rem] pl-1 animate-in fade-in duration-500" style={{ animationDelay: `${lIdx * 120}ms` }}>
+                          <div className="mt-0.5 shrink-0">
+                            {failed ? (
+                              <AlertCircle className="size-3.5 text-hub-err" />
+                            ) : (
+                              <CheckCircle2 className="size-3.5 text-hub-user" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className={failed ? "text-hub-err font-medium" : "text-hub-text"}>
+                              {link.description}
+                            </span>
+                            <span className="ml-1.5 text-hub-text-faint font-hub-mono text-[0.62rem] uppercase tracking-tighter">
+                              [{link.result}]
+                            </span>
+                            {link.error && (
+                              <div className="text-hub-err text-[0.68rem] mt-1 font-hub-mono bg-hub-err/10 p-2 rounded border border-hub-err/20">
+                                {link.error}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
               )}
             </div>
           ))}
+          {isAnimating && (
+            <div className="px-4 py-3 flex items-center gap-2 text-hub-text-faint animate-pulse">
+              <RefreshCw className="size-3 animate-spin" />
+              <span className="text-[0.65rem] font-bold tracking-widest uppercase opacity-60">Working...</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -175,12 +250,12 @@ function LogRow({
   return (
     <div className="flex items-center gap-2 text-[0.73rem]">
       <span className={ok ? "text-hub-user" : "text-hub-err"}>{icon}</span>
-      <span className={ok ? "text-hub-text" : "text-hub-err"}>{label}</span>
+      <span className={ok ? "text-hub-text" : "text-hub-err font-medium"}>{label}</span>
       <span className="ml-auto shrink-0">
         {ok ? (
-          <CheckCircle2 className="size-3.5 text-hub-user" />
+          <CheckCircle2 className="size-3.5 text-hub-user animate-in zoom-in duration-300" />
         ) : (
-          <AlertCircle className="size-3.5 text-hub-err" />
+          <AlertCircle className="size-3.5 text-hub-err animate-in zoom-in duration-300" />
         )}
       </span>
     </div>

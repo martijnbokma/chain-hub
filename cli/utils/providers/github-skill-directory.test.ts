@@ -35,13 +35,13 @@ describe("downloadSkillDirectoryFromGithub", () => {
 
     const tarBytes = readFileSync(tarPath)
 
-    globalThis.fetch = async (input: RequestInfo | URL) => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
       const u = String(input)
       if (u.includes("codeload.github.com")) {
         return new Response(tarBytes, { status: 200 })
       }
       return originalFetch(input)
-    }
+    }) as any
 
     const destSkills = join(tmp, "skills-out")
     mkdirSync(destSkills, { recursive: true })
@@ -73,12 +73,12 @@ describe("downloadSkillDirectoryFromGithub", () => {
     mkdirSync(join(destSkills, "my-skill"), { recursive: true })
     writeFileSync(join(destSkills, "my-skill", "stale-only.txt"), "old\n", "utf8")
 
-    globalThis.fetch = async (input: RequestInfo | URL) => {
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
       if (String(input).includes("codeload.github.com")) {
         return new Response(readFileSync(tarPath), { status: 200 })
       }
       return originalFetch(input)
-    }
+    }) as any
 
     await downloadSkillDirectoryFromGithub({
       owner: "o",

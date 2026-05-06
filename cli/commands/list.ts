@@ -15,7 +15,7 @@ function markdownSlugsInDir(dir: string): string[] {
   if (!existsSync(dir)) return []
 
   return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isFile() && e.name.endsWith(".md") && !e.name.startsWith("_"))
+    .filter((e) => e.isFile() && e.name.endsWith(".md") && !e.name.startsWith("_") && !e.name.startsWith("."))
     .map((e) => basename(e.name, ".md"))
 }
 
@@ -23,7 +23,7 @@ function ruleSlugsInDir(dir: string): string[] {
   if (!existsSync(dir)) return []
   const slugs = new Set<string>()
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (!entry.isFile() || entry.name.startsWith("_")) continue
+    if (!entry.isFile() || entry.name.startsWith("_") || entry.name.startsWith(".")) continue
     if (!entry.name.endsWith(".md") && !entry.name.endsWith(".mdc")) continue
     const stem = entry.name.replace(/\.mdc?$/, "")
     if (stem) slugs.add(stem)
@@ -54,7 +54,7 @@ export async function runList(): Promise<void> {
 
   const userSkillEntries = existsSync(skillsDir)
     ? readdirSync(skillsDir, { withFileTypes: true })
-      .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith("_"))
+      .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith("_") && !e.name.startsWith("."))
       .map((e) => e.name)
       .filter((slug) => !protectedCoreSet.has(slug))
       .sort()

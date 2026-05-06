@@ -39,6 +39,7 @@ export interface ImproveRun {
 }
 
 const PROPOSALS_FILE = "proposals.json"
+const ARCHIVED_PROPOSALS_FILE = "archived_proposals.json"
 const RUNS_FILE = "runs.json"
 
 // =============================================================================
@@ -358,4 +359,32 @@ export function getImproveRun(chainHome: string, runId: string): { run: ImproveR
   const proposals = listProposalStore(chainHome)
   const run = runs.find((entry) => entry.run_id === runId) ?? null
   return { run, proposals }
+}
+
+export function archiveProposals(chainHome: string): { archived: number } {
+  const proposals = listProposalStore(chainHome)
+  const toKeep: ImproveProposal[] = []
+  const toArchive: ImproveProposal[] = []
+
+  for (const p of proposals) {
+    if (p.status === "applied" || p.status === "rejected" || p.status === "failed") {
+      toArchive.push(p)
+    } else {
+      toKeep.push(p)
+    }
+  }
+
+  if (toArchive.length === 0) {
+    return { archived: 0 }
+  }
+
+  // Save updated active store
+  saveProposalStore(chainHome, toKeep)
+
+  // Append to archive store
+  const archivePath = join(getImproveDir(chainHome), ARCHIVED_PROPOSALS_FILE)
+  const existingArchive = readJsonArray<ImproveProposal>(archivePath)
+  writeJsonArray(archivePath, [...toArchive, ...existingArchive])
+
+  return { archived: toArchive.length }
 }

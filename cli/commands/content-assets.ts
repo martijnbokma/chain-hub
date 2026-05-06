@@ -79,3 +79,21 @@ export async function runAssetRemove(kindInput: string, slug: string): Promise<v
   deleteContent(chainHome, kind, slug)
   console.log(kleur.green(`\n  ✓ Removed ${kind.slice(0, -1)} '${slug.trim()}'\n`))
 }
+
+export async function runAssetRename(kindInput: string, oldSlug: string, newSlug: string): Promise<void> {
+  const kind = assertAssetKind(kindInput)
+  const chainHome = getChainHome()
+  const existing = readContent(chainHome, kind, oldSlug)
+  if (existing.isCore) {
+    throw new UserError(`'${oldSlug}' is a protected core ${kind.slice(0, -1)} and cannot be renamed.`)
+  }
+  updateContent(chainHome, {
+    kind,
+    slug: oldSlug,
+    newSlug,
+    content: existing.content,
+    ext: existing.ext
+  })
+  console.log(kleur.green(`\n  ✓ Renamed ${kind.slice(0, -1)} '${oldSlug}' to '${newSlug}'\n`))
+}
+

@@ -112,7 +112,6 @@ export function ReflectView() {
                   size="sm" 
                   onClick={handlePreview} 
                   disabled={loading}
-                  className="h-9 border-hub-border-strong text-hub-text hover:text-white"
                 >
                   {loading && !runResult ? <Loader2 className="size-3.5 animate-spin mr-2" /> : <Eye className="size-3.5 mr-2" />}
                   Preview
@@ -120,7 +119,6 @@ export function ReflectView() {
                 <Button 
                   onClick={handleRun} 
                   disabled={loading || (preview !== null && !preview.hasQueuedEvents)}
-                  className="h-9 bg-hub-accent hover:bg-hub-accent/90 text-white"
                 >
                   {loading && runResult ? <Loader2 className="size-3.5 animate-spin mr-2" /> : <Play className="size-3.5 mr-2" />}
                   Run Distillation
@@ -203,7 +201,7 @@ export function ReflectView() {
                 </div>
 
                 <div className="pt-2">
-                  <Button variant="outline" size="sm" className="w-full border-hub-border text-hub-text-dim hover:text-white h-9" asChild>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
                     <a href={`file://${runResult.draftsPath}`} target="_blank" rel="noopener noreferrer">
                       <FolderOpen className="size-3.5 mr-2" />
                       Open Drafts Folder

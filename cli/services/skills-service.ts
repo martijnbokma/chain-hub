@@ -1,7 +1,7 @@
 import { join } from "path"
-import { existsSync, readFileSync, statSync } from "fs"
+import { existsSync, readFileSync, statSync, renameSync, rmSync } from "fs"
 import { parse } from "yaml"
-import { readRegistry, addSkill, removeSkill as registryRemoveSkill } from "../registry/local"
+import { readRegistry, addSkill, removeSkill as registryRemoveSkill, writeRegistry, isProtectedCoreSkill } from "../registry/local"
 import { ensureCoreAssets, ensureUserRegistry } from "../utils/core-assets"
 import type { InstallBucket } from "../registry/local"
 import {
@@ -24,6 +24,7 @@ export interface SkillEntry {
   isCore: boolean
   addedAt: number | null
   githubRef?: string
+  deactivated: boolean
 }
 
 export interface SkillsListPayload {
@@ -100,28 +101,45 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
     return "unknown"
   }
 
+  const deactivatedSlugs = registry.deactivated_skills ?? []
   const allSkills = listContent(chainHome, "skills")
+  
+  const mapSkill = (s: any, isCore: boolean): SkillEntry => ({
+    slug: s.slug,
+    description: readSkillDescription(s.path),
+    bucket: isCore ? "core" : bucketFor(s.slug),
+    isCore,
+    addedAt: readSkillAddedAt(s.path),
+    githubRef: githubRef.get(s.slug),
+    deactivated: deactivatedSlugs.includes(s.slug),
+  })
+
   const coreSkills: SkillEntry[] = allSkills
     .filter((s) => s.isCore)
-    .map((s) => ({
-      slug: s.slug,
-      description: readSkillDescription(s.path),
-      bucket: "core",
-      isCore: true,
-      addedAt: readSkillAddedAt(s.path),
-      githubRef: githubRef.get(s.slug),
-    }))
+    .map((s) => mapSkill(s, true))
 
   const userSkills: SkillEntry[] = allSkills
     .filter((s) => !s.isCore)
-    .map((s) => ({
-      slug: s.slug,
-      description: readSkillDescription(s.path),
-      bucket: bucketFor(s.slug),
-      isCore: false,
-      addedAt: readSkillAddedAt(s.path),
-      githubRef: githubRef.get(s.slug),
-    }))
+    .map((s) => mapSkill(s, false))
+
+  // Add deactivated user skills (that are hidden in the filesystem)
+  for (const slug of deactivatedSlugs) {
+    if (isProtectedCoreSkill(slug, chainHome)) continue
+    
+    const deactivatedPath = join(chainHome, "skills", `.deactivated-${slug}`)
+    const skillMdPath = join(deactivatedPath, "SKILL.md")
+    if (existsSync(skillMdPath)) {
+      userSkills.push({
+        slug,
+        description: readSkillDescription(skillMdPath),
+        bucket: bucketFor(slug),
+        isCore: false,
+        addedAt: readSkillAddedAt(skillMdPath),
+        githubRef: githubRef.get(slug),
+        deactivated: true,
+      })
+    }
+  }
 
   return { coreSkills, userSkills }
 }
@@ -133,13 +151,29 @@ export function listSkillsPayload(chainHome: string): SkillsListPayload {
   return { skills: [...coreSkills, ...userSkills], initialized }
 }
 
-export function readSkill(chainHome: string, slug: string): { content: string; isCore: boolean } {
+export function readSkill(chainHome: string, slug: string): SkillEntry & { content: string } {
   const result = readContent(chainHome, "skills", slug)
-  return { content: result.content, isCore: result.isCore }
+  const { coreSkills, userSkills } = listSkills(chainHome)
+  const all = [...coreSkills, ...userSkills]
+  const entry = all.find(s => s.slug === slug)
+  
+  if (!entry) {
+    return {
+      slug,
+      description: "",
+      bucket: result.isCore ? "core" : "unknown",
+      isCore: result.isCore,
+      addedAt: null,
+      deactivated: false,
+      content: result.content
+    }
+  }
+
+  return { ...entry, content: result.content }
 }
 
-export function writeSkill(chainHome: string, slug: string, content: string): void {
-  updateContent(chainHome, { kind: "skills", slug, content })
+export function writeSkill(chainHome: string, slug: string, content: string, newSlug?: string): void {
+  updateContent(chainHome, { kind: "skills", slug, content, newSlug })
 }
 
 export function createSkill(chainHome: string, slug: string, description?: string): void {
@@ -158,6 +192,38 @@ export function createSkill(chainHome: string, slug: string, description?: strin
 }
 
 export function removeSkill(chainHome: string, slug: string): void {
-  deleteContent(chainHome, "skills", slug)
+  const deactivatedPath = join(chainHome, "skills", `.deactivated-${slug}`)
+  if (existsSync(deactivatedPath)) {
+    rmSync(deactivatedPath, { recursive: true, force: true })
+  } else {
+    deleteContent(chainHome, "skills", slug)
+  }
   registryRemoveSkill(slug, chainHome)
+}
+
+export function toggleSkill(chainHome: string, slug: string, enabled: boolean): void {
+  const registry = readRegistry(chainHome)
+  const deactivated = registry.deactivated_skills ?? []
+  
+  const normalPath = join(chainHome, "skills", slug)
+  const deactivatedPath = join(chainHome, "skills", `.deactivated-${slug}`)
+
+  if (enabled) {
+    // Activate
+    if (existsSync(deactivatedPath)) {
+      renameSync(deactivatedPath, normalPath)
+    }
+    registry.deactivated_skills = deactivated.filter((s) => s !== slug)
+  } else {
+    // Deactivate
+    if (existsSync(normalPath)) {
+      renameSync(normalPath, deactivatedPath)
+    }
+    if (!deactivated.includes(slug)) {
+      deactivated.push(slug)
+      registry.deactivated_skills = deactivated
+    }
+  }
+
+  writeRegistry(registry, chainHome)
 }

@@ -4,7 +4,7 @@ import type { ValidationResult } from "../utils/validation"
 export type { ValidationResult }
 export type ValidationContentKind = "skills" | "rules" | "agents" | "workflows"
 
-export function messageMatchesSlug(message: string, slug: string): boolean {
+export function messageMatchesSlug(message: string, slug: string, _kind?: string): boolean {
   const q = `'${slug}'`
   return (
     message.startsWith(`Skill ${slug}: `) ||
@@ -37,10 +37,16 @@ export function validateContent(
   slug: string,
 ): { errors: string[]; warnings: string[]; processed: number } {
   const result = validateProject(chainHome)
-  const matcher = kind === "skills" ? messageMatchesSlug : messageMatchesContent
+  const errors = result.errors.filter((e) => 
+    kind === "skills" ? messageMatchesSlug(e, slug, kind) : messageMatchesContent(e, slug, kind as any)
+  )
+  const warnings = result.warnings.filter((w) => 
+    kind === "skills" ? messageMatchesSlug(w, slug, kind) : messageMatchesContent(w, slug, kind as any)
+  )
+
   return {
-    errors: result.errors.filter((e) => matcher(e, slug, kind)),
-    warnings: result.warnings.filter((w) => matcher(w, slug, kind)),
+    errors,
+    warnings,
     processed: kind === "workflows" ? result.workflowsProcessed : result.skillsProcessed,
   }
 }

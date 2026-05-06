@@ -1,3 +1,4 @@
+import type { Server } from "bun"
 import kleur from "kleur"
 import { getChainHomeResolution } from "../utils/chain-home"
 import { UserError } from "../utils/errors"
@@ -91,7 +92,7 @@ export async function runHub(opts: HubOptions = {}): Promise<void> {
   const chainHome = resolution.path
   const shouldAutoFallbackToAvailablePort = typeof opts.port === "undefined"
 
-  const startServer = (port: number): Server =>
+  const startServer = (port: number): Server<any> =>
     Bun.serve({
       port,
       fetch: (request) => handleRequest(request),
@@ -102,7 +103,7 @@ export async function runHub(opts: HubOptions = {}): Promise<void> {
     })
 
   try {
-    let server: Server
+    let server: Server<any>
     let usedFallbackPort = false
 
     try {

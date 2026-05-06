@@ -14,9 +14,11 @@ import {
   ShieldCheck,
   TrendingUp,
   ExternalLink,
-  Plus
+  Plus,
+  Archive
 } from "lucide-react"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface Proposal {
   id: string
@@ -34,6 +36,7 @@ export function ImproveView() {
   const [loading, setLoading] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [lastRunId, setLastRunId] = useState<string | null>(null)
+  const [isRollbackConfirmOpen, setIsRollbackConfirmOpen] = useState(false)
 
   const loadData = async () => {
     try {
@@ -56,7 +59,7 @@ export function ImproveView() {
       setLoading(true)
       const result = await apiRequest<{ runId: string, generated: number }>("/api/improve/proposals/generate", {
         method: "POST",
-        body: JSON.stringify({ maxProposals: 3, scopes: ["skills"] })
+        body: { maxProposals: 3, scopes: ["skills"] }
       })
       setLastRunId(result.runId)
       await loadData()
@@ -92,7 +95,7 @@ export function ImproveView() {
       setLoading(true)
       const result = await apiRequest<{ runId: string, applied: number, validation: string }>("/api/improve/apply", {
         method: "POST",
-        body: JSON.stringify({ proposalIds: approved })
+        body: { proposalIds: approved }
       })
       setLastRunId(result.runId)
       await loadData()
@@ -106,7 +109,6 @@ export function ImproveView() {
 
   const handleRollback = async () => {
     if (!lastRunId) return
-    if (!confirm("Are you sure you want to rollback the last applied changes?")) return
 
     try {
       setLoading(true)
@@ -116,6 +118,23 @@ export function ImproveView() {
       await loadData()
       toast.success(`Rolled back ${result.restored} file(s).`)
       setLastRunId(null)
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleArchive = async () => {
+    try {
+      setLoading(true)
+      const result = await apiRequest<{ archived: number }>("/api/improve/proposals/archive", { method: "POST" })
+      await loadData()
+      if (result.archived > 0) {
+        toast.success(`${result.archived} voorstel(len) gearchiveerd.`)
+      } else {
+        toast.info("Geen voorstellen om te archiveren.")
+      }
     } catch (err: any) {
       toast.error(err.message)
     } finally {
@@ -143,10 +162,12 @@ export function ImproveView() {
         </div>
         <div className="flex items-center gap-2">
           {lastRunId && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRollback}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsRollbackConfirmOpen(true);
+              }}
               disabled={loading}
               className="h-8 border-hub-err/30 text-hub-err/70 hover:bg-hub-err/10 hover:text-hub-err"
             >
@@ -182,6 +203,18 @@ export function ImproveView() {
             <TrendingUp className="size-4 text-hub-accent" />
             Proposal Queue ({proposals.length})
           </h2>
+          {proposals.some(p => p.status === "applied" || p.status === "rejected") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleArchive}
+              disabled={loading}
+              className="h-7 px-2 text-[0.65rem] text-hub-text-faint hover:text-hub-accent hover:bg-hub-accent/10 transition-colors uppercase font-bold tracking-widest gap-1.5"
+            >
+              <Archive className="size-3" />
+              Archiveren
+            </Button>
+          )}
         </div>
 
         {proposals.length === 0 ? (
@@ -274,6 +307,17 @@ export function ImproveView() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={isRollbackConfirmOpen}
+        onOpenChange={setIsRollbackConfirmOpen}
+        onConfirm={handleRollback}
+        title="Rollback Changes?"
+        description="Are you sure you want to rollback the last applied changes? This will restore your files to their previous state."
+        confirmText="Rollback"
+        variant="destructive"
+        isLoading={loading}
+      />
     </div>
   )
 }

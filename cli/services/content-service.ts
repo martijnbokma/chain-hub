@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs"
 import { basename, extname, join } from "path"
 import { readProtectedCoreAssets } from "../registry/core"
+import { renameSkill } from "../registry/local"
 import { ensureCoreAssets, ensureUserRegistry } from "../utils/core-assets"
 import { UserError } from "../utils/errors"
 import { assertSafeSkillPathSegment, assertValidSkillSlug } from "../utils/skill-slug"
@@ -28,6 +29,7 @@ export interface ContentReadResult {
 export interface ContentWriteInput {
   kind: ContentKind
   slug: string
+  newSlug?: string
   content: string
   ext?: ContentFileExt
 }
@@ -61,7 +63,7 @@ function assertCreateSlug(kind: ContentKind, slug: string): string {
 // Resolves a rule file by slug, trying extensions in preference order.
 // Returns the matched path+ext or null if neither extension exists.
 function resolveRuleBySlug(baseDir: string, slug: string, preferredExt?: ContentFileExt): { path: string; ext: ContentFileExt } | null {
-  const preferred = preferredExt === ".mdc" ? [".mdc", ".md"] : [".md", ".mdc"]
+  const preferred: ContentFileExt[] = preferredExt === ".mdc" ? [".mdc", ".md"] : [".md", ".mdc"]
   for (const ext of preferred) {
     const filePath = join(baseDir, `${slug}${ext}`)
     if (existsSync(filePath)) return { path: filePath, ext }
@@ -124,7 +126,7 @@ function listSkillEntries(chainHome: string, coreSlugs: string[]): ContentListEn
   if (!existsSync(dir)) return []
 
   const slugs = readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && !entry.name.startsWith("_"))
+    .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && !entry.name.startsWith("_") && !entry.name.startsWith("."))
     .map((entry) => entry.name)
     .filter((slug) => !coreSlugs.includes(slug))
     .sort()
@@ -144,7 +146,7 @@ function listFlatKindEntries(chainHome: string, kind: ContentKind, coreSlugs: st
   if (!existsSync(dir)) return []
 
   const files = readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && !entry.name.startsWith("_"))
+    .filter((entry) => entry.isFile() && !entry.name.startsWith("_") && !entry.name.startsWith("."))
     .map((entry) => entry.name)
 
   // Deduplicate slugs; for rules prefer .md over .mdc when both exist.
@@ -234,33 +236,59 @@ export function createContent(chainHome: string, input: ContentWriteInput): void
 export function updateContent(chainHome: string, input: ContentWriteInput): void {
   ensureInitialized(chainHome)
   const kind = assertContentKind(input.kind)
-  const slug = assertSafeSlug(input.slug)
+  const oldSlug = assertSafeSlug(input.slug)
   const ext = assertExt(kind, input.ext)
-  if (isProtected(chainHome, kind, slug)) {
-    throw new UserError(`'${slug}' is a protected core ${kind.slice(0, -1)} and cannot be modified.`)
+  if (isProtected(chainHome, kind, oldSlug)) {
+    throw new UserError(`'${oldSlug}' is a protected core ${kind.slice(0, -1)} and cannot be modified.`)
   }
 
+  let currentSlug = oldSlug
+  let currentPath: string | null = null
+
+  // Resolve current path
   if (kind === "skills") {
-    const path = resolveSkillPath(join(chainHome, "skills"), slug)
-    if (!existsSync(path)) throw new UserError(`'${slug}' not found.`)
-    writeFileSync(path, input.content, "utf8")
-    return
+    currentPath = resolveSkillPath(join(chainHome, "skills"), oldSlug)
+  } else {
+    const base = join(chainHome, kind)
+    const found = kind === "rules" ? resolveRuleBySlug(base, oldSlug, ext) : { path: resolveFlatPath(base, oldSlug), ext: ".md" as ContentFileExt }
+    if (found && existsSync(found.path)) {
+      currentPath = found.path
+    }
   }
 
-  const base = join(chainHome, kind)
-  const existing = kind === "rules" ? resolveRuleBySlug(base, slug, ext) : null
-  if (kind !== "rules") {
-    const path = resolveFlatPath(base, slug)
-    if (!existsSync(path)) throw new UserError(`'${slug}' not found.`)
-    writeFileSync(path, input.content, "utf8")
-    return
+  if (!currentPath || !existsSync(currentPath)) {
+    throw new UserError(`'${oldSlug}' not found.`)
   }
 
-  if (existing) {
-    writeFileSync(existing.path, input.content, "utf8")
-    return
+  // Handle renaming
+  if (input.newSlug && input.newSlug !== oldSlug) {
+    const newSlug = assertCreateSlug(kind, input.newSlug)
+    if (isProtected(chainHome, kind, newSlug)) {
+      throw new UserError(`'${newSlug}' is a protected core name and cannot be used.`)
+    }
+
+    if (kind === "skills") {
+      const oldDir = currentPath
+      const newDir = join(chainHome, "skills", newSlug)
+      if (existsSync(newDir)) throw new UserError(`'${newSlug}' already exists.`)
+      
+      renameSync(oldDir, newDir)
+      renameSkill(oldSlug, newSlug, chainHome)
+      currentPath = resolveSkillPath(join(chainHome, "skills"), newSlug)
+    } else {
+      const base = join(chainHome, kind)
+      const fileExt = (kind === "rules" ? (ext ?? extname(currentPath)) : ".md") as ContentFileExt
+      const newPath = resolveFlatPath(base, newSlug, fileExt)
+      if (existsSync(newPath)) throw new UserError(`'${newSlug}' already exists.`)
+      
+      renameSync(currentPath, newPath)
+      currentPath = newPath
+    }
+    currentSlug = newSlug
   }
-  throw new UserError(`'${slug}' not found.`)
+
+  // Write content
+  writeFileSync(currentPath, input.content, "utf8")
 }
 
 export function deleteContent(chainHome: string, kind: ContentKind, slug: string): void {

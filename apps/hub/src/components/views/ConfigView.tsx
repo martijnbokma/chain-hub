@@ -114,8 +114,13 @@ export function ConfigView() {
               </SelectTrigger>
               <SelectContent className="bg-hub-surface-2 border-hub-border text-hub-text">
                 <SelectItem value="skills">Skills</SelectItem>
+                <SelectItem value="rules">Rules</SelectItem>
+                <SelectItem value="agents">Agents</SelectItem>
+                <SelectItem value="workflows">Workflows</SelectItem>
                 <SelectItem value="config">Configuration</SelectItem>
                 <SelectItem value="status">Status</SelectItem>
+                <SelectItem value="reflect">Reflect</SelectItem>
+                <SelectItem value="improve">Improve</SelectItem>
                 <SelectItem value="registry">Registry</SelectItem>
               </SelectContent>
             </Select>

@@ -31,6 +31,8 @@ export interface SkillsRegistry {
   /** Optional: group skills by GitHub install source + credits. */
   github_sources?: GithubSourceBundle[]
   vendor_submodules?: Array<{ path: string }>
+  /** Optional: slugs of skills that are currently deactivated (hidden from IDEs). */
+  deactivated_skills?: string[]
 }
 
 export function collectRegistrySlugs(reg: SkillsRegistry): string[] {
@@ -148,4 +150,44 @@ export function removeSkill(slug: string, chainHome?: string): void {
     if (reg.github_sources.length === 0) delete reg.github_sources
   }
   writeRegistry(reg, chainHome)
+}
+
+export function renameSkill(oldSlug: string, newSlug: string, chainHome?: string): void {
+  const reg = readRegistry(chainHome)
+  let changed = false
+
+  for (const key of ALL_BUCKETS) {
+    if (reg[key]) {
+      const idx = (reg[key] as string[]).indexOf(oldSlug)
+      if (idx !== -1) {
+        ;(reg[key] as string[])[idx] = newSlug
+        ;(reg[key] as string[]).sort()
+        changed = true
+      }
+    }
+  }
+
+  if (reg.authorship?.self) {
+    const idx = reg.authorship.self.indexOf(oldSlug)
+    if (idx !== -1) {
+      reg.authorship.self[idx] = newSlug
+      reg.authorship.self.sort()
+      changed = true
+    }
+  }
+
+  if (reg.github_sources?.length) {
+    for (const bundle of reg.github_sources) {
+      const idx = bundle.skills.indexOf(oldSlug)
+      if (idx !== -1) {
+        bundle.skills[idx] = newSlug
+        bundle.skills.sort()
+        changed = true
+      }
+    }
+  }
+
+  if (changed) {
+    writeRegistry(reg, chainHome)
+  }
 }

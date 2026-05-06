@@ -143,6 +143,15 @@ Hub location resolution:
   )
 
   withChainHomeOption(
+    program.command("rename <old-slug> <new-slug>")
+      .description("Rename an existing skill")
+      .action(async (oldSlug, newSlug) => {
+        const { runRename } = await import("./commands/rename")
+        await runRename(oldSlug, newSlug)
+      }),
+  )
+
+  withChainHomeOption(
     program.command("validate")
       .description("Validate skills and workflows")
       .option("--fix", "Try to auto-fix issues after validation")
@@ -256,6 +265,14 @@ Hub location resolution:
       .action(async (slug) => {
         const { runAssetRemove } = await import("./commands/content-assets")
         await runAssetRemove(kind, slug)
+      })
+
+    assetProgram
+      .command("rename <old-slug> <new-slug>")
+      .description(`Rename an existing ${kind.slice(0, -1)}`)
+      .action(async (oldSlug, newSlug) => {
+        const { runAssetRename } = await import("./commands/content-assets")
+        await runAssetRename(kind, oldSlug, newSlug)
       })
   }
 

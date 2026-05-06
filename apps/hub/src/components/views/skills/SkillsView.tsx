@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { useHub } from "@/lib/HubContext"
 import { apiRequest } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,23 @@ import {
   Search, 
   RotateCcw, 
   ChevronRight,
-  Filter
+  Filter,
+  Eye,
+  EyeOff,
+  Shield,
+  Zap,
+  User,
+  Package,
+  Users,
+  Terminal,
+  HelpCircle,
+  LayoutGrid,
+  Clock,
+  Layers
 } from "lucide-react"
 import { toast } from "sonner"
 import { SkillDetail } from "./SkillDetail"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { NewSkillModal } from "./NewSkillModal"
 
@@ -28,6 +41,7 @@ export interface Skill {
   bucket: string
   isCore: boolean
   addedAt?: number
+  deactivated: boolean
 }
 
 interface SkillsData {
@@ -43,6 +57,17 @@ const BUCKET_LABELS: Record<string, string> = {
   community: "Community",
   cli_packages: "CLI packages",
   unknown: "Unknown",
+}
+
+const BUCKET_ICONS: Record<string, any> = {
+  all: Layers,
+  core: Shield,
+  chain_hub: Zap,
+  personal: User,
+  packs: Package,
+  community: Users,
+  cli_packages: Terminal,
+  unknown: HelpCircle,
 }
 
 const BUCKET_ORDER = ["core", "chain_hub", "personal", "packs", "community", "cli_packages", "unknown"]
@@ -70,6 +95,21 @@ export function SkillsView() {
       toast.error(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleSkill = async (e: React.MouseEvent, skill: Skill) => {
+    e.stopPropagation()
+    try {
+      const nextEnabled = skill.deactivated
+      await apiRequest(`/api/skills/${encodeURIComponent(skill.slug)}/toggle`, {
+        method: "POST",
+        body: { enabled: nextEnabled }
+      })
+      toast.success(`${skill.slug} ${nextEnabled ? "geactiveerd" : "gedeactiveerd"}`)
+      fetchSkills()
+    } catch (err: any) {
+      toast.error(err.message)
     }
   }
 
@@ -154,108 +194,201 @@ export function SkillsView() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="m-0 font-hub-display text-[1.05rem] tracking-wide text-[#f5f8ff]">Skills</h1>
+      <header className="flex items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="flex flex-col">
+          <h1 className="m-0 font-hub-display text-2xl font-bold tracking-tight text-white leading-none">Skills</h1>
+          <p className="text-[0.8rem] text-hub-text-dim mt-1">Explore and manage your library of agent skills.</p>
+        </div>
         <Button 
           onClick={() => setIsNewSkillModalOpen(true)}
-          className="bg-hub-accent hover:bg-hub-accent/90 text-white h-9 gap-2"
+          className="bg-hub-accent hover:bg-hub-accent/90 text-white h-10 px-6 gap-2 shadow-lg shadow-hub-accent/20 hover:scale-[1.02] transition-all font-semibold"
         >
           <Plus className="size-4" />
-          New skill
+          New Skill
         </Button>
       </header>
 
-      <div className="flex flex-wrap items-end gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl border border-hub-border bg-gradient-to-br from-hub-surface-1/60 to-hub-surface-2/40 backdrop-blur-md shadow-xl ring-1 ring-white/5 animate-in fade-in slide-in-from-top-2 duration-500 delay-100 fill-mode-both">
         <div className="flex flex-col gap-1.5 flex-[2] min-w-[240px]">
-          <label className="text-[0.66rem] tracking-wide text-hub-text-faint uppercase font-semibold">Search</label>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-hub-text-faint" />
+          <div className="flex items-center gap-1.5 px-0.5">
+            <Search className="size-3 text-hub-text-faint" />
+            <label className="text-[0.6rem] tracking-widest text-hub-text-faint uppercase font-bold">Search Skills</label>
+          </div>
+          <div className="relative group/search">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-hub-text-faint group-focus-within/search:text-hub-accent transition-colors" />
             <Input 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name or description..."
-              className="pl-9 h-9 bg-hub-surface-2 border-hub-border-strong text-hub-text"
+              placeholder="Filter by name..."
+              className="pl-10 h-10 bg-hub-surface-2/40 border-hub-border-strong/20 text-hub-text focus:border-hub-accent/40 transition-all rounded-xl placeholder:text-hub-text-faint/50"
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 min-w-[140px]">
-          <label className="text-[0.66rem] tracking-wide text-hub-text-faint uppercase font-semibold">Category</label>
+        <div className="flex flex-col gap-1.5 min-w-[170px]">
+          <div className="flex items-center gap-1.5 px-0.5">
+            <Filter className="size-3 text-hub-text-faint" />
+            <label className="text-[0.6rem] tracking-widest text-hub-text-faint uppercase font-bold">Category</label>
+          </div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="h-9 bg-hub-surface-2 border-hub-border-strong text-hub-text">
+            <SelectTrigger className="bg-hub-surface-2/40 border-hub-border-strong/20">
               <SelectValue placeholder="All" />
             </SelectTrigger>
-            <SelectContent className="bg-hub-surface-2 border-hub-border text-hub-text">
-              <SelectItem value="all">All categories</SelectItem>
-              {BUCKET_ORDER.map(b => (
-                <SelectItem key={b} value={b}>{BUCKET_LABELS[b] || b}</SelectItem>
-              ))}
+            <SelectContent className="backdrop-blur-2xl">
+              <SelectItem value="all">
+                <div className="flex items-center gap-2.5">
+                  <Layers className="size-3.5 text-hub-text-faint" />
+                  <span>All categories</span>
+                </div>
+              </SelectItem>
+              {BUCKET_ORDER.map(b => {
+                const Icon = BUCKET_ICONS[b] || HelpCircle
+                return (
+                  <SelectItem key={b} value={b}>
+                    <div className="flex items-center gap-2.5">
+                      <Icon className="size-3.5 text-hub-text-faint" />
+                      <span>{BUCKET_LABELS[b] || b}</span>
+                    </div>
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1.5 min-w-[140px]">
-          <label className="text-[0.66rem] tracking-wide text-hub-text-faint uppercase font-semibold">Sorting</label>
+        <div className="flex flex-col gap-1.5 min-w-[170px]">
+          <div className="flex items-center gap-1.5 px-0.5">
+            <LayoutGrid className="size-3 text-hub-text-faint" />
+            <label className="text-[0.6rem] tracking-widest text-hub-text-faint uppercase font-bold">Sorting</label>
+          </div>
           <Select value={sortMode} onValueChange={setSortMode}>
-            <SelectTrigger className="h-9 bg-hub-surface-2 border-hub-border-strong text-hub-text">
+            <SelectTrigger className="bg-hub-surface-2/40 border-hub-border-strong/20">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
-            <SelectContent className="bg-hub-surface-2 border-hub-border text-hub-text">
-              <SelectItem value="category">Badge/category</SelectItem>
-              <SelectItem value="newest">Newest first</SelectItem>
+            <SelectContent className="backdrop-blur-2xl">
+              <SelectItem value="category">
+                <div className="flex items-center gap-2.5">
+                  <LayoutGrid className="size-3.5 text-hub-text-faint" />
+                  <span>By category</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="newest">
+                <div className="flex items-center gap-2.5">
+                  <Clock className="size-3.5 text-hub-text-faint" />
+                  <span>Newest first</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={resetFilters}
-          className="h-9 border-hub-border bg-hub-surface-2 text-hub-text-dim hover:text-hub-text disabled:opacity-50"
-          disabled={searchQuery === "" && categoryFilter === "all" && sortMode === "category"}
-        >
-          <RotateCcw className="size-3.5 mr-2" />
-          Reset
-        </Button>
+        <div className="flex flex-col gap-1.5 pt-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={resetFilters}
+            className="h-10 px-4 text-hub-text-dim hover:text-white hover:bg-white/5 rounded-xl transition-all disabled:opacity-0"
+            disabled={searchQuery === "" && categoryFilter === "all" && sortMode === "category"}
+          >
+            <RotateCcw className="size-3.5 mr-2" />
+            Reset
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {sortedBuckets.map((bucket) => (
-          <section key={bucket.id} className="space-y-2">
-            <h2 className="text-[0.68rem] tracking-wider text-hub-text-faint uppercase font-bold px-1 flex items-center gap-2">
+      <div className="space-y-10">
+        {sortedBuckets.map((bucket, bucketIdx) => (
+          <section key={bucket.id} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both" style={{ animationDelay: `${bucketIdx * 100 + 200}ms` }}>
+            <h2 className="text-[0.68rem] tracking-[0.2em] text-hub-text-faint uppercase font-bold px-1 flex items-center gap-3">
               {bucket.label}
-              <Badge variant="outline" className="h-4 px-1 text-[0.6rem] border-hub-border text-hub-text-faint">
+              <Badge variant="outline" className="h-4 px-1.5 text-[0.6rem] border-hub-border text-hub-text-faint bg-white/5 font-bold">
                 {bucket.skills.length}
               </Badge>
+              <div className="h-px flex-1 bg-gradient-to-r from-hub-border to-transparent" />
             </h2>
-            <div className="space-y-2">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {bucket.skills.map((skill) => (
-                <button
-                  key={skill.slug}
-                  onClick={() => setSelectedSlug(skill.slug)}
-                  className="w-full text-left group flex gap-4 p-3 rounded-md border border-hub-border bg-hub-surface-1/50 hover:bg-hub-surface-2/80 hover:border-hub-border-strong transition-all duration-150"
-                >
-                  <div className="mt-1.5 shrink-0">
-                    <div className={`size-2 rounded-full ${skill.isCore ? "bg-hub-core" : "bg-hub-user"}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-[#f2f6ff] group-hover:text-white">{skill.slug}</div>
-                    <div className="text-[0.77rem] text-hub-text-dim line-clamp-2 mt-0.5">{skill.description}</div>
-                  </div>
-                  <div className="shrink-0 self-center">
-                    <Badge variant="outline" className="text-[0.65rem] border-hub-border-strong text-hub-text-faint">
-                      {skill.bucket}
-                    </Badge>
-                  </div>
-                </button>
+                <div key={skill.slug} className="group relative">
+                  <button
+                    onClick={() => setSelectedSlug(skill.slug)}
+                    className={`w-full text-left flex flex-col p-4 rounded-xl border transition-all duration-300 ease-out overflow-hidden ring-1 ring-white/5 ${
+                      skill.deactivated 
+                        ? "bg-hub-surface-1/20 border-hub-border opacity-50 grayscale-[0.5] cursor-not-allowed" 
+                        : "bg-hub-surface-1/40 border-hub-border hover:bg-hub-surface-2/80 hover:border-hub-accent/40 hover:shadow-xl hover:shadow-hub-accent/5 hover:scale-[1.02] active:scale-[0.98]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`size-2.5 rounded-full ring-2 ring-white/5 transition-all duration-500 ${
+                        skill.deactivated 
+                          ? "bg-hub-text-faint/50 grayscale shadow-none" 
+                          : (skill.isCore 
+                              ? "bg-hub-core shadow-[0_0_10px_rgba(139,124,255,0.5)] animate-hub-status-glow" 
+                              : "bg-hub-user shadow-[0_0_10px_rgba(78,224,161,0.5)] animate-hub-status-glow")
+                      }`} />
+                      
+                      <div className="flex items-center gap-2">
+                        {skill.deactivated && (
+                          <Badge variant="outline" className="h-4 px-1.5 text-[0.6rem] border-hub-err/30 text-hub-err/70 bg-hub-err/5 uppercase tracking-wider font-bold">
+                            Deactivated
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[0.6rem] h-4 border-hub-border text-hub-text-faint bg-white/5 uppercase tracking-wider font-bold">
+                          {skill.bucket}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0 mb-4">
+                      <span className="block font-bold text-[0.95rem] text-[#f2f6ff] group-hover:text-white truncate tracking-tight">
+                        {skill.slug}
+                      </span>
+                      <div className="text-[0.75rem] text-hub-text-dim line-clamp-2 mt-1 leading-relaxed">
+                        {skill.description || "No description provided."}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-hub-border/50">
+                      <div className="flex items-center gap-1.5 text-[0.65rem] text-hub-text-faint group-hover:text-hub-accent transition-colors font-semibold uppercase tracking-wider">
+                        View Details
+                        <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                      </div>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 rounded-lg bg-white/5 border border-transparent hover:border-hub-border/50 transition-all"
+                              onClick={(e) => handleToggleSkill(e, skill)}
+                            >
+                              {skill.deactivated ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {skill.deactivated ? "Inschakelen" : "Uitschakelen"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </button>
+                </div>
               ))}
             </div>
           </section>
         ))}
 
         {filteredSkills.length === 0 && (
-          <div className="p-8 text-center border border-dashed border-hub-border rounded-lg text-hub-text-dim text-sm">
-            No skills found matching your search.
+          <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed border-hub-border rounded-xl bg-hub-surface-1/20 animate-in fade-in zoom-in-95 duration-500">
+            <Search className="size-8 text-hub-text-faint mb-4 opacity-20" />
+            <h3 className="text-hub-text font-bold text-sm mb-1">No skills found</h3>
+            <p className="text-hub-text-faint text-[0.75rem] max-w-[240px] leading-relaxed">
+              We couldn't find any skills matching your search criteria. Try a different query or category.
+            </p>
+            <Button variant="link" onClick={resetFilters} className="mt-2 text-hub-accent hover:text-hub-accent/80 text-xs">
+              Clear all filters
+            </Button>
           </div>
         )}
       </div>
