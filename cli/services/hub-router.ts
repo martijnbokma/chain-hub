@@ -11,14 +11,31 @@ import {
   removeSkill,
   writeSkill,
 } from "./skills-service"
+import {
+  createContent,
+  deleteContent,
+  listContent,
+  readContent,
+  updateContent,
+  type ContentKind,
+} from "./content-service"
 import { getStatus } from "./status-service"
 import { fetchRegistry, installSkill } from "./registry-service"
 import { runSetupService } from "./setup-service"
-import { validateSkill } from "./validation-service"
+import { validateContent, validateSkill } from "./validation-service"
 import { assertValidSkillSlug } from "../utils/skill-slug"
 import { json, jsonError, mapError, readJsonBody } from "./hub-http-utils"
 import { getStaticRoot, serveStatic } from "./hub-static"
 import { previewReflect, runReflect } from "./reflect-service"
+import {
+  applyApprovedProposals,
+  generateImproveProposals,
+  getImproveRun,
+  listImproveProposals,
+  setProposalStatus,
+} from "./improve-service"
+
+const CONTENT_KINDS: ContentKind[] = ["skills", "rules", "agents", "workflows"]
 
 function buildSkillsListResponse(
   chainHome: string,
@@ -58,6 +75,13 @@ function validateChainHomeTarget(path: string): void {
   }
 }
 
+function parseContentKind(raw: string): ContentKind {
+  if (CONTENT_KINDS.includes(raw as ContentKind)) {
+    return raw as ContentKind
+  }
+  throw new UserError(`Invalid content kind '${raw}'. Expected one of: ${CONTENT_KINDS.join(", ")}.`)
+}
+
 export async function routeRequest(
   request: Request,
   chainHome: string,
@@ -68,6 +92,82 @@ export async function routeRequest(
   const pathname = url.pathname
 
   try {
+    const contentListMatch = pathname.match(/^\/api\/content\/([^/]+)$/)
+    if (contentListMatch && request.method === "GET") {
+      const kind = parseContentKind(decodeURIComponent(contentListMatch[1]!))
+      return json({
+        items: listContent(chainHome, kind),
+        chainHome,
+        source: activeResolution.source,
+      })
+    }
+
+    const contentMatch = pathname.match(/^\/api\/content\/([^/]+)\/([^/]+)$/)
+    if (contentMatch && request.method === "GET") {
+      const kind = parseContentKind(decodeURIComponent(contentMatch[1]!))
+      const slug = decodeURIComponent(contentMatch[2]!)
+      return json(readContent(chainHome, kind, slug))
+    }
+
+    if (contentListMatch && request.method === "POST") {
+      const kind = parseContentKind(decodeURIComponent(contentListMatch[1]!))
+      const body = await readJsonBody(request)
+      const slug = body.slug
+      if (typeof slug !== "string" || slug.trim().length === 0) {
+        throw new UserError("Field 'slug' is required and must be a non-empty string.")
+      }
+      const content = body.content
+      if (typeof content !== "undefined" && typeof content !== "string") {
+        throw new UserError("Field 'content' must be a string when provided.")
+      }
+      const ext = body.ext
+      if (typeof ext !== "undefined" && ext !== ".md" && ext !== ".mdc") {
+        throw new UserError("Field 'ext' must be either '.md' or '.mdc' when provided.")
+      }
+      createContent(chainHome, {
+        kind,
+        slug: slug.trim(),
+        content: typeof content === "string" ? content : "",
+        ext: ext as ".md" | ".mdc" | undefined,
+      })
+      return json({ ok: true }, 201)
+    }
+
+    if (contentMatch && request.method === "PUT") {
+      const kind = parseContentKind(decodeURIComponent(contentMatch[1]!))
+      const slug = decodeURIComponent(contentMatch[2]!)
+      const body = await readJsonBody(request)
+      const content = body.content
+      if (typeof content !== "string") {
+        throw new UserError("Field 'content' is required and must be a string.")
+      }
+      const ext = body.ext
+      if (typeof ext !== "undefined" && ext !== ".md" && ext !== ".mdc") {
+        throw new UserError("Field 'ext' must be either '.md' or '.mdc' when provided.")
+      }
+      updateContent(chainHome, {
+        kind,
+        slug,
+        content,
+        ext: ext as ".md" | ".mdc" | undefined,
+      })
+      return json({ ok: true })
+    }
+
+    if (contentMatch && request.method === "DELETE") {
+      const kind = parseContentKind(decodeURIComponent(contentMatch[1]!))
+      const slug = decodeURIComponent(contentMatch[2]!)
+      deleteContent(chainHome, kind, slug)
+      return json({ ok: true })
+    }
+
+    const contentValidateMatch = pathname.match(/^\/api\/content\/([^/]+)\/([^/]+)\/validate$/)
+    if (contentValidateMatch && request.method === "POST") {
+      const kind = parseContentKind(decodeURIComponent(contentValidateMatch[1]!))
+      const slug = decodeURIComponent(contentValidateMatch[2]!)
+      return json(validateContent(chainHome, kind, slug))
+    }
+
     if (pathname === "/api/skills" && request.method === "GET") {
       return json(buildSkillsListResponse(chainHome, activeResolution.source))
     }
@@ -134,6 +234,44 @@ export async function routeRequest(
 
     if (pathname === "/api/reflect/run" && request.method === "POST") {
       return json(runReflect(chainHome))
+    }
+
+    if (pathname === "/api/improve/proposals/generate" && request.method === "POST") {
+      const body =
+        request.headers.get("content-length") === "0" ? {} : await readJsonBody(request)
+      const maxProposals = typeof body.maxProposals === "number" ? body.maxProposals : undefined
+      const scopes = Array.isArray(body.scopes) ? body.scopes.filter((item): item is string => typeof item === "string") : undefined
+      return json(generateImproveProposals(chainHome, { maxProposals, scopes }))
+    }
+
+    if (pathname === "/api/improve/proposals" && request.method === "GET") {
+      return json(listImproveProposals(chainHome))
+    }
+
+    const proposalApproveMatch = pathname.match(/^\/api\/improve\/proposals\/([^/]+)\/approve$/)
+    if (proposalApproveMatch && request.method === "POST") {
+      const proposalId = decodeURIComponent(proposalApproveMatch[1]!)
+      return json(setProposalStatus(chainHome, proposalId, "approved"))
+    }
+
+    const proposalRejectMatch = pathname.match(/^\/api\/improve\/proposals\/([^/]+)\/reject$/)
+    if (proposalRejectMatch && request.method === "POST") {
+      const proposalId = decodeURIComponent(proposalRejectMatch[1]!)
+      return json(setProposalStatus(chainHome, proposalId, "rejected"))
+    }
+
+    if (pathname === "/api/improve/apply" && request.method === "POST") {
+      const body = await readJsonBody(request)
+      const proposalIds = Array.isArray(body.proposalIds)
+        ? body.proposalIds.filter((id): id is string => typeof id === "string")
+        : []
+      return json(applyApprovedProposals(chainHome, proposalIds))
+    }
+
+    const improveRunMatch = pathname.match(/^\/api\/improve\/runs\/([^/]+)$/)
+    if (improveRunMatch && request.method === "GET") {
+      const runId = decodeURIComponent(improveRunMatch[1]!)
+      return json(getImproveRun(chainHome, runId))
     }
 
     if (pathname === "/api/config" && request.method === "GET") {

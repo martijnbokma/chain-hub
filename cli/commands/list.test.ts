@@ -97,4 +97,39 @@ protected:
     expect(output).toContain("chain-quickstart")
     expect(output).not.toContain("Protected core skills")
   })
+
+  test("shows protected core rules and user rules", async () => {
+    rmSync(join(tmp, "skills"), { recursive: true, force: true })
+    writeFileSync(
+      join(tmp, "skills-registry.yaml"),
+      `schema_version: 3
+chain_hub: []
+personal: []
+cli_packages: []
+`,
+    )
+    writeFileSync(
+      join(tmp, "core", "registry.yaml"),
+      `schema_version: 1
+protected:
+  skills: []
+  rules:
+    - global
+  agents: []
+  workflows: []
+`,
+    )
+    mkdirSync(join(tmp, "rules"), { recursive: true })
+    writeFileSync(join(tmp, "rules", "global.md"), "# core")
+    writeFileSync(join(tmp, "rules", "user-rule.mdc"), "# user")
+
+    lines.length = 0
+    await runList()
+
+    const output = lines.join("\n")
+    expect(output).toContain("Protected core rules")
+    expect(output).toContain("global")
+    expect(output).toContain("User rules")
+    expect(output).toContain("user-rule")
+  })
 })

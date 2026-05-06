@@ -73,13 +73,14 @@ export function printSkillsSection(
   )
 }
 
-const ASSET_FOOTER: Record<"agents" | "workflows", string> = {
+const ASSET_FOOTER: Record<"agents" | "workflows" | "rules", string> = {
   agents: "\n  Agents are markdown files linked into your IDE (~/.cursor/agents, ~/.claude/agents, ~/.agents/agents).\n",
   workflows: "\n  Workflows are linked per IDE (e.g. Claude Code commands, Windsurf global_workflows).\n",
+  rules: "\n  Rules are linked into your IDE rules directories (.md or .mdc for core/user rules).\n",
 }
 
 export function printAssetSection(
-  type: "agents" | "workflows",
+  type: "agents" | "workflows" | "rules",
   chainHome: string,
   protectedItems: string[],
   userItems: string[],
@@ -93,7 +94,8 @@ export function printAssetSection(
     kleur.bold("\n  User " + type + " in " + chainHome + "/" + type + "/ (" + userItems.length + " total)\n"),
   )
   for (const slug of userItems) {
-    console.log("  " + kleur.green("●") + " " + slug + "  " + kleur.dim("(" + type + "/" + slug + ".md)"))
+    const extHint = type === "rules" ? ".md|.mdc" : ".md"
+    console.log("  " + kleur.green("●") + " " + slug + "  " + kleur.dim("(" + type + "/" + slug + extHint + ")"))
   }
 
   console.log(kleur.dim(ASSET_FOOTER[type]))

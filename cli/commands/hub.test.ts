@@ -3,6 +3,8 @@ import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
 import { buildSkillsListResponse, resolveStaticRoot } from "./hub"
+import { routeRequest } from "../services/hub-router"
+import type { ChainHomeResolution } from "../utils/chain-home"
 
 describe("buildSkillsListResponse", () => {
   let hub: string
@@ -74,5 +76,99 @@ describe("resolveStaticRoot", () => {
 
     const resolved = resolveStaticRoot(distCommandsDir)
     expect(resolved).toBe(distHub)
+  })
+})
+
+describe("routeRequest content routes", () => {
+  let hub: string
+  const resolution: ChainHomeResolution = { path: "", source: "env" }
+
+  beforeEach(() => {
+    hub = join(tmpdir(), `chain-hub-router-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+    resolution.path = hub
+    mkdirSync(join(hub, "skills"), { recursive: true })
+    mkdirSync(join(hub, "rules"), { recursive: true })
+    mkdirSync(join(hub, "agents"), { recursive: true })
+    mkdirSync(join(hub, "workflows"), { recursive: true })
+    mkdirSync(join(hub, "core"), { recursive: true })
+    writeFileSync(join(hub, "skills-registry.yaml"), "schema_version: 1\nchain_hub: []\npersonal: []\ncli_packages: []\n")
+    writeFileSync(
+      join(hub, "core", "registry.yaml"),
+      "schema_version: 1\nprotected:\n  skills: [core-skill]\n  rules: []\n  agents: []\n  workflows: []\n",
+    )
+    mkdirSync(join(hub, "core", "skills", "core-skill"), { recursive: true })
+    writeFileSync(join(hub, "core", "skills", "core-skill", "SKILL.md"), "# core skill\n", "utf8")
+  })
+
+  afterEach(() => {
+    rmSync(hub, { recursive: true, force: true })
+  })
+
+  async function api(
+    path: string,
+    method = "GET",
+    body?: Record<string, unknown>,
+  ): Promise<{ status: number; payload: any }> {
+    const response = await routeRequest(
+      new Request(`http://localhost:2342${path}`, {
+        method,
+        headers: body ? { "content-type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      }),
+      hub,
+      resolution,
+    )
+    return { status: response.status, payload: await response.json() }
+  }
+
+  test("supports content CRUD for agents", async () => {
+    const created = await api("/api/content/agents", "POST", { slug: "my-agent", content: "# my agent\n" })
+    expect(created.status).toBe(201)
+
+    const listed = await api("/api/content/agents")
+    expect(listed.status).toBe(200)
+    expect(Array.isArray(listed.payload.items)).toBe(true)
+    expect(listed.payload.items.some((item: { slug: string }) => item.slug === "my-agent")).toBe(true)
+
+    const read = await api("/api/content/agents/my-agent")
+    expect(read.status).toBe(200)
+    expect(read.payload.content).toContain("my agent")
+
+    const updated = await api("/api/content/agents/my-agent", "PUT", { content: "# updated agent\n" })
+    expect(updated.status).toBe(200)
+
+    const deleted = await api("/api/content/agents/my-agent", "DELETE")
+    expect(deleted.status).toBe(200)
+  })
+
+  test("rejects invalid content kind", async () => {
+    const response = await api("/api/content/unknown")
+    expect(response.status).toBe(400)
+    expect(response.payload.code).toBe("bad_request")
+    expect(response.payload.error).toContain("Invalid content kind")
+  })
+
+  test("keeps /api/skills compatibility behavior", async () => {
+    const create = await api("/api/skills", "POST", { slug: "compat-skill", description: "compat" })
+    expect(create.status).toBe(201)
+
+    const list = await api("/api/skills")
+    expect(list.status).toBe(200)
+    expect(Array.isArray(list.payload.skills)).toBe(true)
+
+    const read = await api("/api/skills/compat-skill")
+    expect(read.status).toBe(200)
+    expect(read.payload.content).toBeDefined()
+  })
+
+  test("blocks mutation on protected skill through new content route", async () => {
+    const list = await api("/api/content/skills")
+    const protectedSlug = list.payload.items.find((item: { isCore: boolean }) => item.isCore)?.slug
+    if (!protectedSlug) {
+      throw new Error("Expected at least one protected core skill in hub list")
+    }
+    const response = await api(`/api/content/skills/${protectedSlug}`, "PUT", { content: "# no\n" })
+    expect(response.status).toBe(400)
+    expect(response.payload.error).toContain("protected")
   })
 })

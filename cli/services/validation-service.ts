@@ -2,6 +2,7 @@ import { validateProject } from "../utils/validation"
 import type { ValidationResult } from "../utils/validation"
 
 export type { ValidationResult }
+export type ValidationContentKind = "skills" | "rules" | "agents" | "workflows"
 
 export function messageMatchesSlug(message: string, slug: string): boolean {
   const q = `'${slug}'`
@@ -22,10 +23,35 @@ export function validateHub(chainHome: string): ValidationResult {
 }
 
 export function validateSkill(chainHome: string, slug: string): { errors: string[]; warnings: string[]; skillsProcessed: number } {
-  const result = validateProject(chainHome)
+  const result = validateContent(chainHome, "skills", slug)
   return {
-    errors: result.errors.filter((e) => messageMatchesSlug(e, slug)),
-    warnings: result.warnings.filter((w) => messageMatchesSlug(w, slug)),
-    skillsProcessed: result.skillsProcessed,
+    errors: result.errors,
+    warnings: result.warnings,
+    skillsProcessed: result.processed,
   }
+}
+
+export function validateContent(
+  chainHome: string,
+  kind: ValidationContentKind,
+  slug: string,
+): { errors: string[]; warnings: string[]; processed: number } {
+  const result = validateProject(chainHome)
+  const matcher = kind === "skills" ? messageMatchesSlug : messageMatchesContent
+  return {
+    errors: result.errors.filter((e) => matcher(e, slug, kind)),
+    warnings: result.warnings.filter((w) => matcher(w, slug, kind)),
+    processed: kind === "workflows" ? result.workflowsProcessed : result.skillsProcessed,
+  }
+}
+
+function messageMatchesContent(message: string, slug: string, kind: Exclude<ValidationContentKind, "skills">): boolean {
+  const q = `'${slug}'`
+  if (kind === "rules") {
+    return message.includes(`Core rule ${q}`)
+  }
+  if (kind === "agents") {
+    return message.includes(`Core agent ${q}`)
+  }
+  return message.includes(`Core workflow ${q}`) || message.startsWith(`Workflow ${slug}:`)
 }

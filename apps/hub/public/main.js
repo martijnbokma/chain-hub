@@ -3,6 +3,10 @@ import { createStatusView } from "./status.js"
 import { createRegistryView } from "./registry.js"
 import { createConfigView } from "./config.js"
 import { createReflectView } from "./reflect.js"
+import { createImproveView } from "./improve.js"
+import { createRulesView } from "./rules.js"
+import { createAgentsView } from "./agents.js"
+import { createWorkflowsView } from "./workflows.js"
 import { btn, btnPrimary, btnDanger, focusRing, msgErr } from "./ui-classes.js"
 
 const viewRoot = document.querySelector("#view-root")
@@ -398,6 +402,10 @@ const configView = createConfigView({
   updateUiPrefs,
 })
 const reflectView = createReflectView({ root: viewRoot, setChainHomeBar, apiRequest })
+const improveView = createImproveView({ root: viewRoot, setChainHomeBar, apiRequest })
+const rulesView = createRulesView({ root: viewRoot, setChainHomeBar, setBanner, apiRequest, modal })
+const agentsView = createAgentsView({ root: viewRoot, setChainHomeBar, setBanner, apiRequest, modal })
+const workflowsView = createWorkflowsView({ root: viewRoot, setChainHomeBar, setBanner, apiRequest, modal })
 
 async function renderRoute() {
   const route = window.location.hash.replace(/^#/, "") || uiPrefs.defaultRoute || "skills"
@@ -410,6 +418,21 @@ async function renderRoute() {
     return
   }
   skillsView.dismissOverlays()
+  rulesView.dismissOverlays()
+  agentsView.dismissOverlays()
+  workflowsView.dismissOverlays()
+  if (route === "rules") {
+    await rulesView.mount()
+    return
+  }
+  if (route === "agents") {
+    await agentsView.mount()
+    return
+  }
+  if (route === "workflows") {
+    await workflowsView.mount()
+    return
+  }
   if (route === "config") {
     await configView.mount()
     return
@@ -424,6 +447,10 @@ async function renderRoute() {
   }
   if (route === "reflect") {
     await reflectView.mount()
+    return
+  }
+  if (route === "improve") {
+    await improveView.mount()
     return
   }
 }

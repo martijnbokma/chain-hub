@@ -19,6 +19,18 @@ function markdownSlugsInDir(dir: string): string[] {
     .map((e) => basename(e.name, ".md"))
 }
 
+function ruleSlugsInDir(dir: string): string[] {
+  if (!existsSync(dir)) return []
+  const slugs = new Set<string>()
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isFile() || entry.name.startsWith("_")) continue
+    if (!entry.name.endsWith(".md") && !entry.name.endsWith(".mdc")) continue
+    const stem = entry.name.replace(/\.mdc?$/, "")
+    if (stem) slugs.add(stem)
+  }
+  return [...slugs]
+}
+
 // ---------------------------------------------------------------------------
 // Command entry point
 // ---------------------------------------------------------------------------
@@ -28,14 +40,17 @@ export async function runList(): Promise<void> {
   const skillsDir = join(chainHome, "skills")
   const agentsDir = join(chainHome, "agents")
   const workflowsDir = join(chainHome, "workflows")
+  const rulesDir = join(chainHome, "rules")
 
   const core = readProtectedCoreAssets(chainHome)
   const protectedCoreSkills = core.skills
   const protectedCoreAgents = core.agents
   const protectedCoreWorkflows = core.workflows
+  const protectedCoreRules = core.rules
   const protectedCoreSet = new Set(protectedCoreSkills)
   const protectedAgentSet = new Set(protectedCoreAgents)
   const protectedWorkflowSet = new Set(protectedCoreWorkflows)
+  const protectedRuleSet = new Set(protectedCoreRules)
 
   const userSkillEntries = existsSync(skillsDir)
     ? readdirSync(skillsDir, { withFileTypes: true })
@@ -53,13 +68,19 @@ export async function runList(): Promise<void> {
     .filter((slug) => !protectedWorkflowSet.has(slug))
     .sort()
 
+  const userRuleSlugs = ruleSlugsInDir(rulesDir)
+    .filter((slug) => !protectedRuleSet.has(slug))
+    .sort()
+
   const hasAnything =
     protectedCoreSkills.length > 0 ||
     userSkillEntries.length > 0 ||
     protectedCoreAgents.length > 0 ||
     userAgentSlugs.length > 0 ||
     protectedCoreWorkflows.length > 0 ||
-    userWorkflowSlugs.length > 0
+    userWorkflowSlugs.length > 0 ||
+    protectedCoreRules.length > 0 ||
+    userRuleSlugs.length > 0
 
   if (!hasAnything) {
     console.log(kleur.yellow("\n  No Chain Hub content found. Run 'chain init' and then 'chain setup'.\n"))
@@ -91,6 +112,10 @@ export async function runList(): Promise<void> {
 
   if (protectedCoreWorkflows.length > 0 || userWorkflowSlugs.length > 0) {
     printAssetSection("workflows", chainHome, protectedCoreWorkflows, userWorkflowSlugs)
+  }
+
+  if (protectedCoreRules.length > 0 || userRuleSlugs.length > 0) {
+    printAssetSection("rules", chainHome, protectedCoreRules, userRuleSlugs)
   }
 
   const bundles = registry.github_sources || []

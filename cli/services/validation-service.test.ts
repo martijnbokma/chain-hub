@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test"
 import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
-import { messageMatchesSlug, validateSkill } from "./validation-service"
+import { messageMatchesSlug, validateContent, validateSkill } from "./validation-service"
 
 // ─── messageMatchesSlug unit tests ───────────────────────────────────────────
 
@@ -244,5 +244,28 @@ describe("validateSkill", () => {
 
     expect(result.warnings.some((w) => w.startsWith("Skill debug:"))).toBe(true)
     expect(result.warnings.some((w) => w.startsWith("Skill debug-tools:"))).toBe(false)
+  })
+})
+
+describe("validateContent", () => {
+  test("filters workflow messages for a requested workflow slug", () => {
+    const hub = makeHub("workflow")
+    try {
+      writeRegistry(
+        hub,
+        `schema_version: 3\nchain_hub: []\npersonal: []\ncli_packages: []\n`,
+      )
+      mkdirSync(join(hub, "core"), { recursive: true })
+      writeFileSync(
+        join(hub, "core", "registry.yaml"),
+        `schema_version: 1\nprotected:\n  skills: []\n  rules: []\n  agents: []\n  workflows:\n    - missing-workflow\n`,
+      )
+
+      const result = validateContent(hub, "workflows", "missing-workflow")
+      expect(result.errors.some((e) => e.includes("Core workflow 'missing-workflow'"))).toBe(true)
+      expect(result.processed).toBeGreaterThanOrEqual(0)
+    } finally {
+      rmSync(hub, { recursive: true, force: true })
+    }
   })
 })

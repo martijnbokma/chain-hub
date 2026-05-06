@@ -113,6 +113,10 @@ You typically do **not** install the CLI per project. After `chain setup`, IDEs 
 | `chain update` | Refresh registry and GitHub-bundle skills from their sources |
 | `chain remove <slug>` | Remove a registry-installed skill |
 | `chain new <slug>` | Scaffold a skill under `CHAIN_HOME/skills/` and register it under `personal` in `skills-registry.yaml` |
+| `chain rules/agents/workflows list` | List non-skill assets from `CHAIN_HOME/<type>/` with core/user markers |
+| `chain rules/agents/workflows new <slug> --content "<md>"` | Create a new rule/agent/workflow (rules also support `--ext .mdc`) |
+| `chain rules/agents/workflows edit <slug> --content "<md>"` | Update an existing rule/agent/workflow |
+| `chain rules/agents/workflows remove <slug>` | Remove a user-owned rule/agent/workflow |
 | `chain validate` | Validate skills and workflows (built-in checks; use `--fix` where supported) |
 | `chain capture` | Append one learning event to `learnings/queue/inbox.jsonl` (`--event`, `--skill`, `--summary`; optional `--repo`) |
 | `chain reflect` | Turn the inbox into `learnings/drafts/distill-*.md` and archive the queue (`--dry-run` to preview only) |
@@ -134,6 +138,9 @@ chain --chain-home ~/.chain-sandbox init
 chain config set chain_home ~/my-chain-home
 chain add github:owner/repo
 chain add github:your-org/chain-hub-pro --pack
+chain rules list
+chain rules new custom-rule --content "# Rule"
+chain agents new planner --content $'---\nname: planner\ndescription: Planner agent.\n---\n'
 chain find typescript
 chain hub
 chain hub --port 0

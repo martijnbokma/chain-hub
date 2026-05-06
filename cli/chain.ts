@@ -215,6 +215,48 @@ Hub location resolution:
     }),
   )
 
+  for (const kind of ["rules", "agents", "workflows"] as const) {
+    const assetProgram = withChainHomeOption(
+      program.command(kind).description(`Manage ${kind} in CHAIN_HOME/${kind}`),
+    )
+
+    assetProgram
+      .command("list")
+      .description(`List ${kind}`)
+      .action(async () => {
+        const { runAssetList } = await import("./commands/content-assets")
+        await runAssetList(kind)
+      })
+
+    assetProgram
+      .command("new <slug>")
+      .description(`Create a new ${kind.slice(0, -1)} (requires --content)`)
+      .requiredOption("--content <markdown>", "Markdown content")
+      .option("--ext <ext>", "File extension for rules (.md or .mdc)")
+      .action(async (slug, opts: { content: string; ext?: ".md" | ".mdc" }) => {
+        const { runAssetNew } = await import("./commands/content-assets")
+        await runAssetNew(kind, slug, opts)
+      })
+
+    assetProgram
+      .command("edit <slug>")
+      .description(`Update an existing ${kind.slice(0, -1)} (requires --content)`)
+      .requiredOption("--content <markdown>", "Markdown content")
+      .option("--ext <ext>", "File extension for rules (.md or .mdc)")
+      .action(async (slug, opts: { content: string; ext?: ".md" | ".mdc" }) => {
+        const { runAssetEdit } = await import("./commands/content-assets")
+        await runAssetEdit(kind, slug, opts)
+      })
+
+    assetProgram
+      .command("remove <slug>")
+      .description(`Remove a ${kind.slice(0, -1)}`)
+      .action(async (slug) => {
+        const { runAssetRemove } = await import("./commands/content-assets")
+        await runAssetRemove(kind, slug)
+      })
+  }
+
   const configProgram = program.command("config").description("Manage Chain Hub configuration")
 
   configProgram

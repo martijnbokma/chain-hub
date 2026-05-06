@@ -98,3 +98,13 @@ Based on the current state of Chain Hub, there are four natural directions.
 - [Open] Visual hub manager in the browser
 - [Open] View, edit, and install skills without CLI
 - [Open] Integration with `chain status` output
+
+## Direction 5 — Autonomous self-improving engine
+
+- [Open] Add proposal-based improvement loop on top of `chain reflect`
+- [Open] Generate reviewable change proposals for `skills`, `workflows`, `agents`, and `rules`
+- [Open] Add guarded apply flow with validation and policy gates
+- [Open] Add run history, telemetry, and rollback metadata
+- [Open] Start with human-approved batches, then progress to controlled low-risk automation
+
+Reference blueprint: `docs/self-improving-engine.md`

@@ -5,7 +5,7 @@
 - User expects continual-learning runs to follow strict incremental-index rules and exact output contracts when no updates are found.
 - User prefers command examples to be shown as terminal-style blocks with prompts and aligned presentation.
 - User prefers design choices to be explored with side-by-side visual examples before implementation.
-- User prefers English for committed repository documentation; personal operational runbooks (for example continual-learning and npm release workflows) live under `.cursor/private/`, which is gitignored.
+- User prefers English for committed repository documentation and user-facing app/API copy; personal operational runbooks (for example continual-learning and npm release workflows) live under `.cursor/private/`, which is gitignored.
 - User wants bundled `core/` skills and public examples to assume multiple Chain Hub–linked editors: generalize guidance where the capability is shared, state explicit scope when something is Cursor-only or otherwise product-specific, and include the full supported editor set in lists or examples where relevant (including Antigravity).
 - User wants the published chainhub.one documentation (including `/docs`) aimed at end users of the CLI and hub (how to use Chain Hub and clear up behavior), not internal developer-only checklists in the shipped site build.
 - User prefers the marketing homepage hero and compact footer without repeating the public domain as primary navigation (tagline and GitHub link suffice; omit prominent “domain · Docs” style rows there).
