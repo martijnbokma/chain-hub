@@ -8,6 +8,7 @@ const KIRO_DIR = join(homedir(), ".kiro")
 
 export const kiro: IdeAdapter = {
   name: "Kiro",
+  infoUrl: "https://kiro.dev/",
   detect: () => exists(KIRO_DIR),
   links: (chainHome) => [
     { from: join(chainHome, "skills"), to: join(KIRO_DIR, "hooks", "skills"), description: "skills" },

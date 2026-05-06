@@ -18,6 +18,14 @@ function statusMark(status) {
   return { icon: "✗", className: "text-hub-err" }
 }
 
+function formatInfoUrl(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return url
+  }
+}
+
 const initBanner =
   "mb-[0.9rem] shrink-0 border border-[color-mix(in_oklab,var(--color-hub-warn)_50%,transparent)] bg-[color-mix(in_oklab,var(--color-hub-warn)_12%,transparent)] px-[0.8rem] py-[0.65rem] text-[0.79rem] text-[#ffe3b3]"
 
@@ -30,9 +38,21 @@ const adapterCard =
 const adapterHeader =
   "flex items-center gap-[0.55rem] border-b border-hub-border px-[0.65rem] py-[0.55rem]"
 
-const adapterName = "flex-1"
+const adapterName = "flex flex-1 items-center gap-1.5"
 
 const adapterUrl = "text-[0.72rem] text-hub-text-faint"
+const adapterUrlLink =
+  "text-[0.72rem] text-hub-text-faint underline underline-offset-2 transition-colors hover:text-hub-user focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hub-user"
+const adapterInfoUrlFallbacks = {
+  "Claude Code": "https://www.anthropic.com/claude-code",
+  Cursor: "https://cursor.com/",
+  Windsurf: "https://windsurf.com/",
+  "Gemini CLI": "https://geminicli.com/",
+  Kiro: "https://kiro.dev/",
+  Trae: "https://www.trae.ai/",
+  "Mistral Vibe": "https://mistral.ai/products/vibe",
+  Antigravity: "https://antigravity.google/",
+}
 
 const linkRow =
   "flex gap-2 border-t border-[color-mix(in_oklab,var(--color-hub-border)_74%,transparent)] px-[0.65rem] py-[0.45rem] pl-[1.3rem] text-[0.75rem]"
@@ -156,10 +176,19 @@ export function createStatusView({ root, setChainHomeBar, apiRequest }) {
   function renderAdapter(adapter) {
     const card = el("div", adapterCard)
     const header = el("div", adapterHeader)
-    const name = el("strong", adapterName, adapter.name)
-    const url = el("span", adapterUrl, adapter.infoUrl ?? "")
-    header.append(name)
-    if (adapter.infoUrl) header.append(url)
+    const nameWrap = el("div", adapterName)
+    const name = el("strong", "", adapter.name)
+    nameWrap.append(name)
+    const infoUrl = adapter.infoUrl ?? adapterInfoUrlFallbacks[adapter.name] ?? ""
+    if (infoUrl) {
+      nameWrap.append(el("span", adapterUrl, "·"))
+      const url = el("a", adapterUrlLink, formatInfoUrl(infoUrl))
+      url.href = infoUrl
+      url.target = "_blank"
+      url.rel = "noopener noreferrer"
+      nameWrap.append(url)
+    }
+    header.append(nameWrap)
 
     if (!adapter.detected) {
       const status = el("span", "text-hub-warn", "not detected")

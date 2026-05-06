@@ -8,6 +8,7 @@ const TRAE_DIR = join(homedir(), ".trae")
 
 export const trae: IdeAdapter = {
   name: "Trae",
+  infoUrl: "https://www.trae.ai/",
   detect: () => exists(TRAE_DIR),
   links: (chainHome) => [
     { from: join(chainHome, "skills"), to: join(TRAE_DIR, "skills"), description: "skills" },

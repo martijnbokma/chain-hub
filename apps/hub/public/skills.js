@@ -741,7 +741,10 @@ export function createSkillsView({ root, setChainHomeBar, setBanner, apiRequest,
     const filtersAtDefault =
       listCategoryFilter === "all" && listRecencyFilter === "all" && listSortMode === "category"
     resetFiltersButton.disabled = filtersAtDefault
-    resetFiltersButton.classList.toggle(listControlButtonDisabled, filtersAtDefault)
+    for (const className of listControlButtonDisabled.split(" ")) {
+      if (!className) continue
+      resetFiltersButton.classList.toggle(className, filtersAtDefault)
+    }
     resetFiltersButton.addEventListener("click", () => {
       listCategoryFilter = "all"
       listRecencyFilter = "all"

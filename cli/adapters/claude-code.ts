@@ -7,6 +7,7 @@ const CLAUDE_DIR = join(homedir(), ".claude")
 
 export const claudeCode: IdeAdapter = {
   name: "Claude Code",
+  infoUrl: "https://www.anthropic.com/claude-code",
   detect: () => exists(CLAUDE_DIR),
   links: (chainHome) => {
     const links = [

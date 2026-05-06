@@ -7,6 +7,7 @@ const WINDSURF_DIR = join(homedir(), ".codeium", "windsurf")
 
 export const windsurf: IdeAdapter = {
   name: "Windsurf",
+  infoUrl: "https://windsurf.com/",
   detect: () => exists(WINDSURF_DIR),
   links: (chainHome) => [
     { from: join(chainHome, "skills"), to: join(WINDSURF_DIR, "skills"), description: "skills" },

@@ -10,6 +10,7 @@ const VIBE_DIR = join(homedir(), ".vibe")
 
 export const mistralVibe: IdeAdapter = {
   name: "Mistral Vibe",
+  infoUrl: "https://mistral.ai/products/vibe",
   detect: () => exists(VIBE_DIR),
   links: (chainHome) => [
     { from: join(chainHome, "skills"), to: join(VIBE_DIR, "skills"), description: "skills" },

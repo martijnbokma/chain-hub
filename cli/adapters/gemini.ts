@@ -7,6 +7,7 @@ const GEMINI_DIR = join(homedir(), ".gemini")
 
 export const gemini: IdeAdapter = {
   name: "Gemini CLI",
+  infoUrl: "https://geminicli.com/",
   detect: () => exists(join(GEMINI_DIR, "settings.json")),
   links: (chainHome) => [
     // Skills live only under ~/.agents/skills (universal adapter) so Gemini CLI does not

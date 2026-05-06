@@ -7,6 +7,7 @@ const CURSOR_DIR = join(homedir(), ".cursor")
 
 export const cursor: IdeAdapter = {
   name: "Cursor",
+  infoUrl: "https://cursor.com/",
   detect: () => exists(CURSOR_DIR),
   links: (chainHome) => [
     { from: join(chainHome, "agents"), to: join(CURSOR_DIR, "agents"), description: "agents" },
