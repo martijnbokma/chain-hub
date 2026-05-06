@@ -2,6 +2,20 @@
 # Used by `chain search`, `chain find`, and `chain add <slug>`.
 schema_version: 1
 skills:
+  - slug: code-review
+    description: >-
+      Five-dimension code review (correctness, readability, security, performance, tests).
+      For PRs and when the user asks to review code — cross-editor.
+    version: "0.1.2"
+    source: github:martijnbokma/chain-hub
+    path: core/skills/code-review
+  - slug: commit
+    description: >-
+      Structured git commit messages (Conventional Commits). For commit requests and
+      writing commit messages — cross-editor.
+    version: "0.1.2"
+    source: github:martijnbokma/chain-hub
+    path: core/skills/commit
   - slug: create-hook
     description: Create Cursor agent hooks (hooks.json + scripts) and automation around agent events.
     version: "0.1.2"
@@ -22,6 +36,13 @@ skills:
     version: "0.1.2"
     source: github:martijnbokma/chain-hub
     path: core/skills/create-subagent
+  - slug: debug
+    description: >-
+      Systematic debugging — reproduce, isolate, fix, guard with a regression test.
+      For errors, failures, and “why isn’t this working” — cross-editor.
+    version: "0.1.2"
+    source: github:martijnbokma/chain-hub
+    path: core/skills/debug
   - slug: find-skills
     description: Discover and install skills via Chain Hub CLI; registry search; skills.sh and npx skills ecosystem.
     version: "0.1.2"

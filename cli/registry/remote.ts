@@ -56,10 +56,42 @@ export async function fetchRemoteIndex(): Promise<RemoteIndex> {
   }
 }
 
+/** Higher scores sort first. Zero means no match (excluded from results). */
+export function scoreRegistryMatch(skill: RemoteSkill, query: string): number {
+  const q = query.trim().toLowerCase()
+  if (!q) return 1
+
+  const slug = skill.slug.toLowerCase()
+  const desc = skill.description.toLowerCase()
+
+  if (slug === q) return 1_000_000
+
+  const slugSegments = slug.split("-")
+  if (slugSegments.some((seg) => seg === q)) return 850_000
+
+  if (slug.startsWith(q)) return 800_000
+  if (slug.includes(q)) return 600_000
+  if (desc.includes(q)) return 400_000
+
+  const tokens = q.split(/\s+/).filter((t) => t.length > 0)
+  if (tokens.length === 0) return 0
+
+  const everyToken = tokens.every((t) => desc.includes(t) || slug.includes(t))
+  if (everyToken) return 200_000 + tokens.length * 500
+
+  const someToken = tokens.some((t) => desc.includes(t) || slug.includes(t))
+  return someToken ? 50_000 : 0
+}
+
+export function filterAndRankRegistrySkills(skills: RemoteSkill[], query: string): RemoteSkill[] {
+  return skills
+    .map((s) => ({ skill: s, score: scoreRegistryMatch(s, query) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.skill.slug.localeCompare(b.skill.slug))
+    .map((x) => x.skill)
+}
+
 export async function searchRemote(query: string): Promise<RemoteSkill[]> {
   const index = await fetchRemoteIndex()
-  const q = query.toLowerCase()
-  return index.skills.filter(
-    (s) => s.slug.includes(q) || s.description.toLowerCase().includes(q)
-  )
+  return filterAndRankRegistrySkills(index.skills, query)
 }

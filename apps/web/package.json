@@ -14,7 +14,8 @@
     "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.2.4",
     "astro": "^6.2.2",
-    "tailwindcss": "^4.2.4"
+    "tailwindcss": "^4.2.4",
+    "yaml": "^2.8.4"
   },
   "devDependencies": {
     "@resvg/resvg-js-cli": "^2.6.2-beta.1",
