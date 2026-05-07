@@ -11,20 +11,20 @@
 @source "../../public/**/*.js";
 
 @theme {
-  --color-hub-bg: #070912;
-  --color-hub-surface-1: #0c0f1a;
-  --color-hub-surface-2: #101421;
-  --color-hub-surface-3: #171c2d;
-  --color-hub-border: rgba(239, 242, 255, 0.08);
-  --color-hub-border-strong: rgba(139, 124, 255, 0.3);
-  --color-hub-text: #eff2ff;
-  --color-hub-text-dim: #8f96b2;
-  --color-hub-text-faint: #5b6077;
-  --color-hub-accent: #8b7cff;
-  --color-hub-core: #8b7cff;
-  --color-hub-user: #4ee0a1;
-  --color-hub-warn: #ffca73;
-  --color-hub-err: #ff8989;
+  --color-hub-bg: var(--hub-bg);
+  --color-hub-surface-1: var(--hub-surface-1);
+  --color-hub-surface-2: var(--hub-surface-2);
+  --color-hub-surface-3: var(--hub-surface-3);
+  --color-hub-border: var(--hub-border);
+  --color-hub-border-strong: var(--hub-border-strong);
+  --color-hub-text: var(--hub-text);
+  --color-hub-text-dim: var(--hub-text-dim);
+  --color-hub-text-faint: var(--hub-text-faint);
+  --color-hub-accent: var(--hub-accent);
+  --color-hub-core: var(--hub-core);
+  --color-hub-user: var(--hub-user);
+  --color-hub-warn: var(--hub-warn);
+  --color-hub-err: var(--hub-err);
   --font-hub-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
   --font-hub-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New",
     monospace;
@@ -386,73 +386,103 @@
 /*---break---
  */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --hub-bg: #f8f9fc;
+  --hub-surface-1: #ffffff;
+  --hub-surface-2: #f1f4f9;
+  --hub-surface-3: #e6eaf1;
+  --hub-border: rgba(0, 0, 0, 0.06);
+  --hub-border-strong: rgba(139, 124, 255, 0.2);
+  --hub-text: #1a1c24;
+  --hub-text-dim: #5c627a;
+  --hub-text-faint: #8a91ad;
+  --hub-accent: #6355ff;
+  --hub-core: #6355ff;
+  --hub-user: #22c55e;
+  --hub-warn: #f59e0b;
+  --hub-err: #ef4444;
+
+  --background: var(--hub-bg);
+  --foreground: var(--hub-text);
+  --card: var(--hub-surface-1);
+  --card-foreground: var(--hub-text);
+  --popover: var(--hub-surface-2);
+  --popover-foreground: var(--hub-text);
+  --primary: var(--hub-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--hub-surface-3);
+  --secondary-foreground: var(--hub-text);
+  --muted: var(--hub-surface-2);
+  --muted-foreground: var(--hub-text-dim);
+  --accent: var(--hub-surface-3);
+  --accent-foreground: var(--hub-text);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: var(--hub-border);
+  --input: var(--hub-border);
+  --ring: var(--hub-accent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--hub-surface-1);
+  --sidebar-foreground: var(--hub-text);
+  --sidebar-primary: var(--hub-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--hub-surface-3);
+  --sidebar-accent-foreground: var(--hub-text);
+  --sidebar-border: var(--hub-border);
+  --sidebar-ring: var(--hub-accent);
 }
 /*---break---
  */
 .dark {
-  --background: #070912; /* Match hub-bg */
-  --foreground: #eff2ff; /* Match hub-text */
-  --card: #0c0f1a; /* Match hub-surface-1 */
-  --card-foreground: #eff2ff;
-  --popover: #101421; /* Match hub-surface-2 */
-  --popover-foreground: #eff2ff;
-  --primary: #8b7cff; /* Match hub-accent */
+  --hub-bg: #070912;
+  --hub-surface-1: #0c0f1a;
+  --hub-surface-2: #101421;
+  --hub-surface-3: #171c2d;
+  --hub-border: rgba(239, 242, 255, 0.08);
+  --hub-border-strong: rgba(139, 124, 255, 0.3);
+  --hub-text: #eff2ff;
+  --hub-text-dim: #8f96b2;
+  --hub-text-faint: #5b6077;
+  --hub-accent: #8b7cff;
+  --hub-core: #8b7cff;
+  --hub-user: #4ee0a1;
+  --hub-warn: #ffca73;
+  --hub-err: #ff8989;
+
+  --background: var(--hub-bg);
+  --foreground: var(--hub-text);
+  --card: var(--hub-surface-1);
+  --card-foreground: var(--hub-text);
+  --popover: var(--hub-surface-2);
+  --popover-foreground: var(--hub-text);
+  --primary: var(--hub-accent);
   --primary-foreground: #ffffff;
-  --secondary: #171c2d; /* Match hub-surface-3 */
-  --secondary-foreground: #eff2ff;
-  --muted: #101421;
-  --muted-foreground: #8f96b2;
-  --accent: #171c2d;
-  --accent-foreground: #eff2ff;
+  --secondary: var(--hub-surface-3);
+  --secondary-foreground: var(--hub-text);
+  --muted: var(--hub-surface-2);
+  --muted-foreground: var(--hub-text-dim);
+  --accent: var(--hub-surface-3);
+  --accent-foreground: var(--hub-text);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: rgba(239, 242, 255, 0.08);
+  --border: var(--hub-border);
   --input: rgba(239, 242, 255, 0.12);
-  --ring: #8b7cff;
+  --ring: var(--hub-accent);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: #0c0f1a;
-  --sidebar-foreground: #eff2ff;
-  --sidebar-primary: #8b7cff;
+  --sidebar: var(--hub-surface-1);
+  --sidebar-foreground: var(--hub-text);
+  --sidebar-primary: var(--hub-accent);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #171c2d;
-  --sidebar-accent-foreground: #eff2ff;
-  --sidebar-border: rgba(239, 242, 255, 0.08);
-  --sidebar-ring: #8b7cff;
+  --sidebar-accent: var(--hub-surface-3);
+  --sidebar-accent-foreground: var(--hub-text);
+  --sidebar-border: var(--hub-border);
+  --sidebar-ring: var(--hub-accent);
 }
 /*---break---
  */

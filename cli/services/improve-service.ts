@@ -289,8 +289,8 @@ export function applyApprovedProposals(
       applied += 1
       appliedMeta.push({ proposal_id: proposal.id, target_path: proposal.target_path, backup_content: backupContent })
       return { ...proposal, status: "applied" as const }
-    } catch (e) {
-      console.error(`Failed to apply proposal ${proposal.id}:`, e)
+    } catch (err: unknown) {
+      console.error(`Failed to apply proposal ${proposal.id}:`, err)
       failed += 1
       return { ...proposal, status: "failed" as const }
     }
@@ -340,8 +340,8 @@ export function rollbackRun(chainHome: string, runId: string): { ok: boolean; re
         }
       }
       restored += 1
-    } catch (e) {
-      console.error(`Failed to rollback ${item.target_path}:`, e)
+    } catch (err: unknown) {
+      console.error(`Failed to rollback ${item.target_path}:`, err)
       failed += 1
     }
   }

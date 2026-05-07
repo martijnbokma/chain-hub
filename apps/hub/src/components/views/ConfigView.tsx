@@ -6,6 +6,7 @@ import { ViewContainer } from "@/components/layout/ViewContainer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import {
   Select,
@@ -169,6 +170,13 @@ export function ConfigView() {
                       Dark
                     </button>
                     <button 
+                      onClick={() => updateUiPrefs({ theme: 'light' })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[0.75rem] font-medium transition-all ${uiPrefs.theme === 'light' ? 'bg-hub-accent text-white shadow-lg' : 'text-hub-text-dim hover:text-hub-text'}`}
+                    >
+                      <Sun className="size-3.5" />
+                      Light
+                    </button>
+                    <button 
                       onClick={() => updateUiPrefs({ theme: 'system' })}
                       className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[0.75rem] font-medium transition-all ${uiPrefs.theme === 'system' ? 'bg-hub-accent text-white shadow-lg' : 'text-hub-text-dim hover:text-hub-text'}`}
                     >
@@ -231,30 +239,30 @@ export function ConfigView() {
 
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <ViewContainer className="p-5 space-y-5">
-            <h2 className="text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
+            <h2 className="text-hub-text text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
               <Info className="size-4 text-hub-accent" />
               Environment
             </h2>
             <div className="space-y-4">
-              <div className="space-y-1.5 p-3 rounded-lg bg-black/20 border border-white/5">
+              <div className="space-y-1.5 p-3 rounded-lg bg-hub-surface-1/50 border border-hub-border">
                 <span className="text-hub-text-faint block uppercase text-[0.6rem] tracking-widest font-bold">Config File</span>
                 <div className="flex items-center gap-2 group cursor-help" title={config.configPath}>
                   <span className="font-hub-mono text-[0.7rem] text-hub-text-dim truncate">{config.configPath || "Not found"}</span>
                   <ExternalLink className="size-3 opacity-30" />
                 </div>
               </div>
-              <div className="space-y-1.5 p-3 rounded-lg bg-black/20 border border-white/5">
+              <div className="space-y-1.5 p-3 rounded-lg bg-hub-surface-1/50 border border-hub-border">
                 <span className="text-hub-text-faint block uppercase text-[0.6rem] tracking-widest font-bold">CLI Version</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-hub-mono text-[0.7rem] text-hub-text-dim">1.0.0-beta.12</span>
-                  <ShieldCheck className="size-3.5 text-hub-success/50" />
+                  <span className="font-hub-mono text-[0.7rem] text-hub-text-dim">{config.systemInfo?.cliVersion || "..."}</span>
+                  <ShieldCheck className="size-3.5 text-hub-accent/50" />
                 </div>
               </div>
             </div>
           </ViewContainer>
 
           <ViewContainer className="p-5 space-y-5">
-            <h2 className="text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
+            <h2 className="text-hub-text text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
               <Lock className="size-4 text-hub-accent" />
               Persistence
             </h2>

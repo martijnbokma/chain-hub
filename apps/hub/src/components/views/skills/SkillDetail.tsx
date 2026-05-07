@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { FocusModal } from "./FocusModal"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ViewContainer } from "@/components/layout/ViewContainer"
 
 interface SkillDetailProps {
   slug: string
@@ -42,6 +43,61 @@ interface SkillData {
   credits?: string
   deactivated: boolean
 }
+
+interface SaveBody {
+  content: string
+  newSlug?: string
+}
+
+// ---------------------------------------------------------------------------
+// SkillEditor — editor pane (header bar + textarea)
+// ---------------------------------------------------------------------------
+
+interface SkillEditorProps {
+  slug: string
+  draft: string
+  onChange: (value: string) => void
+  onFocus: () => void
+}
+
+function SkillEditor({ slug, draft, onChange, onFocus }: SkillEditorProps) {
+  return (
+    <ViewContainer className="flex flex-col overflow-hidden p-0 border-hub-border/50 group/editor">
+      <div className="flex items-center justify-between px-3 py-2 bg-hub-surface-2/60 border-b border-hub-border group-focus-within/editor:border-hub-accent/30 transition-colors">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="size-3.5 text-hub-text-faint shrink-0" />
+          <span className="text-[0.7rem] font-bold text-hub-text-dim truncate uppercase tracking-wider">{slug}.md</span>
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onFocus}
+                  className="size-6 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 transition-colors"
+                >
+                  <Maximize2 className="size-3" />
+                </Button>
+              }
+            />
+            <TooltipContent>Focus editor</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <Textarea
+        value={draft}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 resize-none bg-transparent border-none focus-visible:ring-0 font-hub-mono text-[0.8rem] p-4 text-hub-text leading-relaxed min-h-[300px]"
+      />
+    </ViewContainer>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SkillDetail — main view
+// ---------------------------------------------------------------------------
 
 export function SkillDetail({ slug, onBack }: SkillDetailProps) {
   const [data, setData] = useState<SkillData | null>(null)
@@ -63,8 +119,8 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
         setData(res)
         setDraft(res.content)
         setSlugDraft(slug)
-      } catch (err: any) {
-        toast.error(`Failed to load skill: ${err.message}`)
+      } catch (err: unknown) {
+        toast.error(`Failed to load skill: ${err instanceof Error ? err.message : String(err)}`)
       } finally {
         setLoading(false)
       }
@@ -77,7 +133,7 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
     const slugChanged = slugDraft !== slug && slugDraft.trim().length > 0
     try {
       setSaving(true)
-      const body: any = { content: draft }
+      const body: SaveBody = { content: draft }
       if (slugChanged) {
         body.newSlug = slugDraft.trim()
       }
@@ -87,13 +143,10 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
       })
       toast.success(`Skill saved successfully.`)
       if (slugChanged) {
-        // Since the slug changed, we might need to notify the parent or redirect
-        // For now, let's just update local state and toast
         setIsEditingSlug(false)
-        // Note: The parent SkillsView usually needs to refresh if slug changed
       }
-    } catch (err: any) {
-      toast.error(`Failed to save: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setSaving(false)
     }
@@ -105,12 +158,12 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
     try {
       await apiRequest(`/api/skills/${slug}/toggle`, {
         method: "POST",
-        body: { enabled: !newState } // backend uses 'enabled'
+        body: { enabled: !newState } 
       })
       setData({ ...data, deactivated: newState })
       toast.success(newState ? `Skill '${slug}' gedeactiveerd.` : `Skill '${slug}' geactiveerd.`)
-    } catch (err: any) {
-      toast.error(`Actie mislukt: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(`Actie mislukt: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -126,8 +179,8 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
       } else {
         toast.success(`Validation passed for '${slug}'`)
       }
-    } catch (err: any) {
-      toast.error(`Validation error: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(`Validation error: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setValidating(false)
     }
@@ -138,8 +191,8 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
       await apiRequest(`/api/skills/${slug}`, { method: "DELETE" })
       toast.success(`Skill '${slug}' removed.`)
       onBack()
-    } catch (err: any) {
-      toast.error(`Failed to remove skill: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(`Failed to remove skill: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -191,23 +244,6 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
                 <div className="text-[0.6rem] text-hub-accent/70 uppercase font-bold tracking-widest flex items-center gap-1">
                   <span className="text-hub-text-faint/30">•</span>
                   {data.githubOwner}
-                </div>
-              )}
-              {data.credits && (
-                <div className="text-[0.6rem] text-hub-text-faint/50 flex items-center gap-1 ml-1">
-                  <span className="text-hub-text-faint/30">•</span>
-                  {data.credits.includes(" — ") ? (
-                    <a 
-                      href={data.credits.split(" — ")[1]} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="hover:text-hub-accent hover:underline transition-colors"
-                    >
-                      {data.credits.split(" — ")[0]}
-                    </a>
-                  ) : (
-                    data.credits
-                  )}
                 </div>
               )}
             </div>
@@ -321,45 +357,20 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
         </div>
       </header>
 
-      <div className={`flex-1 min-h-0 grid grid-cols-1 ${data.isCore ? "" : "md:grid-cols-2"} gap-4`}>
+      <div className={`flex-1 min-h-0 grid grid-cols-1 ${data.isCore ? "" : "md:grid-cols-2"} gap-4 items-start`}>
         {/* Editor Pane */}
         {!data.isCore && (
-          <div className="flex flex-col border border-hub-border rounded-lg bg-hub-surface-1 overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 bg-hub-surface-2 border-b border-hub-border">
-              <div className="flex items-center gap-2 min-w-0">
-                <FileText className="size-3.5 text-hub-text-faint shrink-0" />
-                <span className="text-[0.7rem] font-bold text-hub-text-dim truncate uppercase tracking-wider">{slug}.md</span>
-              </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setFocusMode("editor")}
-                        className="size-6 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 transition-colors"
-                      >
-                        <Maximize2 className="size-3" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>Focus editor</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              disabled={data.isCore}
-              className="flex-1 resize-none bg-hub-surface-2/60 border-none focus-visible:ring-0 font-mono text-[0.8rem] p-4 text-hub-text leading-relaxed"
-            />
-          </div>
+          <SkillEditor
+            slug={slug}
+            draft={draft}
+            onChange={setDraft}
+            onFocus={() => setFocusMode("editor")}
+          />
         )}
 
         {/* Preview Pane */}
-        <div className="flex flex-col border border-hub-border rounded-lg bg-hub-surface-1 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 bg-hub-surface-2 border-b border-hub-border">
+        <ViewContainer className="flex flex-col overflow-hidden p-0 border-hub-border/50 group/preview min-h-[300px]">
+          <div className="flex items-center justify-between px-3 py-2 bg-hub-surface-2/60 border-b border-hub-border">
             <div className="flex items-center gap-2 min-w-0">
               <Eye className="size-3.5 text-hub-text-faint shrink-0" />
               <span className="text-[0.7rem] font-bold text-hub-text-dim truncate uppercase tracking-wider">Preview</span>
@@ -382,12 +393,14 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <MarkdownPreview content={draft} className="p-4 prose prose-invert prose-sm max-w-none" />
-        </div>
+          <div className="relative bg-gradient-to-br from-transparent to-hub-accent/5">
+            <MarkdownPreview content={draft} className="p-6 prose prose-invert prose-sm max-w-none" />
+          </div>
+        </ViewContainer>
       </div>
 
       {validation && (
-        <div className="border border-hub-border rounded-lg bg-hub-surface-2 p-4 space-y-3">
+        <ViewContainer className="p-4 space-y-3 border-hub-border/50">
           <h3 className="text-xs font-bold uppercase tracking-wider text-hub-text-dim">Validation Results</h3>
           <div className="space-y-4">
             {validation.errors && validation.errors.length > 0 && (
@@ -418,7 +431,7 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
               </div>
             )}
           </div>
-        </div>
+        </ViewContainer>
       )}
 
       {focusMode && (

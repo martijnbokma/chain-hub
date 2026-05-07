@@ -2,36 +2,22 @@ import { useState, useEffect, useMemo } from "react"
 import { apiRequest } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ViewHeader } from "@/components/layout/ViewHeader"
 import { ViewContainer } from "@/components/layout/ViewContainer"
-import { 
-  Search, 
-  GitBranch, 
-  Download, 
-  Trash2, 
-  AlertTriangle,
+import {
+  Search,
+  GitBranch,
+  Download,
   Globe,
   Monitor,
   CheckCircle2,
   Loader2,
   Plus,
-  User
 } from "lucide-react"
 import { toast } from "sonner"
 import { useHub } from "@/lib/HubContext"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-
-interface RegistrySkill {
-  slug: string
-  description?: string
-  source: string
-  version: string
-  githubOwner?: string
-  credits?: string
-  inRegistry?: boolean
-  isLocalOnly?: boolean
-}
+import { RegistrySkillCard, type RegistrySkill } from "./RegistrySkillCard"
 
 interface RegistryData {
   skills: RegistrySkill[]
@@ -67,42 +53,31 @@ export function RegistryView() {
       setLoading(true)
       const [regRes, skillRes] = await Promise.all([
         apiRequest<RegistryData>("/api/registry"),
-        apiRequest<{ skills: LocalSkill[] }>("/api/skills")
+        apiRequest<{ skills: LocalSkill[] }>("/api/skills"),
       ])
-
       setAllSkills(regRes.skills || [])
       setLocalSkills(skillRes.skills || [])
       setSource(regRes.source || "live")
-
-      const localSlugs = new Set((skillRes.skills || []).map(s => s.slug))
-      const remSlugs = new Set((skillRes.skills || []).filter(s => !s.isCore).map(s => s.slug))
-      
-      setInstalledSlugs(localSlugs)
-      setRemovableSlugs(remSlugs)
-    } catch (err: any) {
-      toast.error(`Failed to load registry: ${err.message}`)
+      setInstalledSlugs(new Set((skillRes.skills || []).map(s => s.slug)))
+      setRemovableSlugs(new Set((skillRes.skills || []).filter(s => !s.isCore).map(s => s.slug)))
+    } catch (err: unknown) {
+      toast.error(`Failed to load registry: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   const combinedSkills = useMemo(() => {
     const bySlug = new Map<string, RegistrySkill>()
-    
-    // Add registry skills
     allSkills.forEach(skill => {
       bySlug.set(skill.slug, { ...skill, inRegistry: true, isLocalOnly: false })
     })
-
-    // Add local skills that might not be in the registry index
-    // This ensures user-installed or personal skills show up
+    // Include user-installed skills that are not in the remote registry index
     installedSlugs.forEach(slug => {
       if (!bySlug.has(slug)) {
-        const local = localSkills.find(s => s.slug === slug) 
+        const local = localSkills.find(s => s.slug === slug)
         bySlug.set(slug, {
           slug,
           description: local?.description || "Locally installed skill",
@@ -111,26 +86,21 @@ export function RegistryView() {
           githubOwner: local?.githubOwner,
           credits: local?.credits,
           inRegistry: false,
-          isLocalOnly: true
+          isLocalOnly: true,
         })
       }
     })
-
     return Array.from(bySlug.values()).sort((a, b) => a.slug.localeCompare(b.slug))
   }, [allSkills, installedSlugs, localSkills])
 
   const filteredSkills = useMemo(() => {
     let scoped = combinedSkills
-    if (filter === "registry") {
-      scoped = combinedSkills.filter(s => s.inRegistry)
-    } else if (filter === "installed") {
-      scoped = combinedSkills.filter(s => installedSlugs.has(s.slug))
-    }
-
+    if (filter === "registry") scoped = combinedSkills.filter(s => s.inRegistry)
+    else if (filter === "installed") scoped = combinedSkills.filter(s => installedSlugs.has(s.slug))
     const query = searchQuery.toLowerCase().trim()
     if (!query) return scoped
-    return scoped.filter(s => 
-      s.slug.toLowerCase().includes(query) || 
+    return scoped.filter(s =>
+      s.slug.toLowerCase().includes(query) ||
       (s.description || "").toLowerCase().includes(query)
     )
   }, [combinedSkills, filter, searchQuery, installedSlugs])
@@ -138,14 +108,11 @@ export function RegistryView() {
   const handleInstall = async (slug: string) => {
     try {
       setInstalling(slug)
-      await apiRequest("/api/registry/install", {
-        method: "POST",
-        body: { slug }
-      })
+      await apiRequest("/api/registry/install", { method: "POST", body: { slug } })
       toast.success(`Installed ${slug}`)
       await loadData()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setInstalling(null)
     }
@@ -157,8 +124,8 @@ export function RegistryView() {
       await apiRequest(`/api/skills/${encodeURIComponent(slug)}`, { method: "DELETE" })
       toast.success(`Uninstalled ${slug}`)
       await loadData()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setInstalling(null)
       setSlugToUninstall(null)
@@ -177,15 +144,14 @@ export function RegistryView() {
       toast.error("Invalid GitHub reference. Use owner/repo.")
       return
     }
-    const ref = `github:${trimmed}`
-    await handleInstall(ref)
+    await handleInstall(`github:${trimmed}`)
     setGithubInput("")
   }
 
   return (
     <div className="space-y-4">
-      <ViewHeader 
-        title="Registry" 
+      <ViewHeader
+        title="Registry"
         description="Discover and install agent skills from the official registry."
       />
 
@@ -193,7 +159,7 @@ export function RegistryView() {
         {[
           { id: "all", label: "All Skills", icon: Globe },
           { id: "registry", label: "From Registry", icon: Download },
-          { id: "installed", label: "Installed", icon: CheckCircle2 }
+          { id: "installed", label: "Installed", icon: CheckCircle2 },
         ].map(btn => (
           <Button
             key={btn.id}
@@ -201,8 +167,8 @@ export function RegistryView() {
             size="sm"
             onClick={() => setFilter(btn.id)}
             className={`h-9 px-4 gap-2 border-hub-border-strong/20 transition-all ${
-              filter === btn.id 
-                ? "bg-hub-accent text-white shadow-lg shadow-hub-accent/20" 
+              filter === btn.id
+                ? "bg-hub-accent text-white shadow-lg shadow-hub-accent/20"
                 : "bg-hub-surface-2/40 text-hub-text-dim hover:text-white hover:bg-hub-surface-3"
             }`}
           >
@@ -216,7 +182,7 @@ export function RegistryView() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-both">
           <div className="relative group/search">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-hub-text-faint group-focus-within/search:text-hub-accent transition-colors" />
-            <Input 
+            <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search registry by name or description..."
@@ -235,94 +201,18 @@ export function RegistryView() {
                 No matching skills found in the registry.
               </div>
             ) : (
-              filteredSkills.map((skill) => {
-                const isInstalled = installedSlugs.has(skill.slug)
-                const canUninstall = removableSlugs.has(skill.slug)
-                const isActionLoading = installing === skill.slug
-
-                return (
-                  <div 
-                    key={skill.slug}
-                    className="flex flex-col p-5 rounded-xl border border-hub-border bg-hub-surface-1/40 hover:bg-hub-surface-2/80 hover:border-hub-accent/30 transition-all duration-300 group shadow-lg ring-1 ring-white/5"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-white text-[0.95rem] tracking-tight truncate">{skill.slug}</span>
-                          <Badge variant="outline" className="text-[0.6rem] h-4 border-hub-border-strong/40 text-hub-text-faint px-1.5 bg-white/5">
-                            {skill.version}
-                          </Badge>
-                        </div>
-                        <div className="text-[0.65rem] text-hub-text-faint uppercase font-bold tracking-widest">
-                          {skill.githubOwner ? (
-                            <span className="text-hub-accent/70 flex items-center gap-1.5">
-                              <User className="size-2.5" />
-                              {skill.githubOwner}
-                            </span>
-                          ) : (
-                            skill.source
-                          )}
-                        </div>
-                        {skill.credits && (
-                          <div className="text-[0.6rem] text-hub-text-faint/50 mt-0.5 line-clamp-1">
-                            {skill.credits.includes(" — ") ? (
-                              <>
-                                {skill.credits.split(" — ")[0]} •{" "}
-                                <a 
-                                  href={skill.credits.split(" — ")[1]} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-hub-accent/60 hover:text-hub-accent hover:underline transition-colors"
-                                >
-                                  GitHub
-                                </a>
-                              </>
-                            ) : (
-                              skill.credits
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="shrink-0 ml-4">
-                        {isInstalled ? (
-                          canUninstall ? (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => confirmUninstall(skill.slug)}
-                              disabled={!!installing}
-                              className="h-8 px-3 border-hub-err/20 text-hub-err/60 hover:bg-hub-err/10 hover:text-hub-err hover:border-hub-err/40 transition-all"
-                            >
-                              {isActionLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5 mr-1.5" />}
-                              Uninstall
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-hub-success/10 border border-hub-success/20 text-hub-success text-[0.65rem] font-bold uppercase tracking-wider">
-                              <CheckCircle2 className="size-3" />
-                              Active
-                            </div>
-                          )
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleInstall(skill.slug)}
-                            disabled={!!installing}
-                            className="h-8 px-4 bg-hub-accent hover:bg-hub-accent/90 text-white shadow-md shadow-hub-accent/10"
-                          >
-                            {isActionLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5 mr-1.5" />}
-                            Install
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-[0.75rem] text-hub-text-dim line-clamp-3 leading-relaxed mt-auto min-h-[3rem]">
-                      {skill.description || "Explore this skill's capabilities."}
-                    </p>
-                  </div>
-                )
-              })
+              filteredSkills.map((skill) => (
+                <RegistrySkillCard
+                  key={skill.slug}
+                  skill={skill}
+                  isInstalled={installedSlugs.has(skill.slug)}
+                  canUninstall={removableSlugs.has(skill.slug)}
+                  isActionLoading={installing === skill.slug}
+                  installing={installing}
+                  onInstall={handleInstall}
+                  onConfirmUninstall={confirmUninstall}
+                />
+              ))
             )}
           </div>
         </div>
@@ -335,17 +225,15 @@ export function RegistryView() {
               </div>
               Direct GitHub
             </div>
-            
             <p className="text-[0.75rem] text-hub-text-dim leading-relaxed">
               Install any skill directly from a GitHub repository by providing the owner and repo name.
             </p>
-
             <div className="space-y-4">
               <div className="flex items-center bg-hub-surface-2 border border-hub-border-strong/30 rounded-xl group/gh focus-within:border-hub-accent/50 focus-within:ring-2 focus-within:ring-hub-accent/10 transition-all overflow-hidden h-12 shadow-inner">
                 <div className="pl-4 pr-1 text-[0.8rem] font-bold text-hub-text-faint/50 group-focus-within/gh:text-hub-accent/60 transition-colors select-none">
                   github:
                 </div>
-                <input 
+                <input
                   value={githubInput}
                   onChange={(e) => setGithubInput(e.target.value)}
                   placeholder="owner/repo"
@@ -353,9 +241,8 @@ export function RegistryView() {
                   className="flex-1 bg-transparent border-none outline-none text-hub-text text-[0.9rem] py-2 pr-4 placeholder:text-hub-text-faint/20 font-medium"
                 />
               </div>
-
-              <Button 
-                onClick={handleGithubInstall} 
+              <Button
+                onClick={handleGithubInstall}
                 disabled={!!installing || !githubInput.trim()}
                 className="w-full h-11 bg-hub-surface-3/50 border border-hub-border text-hub-text hover:text-white hover:bg-hub-accent hover:border-hub-accent hover:shadow-[0_0_20px_rgba(139,124,255,0.15)] transition-all font-bold rounded-xl tracking-wide uppercase text-[0.7rem]"
               >
@@ -366,13 +253,12 @@ export function RegistryView() {
           </div>
 
           <div className="p-6 rounded-2xl border border-hub-border bg-hub-surface-1/40 backdrop-blur-sm ring-1 ring-white/5 shadow-xl">
-             <div className="flex items-center gap-3 text-white text-xs font-bold uppercase tracking-[0.2em] mb-5">
-               <div className="size-8 rounded-lg bg-hub-user/10 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-white text-xs font-bold uppercase tracking-[0.2em] mb-5">
+              <div className="size-8 rounded-lg bg-hub-user/10 flex items-center justify-center">
                 <Monitor className="size-4 text-hub-user" />
               </div>
               Local Status
             </div>
-            
             <div className="space-y-4">
               <div className="flex justify-between items-center group/stat">
                 <span className="text-[0.7rem] text-hub-text-dim uppercase font-bold tracking-wider group-hover:text-hub-text transition-colors">Installed</span>
@@ -390,6 +276,7 @@ export function RegistryView() {
           </div>
         </div>
       </div>
+
       <ConfirmDialog
         open={isUninstallConfirmOpen}
         onOpenChange={setIsUninstallConfirmOpen}

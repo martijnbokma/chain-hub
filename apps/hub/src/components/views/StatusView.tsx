@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react"
 import { apiRequest } from "@/lib/api"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { ViewHeader } from "@/components/layout/ViewHeader"
 import { ViewContainer } from "@/components/layout/ViewContainer"
 import {
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
   RefreshCw,
   AlertTriangle,
   ChevronDown,
@@ -18,9 +15,9 @@ import {
   Link2,
   ShieldCheck,
   Loader2,
-  Activity,
 } from "lucide-react"
 import { toast } from "sonner"
+import { AdapterCard } from "@/components/views/status/AdapterCard"
 
 interface LinkStatus {
   description: string
@@ -276,9 +273,10 @@ export function StatusView() {
       if (isManual) {
         toast.success("Status refreshed")
       }
-    } catch (err: any) {
-      setError(err.message)
-      toast.error(`Failed to refresh status: ${err.message}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      toast.error(`Failed to refresh status: ${message}`)
     } finally {
       setLoading(false)
     }
@@ -320,8 +318,9 @@ export function StatusView() {
       }
 
       await fetchStatus()
-    } catch (err: any) {
-      toast.error(err.message, { id: "maintenance-toast" })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error(message, { id: "maintenance-toast" })
     } finally {
       setSetupInProgress(false)
     }
@@ -366,13 +365,13 @@ export function StatusView() {
       </ViewHeader>
 
       {data.initialized === false && (
-        <div className="rounded-md border border-hub-warn/50 bg-hub-warn/12 px-4 py-3 text-[0.79rem] text-[#ffe3b3]">
+        <div className="rounded-md border border-hub-warn/50 bg-hub-warn/12 px-4 py-3 text-[0.79rem] text-hub-warn">
           Hub not initialized yet. Use maintenance actions below to initialize in-place.
         </div>
       )}
 
       {issuesCount > 0 ? (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-hub-warn/45 bg-hub-warn/12 px-4 py-3 text-[#f8dcb0]">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-hub-warn/45 bg-hub-warn/12 px-4 py-3 text-hub-warn">
           <div className="flex items-center gap-2 text-sm">
             <AlertTriangle className="size-4" />
             <span>{issuesCount} issue(s) detected</span>
@@ -424,100 +423,12 @@ export function StatusView() {
 
       <div className="space-y-3">
         {data.adapters.map((adapter) => (
-          <Card
+          <AdapterCard
             key={adapter.name}
-            className="overflow-hidden border-hub-border bg-hub-surface-1/85 shadow-none rounded-md"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-hub-border px-3 py-2.5">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <span className="font-semibold text-sm text-[#f5f8ff]">{adapter.name}</span>
-                {adapter.infoUrl && (
-                  <>
-                    <span className="text-hub-text-faint">·</span>
-                    <a
-                      href={adapter.infoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[0.72rem] text-hub-text-faint hover:text-hub-user underline underline-offset-2 flex items-center gap-1"
-                    >
-                      {new URL(adapter.infoUrl).hostname.replace(/^www\./, "")}
-                      <ExternalLink className="size-2.5" />
-                    </a>
-                  </>
-                )}
-              </div>
-              <div>
-                {!adapter.detected ? (
-                  <Badge
-                    variant="outline"
-                    className="border-hub-warn/40 text-hub-warn text-[0.65rem] uppercase py-0 px-1.5 h-5 font-semibold"
-                  >
-                    not detected
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className={`text-[0.65rem] uppercase py-0 px-1.5 h-5 font-semibold ${
-                      (adapter.links?.filter((l) => l.status !== "ok").length ?? 0) === 0
-                        ? "border-hub-user/40 text-hub-user"
-                        : "border-hub-err/40 text-hub-err"
-                    }`}
-                  >
-                    {(adapter.links?.filter((l) => l.status !== "ok").length ?? 0) === 0
-                      ? "healthy"
-                      : `${adapter.links?.filter((l) => l.status !== "ok").length} issue(s)`}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {adapter.detected && adapter.links && (
-              <div className="divide-y divide-hub-border/50">
-                {adapter.links.map((link, idx) => (
-                  <div key={idx} className="flex items-start gap-3 px-3 py-2 pl-5 text-[0.75rem]">
-                    <div className="mt-0.5">
-                      {link.status === "ok" ? (
-                        <CheckCircle2 className="size-3.5 text-hub-user" />
-                      ) : (
-                        <AlertCircle
-                          className={`size-3.5 ${link.status === "error" ? "text-hub-err" : "text-hub-warn"}`}
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-hub-text">{link.description}</div>
-                      {link.resolvedPath && (
-                        <div className="text-[0.68rem] text-hub-text-faint truncate font-hub-mono mt-0.5">
-                          → {link.resolvedPath}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {adapter.links.some((l) => l.status !== "ok") && (
-                  <div className="px-3 py-2 bg-hub-surface-2/30">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => runSetup(adapter.name)}
-                      disabled={setupInProgress}
-                      className="h-7 text-[0.7rem] gap-1.5 border-hub-warn/55 text-hub-warn hover:bg-hub-warn/10"
-                    >
-                      {setupInProgress ? (
-                        <>
-                          <RefreshCw className="size-3 animate-spin" />
-                          Running…
-                        </>
-                      ) : (
-                        `Repair ${adapter.name} links`
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
+            adapter={adapter}
+            setupInProgress={setupInProgress}
+            onRepair={runSetup}
+          />
         ))}
       </div>
     </div>

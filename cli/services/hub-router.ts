@@ -3,6 +3,7 @@ import { join, resolve } from "path"
 import { homedir } from "os"
 import { getChainHomeResolution, type ChainHomeResolution } from "../utils/chain-home"
 import { getChainConfigPath, readChainConfig, writeChainConfig } from "../utils/chain-config"
+import { readCliVersion } from "../utils/cli-version"
 import { UserError } from "../utils/errors"
 import {
   createSkill,
@@ -36,6 +37,8 @@ import {
 } from "./improve-service"
 
 const CONTENT_KINDS: ContentKind[] = ["skills", "rules", "agents", "workflows"]
+
+// === Shared helpers ===
 
 function buildSkillsListResponse(
   chainHome: string,
@@ -81,6 +84,8 @@ function parseContentKind(raw: string): ContentKind {
   }
   throw new UserError(`Invalid content kind '${raw}'. Expected one of: ${CONTENT_KINDS.join(", ")}.`)
 }
+
+// === Content routes ===
 
 async function handleContentRoutes(
   request: Request,
@@ -172,6 +177,8 @@ async function handleContentRoutes(
   return null
 }
 
+// === Skills routes ===
+
 async function handleSkillsRoutes(
   request: Request,
   pathname: string,
@@ -240,6 +247,8 @@ async function handleSkillsRoutes(
   return null
 }
 
+// === Improve routes ===
+
 async function handleImproveRoutes(
   request: Request,
   pathname: string,
@@ -298,6 +307,8 @@ async function handleImproveRoutes(
   return null
 }
 
+// === Config routes ===
+
 async function handleConfigRoutes(
   request: Request,
   pathname: string,
@@ -317,8 +328,9 @@ async function handleConfigRoutes(
         platform: process.platform,
         arch: process.arch,
         nodeVersion: process.version,
-        bunVersion: (globalThis as any).Bun?.version || null,
+        bunVersion: (globalThis as unknown as { Bun?: { version?: string } }).Bun?.version ?? null,
         uptime: Math.floor(process.uptime()),
+        cliVersion: readCliVersion(),
       }
     })
   }
@@ -352,6 +364,81 @@ async function handleConfigRoutes(
   return null
 }
 
+// === Status route ===
+
+function handleStatusRoute(
+  request: Request,
+  pathname: string,
+  chainHome: string,
+  activeResolution: ChainHomeResolution,
+): Response | null {
+  if (pathname === "/api/status" && request.method === "GET") {
+    return json(getStatus(chainHome, activeResolution.source))
+  }
+  return null
+}
+
+// === Setup route ===
+
+async function handleSetupRoute(
+  request: Request,
+  pathname: string,
+  chainHome: string,
+): Promise<Response | null> {
+  if (pathname === "/api/setup" && request.method === "POST") {
+    const body =
+      request.headers.get("content-length") === "0" ? {} : await readJsonBody(request)
+    const ide = typeof body.ide === "string" ? body.ide : undefined
+    const result = await runSetupService(chainHome, { ide })
+    return json(result)
+  }
+  return null
+}
+
+// === Reflect routes ===
+
+function handleReflectRoutes(
+  request: Request,
+  pathname: string,
+  chainHome: string,
+): Response | null {
+  if (pathname === "/api/reflect/preview" && request.method === "POST") {
+    return json(previewReflect(chainHome))
+  }
+  if (pathname === "/api/reflect/run" && request.method === "POST") {
+    return json(runReflect(chainHome))
+  }
+  return null
+}
+
+// === Registry routes ===
+
+async function handleRegistryRoutes(
+  request: Request,
+  pathname: string,
+  chainHome: string,
+): Promise<Response | null> {
+  if (pathname === "/api/registry" && request.method === "GET") {
+    return json(await fetchRegistry())
+  }
+
+  if (pathname === "/api/registry/install" && request.method === "POST") {
+    const body = await readJsonBody(request)
+    const slug = body.slug
+    if (typeof slug !== "string" || slug.trim().length === 0) {
+      throw new UserError("Field 'slug' is required and must be a non-empty string.")
+    }
+    const skill = typeof body.skill === "string" ? body.skill : undefined
+    const pack = Boolean(body.pack)
+    const result = await installSkill(chainHome, slug.trim(), { skill, pack })
+    return json(result, 201)
+  }
+
+  return null
+}
+
+// === Main dispatch ===
+
 export async function routeRequest(
   request: Request,
   chainHome: string,
@@ -372,25 +459,14 @@ export async function routeRequest(
       if (response) return response
     }
 
-    if (pathname === "/api/status" && request.method === "GET") {
-      return json(getStatus(chainHome, activeResolution.source))
-    }
+    const statusResponse = handleStatusRoute(request, pathname, chainHome, activeResolution)
+    if (statusResponse) return statusResponse
 
-    if (pathname === "/api/setup" && request.method === "POST") {
-      const body =
-        request.headers.get("content-length") === "0" ? {} : await readJsonBody(request)
-      const ide = typeof body.ide === "string" ? body.ide : undefined
-      const result = await runSetupService(chainHome, { ide })
-      return json(result)
-    }
+    const setupResponse = await handleSetupRoute(request, pathname, chainHome)
+    if (setupResponse) return setupResponse
 
-    if (pathname === "/api/reflect/preview" && request.method === "POST") {
-      return json(previewReflect(chainHome))
-    }
-
-    if (pathname === "/api/reflect/run" && request.method === "POST") {
-      return json(runReflect(chainHome))
-    }
+    const reflectResponse = handleReflectRoutes(request, pathname, chainHome)
+    if (reflectResponse) return reflectResponse
 
     if (pathname.startsWith("/api/improve/")) {
       const response = await handleImproveRoutes(request, pathname, chainHome)
@@ -402,21 +478,9 @@ export async function routeRequest(
       if (response) return response
     }
 
-    if (pathname === "/api/registry" && request.method === "GET") {
-      return json(await fetchRegistry())
-    }
-
-    if (pathname === "/api/registry/install" && request.method === "POST") {
-      const body = await readJsonBody(request)
-      const slug = body.slug
-      if (typeof slug !== "string" || slug.trim().length === 0) {
-        throw new UserError("Field 'slug' is required and must be a non-empty string.")
-      }
-
-      const skill = typeof body.skill === "string" ? body.skill : undefined
-      const pack = Boolean(body.pack)
-      const result = await installSkill(chainHome, slug.trim(), { skill, pack })
-      return json(result, 201)
+    if (pathname.startsWith("/api/registry")) {
+      const response = await handleRegistryRoutes(request, pathname, chainHome)
+      if (response) return response
     }
 
     if (pathname.startsWith("/api/")) {
@@ -424,7 +488,7 @@ export async function routeRequest(
     }
 
     return await serveStatic(pathname, staticRoot)
-  } catch (error) {
+  } catch (error: unknown) {
     const mapped = mapError(error)
     return jsonError(mapped.status, mapped.message, mapped.code)
   }

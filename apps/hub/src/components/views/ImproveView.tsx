@@ -43,8 +43,8 @@ export function ImproveView() {
       setLoading(true)
       const res = await apiRequest<{ proposals: Proposal[] }>("/api/improve/proposals")
       setProposals(res.proposals || [])
-    } catch (err: any) {
-      toast.error(`Failed to load proposals: ${err.message}`)
+    } catch (err: unknown) {
+      toast.error(`Failed to load proposals: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setLoading(false)
     }
@@ -64,8 +64,8 @@ export function ImproveView() {
       setLastRunId(result.runId)
       await loadData()
       toast.success(`Generated ${result.generated} proposal(s).`)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -77,8 +77,8 @@ export function ImproveView() {
       await apiRequest(`/api/improve/proposals/${encodeURIComponent(id)}/${action}`, { method: "POST" })
       await loadData()
       toast.success(`Proposal ${action === "approve" ? "approved" : "rejected"}.`)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -100,8 +100,8 @@ export function ImproveView() {
       setLastRunId(result.runId)
       await loadData()
       toast.success(`Applied ${result.applied} proposal(s). Validation: ${result.validation}`)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -118,8 +118,8 @@ export function ImproveView() {
       await loadData()
       toast.success(`Rolled back ${result.restored} file(s).`)
       setLastRunId(null)
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -135,8 +135,8 @@ export function ImproveView() {
       } else {
         toast.info("No proposals to archive.")
       }
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }

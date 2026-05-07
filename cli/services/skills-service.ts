@@ -5,6 +5,7 @@ import { readRegistry, addSkill, removeSkill as registryRemoveSkill, writeRegist
 import { ensureCoreAssets, ensureUserRegistry } from "../utils/core-assets"
 import type { InstallBucket } from "../registry/local"
 import {
+  type ContentListEntry,
   createContent,
   deleteContent,
   listContent,
@@ -125,7 +126,7 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
   const deactivatedSlugs = registry.deactivated_skills ?? []
   const allSkills = listContent(chainHome, "skills")
   
-  const mapSkill = (s: any, isCore: boolean): SkillEntry => {
+  const mapSkill = (s: ContentListEntry, isCore: boolean): SkillEntry => {
     const ref = githubRef.get(s.slug)
     let githubOwner: string | undefined = undefined
     let credits = githubCredits.get(s.slug)

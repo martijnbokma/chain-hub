@@ -75,6 +75,18 @@ export function HubProvider({ children }: { children: ReactNode }) {
     refreshConfig()
   }, [])
 
+  useEffect(() => {
+    const root = window.document.documentElement
+    root.classList.remove("light", "dark")
+
+    if (uiPrefs.theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+      root.classList.add(systemTheme)
+    } else {
+      root.classList.add(uiPrefs.theme)
+    }
+  }, [uiPrefs.theme])
+
   return (
     <HubContext.Provider value={{ config, uiPrefs, updateUiPrefs, refreshConfig }}>
       {children}
