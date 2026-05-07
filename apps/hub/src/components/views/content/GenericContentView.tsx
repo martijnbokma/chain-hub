@@ -34,6 +34,8 @@ import {
   DialogFooter
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { ViewHeader } from "@/components/layout/ViewHeader"
+import { ViewContainer } from "@/components/layout/ViewContainer"
 
 interface ContentItem {
   slug: string
@@ -233,7 +235,7 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
           </div>
         )}
 
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 mb-2 animate-in fade-in slide-in-from-top-4 duration-500">
+        <header className="flex flex-row items-center justify-between gap-4 py-2 mb-2 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
@@ -291,18 +293,20 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
           <div className="flex items-center gap-2.5">
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleValidate} 
-                    disabled={validating} 
-                    className="h-9 border-hub-border-strong/40 bg-hub-surface-2/50 backdrop-blur-sm text-hub-text hover:text-white hover:border-hub-border-strong transition-all"
-                  >
-                    {validating ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <AlertTriangle className="size-3.5 mr-2" />}
-                    Validate
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleValidate} 
+                      disabled={validating} 
+                      className="h-9 px-2.5 md:px-3 border-hub-border-strong/40 bg-hub-surface-2/50 backdrop-blur-sm text-hub-text hover:text-white hover:border-hub-border-strong transition-all"
+                    >
+                      {validating ? <Loader2 className="size-3.5 md:mr-2 animate-spin" /> : <AlertTriangle className="size-3.5 md:mr-2" />}
+                      <span className="hidden md:inline">Validate</span>
+                    </Button>
+                  }
+                />
                 <TooltipContent>Run static analysis on this rule</TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -317,22 +321,22 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
                   variant="outline" 
                   size="sm" 
                   onClick={() => setIsRemoveConfirmOpen(true)} 
-                  className="h-9 border-hub-err/20 text-hub-err/60 hover:bg-hub-err/10 hover:text-hub-err hover:border-hub-err/40 transition-all px-4"
+                  className="h-9 px-2.5 md:px-4 border-hub-err/20 text-hub-err/60 hover:bg-hub-err/10 hover:text-hub-err hover:border-hub-err/40 transition-all"
                 >
-                  <Trash2 className="size-3.5 mr-2" />
-                  Delete
+                  <Trash2 className="size-3.5 md:mr-2" />
+                  <span className="hidden md:inline">Delete</span>
                 </Button>
                 <Button 
                   onClick={handleSave} 
                   disabled={saving || (draft === detail.content && slugDraft === selectedSlug)} 
-                  className={`h-9 shadow-lg transition-all duration-300 px-5 font-semibold ${
+                  className={`h-9 shadow-lg transition-all duration-300 px-2.5 md:px-5 font-semibold ${
                     (draft === detail.content && slugDraft === selectedSlug)
                       ? "bg-hub-surface-3 text-hub-text-faint border border-hub-border opacity-50" 
                       : "bg-hub-accent hover:bg-hub-accent/90 text-white shadow-hub-accent/20 hover:scale-[1.02] active:scale-[0.98]"
                   }`}
                 >
-                  {saving ? <Loader2 className="size-3.5 mr-2 animate-spin" /> : <Save className="size-3.5 mr-2" />}
-                  Save Changes
+                  {saving ? <Loader2 className="size-3.5 md:mr-2 animate-spin" /> : <Save className="size-3.5 md:mr-2" />}
+                  <span className="hidden md:inline">Save Changes</span>
                 </Button>
               </>
             )}
@@ -341,7 +345,7 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
 
         <div className={`grid grid-cols-1 ${detail.isCore ? "" : "md:grid-cols-2"} gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both items-start`}>
           {!detail.isCore && (
-            <div className="flex flex-col border border-hub-border rounded-xl bg-hub-surface-1/40 backdrop-blur-md overflow-hidden shadow-2xl ring-1 ring-white/5 group/editor">
+            <ViewContainer className="flex flex-col overflow-hidden group/editor p-0 border-hub-border/50">
               <div className="flex items-center justify-between px-4 py-2.5 bg-hub-surface-2/60 border-b border-hub-border group-focus-within/editor:border-hub-accent/30 transition-colors">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5 mr-2">
@@ -354,16 +358,18 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
                 <div className="flex items-center gap-1">
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => setFocusMode("editor")} 
-                          className="size-7 text-hub-text-faint hover:text-hub-accent hover:bg-hub-accent/10 transition-colors"
-                        >
-                          <Maximize2 className="size-3.5" />
-                        </Button>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setFocusMode("editor")} 
+                            className="size-7 text-hub-text-faint hover:text-hub-accent hover:bg-hub-accent/10 transition-colors"
+                          >
+                            <Maximize2 className="size-3.5" />
+                          </Button>
+                        }
+                      />
                       <TooltipContent>Focus Editor</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -385,10 +391,10 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
                   </span>
                 </div>
               </div>
-            </div>
+            </ViewContainer>
           )}
 
-          <div className="flex flex-col border border-hub-border rounded-xl bg-hub-surface-1/40 backdrop-blur-md overflow-hidden shadow-2xl ring-1 ring-white/5 group/preview min-h-[200px]">
+          <ViewContainer className="flex flex-col overflow-hidden group/preview min-h-[200px] p-0 border-hub-border/50">
             <div className="flex items-center justify-between px-4 py-2.5 bg-hub-surface-2/60 border-b border-hub-border">
               <div className="flex items-center gap-2">
                 <Eye className="size-3.5 text-hub-accent" />
@@ -397,16 +403,18 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
               <div className="flex items-center gap-1">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setFocusMode("preview")} 
-                        className="size-7 text-hub-text-faint hover:text-hub-accent hover:bg-hub-accent/10 transition-colors"
-                      >
-                        <Maximize2 className="size-3.5" />
-                      </Button>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setFocusMode("preview")} 
+                          className="size-7 text-hub-text-faint hover:text-hub-accent hover:bg-hub-accent/10 transition-colors"
+                        >
+                          <Maximize2 className="size-3.5" />
+                        </Button>
+                      }
+                    />
                     <TooltipContent>Focus Preview</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -427,15 +435,15 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
                 </div>
               )}
             </div>
-          </div>
+          </ViewContainer>
         </div>
 
         {validation && (
-          <div className="border border-hub-border rounded-lg bg-hub-surface-2 p-4 space-y-2">
+          <ViewContainer className="p-4 space-y-2 border-hub-border/50">
             {validation.errors?.map((err, i) => <div key={i} className="text-[0.75rem] text-hub-err flex items-center gap-2 uppercase font-bold"><AlertTriangle className="size-3" /> {err}</div>)}
             {validation.warnings?.map((warn, i) => <div key={i} className="text-[0.75rem] text-hub-warn flex items-center gap-2 uppercase font-bold"><AlertTriangle className="size-3" /> {warn}</div>)}
             {!validation.errors?.length && !validation.warnings?.length && <div className="text-[0.75rem] text-hub-success font-bold uppercase">Validation passed.</div>}
-          </div>
+          </ViewContainer>
         )}
 
         {focusMode && (
@@ -454,68 +462,67 @@ export function GenericContentView({ kind, title }: GenericContentViewProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="flex flex-col">
-          <h1 className="m-0 font-hub-display text-2xl font-bold tracking-tight text-white leading-none">{title}</h1>
-          <p className="text-[0.8rem] text-hub-text-dim mt-1">Manage and edit your {kind} library.</p>
-        </div>
+    <div className="space-y-6">
+      <ViewHeader 
+        title={title} 
+        description={`Manage and edit your ${kind} library.`}
+      >
         <Button onClick={() => setIsNewModalOpen(true)} className="bg-hub-accent hover:bg-hub-accent/90 text-white h-10 px-6 gap-2 shadow-lg shadow-hub-accent/20 hover:scale-[1.02] transition-all font-semibold">
           <Plus className="size-4" />
           New {kind.slice(0, -1)}
         </Button>
-      </header>
+      </ViewHeader>
 
-      <div className="flex flex-wrap items-end gap-3 mb-6">
+      <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5 flex-1 min-w-[240px]">
-          <label className="text-[0.66rem] tracking-wide text-hub-text-faint uppercase font-semibold">Search</label>
+          <label className="text-[0.66rem] tracking-wide text-hub-text-faint uppercase font-semibold pl-1">Search</label>
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-hub-text-faint" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-hub-text-faint" />
             <Input 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search ${kind}...`}
-              className="pl-9 h-9 bg-hub-surface-2 border-hub-border-strong text-hub-text"
+              className="pl-10 h-11 bg-hub-surface-1/60 border-hub-border text-hub-text focus:border-hub-accent/50 transition-all"
             />
           </div>
         </div>
         {searchQuery && (
-          <Button variant="outline" size="sm" onClick={() => setSearchQuery("")} className="h-9 border-hub-border bg-hub-surface-2 text-hub-text-dim hover:text-white">
+          <Button variant="outline" size="sm" onClick={() => setSearchQuery("")} className="h-11 border-hub-border bg-hub-surface-2 text-hub-text-dim hover:text-white px-4">
             <RotateCcw className="size-3.5 mr-2" /> Reset
           </Button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
         {filteredItems.map((item) => (
           <button
             key={item.slug}
             onClick={() => openItem(item.slug)}
-            className="group relative flex flex-col p-4 rounded-xl border border-hub-border bg-hub-surface-1/40 hover:bg-hub-surface-2/80 hover:border-hub-accent/40 hover:shadow-xl hover:shadow-hub-accent/5 transition-all duration-300 text-left overflow-hidden ring-1 ring-white/5"
+            className="group relative flex flex-col p-5 rounded-xl border border-hub-border bg-hub-surface-1/40 hover:bg-hub-surface-2/80 hover:border-hub-accent/40 hover:shadow-xl hover:shadow-hub-accent/5 transition-all duration-300 text-left overflow-hidden ring-1 ring-white/5"
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className={`size-2 rounded-full ${item.isCore ? "bg-hub-core shadow-[0_0_8px_rgba(139,124,255,0.5)]" : "bg-hub-user shadow-[0_0_8px_rgba(78,224,161,0.5)]"}`} />
+            <div className="flex items-center justify-between mb-3">
+              <div className={`size-2.5 rounded-full ${item.isCore ? "bg-hub-core shadow-[0_0_8px_rgba(139,124,255,0.5)]" : "bg-hub-user shadow-[0_0_8px_rgba(78,224,161,0.5)]"}`} />
               {item.isCore && (
-                <Badge variant="outline" className="text-[0.6rem] h-4 border-hub-border text-hub-text-faint bg-white/5 uppercase tracking-wider font-bold">
+                <Badge variant="outline" className="text-[0.6rem] h-4 border-hub-border text-hub-text-faint bg-white/5 uppercase tracking-wider font-bold px-1.5">
                   core
                 </Badge>
               )}
             </div>
-            <span className="text-[0.9rem] text-[#f2f6ff] group-hover:text-white font-bold truncate mb-1">
+            <span className="text-[1rem] text-[#f2f6ff] group-hover:text-white font-bold truncate mb-1.5">
               {item.slug}
             </span>
-            <p className="text-[0.7rem] text-hub-text-faint line-clamp-2 leading-relaxed min-h-[2.4rem]">
+            <p className="text-[0.75rem] text-hub-text-faint line-clamp-2 leading-relaxed min-h-[2.4rem]">
               {item.description || "No description provided."}
             </p>
             
-            <div className="absolute bottom-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0 transition-transform">
-              <ArrowLeft className="size-3.5 rotate-180 text-hub-accent" />
+            <div className="absolute bottom-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0 transition-transform">
+              <ArrowLeft className="size-4 rotate-180 text-hub-accent" />
             </div>
           </button>
         ))}
 
         {filteredItems.length === 0 && (
-          <div className="p-8 text-center border border-dashed border-hub-border rounded-lg text-hub-text-dim text-sm">
+          <div className="col-span-full p-12 text-center border border-dashed border-hub-border rounded-xl bg-hub-surface-1/20 text-hub-text-dim text-sm">
             No {kind} found.
           </div>
         )}

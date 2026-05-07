@@ -3,6 +3,8 @@ import { apiRequest } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ViewHeader } from "@/components/layout/ViewHeader"
+import { ViewContainer } from "@/components/layout/ViewContainer"
 import {
   AlertCircle,
   CheckCircle2,
@@ -15,6 +17,8 @@ import {
   PackageCheck,
   Link2,
   ShieldCheck,
+  Loader2,
+  Activity,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -133,14 +137,9 @@ function MaintenanceReport({ log }: { log: MaintenanceLog }) {
   }, [log])
 
   const totalLinks = log.results.reduce((s, r) => s + r.links.length, 0)
-  const failedLinks = log.results.reduce(
-    (s, r) => s + r.links.filter((l) => l.error || l.result === "failed").length,
-    0,
-  )
 
   return (
-    <div className="rounded-md border border-hub-border bg-hub-surface-1/60 overflow-hidden animate-slide-in-bottom shadow-lg">
-      {/* progress bar */}
+    <ViewContainer className="overflow-hidden">
       <div className="h-1 w-full bg-hub-surface-2 overflow-hidden">
         <div 
           className={`h-full transition-all duration-500 ease-out ${isAnimating ? "bg-hub-accent animate-pulse" : "bg-hub-user"}`}
@@ -148,11 +147,10 @@ function MaintenanceReport({ log }: { log: MaintenanceLog }) {
         />
       </div>
 
-      {/* header */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-hub-surface-2/40 transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-hub-surface-2/40 transition-colors"
       >
         <div className="flex items-center gap-2 text-[0.78rem] font-semibold text-hub-text">
           <Wrench className={`size-3.5 text-hub-text-dim ${isAnimating ? "animate-spin-slow" : ""}`} />
@@ -178,7 +176,7 @@ function MaintenanceReport({ log }: { log: MaintenanceLog }) {
           {visibleSteps.map((step, idx) => (
             <div
               key={idx}
-              className="px-3 py-2.5 space-y-1.5 animate-slide-in-bottom fill-mode-both"
+              className="px-4 py-3 space-y-1.5 animate-slide-in-bottom fill-mode-both"
               style={{ animationDelay: `${idx * 40}ms` }}
             >
               {step.type === "asset" ? (
@@ -234,7 +232,7 @@ function MaintenanceReport({ log }: { log: MaintenanceLog }) {
           )}
         </div>
       )}
-    </div>
+    </ViewContainer>
   )
 }
 
@@ -269,14 +267,18 @@ export function StatusView() {
   const [setupInProgress, setSetupInProgress] = useState(false)
   const [maintenanceLog, setMaintenanceLog] = useState<MaintenanceLog | null>(null)
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (isManual = false) => {
     try {
       setLoading(true)
       const res = await apiRequest<StatusData>("/api/status")
       setData(res)
       setError(null)
+      if (isManual) {
+        toast.success("Status refreshed")
+      }
     } catch (err: any) {
       setError(err.message)
+      toast.error(`Failed to refresh status: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -346,29 +348,31 @@ export function StatusView() {
   }, 0)
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="m-0 font-hub-display text-[1.05rem] tracking-wide text-[#f5f8ff]">Status</h1>
+    <div className="space-y-6">
+      <ViewHeader 
+        title="Status" 
+        description="Monitor system health, IDE adapters, and core asset integrity."
+      >
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchStatus()}
+          onClick={() => fetchStatus(true)}
           disabled={loading || setupInProgress}
-          className="h-8 gap-2 border-hub-border bg-hub-surface-2"
+          className="h-9 gap-2 border-hub-border bg-hub-surface-1/40 hover:bg-hub-surface-2"
         >
-          <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
+          {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
           Refresh
         </Button>
-      </header>
+      </ViewHeader>
 
       {data.initialized === false && (
-        <div className="rounded-md border border-hub-warn/50 bg-hub-warn/12 px-3 py-2.5 text-[0.79rem] text-[#ffe3b3]">
+        <div className="rounded-md border border-hub-warn/50 bg-hub-warn/12 px-4 py-3 text-[0.79rem] text-[#ffe3b3]">
           Hub not initialized yet. Use maintenance actions below to initialize in-place.
         </div>
       )}
 
       {issuesCount > 0 ? (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-hub-warn/45 bg-hub-warn/12 px-3 py-2.5 text-[#f8dcb0]">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-hub-warn/45 bg-hub-warn/12 px-4 py-3 text-[#f8dcb0]">
           <div className="flex items-center gap-2 text-sm">
             <AlertTriangle className="size-4" />
             <span>{issuesCount} issue(s) detected</span>
@@ -391,7 +395,7 @@ export function StatusView() {
           </Button>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-hub-user/45 bg-hub-user/10 px-3 py-2.5 text-hub-user">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-hub-user/45 bg-hub-user/10 px-4 py-3 text-hub-user">
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="size-4" />
             <span>All detected adapter links are healthy</span>

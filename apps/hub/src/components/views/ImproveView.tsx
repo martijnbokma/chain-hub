@@ -2,20 +2,20 @@ import { useState, useEffect } from "react"
 import { apiRequest } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ViewHeader } from "@/components/layout/ViewHeader"
+import { ViewContainer } from "@/components/layout/ViewContainer"
 import { 
   Zap, 
   CheckCircle2, 
   XCircle, 
   RotateCcw, 
   Play, 
-  AlertTriangle,
   Loader2,
   FileCode,
   ShieldCheck,
   TrendingUp,
-  ExternalLink,
-  Plus,
-  Archive
+  Archive,
+  Sparkles
 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -131,9 +131,9 @@ export function ImproveView() {
       const result = await apiRequest<{ archived: number }>("/api/improve/proposals/archive", { method: "POST" })
       await loadData()
       if (result.archived > 0) {
-        toast.success(`${result.archived} voorstel(len) gearchiveerd.`)
+        toast.success(`${result.archived} proposal(s) archived.`)
       } else {
-        toast.info("Geen voorstellen om te archiveren.")
+        toast.info("No proposals to archive.")
       }
     } catch (err: any) {
       toast.error(err.message)
@@ -155,52 +155,49 @@ export function ImproveView() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="m-0 font-hub-display text-[1.05rem] tracking-wide text-[#f5f8ff]">Improve</h1>
-          <p className="text-[0.78rem] text-hub-text-dim mt-1">Autonomous improvement engine for your Chain Hub assets.</p>
-        </div>
+      <ViewHeader 
+        title="Improve" 
+        description="Autonomous improvement engine for your Chain Hub assets."
+      >
         <div className="flex items-center gap-2">
           {lastRunId && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setIsRollbackConfirmOpen(true);
-              }}
+              onClick={() => setIsRollbackConfirmOpen(true)}
               disabled={loading}
-              className="h-8 border-hub-err/30 text-hub-err/70 hover:bg-hub-err/10 hover:text-hub-err"
+              className="h-9 border-hub-err/30 text-hub-err/70 hover:bg-hub-err/10 hover:text-hub-err transition-all"
             >
-              <RotateCcw className="size-3.5 mr-1.5" />
-              Rollback Last Run
+              <RotateCcw className="size-3.5 mr-2" />
+              Rollback
             </Button>
           )}
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handleGenerate}
+            onClick={handleGenerate} 
             disabled={loading}
-            className="h-8 border-hub-border-strong text-hub-text hover:text-white"
+            className="h-9 gap-2 border-hub-border bg-hub-surface-1/40 hover:bg-hub-surface-2 transition-all"
           >
-            {loading && !lastRunId ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <Zap className="size-3.5 mr-1.5 text-hub-accent" />}
-            Generate Proposals
+            {loading && !lastRunId ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5 text-hub-accent" />}
+            Generate
           </Button>
           <Button 
             size="sm" 
-            onClick={handleApply}
+            onClick={handleApply} 
             disabled={loading || !proposals.some(p => p.status === "approved")}
-            className="h-8 bg-hub-accent hover:bg-hub-accent/90 text-white"
+            className="h-9 gap-2 bg-hub-accent hover:bg-hub-accent/90 text-white transition-all shadow-lg shadow-hub-accent/20"
           >
-            {loading && lastRunId ? <Loader2 className="size-3.5 animate-spin mr-1.5" /> : <Play className="size-3.5 mr-1.5" />}
-            Apply Approved
+            {loading && lastRunId ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
+            Apply
           </Button>
         </div>
-      </header>
+      </ViewHeader>
 
-      <div className="grid gap-4">
+      <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-            <TrendingUp className="size-4 text-hub-accent" />
+          <h2 className="text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
+            <Sparkles className="size-4 text-hub-accent" />
             Proposal Queue ({proposals.length})
           </h2>
           {proposals.some(p => p.status === "applied" || p.status === "rejected") && (
@@ -212,26 +209,26 @@ export function ImproveView() {
               className="h-7 px-2 text-[0.65rem] text-hub-text-faint hover:text-hub-accent hover:bg-hub-accent/10 transition-colors uppercase font-bold tracking-widest gap-1.5"
             >
               <Archive className="size-3" />
-              Archiveren
+              Archive
             </Button>
           )}
         </div>
 
         {proposals.length === 0 ? (
-          <div className="p-12 text-center border border-dashed border-hub-border rounded-lg bg-hub-surface-1/20">
+          <ViewContainer className="p-12 text-center border-dashed">
             <div className="size-10 rounded-full bg-hub-surface-2 flex items-center justify-center mx-auto mb-3">
               <Zap className="size-5 text-hub-text-faint" />
             </div>
             <p className="text-[0.8rem] text-hub-text-dim max-w-sm mx-auto">
-              No proposals in the queue. Click "Generate Proposals" to let the engine analyze your learnings and suggest improvements.
+              No proposals in the queue. Click "Generate" to let the engine analyze your learnings and suggest improvements.
             </p>
-          </div>
+          </ViewContainer>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {proposals.map((proposal) => (
-              <div 
+              <ViewContainer 
                 key={proposal.id}
-                className="rounded-lg border border-hub-border bg-hub-surface-1/40 overflow-hidden flex flex-col md:flex-row"
+                className="flex flex-col md:flex-row min-h-[280px]"
               >
                 <div className="flex-1 p-5 space-y-4">
                   <div className="space-y-1.5">
@@ -263,13 +260,13 @@ export function ImproveView() {
                     {proposal.rationale}
                   </p>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 pt-2">
                     <Button 
                       size="sm" 
                       variant={proposal.status === "approved" ? "default" : "outline"}
                       onClick={() => handleDecision(proposal.id, "approve")}
                       disabled={loading || proposal.status === "applied"}
-                      className={`h-8 gap-1.5 text-xs ${proposal.status === "approved" ? "bg-hub-success hover:bg-hub-success/90" : "border-hub-border text-hub-text hover:text-white"}`}
+                      className={`h-8 gap-1.5 text-xs transition-all ${proposal.status === "approved" ? "bg-hub-success hover:bg-hub-success/90 text-white" : "border-hub-border text-hub-text hover:text-white"}`}
                     >
                       <CheckCircle2 className="size-3.5" />
                       Approve
@@ -279,30 +276,30 @@ export function ImproveView() {
                       variant={proposal.status === "rejected" ? "default" : "outline"}
                       onClick={() => handleDecision(proposal.id, "reject")}
                       disabled={loading || proposal.status === "applied"}
-                      className={`h-8 gap-1.5 text-xs ${proposal.status === "rejected" ? "bg-hub-err hover:bg-hub-err/90" : "border-hub-border text-hub-text hover:text-white"}`}
+                      className={`h-8 gap-1.5 text-xs transition-all ${proposal.status === "rejected" ? "bg-hub-err hover:bg-hub-err/90 text-white" : "border-hub-border text-hub-text hover:text-white"}`}
                     >
                       <XCircle className="size-3.5" />
                       Reject
                     </Button>
                     
-                    <div className="ml-auto flex items-center gap-1.5 px-2 py-1 rounded bg-hub-surface-2 text-[0.65rem] text-hub-text-faint font-bold uppercase tracking-widest border border-hub-border-strong/40">
+                    <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded bg-hub-surface-2 text-[0.65rem] text-hub-text-faint font-bold uppercase tracking-widest border border-hub-border-strong/40">
                       Status: <span className={proposal.status === "applied" ? "text-hub-accent" : "text-white"}>{proposal.status}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="w-full md:w-[340px] border-t md:border-t-0 md:border-l border-hub-border bg-black/20 p-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="w-full md:w-[380px] border-t md:border-t-0 md:border-l border-hub-border bg-black/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="text-[0.65rem] font-bold text-hub-text-faint uppercase tracking-widest flex items-center gap-1.5">
                       <FileCode className="size-3.5" />
                       Diff Preview
                     </div>
                   </div>
-                  <pre className="text-[0.68rem] text-hub-text-dim font-mono bg-black/30 p-3 rounded border border-hub-border-strong/30 h-[200px] overflow-auto leading-relaxed">
+                  <pre className="text-[0.68rem] text-hub-text-dim font-mono bg-black/30 p-3 rounded border border-hub-border-strong/30 h-[220px] overflow-auto leading-relaxed scrollbar-thin scrollbar-thumb-hub-border">
                     {proposal.diff_preview}
                   </pre>
                 </div>
-              </div>
+              </ViewContainer>
             ))}
           </div>
         )}

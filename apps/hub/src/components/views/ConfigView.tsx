@@ -1,19 +1,37 @@
 import { useState, useEffect } from "react"
 import { useHub } from "@/lib/HubContext"
 import { apiRequest } from "@/lib/api"
-import { Card } from "@/components/ui/card"
+import { ViewHeader } from "@/components/layout/ViewHeader"
+import { ViewContainer } from "@/components/layout/ViewContainer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
+import { 
+  Save, 
+  Info, 
+  ExternalLink, 
+  Settings2,
+  Loader2,
+  AppWindow,
+  Monitor,
+  Moon,
+  Sun,
+  Grid,
+  List,
+  Terminal,
+  ShieldCheck,
+  Zap,
+  Lock
+} from "lucide-react"
 import { toast } from "sonner"
-import { Settings, Save, RefreshCw, Info } from "lucide-react"
 
 export function ConfigView() {
   const { config, uiPrefs, updateUiPrefs, refreshConfig } = useHub()
@@ -21,130 +39,231 @@ export function ConfigView() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (config) {
+    if (config?.chainHome) {
       setChainHome(config.chainHome)
     }
-  }, [config])
+  }, [config?.chainHome])
 
   const saveChainHome = async () => {
     try {
       setSaving(true)
-      const payload: any = await apiRequest("/api/config/chain-home", {
+      await apiRequest("/api/config", {
         method: "POST",
-        body: { chainHome },
+        body: { chainHome }
       })
-      
-      toast.success(payload.envOverrideActive 
-        ? "CHAIN_HOME saved, but env override is still active." 
-        : "CHAIN_HOME updated successfully.")
-      
       await refreshConfig()
+      toast.success("Configuration updated successfully")
     } catch (err: any) {
-      toast.error(err.message)
+      toast.error(`Failed to save config: ${err.message}`)
     } finally {
       setSaving(false)
     }
   }
 
+  const resetUiPrefs = () => {
+    updateUiPrefs({
+      theme: 'system',
+      defaultRoute: 'skills',
+      skillsViewMode: 'grid',
+      sidebarCollapsed: false
+    })
+    toast.success("UI preferences reset to defaults")
+  }
+
   if (!config) {
-    return <div className="p-4 text-hub-text-dim">Loading configuration...</div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="size-8 animate-spin text-hub-accent" />
+        <p className="text-hub-text-dim text-sm animate-pulse">Loading configuration...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="m-0 font-hub-display text-[1.05rem] tracking-wide text-[#f5f8ff]">Configuration</h1>
-      </header>
-
-      <Card className="border-hub-border bg-hub-surface-1/85 p-4 space-y-4 rounded-md">
-        <div className="space-y-2">
-          <Label className="text-[0.73rem] uppercase tracking-wide text-hub-text-faint">CHAIN_HOME Path</Label>
-          <div className="flex gap-2">
-            <Input 
-              value={chainHome} 
-              onChange={(e) => setChainHome(e.target.value)}
-              placeholder="/Users/you/chain-hub"
-              className="bg-hub-bg border-hub-border-strong text-hub-text h-9"
-              onKeyDown={(e) => e.key === "Enter" && saveChainHome()}
-            />
-            <Button 
-              onClick={saveChainHome} 
-              disabled={saving || chainHome === config.chainHome}
-              className="bg-hub-accent hover:bg-hub-accent/90 text-white h-9 px-4 gap-2 shrink-0"
-            >
-              <Save className="size-3.5" />
-              Save
-            </Button>
-          </div>
-          <p className="text-[0.74rem] text-hub-text-faint flex items-center gap-1.5">
-            <Info className="size-3" />
-            {config.envOverrideActive
-              ? "Env override is active: saved config may still be overridden by CHAIN_HOME env."
-              : "Stored in the CLI config (~/.config/chain-hub/config.json)."}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-[0.74rem] text-hub-text-dim border-t border-hub-border/50">
-          <div className="space-y-1">
-            <span className="text-hub-text-faint block uppercase text-[0.65rem] tracking-tight">Active Source</span>
-            <span className="font-hub-mono">{config.source}</span>
-          </div>
-          <div className="space-y-1">
-            <span className="text-hub-text-faint block uppercase text-[0.65rem] tracking-tight">Config Path</span>
-            <span className="font-hub-mono truncate block" title={config.configPath}>{config.configPath || "-"}</span>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="border-hub-border bg-hub-surface-1/85 p-4 space-y-4 rounded-md">
-        <h2 className="text-[0.86rem] text-[#f3f6ff] font-medium flex items-center gap-2">
-          <Settings className="size-4" />
-          Hub UI Preferences
-        </h2>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-[0.73rem] uppercase tracking-wide text-hub-text-faint">Default Start Tab</Label>
-            <Select 
-              value={uiPrefs.defaultRoute} 
-              onValueChange={(val) => updateUiPrefs({ defaultRoute: val })}
-            >
-              <SelectTrigger className="w-full bg-hub-bg border-hub-border-strong text-hub-text h-9">
-                <SelectValue placeholder="Select tab" />
-              </SelectTrigger>
-              <SelectContent className="bg-hub-surface-2 border-hub-border text-hub-text">
-                <SelectItem value="skills">Skills</SelectItem>
-                <SelectItem value="rules">Rules</SelectItem>
-                <SelectItem value="agents">Agents</SelectItem>
-                <SelectItem value="workflows">Workflows</SelectItem>
-                <SelectItem value="config">Configuration</SelectItem>
-                <SelectItem value="status">Status</SelectItem>
-                <SelectItem value="reflect">Reflect</SelectItem>
-                <SelectItem value="improve">Improve</SelectItem>
-                <SelectItem value="registry">Registry</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <p className="text-[0.72rem] text-hub-text-faint italic">
-            These settings are stored locally in your browser and do not affect the CLI.
-          </p>
-        </div>
-      </Card>
-
-      <Card className="border-hub-border bg-hub-surface-1/85 p-4 space-y-3 rounded-md">
-        <h2 className="text-[0.86rem] text-[#f3f6ff] font-medium">Runtime Actions</h2>
-        <p className="text-[0.74rem] text-hub-text-faint">
-          Run maintenance to relink adapters and refresh protected core assets for the active CHAIN_HOME.
-        </p>
+    <div className="space-y-6">
+      <ViewHeader 
+        title="Configuration" 
+        description="Manage your global Chain Hub settings and environment variables."
+      >
         <Button 
-          variant="outline" 
-          onClick={() => window.location.hash = "#status"}
-          className="h-9 border-hub-border bg-hub-surface-2 text-hub-text hover:bg-hub-surface-3 transition-colors"
+          onClick={saveChainHome} 
+          disabled={saving || chainHome === config.chainHome}
+          className="bg-hub-accent hover:bg-hub-accent/90 text-white shadow-lg shadow-hub-accent/20 h-10 px-6 gap-2"
         >
-          Manage Adapter Health & Maintenance
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          Save Changes
         </Button>
-      </Card>
+      </ViewHeader>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
+        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
+          <ViewContainer className="p-6 space-y-8">
+            {/* CLI CORE CONFIGURATION */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-white text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Terminal className="size-4 text-hub-accent" />
+                  CLI Core Configuration
+                </h2>
+                {config.envOverrideActive && (
+                  <Badge variant="outline" className="border-yellow-500/30 text-yellow-500 bg-yellow-500/5 gap-1.5 px-2 py-0.5">
+                    <Zap className="size-3" />
+                    ENV OVERRIDE
+                  </Badge>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[0.7rem] uppercase tracking-widest text-hub-text-faint font-semibold">CHAIN_HOME Path</Label>
+                    <span className="text-[0.65rem] text-hub-text-dim font-hub-mono opacity-50">{config.source}</span>
+                  </div>
+                  <div className="relative">
+                    <Input 
+                      value={chainHome} 
+                      onChange={(e) => setChainHome(e.target.value)}
+                      placeholder="/Users/you/chain-hub"
+                      className="bg-hub-bg/50 border-hub-border-strong text-hub-text h-11 pl-4 font-hub-mono text-[0.85rem] focus-visible:ring-hub-accent/30"
+                      onKeyDown={(e) => e.key === "Enter" && saveChainHome()}
+                    />
+                  </div>
+                  <div className="flex items-start gap-2 bg-hub-bg/30 p-3 rounded-lg border border-hub-border/30">
+                    <Info className="size-4 mt-0.5 text-hub-accent-dim shrink-0" />
+                    <p className="text-[0.75rem] text-hub-text-dim leading-relaxed">
+                      This is the root directory where your skills, rules, and agents are stored. Changing this will point the dashboard to a different hub.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="bg-hub-border/50" />
+
+            {/* DASHBOARD PREFERENCES */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-white text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <AppWindow className="size-4 text-hub-accent" />
+                  Dashboard Preferences
+                </h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={resetUiPrefs}
+                  className="h-8 text-[0.65rem] text-hub-text-faint hover:text-white uppercase tracking-widest font-bold"
+                >
+                  Reset Defaults
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                <div className="space-y-3">
+                  <Label className="text-[0.7rem] uppercase tracking-widest text-hub-text-faint font-semibold">Appearance Theme</Label>
+                  <div className="flex bg-hub-bg/50 p-1.5 rounded-xl border border-hub-border-strong">
+                    <button 
+                      onClick={() => updateUiPrefs({ theme: 'dark' })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[0.75rem] font-medium transition-all ${uiPrefs.theme === 'dark' ? 'bg-hub-accent text-white shadow-lg' : 'text-hub-text-dim hover:text-hub-text'}`}
+                    >
+                      <Moon className="size-3.5" />
+                      Dark
+                    </button>
+                    <button 
+                      onClick={() => updateUiPrefs({ theme: 'system' })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[0.75rem] font-medium transition-all ${uiPrefs.theme === 'system' ? 'bg-hub-accent text-white shadow-lg' : 'text-hub-text-dim hover:text-hub-text'}`}
+                    >
+                      <Monitor className="size-3.5" />
+                      System
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-[0.7rem] uppercase tracking-widest text-hub-text-faint font-semibold">Default View</Label>
+                  <Select 
+                    value={uiPrefs.defaultRoute} 
+                    onValueChange={(val) => updateUiPrefs({ defaultRoute: val })}
+                  >
+                    <SelectTrigger className="w-full bg-hub-bg/50 border-hub-border-strong text-hub-text h-11 pl-4 focus:ring-hub-accent/30 rounded-xl">
+                      <SelectValue placeholder="Select tab" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-hub-surface-2 border-hub-border text-hub-text">
+                      <SelectItem value="skills">Skills & Tools</SelectItem>
+                      <SelectItem value="rules">Editor Rules</SelectItem>
+                      <SelectItem value="agents">Agent Profiles</SelectItem>
+                      <SelectItem value="workflows">Workflows</SelectItem>
+                      <Separator className="my-1 opacity-20" />
+                      <SelectItem value="registry">Registry Explorer</SelectItem>
+                      <SelectItem value="improve">Autonomous Improve</SelectItem>
+                      <SelectItem value="reflect">Reflect & Distill</SelectItem>
+                      <SelectItem value="status">Health & Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-[0.7rem] uppercase tracking-widest text-hub-text-faint font-semibold">Skills Display</Label>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateUiPrefs({ skillsViewMode: 'grid' })}
+                      className={`flex-1 h-11 gap-2 border-hub-border-strong rounded-xl transition-all ${uiPrefs.skillsViewMode === 'grid' ? 'bg-hub-accent/10 border-hub-accent/50 text-hub-accent shadow-inner' : 'bg-hub-bg/50 text-hub-text-dim'}`}
+                    >
+                      <Grid className="size-4" />
+                      Grid
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateUiPrefs({ skillsViewMode: 'list' })}
+                      className={`flex-1 h-11 gap-2 border-hub-border-strong rounded-xl transition-all ${uiPrefs.skillsViewMode === 'list' ? 'bg-hub-accent/10 border-hub-accent/50 text-hub-accent shadow-inner' : 'bg-hub-bg/50 text-hub-text-dim'}`}
+                    >
+                      <List className="size-4" />
+                      List
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ViewContainer>
+        </div>
+
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+          <ViewContainer className="p-5 space-y-5">
+            <h2 className="text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
+              <Info className="size-4 text-hub-accent" />
+              Environment
+            </h2>
+            <div className="space-y-4">
+              <div className="space-y-1.5 p-3 rounded-lg bg-black/20 border border-white/5">
+                <span className="text-hub-text-faint block uppercase text-[0.6rem] tracking-widest font-bold">Config File</span>
+                <div className="flex items-center gap-2 group cursor-help" title={config.configPath}>
+                  <span className="font-hub-mono text-[0.7rem] text-hub-text-dim truncate">{config.configPath || "Not found"}</span>
+                  <ExternalLink className="size-3 opacity-30" />
+                </div>
+              </div>
+              <div className="space-y-1.5 p-3 rounded-lg bg-black/20 border border-white/5">
+                <span className="text-hub-text-faint block uppercase text-[0.6rem] tracking-widest font-bold">CLI Version</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-hub-mono text-[0.7rem] text-hub-text-dim">1.0.0-beta.12</span>
+                  <ShieldCheck className="size-3.5 text-hub-success/50" />
+                </div>
+              </div>
+            </div>
+          </ViewContainer>
+
+          <ViewContainer className="p-5 space-y-5">
+            <h2 className="text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2 opacity-80">
+              <Lock className="size-4 text-hub-accent" />
+              Persistence
+            </h2>
+            <p className="text-[0.72rem] text-hub-text-dim leading-relaxed italic opacity-70">
+              Settings are persisted to your local filesystem. Browser-based preferences are stored in local storage.
+            </p>
+          </ViewContainer>
+        </div>
+      </div>
     </div>
   )
 }

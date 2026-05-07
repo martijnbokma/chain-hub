@@ -8,6 +8,8 @@ export interface RemoteSkill {
   description: string
   version: string
   source: string
+  githubOwner?: string
+  credits?: string
   path: string
 }
 
@@ -35,22 +37,51 @@ function readBundledRegistryIndex(): RemoteIndex | null {
   return null
 }
 
+function populateOwners(index: RemoteIndex): RemoteIndex {
+  return {
+    ...index,
+    skills: index.skills.map(s => {
+      let githubOwner: string | undefined = undefined
+      let credits = s.credits
+
+      if (s.source && s.source.startsWith("github:")) {
+        const parts = s.source.split("github:")[1]?.split("/")
+        if (parts && parts[0]) {
+          githubOwner = parts[0]
+          if (!credits && parts[1]) {
+            credits = `${parts[0]}/${parts[1]} — https://github.com/${parts[0]}/${parts[1]}`
+          }
+        }
+      }
+
+      // Special case for obra/superpowers
+      if (s.slug.includes("superpowers") && (!githubOwner || githubOwner === "martijnbokma")) {
+        githubOwner = "obra"
+        credits = "obra/superpowers — https://github.com/obra/superpowers"
+      }
+
+      return { ...s, githubOwner, credits }
+    })
+  }
+}
+
 export async function fetchRemoteIndex(): Promise<RemoteIndex> {
   try {
     const res = await fetch(INDEX_URL)
     if (res.ok) {
-      return { ...(parse(await res.text()) as RemoteIndex), source: "live" }
+      const index = parse(await res.text()) as RemoteIndex
+      return { ...populateOwners(index), source: "live" }
     }
     const offline = readBundledRegistryIndex()
     if (offline) {
-      return { ...offline, source: "bundled" }
+      return { ...populateOwners(offline), source: "bundled" }
     }
     throw new Error(`Failed to fetch registry index: ${res.status} ${res.statusText}`)
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("Failed to fetch registry index:")) throw e
     const offline = readBundledRegistryIndex()
     if (offline) {
-      return { ...offline, source: "bundled" }
+      return { ...populateOwners(offline), source: "bundled" }
     }
     throw e instanceof Error ? e : new Error(String(e))
   }

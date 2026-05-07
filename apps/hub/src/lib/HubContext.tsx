@@ -4,6 +4,9 @@ import { apiRequest } from "@/lib/api"
 
 interface UiPrefs {
   defaultRoute: string
+  theme: "dark" | "light" | "system"
+  sidebarCollapsed: boolean
+  skillsViewMode: "grid" | "list"
 }
 
 interface ConfigData {
@@ -11,6 +14,15 @@ interface ConfigData {
   source: string
   configPath?: string
   envOverrideActive: boolean
+  configuredChainHome: string | null
+  status: any
+  systemInfo?: {
+    platform: string
+    arch: string
+    nodeVersion: string
+    bunVersion: string | null
+    uptime: number
+  }
 }
 
 interface HubContextType {
@@ -24,19 +36,25 @@ const HubContext = createContext<HubContextType | undefined>(undefined)
 
 export function HubProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<ConfigData | null>(null)
-  const [uiPrefs, setUiPrefs] = useState<UiPrefs>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("hub-ui-prefs")
-      if (stored) {
-        try {
-          return JSON.parse(stored)
-        } catch {
-          // ignore
-        }
+  const [uiPrefs, setUiPrefs] = useState<UiPrefs>({ 
+    defaultRoute: "skills",
+    theme: "dark",
+    sidebarCollapsed: false,
+    skillsViewMode: "grid"
+  })
+
+  useEffect(() => {
+    // Load from localStorage on mount
+    const stored = localStorage.getItem("hub-ui-prefs")
+    if (stored) {
+      try {
+        setUiPrefs(JSON.parse(stored))
+      } catch {
+        // ignore
       }
     }
-    return { defaultRoute: "skills" }
-  })
+    refreshConfig()
+  }, [])
 
   const refreshConfig = async () => {
     try {

@@ -24,6 +24,8 @@ export interface SkillEntry {
   isCore: boolean
   addedAt: number | null
   githubRef?: string
+  githubOwner?: string
+  credits?: string
   deactivated: boolean
 }
 
@@ -86,33 +88,69 @@ function readSkillAddedAt(skillMdPath: string): number | null {
 export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userSkills: SkillEntry[] } {
   const registry = readRegistry(chainHome)
   const githubRef = new Map<string, string>()
+  const githubCredits = new Map<string, string>()
+
   for (const bundle of registry.github_sources ?? []) {
     for (const slug of bundle.skills ?? []) {
       githubRef.set(slug, bundle.github)
+      githubCredits.set(slug, bundle.credits)
+    }
+  }
+
+  // Auto-detect superpower skills from obra if not explicitly listed
+  const allSkillsRaw = listContent(chainHome, "skills")
+  for (const s of allSkillsRaw) {
+    if (s.slug.includes("superpowers") && !githubRef.has(s.slug)) {
+      githubRef.set(s.slug, "github:obra/superpowers")
+      githubCredits.set(s.slug, "obra/superpowers — https://github.com/obra/superpowers")
     }
   }
 
   const bucketFor = (slug: string): InstallBucket | "unknown" => {
+    const isSelf = (registry.authorship?.self ?? []).includes(slug)
+    const hasGithub = githubRef.has(slug)
+
     if ((registry.chain_hub ?? []).includes(slug)) return "chain_hub"
-    if ((registry.personal ?? []).includes(slug)) return "personal"
     if ((registry.packs ?? []).includes(slug)) return "packs"
     if ((registry.community ?? []).includes(slug)) return "community"
     if ((registry.cli_packages ?? []).includes(slug)) return "cli_packages"
+    
+    // If it has a GitHub source and isn't authored by the user, it's a community skill
+    if (hasGithub && !isSelf) return "community"
+    
+    if ((registry.personal ?? []).includes(slug)) return "personal"
     return "unknown"
   }
 
   const deactivatedSlugs = registry.deactivated_skills ?? []
   const allSkills = listContent(chainHome, "skills")
   
-  const mapSkill = (s: any, isCore: boolean): SkillEntry => ({
-    slug: s.slug,
-    description: readSkillDescription(s.path),
-    bucket: isCore ? "core" : bucketFor(s.slug),
-    isCore,
-    addedAt: readSkillAddedAt(s.path),
-    githubRef: githubRef.get(s.slug),
-    deactivated: deactivatedSlugs.includes(s.slug),
-  })
+  const mapSkill = (s: any, isCore: boolean): SkillEntry => {
+    const ref = githubRef.get(s.slug)
+    let githubOwner: string | undefined = undefined
+    let credits = githubCredits.get(s.slug)
+    
+    if (isCore) {
+      githubOwner = "martijnbokma"
+    } else if (ref && ref.startsWith("github:")) {
+      const parts = ref.split("github:")[1]?.split("/")
+      if (parts && parts[0]) {
+        githubOwner = parts[0]
+      }
+    }
+
+    return {
+      slug: s.slug,
+      description: readSkillDescription(s.path),
+      bucket: isCore ? "core" : bucketFor(s.slug),
+      isCore,
+      addedAt: readSkillAddedAt(s.path),
+      githubRef: ref,
+      githubOwner,
+      credits,
+      deactivated: deactivatedSlugs.includes(s.slug),
+    }
+  }
 
   const coreSkills: SkillEntry[] = allSkills
     .filter((s) => s.isCore)
@@ -129,13 +167,23 @@ export function listSkills(chainHome: string): { coreSkills: SkillEntry[]; userS
     const deactivatedPath = join(chainHome, "skills", `.deactivated-${slug}`)
     const skillMdPath = join(deactivatedPath, "SKILL.md")
     if (existsSync(skillMdPath)) {
+      const ref = githubRef.get(slug)
+      let githubOwner: string | undefined = undefined
+      if (ref && ref.startsWith("github:")) {
+        const parts = ref.split("github:")[1]?.split("/")
+        if (parts && parts[0]) {
+          githubOwner = parts[0]
+        }
+      }
+
       userSkills.push({
         slug,
         description: readSkillDescription(skillMdPath),
         bucket: bucketFor(slug),
         isCore: false,
         addedAt: readSkillAddedAt(skillMdPath),
-        githubRef: githubRef.get(slug),
+        githubRef: ref,
+        githubOwner,
         deactivated: true,
       })
     }
@@ -164,6 +212,7 @@ export function readSkill(chainHome: string, slug: string): SkillEntry & { conte
       bucket: result.isCore ? "core" : "unknown",
       isCore: result.isCore,
       addedAt: null,
+      githubOwner: result.isCore ? "martijnbokma" : undefined,
       deactivated: false,
       content: result.content
     }

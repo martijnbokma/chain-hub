@@ -313,6 +313,13 @@ async function handleConfigRoutes(
       configuredChainHome: config.chain_home ?? null,
       envOverrideActive: activeResolution.source === "env",
       status: getStatus(chainHome, activeResolution.source),
+      systemInfo: {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+        bunVersion: (globalThis as any).Bun?.version || null,
+        uptime: Math.floor(process.uptime()),
+      }
     })
   }
 

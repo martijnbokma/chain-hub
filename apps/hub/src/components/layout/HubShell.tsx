@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { SidebarBrand } from "@/components/layout/SidebarBrand"
 import { SidebarNav } from "@/components/layout/SidebarNav"
 import { SidebarToggleButton } from "@/components/layout/SidebarToggleButton"
@@ -10,8 +11,17 @@ export function HubShell({
   children?: React.ReactNode
   currentRoute?: string
 }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Close sidebar when route changes
+  useEffect(() => {
+    setIsSidebarOpen(false)
+  }, [currentRoute])
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
+
   return (
-    <div className="app-shell group relative flex min-h-screen items-stretch max-[980px]:block">
+    <div className={`app-shell group relative flex min-h-screen items-stretch max-[980px]:block ${isSidebarOpen ? "sidebar-open" : ""}`}>
       <aside
         id="primary-sidebar"
         className="z-30 flex w-[206px] shrink-0 flex-col self-stretch border-r border-hub-border bg-[rgba(12,15,26,0.93)] backdrop-blur-sm max-[980px]:fixed max-[980px]:top-0 max-[980px]:left-0 max-[980px]:h-screen max-[980px]:max-h-screen max-[980px]:min-h-0 max-[980px]:w-[min(78vw,280px)] max-[980px]:max-w-none max-[980px]:-translate-x-full max-[980px]:self-auto max-[980px]:overflow-y-auto max-[980px]:border-r-hub-border-strong max-[980px]:transition-transform max-[980px]:duration-150 max-[980px]:ease-in-out group-[.sidebar-open]:max-[980px]:translate-x-0"
@@ -25,7 +35,8 @@ export function HubShell({
       </aside>
       <button
         id="sidebar-backdrop"
-        className="fixed inset-0 z-20 hidden cursor-pointer border-0 bg-[rgba(2,4,10,0.52)] p-0"
+        onClick={() => setIsSidebarOpen(false)}
+        className={`fixed inset-0 z-20 cursor-pointer border-0 bg-[rgba(2,4,10,0.52)] p-0 transition-opacity duration-150 ${isSidebarOpen ? "block opacity-100" : "hidden opacity-0"}`}
         type="button"
         aria-hidden="true"
       />
@@ -35,7 +46,7 @@ export function HubShell({
           <div className="min-w-0 flex-1">
             <SidebarBrand />
           </div>
-          <SidebarToggleButton />
+          <SidebarToggleButton onClick={toggleSidebar} isOpen={isSidebarOpen} />
         </header>
         <StatusPanels />
         <section className="min-w-0">

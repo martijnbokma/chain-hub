@@ -3,6 +3,8 @@ import { apiRequest } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { ViewHeader } from "@/components/layout/ViewHeader"
+import { ViewContainer } from "@/components/layout/ViewContainer"
 import { 
   Search, 
   GitBranch, 
@@ -13,7 +15,8 @@ import {
   Monitor,
   CheckCircle2,
   Loader2,
-  Plus
+  Plus,
+  User
 } from "lucide-react"
 import { toast } from "sonner"
 import { useHub } from "@/lib/HubContext"
@@ -24,6 +27,8 @@ interface RegistrySkill {
   description?: string
   source: string
   version: string
+  githubOwner?: string
+  credits?: string
   inRegistry?: boolean
   isLocalOnly?: boolean
 }
@@ -38,6 +43,8 @@ interface LocalSkill {
   description?: string
   isCore: boolean
   bucket: string
+  githubOwner?: string
+  credits?: string
 }
 
 export function RegistryView() {
@@ -45,6 +52,7 @@ export function RegistryView() {
   const [allSkills, setAllSkills] = useState<RegistrySkill[]>([])
   const [installedSlugs, setInstalledSlugs] = useState<Set<string>>(new Set())
   const [removableSlugs, setRemovableSlugs] = useState<Set<string>>(new Set())
+  const [localSkills, setLocalSkills] = useState<LocalSkill[]>([])
   const [source, setSource] = useState("live")
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState<string | null>(null)
@@ -63,6 +71,7 @@ export function RegistryView() {
       ])
 
       setAllSkills(regRes.skills || [])
+      setLocalSkills(skillRes.skills || [])
       setSource(regRes.source || "live")
 
       const localSlugs = new Set((skillRes.skills || []).map(s => s.slug))
@@ -93,13 +102,14 @@ export function RegistryView() {
     // This ensures user-installed or personal skills show up
     installedSlugs.forEach(slug => {
       if (!bySlug.has(slug)) {
-        // Try to find description from local list
-        const local = (allSkills as any).find?.((s: any) => s.slug === slug) 
+        const local = localSkills.find(s => s.slug === slug) 
         bySlug.set(slug, {
           slug,
           description: local?.description || "Locally installed skill",
-          source: "local",
+          source: local?.isCore ? "core" : "local",
           version: "unknown",
+          githubOwner: local?.githubOwner,
+          credits: local?.credits,
           inRegistry: false,
           isLocalOnly: true
         })
@@ -107,7 +117,7 @@ export function RegistryView() {
     })
 
     return Array.from(bySlug.values()).sort((a, b) => a.slug.localeCompare(b.slug))
-  }, [allSkills, installedSlugs])
+  }, [allSkills, installedSlugs, localSkills])
 
   const filteredSkills = useMemo(() => {
     let scoped = combinedSkills
@@ -173,17 +183,13 @@ export function RegistryView() {
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between gap-4 mb-2 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="flex flex-col">
-          <h1 className="m-0 font-hub-display text-2xl font-bold tracking-tight text-white leading-none">Registry</h1>
-          <p className="text-[0.7rem] text-hub-text-dim uppercase tracking-[0.2em] mt-2 font-bold flex items-center gap-2">
-            Registry Source <span className="h-1 w-1 rounded-full bg-hub-accent animate-pulse" /> <span className="text-hub-accent">{source}</span>
-          </p>
-        </div>
-      </header>
+    <div className="space-y-4">
+      <ViewHeader 
+        title="Registry" 
+        description="Discover and install agent skills from the official registry."
+      />
 
-      <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500 delay-100 fill-mode-both">
+      <ViewContainer className="flex flex-wrap items-center gap-4 p-4 animate-in fade-in slide-in-from-top-2 duration-500 delay-100 fill-mode-both">
         {[
           { id: "all", label: "All Skills", icon: Globe },
           { id: "registry", label: "From Registry", icon: Download },
@@ -204,7 +210,7 @@ export function RegistryView() {
             {btn.label}
           </Button>
         ))}
-      </div>
+      </ViewContainer>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-both">
@@ -248,8 +254,34 @@ export function RegistryView() {
                           </Badge>
                         </div>
                         <div className="text-[0.65rem] text-hub-text-faint uppercase font-bold tracking-widest">
-                          {skill.source}
+                          {skill.githubOwner ? (
+                            <span className="text-hub-accent/70 flex items-center gap-1.5">
+                              <User className="size-2.5" />
+                              {skill.githubOwner}
+                            </span>
+                          ) : (
+                            skill.source
+                          )}
                         </div>
+                        {skill.credits && (
+                          <div className="text-[0.6rem] text-hub-text-faint/50 mt-0.5 line-clamp-1">
+                            {skill.credits.includes(" — ") ? (
+                              <>
+                                {skill.credits.split(" — ")[0]} •{" "}
+                                <a 
+                                  href={skill.credits.split(" — ")[1]} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-hub-accent/60 hover:text-hub-accent hover:underline transition-colors"
+                                >
+                                  GitHub
+                                </a>
+                              </>
+                            ) : (
+                              skill.credits
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="shrink-0 ml-4">
@@ -308,21 +340,24 @@ export function RegistryView() {
               Install any skill directly from a GitHub repository by providing the owner and repo name.
             </p>
 
-            <div className="space-y-3">
-              <div className="relative group/gh">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[0.7rem] font-bold text-hub-text-faint group-focus-within/gh:text-hub-accent transition-colors">github:</div>
-                <Input 
+            <div className="space-y-4">
+              <div className="flex items-center bg-hub-surface-2 border border-hub-border-strong/30 rounded-xl group/gh focus-within:border-hub-accent/50 focus-within:ring-2 focus-within:ring-hub-accent/10 transition-all overflow-hidden h-12 shadow-inner">
+                <div className="pl-4 pr-1 text-[0.8rem] font-bold text-hub-text-faint/50 group-focus-within/gh:text-hub-accent/60 transition-colors select-none">
+                  github:
+                </div>
+                <input 
                   value={githubInput}
                   onChange={(e) => setGithubInput(e.target.value)}
                   placeholder="owner/repo"
                   onKeyDown={(e) => e.key === "Enter" && handleGithubInstall()}
-                  className="pl-14 h-10 bg-hub-surface-2 border-hub-border-strong/40 text-hub-text text-sm focus:border-hub-accent/50 transition-all rounded-lg"
+                  className="flex-1 bg-transparent border-none outline-none text-hub-text text-[0.9rem] py-2 pr-4 placeholder:text-hub-text-faint/20 font-medium"
                 />
               </div>
+
               <Button 
                 onClick={handleGithubInstall} 
                 disabled={!!installing || !githubInput.trim()}
-                className="w-full h-10 bg-hub-surface-3/50 border border-hub-border text-hub-text hover:text-white hover:bg-hub-accent hover:border-hub-accent hover:shadow-lg hover:shadow-hub-accent/20 transition-all font-semibold rounded-lg"
+                className="w-full h-11 bg-hub-surface-3/50 border border-hub-border text-hub-text hover:text-white hover:bg-hub-accent hover:border-hub-accent hover:shadow-[0_0_20px_rgba(139,124,255,0.15)] transition-all font-bold rounded-xl tracking-wide uppercase text-[0.7rem]"
               >
                 {installing === `github:${githubInput}` ? <Loader2 className="size-4 animate-spin mr-2" /> : <Plus className="size-4 mr-2" />}
                 Add Repository

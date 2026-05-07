@@ -38,6 +38,8 @@ interface SkillData {
   content: string
   isCore: boolean
   bucket: string
+  githubOwner?: string
+  credits?: string
   deactivated: boolean
 }
 
@@ -156,91 +158,114 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
         </div>
       )}
 
-      <header className="flex items-center justify-between gap-4 py-3 border-b border-white/5 mb-4 animate-in fade-in slide-in-from-top-2 duration-500">
+      <header className="flex flex-row items-center justify-between gap-4 py-2 mb-2 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onBack} 
-            className="h-9 px-3 text-hub-text-dim hover:text-white hover:bg-white/5 transition-all rounded-xl group/back"
+            className="h-9 w-9 p-0 rounded-full bg-hub-surface-2 hover:bg-hub-surface-3 border border-hub-border transition-all duration-300"
           >
-            <ArrowLeft className="size-4 mr-2 group-hover/back:-translate-x-0.5 transition-transform" />
-            <span className="font-medium">Skills</span>
+            <ArrowLeft className="size-4" />
           </Button>
-          
-          <div className="h-5 w-px bg-white/10 shrink-0" />
 
-          <div className="flex items-center gap-4 ml-1">
-            <div className="relative flex items-center justify-center shrink-0">
-              <div className={`absolute inset-0 rounded-full blur-[6px] opacity-40 animate-pulse ${
-                data.deactivated ? "bg-transparent" : (data.isCore ? "bg-hub-core" : "bg-hub-user")
-              }`} />
-              <div className={`size-2 rounded-full ring-2 ring-white/10 z-10 transition-all duration-500 ${
-                data.deactivated 
-                  ? "bg-hub-text-faint/40 grayscale" 
-                  : (data.isCore ? "bg-hub-core shadow-[0_0_8px_rgba(139,124,255,0.4)]" : "bg-hub-user shadow-[0_0_8px_rgba(78,224,161,0.4)]")
-              }`} />
-            </div>
-            
-            <div className="flex flex-col">
-              {isEditingSlug ? (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <Input 
-                    value={slugDraft}
-                    onChange={(e) => setSlugDraft(e.target.value)}
-                    className="h-8 py-0 text-lg font-bold bg-white/5 border-hub-accent/40 text-white min-w-[240px] focus:border-hub-accent focus:ring-1 focus:ring-hub-accent/20 rounded-lg"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") setIsEditingSlug(false)
-                      if (e.key === "Escape") { setSlugDraft(slug); setIsEditingSlug(false); }
-                    }}
-                  />
-                  <div className="flex items-center">
-                    <Button size="icon" variant="ghost" onClick={() => setIsEditingSlug(false)} className="size-8 text-hub-success hover:bg-hub-success/10 rounded-lg">
-                      <Check className="size-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => { setSlugDraft(slug); setIsEditingSlug(false); }} className="size-8 text-hub-err hover:bg-hub-err/10 rounded-lg">
-                      <X className="size-4" />
-                    </Button>
-                  </div>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-[0.65rem] uppercase font-bold tracking-[0.1em] text-hub-text-faint">Skills</span>
+              {data.bucket && data.bucket !== "unknown" && (
+                <Badge 
+                  className={`h-4 px-1.5 text-[0.6rem] border-0 rounded-full font-bold uppercase tracking-widest flex items-center shrink-0 ${
+                    (data.isCore || data.bucket === "chain_hub")
+                      ? "bg-hub-accent/10 text-hub-accent ring-1 ring-hub-accent/30" 
+                      : data.bucket === "community"
+                        ? "bg-cyan-500/10 text-cyan-400 ring-1 ring-cyan-500/30"
+                        : data.bucket === "personal"
+                          ? "bg-hub-user/10 text-hub-user ring-1 ring-hub-user/30"
+                          : "bg-white/5 text-hub-text-faint ring-1 ring-white/10"
+                  }`}
+                >
+                  {data.bucket}
+                </Badge>
+              )}
+              {data.githubOwner && (
+                <div className="text-[0.6rem] text-hub-accent/70 uppercase font-bold tracking-widest flex items-center gap-1">
+                  <span className="text-hub-text-faint/30">•</span>
+                  {data.githubOwner}
                 </div>
-              ) : (
-                <div className="group/title flex items-center gap-3">
-                  <h2 className="font-hub-display font-bold text-white text-xl tracking-tight leading-none">{slug}</h2>
-                  
-                  {data.bucket && data.bucket !== "unknown" && (
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[0.6rem] h-4.5 px-1.5 border-0 rounded-full font-bold uppercase tracking-widest flex items-center shrink-0 ${
-                        data.isCore 
-                          ? "bg-hub-core/10 text-hub-core ring-1 ring-hub-core/30" 
-                          : "bg-hub-user/10 text-hub-user ring-1 ring-hub-user/30"
-                      }`}
+              )}
+              {data.credits && (
+                <div className="text-[0.6rem] text-hub-text-faint/50 flex items-center gap-1 ml-1">
+                  <span className="text-hub-text-faint/30">•</span>
+                  {data.credits.includes(" — ") ? (
+                    <a 
+                      href={data.credits.split(" — ")[1]} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="hover:text-hub-accent hover:underline transition-colors"
                     >
-                      {data.bucket}
-                    </Badge>
-                  )}
-
-                  {!data.isCore && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setIsEditingSlug(true)}
-                      className="size-7 opacity-0 group-hover/title:opacity-100 text-hub-text-faint hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
+                      {data.credits.split(" — ")[0]}
+                    </a>
+                  ) : (
+                    data.credits
                   )}
                 </div>
               )}
             </div>
+
+            {isEditingSlug ? (
+              <div className="flex items-center gap-2 mt-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                <Input 
+                  value={slugDraft}
+                  onChange={(e) => setSlugDraft(e.target.value)}
+                  className="h-8 py-0 text-lg font-bold bg-hub-surface-3 border-hub-accent/40 text-white min-w-[200px] focus:border-hub-accent"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setIsEditingSlug(false)
+                    if (e.key === "Escape") { setSlugDraft(slug); setIsEditingSlug(false); }
+                  }}
+                />
+                <Button size="icon" variant="ghost" onClick={() => setIsEditingSlug(false)} className="size-8 text-hub-success hover:bg-hub-success/10">
+                  <Check className="size-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => { setSlugDraft(slug); setIsEditingSlug(false); }} className="size-8 text-hub-err hover:bg-hub-err/10">
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="group/title flex items-center gap-2 -mt-0.5">
+                <div className="relative flex items-center justify-center shrink-0 mr-1">
+                  <div className={`absolute inset-0 rounded-full blur-[6px] opacity-40 animate-pulse ${
+                    data.deactivated ? "bg-transparent" : (data.isCore ? "bg-hub-core" : "bg-hub-user")
+                  }`} />
+                  <div className={`size-2 rounded-full ring-2 ring-white/10 z-10 transition-all duration-500 ${
+                    data.deactivated 
+                      ? "bg-hub-text-faint/40 grayscale" 
+                      : (data.isCore ? "bg-hub-core shadow-[0_0_8px_rgba(139,124,255,0.4)]" : "bg-hub-user shadow-[0_0_8px_rgba(78,224,161,0.4)]")
+                  }`} />
+                </div>
+                <h2 className="font-hub-display font-bold text-white text-xl tracking-tight leading-tight">
+                  {slug}
+                </h2>
+                {!data.isCore && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsEditingSlug(true)}
+                    className="size-6 opacity-0 group-hover/title:opacity-100 text-hub-text-faint hover:text-white transition-all"
+                  >
+                    <Pencil className="size-3" />
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
+            <TooltipTrigger
+              render={
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -249,7 +274,8 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
                 >
                   {data.deactivated ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                 </Button>
-              </TooltipTrigger>
+              }
+            />
               <TooltipContent>
                 {data.deactivated ? "Inschakelen" : "Uitschakelen"}
               </TooltipContent>
@@ -261,10 +287,10 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
             size="sm" 
             onClick={handleValidate} 
             disabled={validating}
-            className="h-8 border-hub-border-strong bg-hub-surface-2 text-hub-text hover:bg-hub-surface-3 hover:text-white transition-colors"
+            className="h-8 px-2.5 md:px-3 border-hub-border-strong bg-hub-surface-2 text-hub-text hover:bg-hub-surface-3 hover:text-white transition-colors"
           >
-            <AlertTriangle className="size-3.5 mr-1.5" />
-            Validate
+            <AlertTriangle className="size-3.5 md:mr-1.5" />
+            <span className="hidden md:inline">Validate</span>
           </Button>
 
           {!data.isCore && (
@@ -273,22 +299,22 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setIsRemoveConfirmOpen(true)}
-                className="h-8 border-hub-err/30 text-hub-err/80 hover:bg-hub-err/10 hover:text-hub-err"
+                className="h-8 px-2.5 md:px-3 border-hub-err/30 text-hub-err/80 hover:bg-hub-err/10 hover:text-hub-err"
               >
-                <Trash2 className="size-3.5 mr-1.5" />
-                Remove
+                <Trash2 className="size-3.5 md:mr-1.5" />
+                <span className="hidden md:inline">Remove</span>
               </Button>
                 <Button 
                   onClick={handleSave} 
                   disabled={saving || (draft === data.content && slugDraft === slug)}
-                  className={`h-8 transition-all duration-300 px-4 font-semibold ${
+                  className={`h-8 transition-all duration-300 px-2.5 md:px-4 font-semibold ${
                     (draft === data.content && slugDraft === slug)
                       ? "bg-hub-surface-3 text-hub-text-faint border border-hub-border opacity-50" 
                       : "bg-hub-accent hover:bg-hub-accent/90 text-white shadow-lg shadow-hub-accent/20"
                   }`}
                 >
-                  {saving ? <Loader2 className="size-3.5 mr-1.5 animate-spin" /> : <Save className="size-3.5 mr-1.5" />}
-                  Save
+                  {saving ? <Loader2 className="size-3.5 md:mr-1.5 animate-spin" /> : <Save className="size-3.5 md:mr-1.5" />}
+                  <span className="hidden md:inline">Save</span>
                 </Button>
             </>
           )}
@@ -306,16 +332,18 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
               </div>
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setFocusMode("editor")}
-                      className="size-6 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 transition-colors"
-                    >
-                      <Maximize2 className="size-3" />
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setFocusMode("editor")}
+                        className="size-6 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 transition-colors"
+                      >
+                        <Maximize2 className="size-3" />
+                      </Button>
+                    }
+                  />
                   <TooltipContent>Focus editor</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -338,16 +366,18 @@ export function SkillDetail({ slug, onBack }: SkillDetailProps) {
             </div>
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setFocusMode("preview")}
-                    className="size-6 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 transition-colors"
-                  >
-                    <Maximize2 className="size-3" />
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setFocusMode("preview")}
+                      className="size-6 text-hub-text-faint hover:text-white hover:bg-hub-surface-3 transition-colors"
+                    >
+                      <Maximize2 className="size-3" />
+                    </Button>
+                  }
+                />
                 <TooltipContent>Focus preview</TooltipContent>
               </Tooltip>
             </TooltipProvider>

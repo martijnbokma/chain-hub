@@ -10,21 +10,22 @@ import { HubProvider, useHub } from "@/lib/HubContext"
 
 function AppRouter() {
   const { uiPrefs } = useHub()
-  const [route, setRoute] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return window.location.hash.replace(/^#/, "") || uiPrefs.defaultRoute || "skills"
-    }
-    return "skills"
-  })
+  const [route, setRoute] = useState<string>("skills")
 
   useEffect(() => {
+    // Set initial route from hash on mount
+    const initialRoute = window.location.hash.replace(/^#/, "") || uiPrefs.defaultRoute || "skills"
+    if (initialRoute !== route) {
+      setRoute(initialRoute)
+    }
+
     const handleHashChange = () => {
       const nextRoute = window.location.hash.replace(/^#/, "") || "skills"
       setRoute(nextRoute)
     }
     window.addEventListener("hashchange", handleHashChange)
     return () => window.removeEventListener("hashchange", handleHashChange)
-  }, [])
+  }, [uiPrefs.defaultRoute])
 
   const renderView = () => {
     switch (route) {
