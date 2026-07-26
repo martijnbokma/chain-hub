@@ -1,0 +1,32 @@
+{
+  "name": "@chain-hub/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsx watch src/dev-server.ts",
+    "build:watch": "tsup src/index.ts --format esm --dts --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@chain-hub/contracts": "0.1.0",
+    "@chain-hub/domain": "0.1.0",
+    "@hono/node-server": "^1.13.1",
+    "hono": "^4.5.8"
+  },
+  "devDependencies": {
+    "tsup": "^8.2.4",
+    "tsx": "^4.16.2",
+    "vitest": "^2.1.9"
+  }
+}

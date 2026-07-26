@@ -1,0 +1,19 @@
+node_modules
+dist
+.turbo
+*.log
+coverage
+.DS_Store
+
+# Local sandbox hubs used during development
+.sandbox-hub/
+.sandbox-*/
+
+# Hub data directory (default chain home is ~/.chain-hub, not in repo)
+chain-hub-data/
+
+# Vitest
+.vitest-cache/
+
+# hub-web Vite build
+apps/hub-web/dist/
