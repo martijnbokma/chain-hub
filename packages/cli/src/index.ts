@@ -19,6 +19,8 @@ import {
   forkLibrarySkill,
   installLibrarySkill,
   migrateAgentsLibrarySkills,
+  summarizeAgentsSkillSync,
+  syncAgentsSkillsIntoHub,
   updateLibraryAsset,
   updateLibrarySkills,
   validateChainHub,
@@ -65,7 +67,11 @@ program
   .action(async () => {
     const options = program.opts<{ chainHome?: string }>();
     const integrations = await connectEditors(options.chainHome);
+    const syncResult = await syncAgentsSkillsIntoHub(options.chainHome);
     console.log(JSON.stringify(integrations, null, 2));
+    if (syncResult.results.length > 0) {
+      console.log(summarizeAgentsSkillSync(syncResult));
+    }
   });
 
 program
@@ -330,7 +336,7 @@ program
     }
 
     const staticRoot = path.resolve(process.cwd(), "apps", "hub-web", "dist");
-    startServer({
+    await startServer({
       chainHome,
       port: Number(commandOptions.port),
       staticRoot

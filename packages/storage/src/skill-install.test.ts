@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   forkSkill,
+  getAgentsSkillsDrift,
   getAsset,
   initializeHub,
   installSkill,
@@ -176,5 +177,41 @@ describe("installSkill", () => {
     const result = await migrateAgentsSkills(tmpHub, { lockPath });
     expect(result.results[0]?.status).toBe("migrated");
     expect(await getAsset(tmpHub, "skills", "migrated-skill")).toMatchObject({ name: "migrated-skill" });
+  });
+
+  it("detects agents skills missing from the hub", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-drift-fixture-"));
+    const present = await writeFixtureSkill(fixtureRoot, "present-skill");
+    await installSkill(tmpHub, { path: present });
+
+    const lockPath = path.join(fixtureRoot, "agents-skill-lock.json");
+    await fs.writeFile(
+      lockPath,
+      JSON.stringify(
+        {
+          version: 3,
+          skills: {
+            "present-skill": {
+              sourceType: "github",
+              sourceUrl: "https://example.com/present.git",
+              skillPath: "present-skill/SKILL.md"
+            },
+            "missing-skill": {
+              sourceType: "github",
+              sourceUrl: "https://example.com/missing.git",
+              skillPath: "missing-skill/SKILL.md"
+            }
+          }
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const drift = await getAgentsSkillsDrift(tmpHub, lockPath);
+    expect(drift.lockPath).toBe(lockPath);
+    expect(drift.missingCount).toBe(1);
+    expect(drift.missingNames).toEqual(["missing-skill"]);
   });
 });

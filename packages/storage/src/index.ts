@@ -30,6 +30,7 @@ import {
   type MemoryNote,
   type MemorySearchResult,
   type MemorySummary,
+  type AgentsSkillsDrift,
   type Overview,
   type ReflectionReport,
   type SetupGuide,
@@ -39,6 +40,7 @@ import {
 } from "@chain-hub/contracts";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
 import {
+  detectAgentsSkillsDrift,
   forkSkillFromHub,
   installSkillFromBundle,
   installSkillFromSource,
@@ -519,6 +521,15 @@ export async function migrateAgentsSkills(
   return migrateAgentsSkillLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
 }
 
+export async function getAgentsSkillsDrift(
+  chainHomeInput?: string,
+  lockPath?: string
+): Promise<AgentsSkillsDrift> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+  return detectAgentsSkillsDrift(chainHome, lockPath);
+}
+
 export async function forkSkill(
   chainHomeInput: string | undefined,
   input: ForkSkillInput
@@ -733,6 +744,7 @@ export async function getOverview(chainHomeInput?: string): Promise<Overview> {
   const meta = await readMeta(chainHome);
   const validation = await validateHub(chainHome);
   const assets = await listAssets(chainHome);
+  const agentsSkillsDrift = await detectAgentsSkillsDrift(chainHome);
 
   const assetCounts = assetKinds.reduce<Record<AssetKind, number>>((accumulator, kind) => {
     accumulator[kind] = assets.filter((asset) => asset.kind === kind).length;
@@ -750,7 +762,8 @@ export async function getOverview(chainHomeInput?: string): Promise<Overview> {
     storage: {
       databasePath: databaseFilePath(chainHome),
       indexedAssets: assets.length
-    }
+    },
+    agentsSkillsDrift
   };
 }
 

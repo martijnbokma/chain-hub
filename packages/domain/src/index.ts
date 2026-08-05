@@ -139,6 +139,32 @@ export async function migrateAgentsLibrarySkills(
   return result;
 }
 
+/** Incremental import of ~/.agents skills into Hub. Missing lock is a no-op. */
+export async function syncAgentsSkillsIntoHub(
+  chainHome: string | undefined,
+  input: MigrateAgentsSkillsInput = {}
+) {
+  try {
+    return await migrateAgentsLibrarySkills(chainHome, { ...input, force: false });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("Agents skill lock not found")) {
+      return {
+        lockPath: input.lockPath ?? "",
+        results: []
+      };
+    }
+    throw error;
+  }
+}
+
+export function summarizeAgentsSkillSync(result: { results: Array<{ status: string }> }): string {
+  const migrated = result.results.filter((item) => item.status === "migrated").length;
+  const skipped = result.results.filter((item) => item.status === "skipped").length;
+  const failed = result.results.filter((item) => item.status === "failed").length;
+  return `Agents skill sync: ${migrated} migrated, ${skipped} skipped, ${failed} failed`;
+}
+
 export async function forkLibrarySkill(chainHome: string | undefined, input: ForkSkillInput) {
   const asset = await forkSkill(chainHome, input);
   await syncAssetToEditors(chainHome, "skills", asset.name, asset);

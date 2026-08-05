@@ -43,6 +43,8 @@ import {
   listHubMemoryNotes,
   migrateAgentsLibrarySkills,
   searchHubMemoryNotes,
+  summarizeAgentsSkillSync,
+  syncAgentsSkillsIntoHub,
   updateHubMemoryNote,
   updateLibraryAsset,
   updateLibrarySkills,
@@ -232,9 +234,19 @@ export function createServer(options: StartServerOptions = {}) {
   return app;
 }
 
-export function startServer(options: StartServerOptions = {}) {
+export async function startServer(options: StartServerOptions = {}) {
   const port = options.port ?? 2342;
   const app = createServer(options);
+
+  try {
+    const result = await syncAgentsSkillsIntoHub(options.chainHome);
+    if (result.results.length > 0) {
+      console.log(summarizeAgentsSkillSync(result));
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Agents skill sync failed: ${message}`);
+  }
 
   return serve({
     fetch: app.fetch,

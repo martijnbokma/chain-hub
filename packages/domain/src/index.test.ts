@@ -1,7 +1,11 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { getAgentsSkillsDrift, getAsset } from "@chain-hub/storage";
 
 import {
   captureHubEvent,
@@ -20,10 +24,13 @@ import {
   installLibrarySkill,
   listHubMemoryNotes,
   searchHubMemoryNotes,
+  syncAgentsSkillsIntoHub,
   updateLibraryAsset,
   validateChainHub,
   writeHubReflection
 } from "./index.js";
+
+const execFileAsync = promisify(execFile);
 
 async function makeTmpHub(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-domain-test-"));
@@ -70,6 +77,69 @@ describe("getDashboardOverview", () => {
     expect(typeof overview.assetCounts).toBe("object");
     expect(typeof overview.health).toBe("object");
     expect(typeof overview.storage).toBe("object");
+    expect(overview.agentsSkillsDrift).toMatchObject({
+      missingCount: 0,
+      missingNames: []
+    });
+  });
+});
+
+describe("syncAgentsSkillsIntoHub", () => {
+  it("imports a new agents lock skill and clears drift", async () => {
+    const hub = await makeTmpHub();
+    await initializeChainHub(hub);
+
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-sync-repo-"));
+    const skillDir = path.join(repo, "synced-skill");
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      "---\nname: synced-skill\ndescription: Sync fixture\n---\n\n# synced-skill\n",
+      "utf8"
+    );
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+
+    const lockPath = path.join(repo, "agents-skill-lock.json");
+    await fs.writeFile(
+      lockPath,
+      JSON.stringify(
+        {
+          version: 3,
+          skills: {
+            "synced-skill": {
+              sourceType: "github",
+              sourceUrl: repo,
+              skillPath: "synced-skill/SKILL.md"
+            }
+          }
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const before = await getAgentsSkillsDrift(hub, lockPath);
+    expect(before.missingCount).toBe(1);
+
+    const result = await syncAgentsSkillsIntoHub(hub, { lockPath });
+    expect(result.results[0]?.status).toBe("migrated");
+    expect(await getAsset(hub, "skills", "synced-skill")).toMatchObject({ name: "synced-skill" });
+
+    const after = await getAgentsSkillsDrift(hub, lockPath);
+    expect(after.missingCount).toBe(0);
+  });
+
+  it("returns empty results when agents lock is missing", async () => {
+    const hub = await makeTmpHub();
+    await initializeChainHub(hub);
+    const missingLock = path.join(hub, "no-such-agents-lock.json");
+    const result = await syncAgentsSkillsIntoHub(hub, { lockPath: missingLock });
+    expect(result.results).toEqual([]);
   });
 });
 

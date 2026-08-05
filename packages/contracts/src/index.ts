@@ -38,6 +38,12 @@ export const updateAssetInputSchema = z.object({
   content: z.string().min(1)
 });
 
+export const agentsSkillsDriftSchema = z.object({
+  lockPath: z.string().nullable(),
+  missingNames: z.array(z.string()),
+  missingCount: z.number().int().nonnegative()
+});
+
 export const overviewSchema = z.object({
   chainHome: z.string(),
   initializedAt: z.string().nullable(),
@@ -49,7 +55,8 @@ export const overviewSchema = z.object({
   storage: z.object({
     databasePath: z.string(),
     indexedAssets: z.number()
-  })
+  }),
+  agentsSkillsDrift: agentsSkillsDriftSchema
 });
 
 export const discoveredAssetSchema = z.object({
@@ -316,6 +323,7 @@ export type AssetDetail = z.infer<typeof assetDetailSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetInputSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>;
 export type Overview = z.infer<typeof overviewSchema>;
+export type AgentsSkillsDrift = z.infer<typeof agentsSkillsDriftSchema>;
 export type Integration = z.infer<typeof integrationSchema>;
 export type IntegrationMode = z.infer<typeof integrationModeSchema>;
 export type DiscoveredAsset = z.infer<typeof discoveredAssetSchema>;

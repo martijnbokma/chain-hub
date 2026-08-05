@@ -1,19 +1,23 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, XCircle, FileText, Zap } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, Download, XCircle, FileText, Zap } from 'lucide-react';
+import { toast } from 'sonner';
 
+import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { overviewApi, learningsApi } from '@/lib/api';
+import { libraryApi, overviewApi, learningsApi } from '@/lib/api';
 import { EVENT_TYPE_BADGE } from '@/lib/constants';
+import type { MigrateAgentsSkillsResult } from '@/types';
 
 export function OverviewPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const overview = useQuery({
     queryKey: ['overview'],
     queryFn: () => overviewApi.get()
@@ -22,6 +26,27 @@ export function OverviewPage() {
   const learnings = useQuery({
     queryKey: ['learnings'],
     queryFn: () => learningsApi.getTimeline()
+  });
+
+  const importAgentsSkills = useMutation({
+    mutationFn: async () => {
+      const response = await libraryApi.migrateAgentsSkills({});
+      if (!response.ok) {
+        throw new Error('Unable to migrate agents skills');
+      }
+      return response.json() as Promise<MigrateAgentsSkillsResult>;
+    },
+    onSuccess: (result) => {
+      const migrated = result.results.filter((item) => item.status === 'migrated').length;
+      const skipped = result.results.filter((item) => item.status === 'skipped').length;
+      const failed = result.results.filter((item) => item.status === 'failed').length;
+      void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['overview'] });
+      toast.success(`Agents migrate: ${migrated} migrated, ${skipped} skipped, ${failed} failed`);
+    },
+    onError: () => {
+      toast.error('Unable to migrate from ~/.agents/.skill-lock.json');
+    }
   });
 
   if (overview.isLoading) {
@@ -40,6 +65,8 @@ export function OverviewPage() {
 
   const isHealthy = data.health.issues.length === 0;
   const assetEntries = Object.entries(data.assetCounts);
+  const agentsDrift = data.agentsSkillsDrift;
+  const hasAgentsDrift = agentsDrift.missingCount > 0;
 
   return (
     <section className="mx-auto grid w-full max-w-5xl gap-8">
@@ -61,6 +88,33 @@ export function OverviewPage() {
           <code className="break-all font-mono text-xs text-foreground">{data.chainHome}</code>
         </p>
       </header>
+
+      {hasAgentsDrift ? (
+        <Alert className="items-center" variant="warning">
+          <AlertIcon>
+            <Download />
+          </AlertIcon>
+          <AlertDescription>
+            {agentsDrift.missingCount} skill{agentsDrift.missingCount === 1 ? '' : 's'} in{' '}
+            <code className="font-mono text-xs text-foreground">~/.agents</code>{' '}
+            {agentsDrift.missingCount === 1 ? 'is' : 'are'} not in Hub yet
+            {agentsDrift.missingNames.length > 0
+              ? ` (${agentsDrift.missingNames.slice(0, 3).join(', ')}${
+                  agentsDrift.missingNames.length > 3 ? ', …' : ''
+                })`
+              : ''}
+            .
+          </AlertDescription>
+          <Button
+            className="shrink-0"
+            disabled={importAgentsSkills.isPending}
+            onClick={() => importAgentsSkills.mutate()}
+            size="sm"
+          >
+            {importAgentsSkills.isPending ? 'Importing…' : 'Import into Hub'}
+          </Button>
+        </Alert>
+      ) : null}
 
       <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-card sm:grid-cols-2 xl:grid-cols-4">
         {assetEntries.map(([kind, count]) => (

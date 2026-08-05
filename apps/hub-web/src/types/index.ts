@@ -1,5 +1,5 @@
 // Overview types
-export type { Overview } from './overview';
+export type { Overview, AgentsSkillsDrift } from './overview';
 
 // Asset types
 export type {

@@ -1,3 +1,9 @@
+export type AgentsSkillsDrift = {
+  lockPath: string | null;
+  missingNames: string[];
+  missingCount: number;
+};
+
 export type Overview = {
   chainHome: string;
   initializedAt: string | null;
@@ -10,4 +16,5 @@ export type Overview = {
     databasePath: string;
     indexedAssets: number;
   };
+  agentsSkillsDrift: AgentsSkillsDrift;
 };

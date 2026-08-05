@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 
 import {
   isUpstreamOwnedSkill,
+  type AgentsSkillsDrift,
   type AssetDetail,
   type ForkSkillInput,
   type InstallSkillBundleInput,
@@ -424,6 +425,36 @@ export async function updateSkillsFromLock(
   }
 
   return { results };
+}
+
+export async function detectAgentsSkillsDrift(
+  chainHome: string,
+  lockPathInput?: string
+): Promise<AgentsSkillsDrift> {
+  const lockPath = path.resolve(lockPathInput ?? path.join(os.homedir(), ".agents", ".skill-lock.json"));
+
+  if (!(await pathExists(lockPath))) {
+    return { lockPath: null, missingNames: [], missingCount: 0 };
+  }
+
+  let parsed: AgentsLockFile;
+  try {
+    const raw = await fs.readFile(lockPath, "utf8");
+    parsed = JSON.parse(raw) as AgentsLockFile;
+  } catch {
+    return { lockPath, missingNames: [], missingCount: 0 };
+  }
+
+  const missingNames: string[] = [];
+  for (const rawName of Object.keys(parsed.skills ?? {})) {
+    const name = normalizeSkillName(rawName);
+    if (!(await pathExists(skillFile(chainHome, name)))) {
+      missingNames.push(name);
+    }
+  }
+
+  missingNames.sort();
+  return { lockPath, missingNames, missingCount: missingNames.length };
 }
 
 export async function migrateAgentsSkillLock(

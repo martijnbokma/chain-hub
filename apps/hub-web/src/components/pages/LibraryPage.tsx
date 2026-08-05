@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +49,7 @@ import { isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { ShellToolbar } from '@/components/layout/ShellToolbar';
-import { libraryApi } from '@/lib/api';
+import { libraryApi, overviewApi } from '@/lib/api';
 import type {
   AssetKind,
   FilterKind,
@@ -259,6 +260,11 @@ export function LibraryPage() {
   const library = useQuery({
     queryKey: ['library'],
     queryFn: () => libraryApi.getAll()
+  });
+
+  const overview = useQuery({
+    queryKey: ['overview'],
+    queryFn: () => overviewApi.get()
   });
 
   const selectedAsset = useQuery({
@@ -511,6 +517,8 @@ export function LibraryPage() {
   }, [discoverQuery.data]);
 
   const kindSections = Object.entries(grouped);
+  const agentsDrift = overview.data?.agentsSkillsDrift;
+  const hasAgentsDrift = (agentsDrift?.missingCount ?? 0) > 0;
 
   const toolbar = (
     <ShellToolbar>
@@ -627,6 +635,34 @@ export function LibraryPage() {
     <>
       {toolbar}
       <section className="flex h-[calc(100vh-108px)] flex-col">
+      {hasAgentsDrift && agentsDrift ? (
+        <div className="shrink-0 px-0 pb-3">
+          <Alert className="items-center" variant="warning">
+            <AlertIcon>
+              <Download />
+            </AlertIcon>
+            <AlertDescription>
+              {agentsDrift.missingCount} skill{agentsDrift.missingCount === 1 ? '' : 's'} in{' '}
+              <code className="font-mono text-xs text-foreground">~/.agents</code>{' '}
+              {agentsDrift.missingCount === 1 ? 'is' : 'are'} not in Hub yet
+              {agentsDrift.missingNames.length > 0
+                ? ` (${agentsDrift.missingNames.slice(0, 3).join(', ')}${
+                    agentsDrift.missingNames.length > 3 ? ', …' : ''
+                  })`
+                : ''}
+              .
+            </AlertDescription>
+            <Button
+              className="shrink-0"
+              disabled={migrateAgentsSkills.isPending}
+              onClick={() => migrateAgentsSkills.mutate()}
+              size="sm"
+            >
+              {migrateAgentsSkills.isPending ? 'Importing…' : 'Import into Hub'}
+            </Button>
+          </Alert>
+        </div>
+      ) : null}
       <div
         className={cn(
           'grid min-h-0 flex-1 gap-4',
