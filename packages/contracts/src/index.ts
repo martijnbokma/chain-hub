@@ -4,12 +4,24 @@ export const assetKinds = ["skills", "agents", "workflows", "rules"] as const;
 
 export type AssetKind = (typeof assetKinds)[number];
 
+export const skillLockSourceTypeSchema = z.enum(["path", "git"]);
+
+export const skillLockEntrySchema = z.object({
+  sourceType: skillLockSourceTypeSchema,
+  source: z.string().min(1),
+  subdir: z.string().nullable(),
+  contentHash: z.string().nullable().optional(),
+  installedAt: z.string(),
+  updatedAt: z.string()
+});
+
 export const assetRecordSchema = z.object({
   id: z.string(),
   name: z.string(),
   kind: z.enum(assetKinds),
   relativePath: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  provenance: skillLockEntrySchema.nullable().optional()
 });
 
 export const assetDetailSchema = assetRecordSchema.extend({
@@ -53,6 +65,113 @@ export const importAssetInputSchema = z.object({
   editorId: z.string(),
   kind: z.enum(assetKinds),
   name: z.string()
+});
+
+export const installSkillInputSchema = z
+  .object({
+    path: z.string().min(1).optional(),
+    repo: z.string().min(1).optional(),
+    subdir: z.string().min(1).optional(),
+    name: z.string().min(1).optional(),
+    force: z.boolean().optional()
+  })
+  .refine((value) => Boolean(value.path) !== Boolean(value.repo), {
+    message: "Provide exactly one of path or repo"
+  });
+
+export const skillsLockFileSchema = z.object({
+  version: z.literal(1),
+  skills: z.record(z.string(), skillLockEntrySchema)
+});
+
+export const installSkillResultSchema = z.object({
+  asset: assetDetailSchema,
+  lockEntry: skillLockEntrySchema
+});
+
+export const installSkillBundleFileSchema = z.object({
+  path: z.string().min(1),
+  contentBase64: z.string()
+});
+
+export const installSkillBundleInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  force: z.boolean().optional(),
+  files: z.array(installSkillBundleFileSchema).min(1)
+});
+
+export const updateSkillsInputSchema = z.object({
+  name: z.string().min(1).optional(),
+  force: z.boolean().optional()
+});
+
+export const forkSkillInputSchema = z.object({
+  name: z.string().min(1),
+  as: z.string().min(1).optional()
+});
+
+type SkillLockEntryValue = z.infer<typeof skillLockEntrySchema>;
+
+/** Upstream-tracked skills are overwrite targets for `skill update`; uploads and local skills are not. */
+export function isUpstreamOwnedSkill(entry: SkillLockEntryValue | null | undefined): boolean {
+  if (!entry) {
+    return false;
+  }
+
+  return !entry.source.startsWith("upload://");
+}
+
+/** Best-effort browse URL for contributing changes back to a git skill source. */
+export function resolveSkillUpstreamBrowseUrl(entry: SkillLockEntryValue | null | undefined): string | null {
+  if (!entry || entry.sourceType !== "git") {
+    return null;
+  }
+
+  const raw = entry.source.trim();
+  const sshMatch = raw.match(/^git@([^:]+):(.+?)(?:\.git)?$/i);
+  if (sshMatch) {
+    const host = sshMatch[1];
+    const repoPath = sshMatch[2]?.replace(/\.git$/i, "");
+    if (host && repoPath) {
+      return `https://${host}/${repoPath}`;
+    }
+  }
+
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+    url.username = "";
+    url.password = "";
+    url.hash = "";
+    url.search = "";
+    url.pathname = url.pathname.replace(/\.git$/i, "");
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+export const skillBatchItemResultSchema = z.object({
+  name: z.string(),
+  status: z.enum(["updated", "skipped", "failed", "migrated"]),
+  error: z.string().optional(),
+  lockEntry: skillLockEntrySchema.optional()
+});
+
+export const updateSkillsResultSchema = z.object({
+  results: z.array(skillBatchItemResultSchema)
+});
+
+export const migrateAgentsSkillsInputSchema = z.object({
+  lockPath: z.string().min(1).optional(),
+  force: z.boolean().optional()
+});
+
+export const migrateAgentsSkillsResultSchema = z.object({
+  lockPath: z.string(),
+  results: z.array(skillBatchItemResultSchema)
 });
 
 export const integrationModeSchema = z.enum(["managed", "symlink", "missing", "conflict"]);
@@ -201,6 +320,19 @@ export type Integration = z.infer<typeof integrationSchema>;
 export type IntegrationMode = z.infer<typeof integrationModeSchema>;
 export type DiscoveredAsset = z.infer<typeof discoveredAssetSchema>;
 export type ImportAssetInput = z.infer<typeof importAssetInputSchema>;
+export type InstallSkillInput = z.infer<typeof installSkillInputSchema>;
+export type InstallSkillBundleInput = z.infer<typeof installSkillBundleInputSchema>;
+export type InstallSkillBundleFile = z.infer<typeof installSkillBundleFileSchema>;
+export type SkillLockSourceType = z.infer<typeof skillLockSourceTypeSchema>;
+export type SkillLockEntry = z.infer<typeof skillLockEntrySchema>;
+export type SkillsLockFile = z.infer<typeof skillsLockFileSchema>;
+export type InstallSkillResult = z.infer<typeof installSkillResultSchema>;
+export type UpdateSkillsInput = z.infer<typeof updateSkillsInputSchema>;
+export type ForkSkillInput = z.infer<typeof forkSkillInputSchema>;
+export type SkillBatchItemResult = z.infer<typeof skillBatchItemResultSchema>;
+export type UpdateSkillsResult = z.infer<typeof updateSkillsResultSchema>;
+export type MigrateAgentsSkillsInput = z.infer<typeof migrateAgentsSkillsInputSchema>;
+export type MigrateAgentsSkillsResult = z.infer<typeof migrateAgentsSkillsResultSchema>;
 export type ValidationResult = z.infer<typeof validationSchema>;
 export type SetupStep = z.infer<typeof setupStepSchema>;
 export type SetupGuide = z.infer<typeof setupGuideSchema>;

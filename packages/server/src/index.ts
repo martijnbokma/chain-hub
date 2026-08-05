@@ -5,7 +5,20 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 
-import { captureInputSchema, createAssetInputSchema, createMemoryNoteInputSchema, importAssetInputSchema, type AssetKind, updateAssetInputSchema, updateMemoryNoteInputSchema } from "@chain-hub/contracts";
+import {
+  captureInputSchema,
+  createAssetInputSchema,
+  createMemoryNoteInputSchema,
+  forkSkillInputSchema,
+  importAssetInputSchema,
+  installSkillBundleInputSchema,
+  installSkillInputSchema,
+  migrateAgentsSkillsInputSchema,
+  type AssetKind,
+  updateAssetInputSchema,
+  updateMemoryNoteInputSchema,
+  updateSkillsInputSchema
+} from "@chain-hub/contracts";
 import {
   captureHubEvent,
   connectEditors,
@@ -14,6 +27,7 @@ import {
   deleteHubMemoryNote,
   deleteLibraryAsset,
   discoverLibraryAssets,
+  forkLibrarySkill,
   getDashboardOverview,
   getGuidedSetup,
   getHubLearningsTimeline,
@@ -24,10 +38,14 @@ import {
   getLibrary,
   getLibraryAsset,
   importLibraryAsset,
+  installLibrarySkill,
+  installLibrarySkillBundle,
   listHubMemoryNotes,
+  migrateAgentsLibrarySkills,
   searchHubMemoryNotes,
   updateHubMemoryNote,
   updateLibraryAsset,
+  updateLibrarySkills,
   validateChainHub
 } from "@chain-hub/domain";
 
@@ -49,6 +67,49 @@ export function createServer(options: StartServerOptions = {}) {
     const kind = context.req.query("kind");
     const library = await getLibrary(options.chainHome, kind as never);
     return context.json(library);
+  });
+
+  app.post("/api/library/skills/install", async (context) => {
+    const payload = installSkillInputSchema.parse(await context.req.json());
+    const result = await installLibrarySkill(options.chainHome, payload);
+    return context.json(result, 201);
+  });
+
+  app.post("/api/library/skills/install-bundle", async (context) => {
+    const payload = installSkillBundleInputSchema.parse(await context.req.json());
+    const result = await installLibrarySkillBundle(options.chainHome, payload);
+    return context.json(result, 201);
+  });
+
+  app.post("/api/library/skills/update", async (context) => {
+    const body = await context.req.json().catch(() => ({}));
+    const payload = updateSkillsInputSchema.parse(body ?? {});
+    const result = await updateLibrarySkills(options.chainHome, payload);
+    return context.json(result);
+  });
+
+  app.post("/api/library/skills/migrate-agents", async (context) => {
+    const body = await context.req.json().catch(() => ({}));
+    const payload = migrateAgentsSkillsInputSchema.parse(body ?? {});
+    const result = await migrateAgentsLibrarySkills(options.chainHome, payload);
+    return context.json(result);
+  });
+
+  app.post("/api/library/skills/fork", async (context) => {
+    const payload = forkSkillInputSchema.parse(await context.req.json());
+    const asset = await forkLibrarySkill(options.chainHome, payload);
+    return context.json(asset, 201);
+  });
+
+  app.get("/api/library/discover", async (context) => {
+    const discovered = await discoverLibraryAssets();
+    return context.json(discovered);
+  });
+
+  app.post("/api/library/import", async (context) => {
+    const payload = importAssetInputSchema.parse(await context.req.json());
+    const asset = await importLibraryAsset(options.chainHome, payload);
+    return context.json(asset, 201);
   });
 
   app.get("/api/library/:kind/:name", async (context) => {
@@ -77,17 +138,6 @@ export function createServer(options: StartServerOptions = {}) {
     const name = context.req.param("name");
     await deleteLibraryAsset(options.chainHome, kind, name);
     return context.json({ ok: true });
-  });
-
-  app.get("/api/library/discover", async (context) => {
-    const discovered = await discoverLibraryAssets();
-    return context.json(discovered);
-  });
-
-  app.post("/api/library/import", async (context) => {
-    const payload = importAssetInputSchema.parse(await context.req.json());
-    const asset = await importLibraryAsset(options.chainHome, payload);
-    return context.json(asset, 201);
   });
 
   app.get("/api/integrations", async (context) => {

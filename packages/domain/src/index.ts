@@ -1,4 +1,15 @@
-import type { AssetKind, CaptureInput, CreateAssetInput, CreateMemoryNoteInput, ImportAssetInput } from "@chain-hub/contracts";
+import type {
+  AssetKind,
+  CaptureInput,
+  CreateAssetInput,
+  CreateMemoryNoteInput,
+  ForkSkillInput,
+  ImportAssetInput,
+  InstallSkillBundleInput,
+  InstallSkillInput,
+  MigrateAgentsSkillsInput,
+  UpdateSkillsInput
+} from "@chain-hub/contracts";
 import {
   buildReflectionReport,
   captureEvent,
@@ -8,6 +19,7 @@ import {
   deleteAsset,
   deleteMemoryNote,
   discoverAssets,
+  forkSkill,
   getAsset,
   getIntegrations,
   getLearningsTimeline,
@@ -17,13 +29,17 @@ import {
   getSetupGuide,
   importDiscoveredAsset,
   initializeHub,
+  installSkill,
+  installSkillBundle,
   listAssets,
   listMemoryNotes,
+  migrateAgentsSkills,
   searchMemoryNotes,
   setupIntegrations,
   syncAssetToEditors,
   updateAsset,
   updateMemoryNote,
+  updateSkills,
   validateHub
 } from "@chain-hub/storage";
 
@@ -72,6 +88,60 @@ export async function discoverLibraryAssets() {
 export async function importLibraryAsset(chainHome: string | undefined, input: ImportAssetInput) {
   const asset = await importDiscoveredAsset(chainHome, input);
   await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
+  return asset;
+}
+
+export async function installLibrarySkill(chainHome: string | undefined, input: InstallSkillInput) {
+  const result = await installSkill(chainHome, input);
+  await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
+  return result;
+}
+
+export async function installLibrarySkillBundle(
+  chainHome: string | undefined,
+  input: InstallSkillBundleInput
+) {
+  const result = await installSkillBundle(chainHome, input);
+  await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
+  return result;
+}
+
+export async function updateLibrarySkills(chainHome: string | undefined, input: UpdateSkillsInput = {}) {
+  const result = await updateSkills(chainHome, input);
+
+  for (const item of result.results) {
+    if (item.status !== "updated" && item.status !== "migrated") {
+      continue;
+    }
+
+    const asset = await getAsset(chainHome, "skills", item.name);
+    await syncAssetToEditors(chainHome, "skills", item.name, asset);
+  }
+
+  return result;
+}
+
+export async function migrateAgentsLibrarySkills(
+  chainHome: string | undefined,
+  input: MigrateAgentsSkillsInput = {}
+) {
+  const result = await migrateAgentsSkills(chainHome, input);
+
+  for (const item of result.results) {
+    if (item.status !== "migrated" && item.status !== "updated") {
+      continue;
+    }
+
+    const asset = await getAsset(chainHome, "skills", item.name);
+    await syncAssetToEditors(chainHome, "skills", item.name, asset);
+  }
+
+  return result;
+}
+
+export async function forkLibrarySkill(chainHome: string | undefined, input: ForkSkillInput) {
+  const asset = await forkSkill(chainHome, input);
+  await syncAssetToEditors(chainHome, "skills", asset.name, asset);
   return asset;
 }
 

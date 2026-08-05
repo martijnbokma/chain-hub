@@ -15,7 +15,16 @@ import {
   type CreateMemoryNoteInput,
   type DiscoveredAsset,
   type ImportAssetInput,
+  type ForkSkillInput,
+  type InstallSkillBundleInput,
+  type InstallSkillInput,
+  type InstallSkillResult,
+  type MigrateAgentsSkillsInput,
+  type MigrateAgentsSkillsResult,
   type Integration,
+  type UpdateSkillsInput,
+  type UpdateSkillsResult,
+  isUpstreamOwnedSkill,
   type LearningsTimeline,
   type MemoryFile,
   type MemoryNote,
@@ -29,6 +38,14 @@ import {
   type ValidationResult
 } from "@chain-hub/contracts";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
+import {
+  forkSkillFromHub,
+  installSkillFromBundle,
+  installSkillFromSource,
+  migrateAgentsSkillLock,
+  readSkillsLock,
+  updateSkillsFromLock
+} from "./skill-install.js";
 
 /**
  * Legacy whole-folder symlink targets. Used as a fallback for any editor id
@@ -317,12 +334,12 @@ export async function initializeHub(chainHomeInput?: string): Promise<{ chainHom
     await ensureDir(path.join(chainHome, dirName));
   }
 
-  await seedWelcomeSkill(chainHome);
-
   const meta = await readMeta(chainHome);
   const isFirstRun = !meta.initializedAt;
 
+  // Seed only on first init — otherwise deleting welcome is undone by every listAssets call.
   if (isFirstRun) {
+    await seedWelcomeSkill(chainHome);
     await writeMeta(chainHome, { initializedAt: new Date().toISOString() });
   }
 
@@ -351,7 +368,19 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
           .prepare("SELECT id, name, kind, relative_path, updated_at FROM assets ORDER BY kind ASC, name ASC")
           .all() as Array<{ id: string; name: string; kind: AssetKind; relative_path: string; updated_at: string }>);
 
-    return rows.map(mapAssetRow);
+    const skillsLock = await readSkillsLock(chainHome);
+
+    return rows.map((row) => {
+      const asset = mapAssetRow(row);
+      if (asset.kind !== "skills") {
+        return asset;
+      }
+
+      return {
+        ...asset,
+        provenance: skillsLock.skills[asset.name] ?? null
+      };
+    });
   } finally {
     database.close();
   }
@@ -365,6 +394,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
   const filePath = assetFilePath(chainHome, kind, name);
   const content = await fs.readFile(filePath, "utf8");
   const stats = await fs.stat(filePath);
+  const provenance = kind === "skills" ? ((await readSkillsLock(chainHome)).skills[name] ?? null) : null;
 
   return {
     id: toAssetId(kind, name),
@@ -372,7 +402,8 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
     kind,
     relativePath: path.relative(chainHome, filePath),
     updatedAt: stats.mtime.toISOString(),
-    content
+    content,
+    provenance
   };
 }
 
@@ -414,6 +445,15 @@ export async function updateAsset(
     throw new Error(`Asset not found: ${kind}/${name}`);
   }
 
+  if (kind === "skills") {
+    const provenance = (await readSkillsLock(chainHome)).skills[name] ?? null;
+    if (isUpstreamOwnedSkill(provenance)) {
+      throw new Error(
+        `Skill skills/${name} is upstream-owned. Fork it to customize, or edits will be lost on update.`
+      );
+    }
+  }
+
   await fs.writeFile(filePath, content, "utf8");
   await syncAssetIndex(chainHome);
 
@@ -430,18 +470,63 @@ export async function deleteAsset(chainHomeInput: string | undefined, kind: Asse
     return;
   }
 
-  await fs.unlink(filePath);
-
   if (kind === "skills") {
-    const skillDir = path.dirname(filePath);
-    const remaining = await fs.readdir(skillDir).catch(() => []);
-
-    if (remaining.length === 0) {
-      await fs.rmdir(skillDir).catch(() => undefined);
-    }
+    await fs.rm(path.dirname(filePath), { recursive: true, force: true });
+  } else {
+    await fs.unlink(filePath);
   }
 
   await syncAssetIndex(chainHome);
+}
+
+export async function installSkill(
+  chainHomeInput: string | undefined,
+  input: InstallSkillInput
+): Promise<InstallSkillResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  return installSkillFromSource(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+}
+
+export async function installSkillBundle(
+  chainHomeInput: string | undefined,
+  input: InstallSkillBundleInput
+): Promise<InstallSkillResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  return installSkillFromBundle(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+}
+
+export async function updateSkills(
+  chainHomeInput: string | undefined,
+  input: UpdateSkillsInput = {}
+): Promise<UpdateSkillsResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  return updateSkillsFromLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+}
+
+export async function migrateAgentsSkills(
+  chainHomeInput: string | undefined,
+  input: MigrateAgentsSkillsInput = {}
+): Promise<MigrateAgentsSkillsResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  return migrateAgentsSkillLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+}
+
+export async function forkSkill(
+  chainHomeInput: string | undefined,
+  input: ForkSkillInput
+): Promise<AssetDetail> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  return forkSkillFromHub(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
 }
 
 function findAdapter(id: string) {

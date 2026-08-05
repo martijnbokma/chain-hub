@@ -2,7 +2,18 @@
 export type { Overview } from './overview';
 
 // Asset types
-export type { AssetRecord, AssetDetail, AssetKind, FilterKind } from './assets';
+export type {
+  AssetRecord,
+  AssetDetail,
+  AssetKind,
+  FilterKind,
+  InstallSkillInput,
+  InstallSkillBundleInput,
+  InstallSkillResult,
+  MigrateAgentsSkillsResult,
+  SkillLockEntry,
+  UpdateSkillsResult
+} from './assets';
 
 // Integration types
 export type { Integration } from './integrations';

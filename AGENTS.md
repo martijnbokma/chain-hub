@@ -403,13 +403,16 @@ chain validate
 - Standardize hub-web layouts by surface type (Direction A): checklist for Setup/Integrations/Learnings; dashboard for Overview; workspace master–detail for Library/Memory (Library browse may use compact asset cards).
 - Prefer rebuilding UI against existing design-system components and tokens; flag gaps and make the smallest addition rather than inventing one-off primitives.
 - Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
+- Prefer not editing marketplace/upstream-installed skills in place when updates would overwrite local changes; contribute via PR/fork to the owner instead.
+- Library should surface skill provenance/source so it is clear where each skill came from.
 
 ## Learned Workspace Facts
 
 - Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and `apps/hub-web/.impeccable/` (not ad-hoc styling guesses).
 - Keep `ComingSoonPage.tsx`; it is still needed for `apps/marketing-site`, which remains under development.
-- The shared design skill lives at `/Users/silverfox/www/skills` (moved out of `.claude/skills/design/` in this repo).
-- Cross-IDE rules direction: keep one hub-owned source of truth and project/sync into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than maintaining separate per-IDE rule trees by hand.
+- Personal skills vault lives at `/Users/silverfox/www/skills` (includes the shared design skill moved out of `.claude/skills/design/` in this repo).
+- Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
+- Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`docs/intent/hub-skills-control-plane.md`, `docs/specs/hub-skill-install.md`).
 
 ---
 

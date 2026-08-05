@@ -17,6 +17,7 @@ import {
   getLibrary,
   getLibraryAsset,
   initializeChainHub,
+  installLibrarySkill,
   listHubMemoryNotes,
   searchHubMemoryNotes,
   updateLibraryAsset,
@@ -119,6 +120,31 @@ describe("library asset CRUD via domain", () => {
 
     await deleteLibraryAsset(hub, "skills", "sync-skill");
     await expect(fs.stat(skillPath)).rejects.toThrow();
+  });
+
+  it("installs a skill from path into the hub and projects SKILL.md + sidecars to Claude and Cursor", async () => {
+    const hub = await makeTmpHub();
+    await initializeChainHub(hub);
+
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-domain-skill-"));
+    const source = path.join(fixtureRoot, "install-skill");
+    await fs.mkdir(path.join(source, "scripts"), { recursive: true });
+    await fs.writeFile(
+      path.join(source, "SKILL.md"),
+      "---\nname: install-skill\ndescription: Installed skill\n---\n\n# Install Skill\n\nBody.\n",
+      "utf8"
+    );
+    await fs.writeFile(path.join(source, "scripts", "run.sh"), "#!/bin/sh\necho run\n", "utf8");
+
+    const result = await installLibrarySkill(hub, { path: source });
+    expect(result.asset.name).toBe("install-skill");
+
+    const claudeSkill = path.join(tmpHome, ".claude", "skills", "install-skill");
+    const cursorSkill = path.join(tmpHome, ".cursor", "skills", "install-skill");
+    expect(await fs.readFile(path.join(claudeSkill, "SKILL.md"), "utf8")).toContain("chain_hub_source");
+    expect(await fs.readFile(path.join(claudeSkill, "scripts", "run.sh"), "utf8")).toContain("echo run");
+    expect(await fs.readFile(path.join(cursorSkill, "SKILL.md"), "utf8")).toContain("Installed skill");
+    expect(await fs.readFile(path.join(cursorSkill, "scripts", "run.sh"), "utf8")).toContain("echo run");
   });
 });
 

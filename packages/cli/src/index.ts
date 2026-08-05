@@ -16,11 +16,21 @@ import {
   getLibraryAsset,
   importLibraryAsset,
   initializeChainHub,
+  forkLibrarySkill,
+  installLibrarySkill,
+  migrateAgentsLibrarySkills,
   updateLibraryAsset,
+  updateLibrarySkills,
   validateChainHub,
   writeHubReflection
 } from "@chain-hub/domain";
-import type { AssetKind } from "@chain-hub/contracts";
+import {
+  forkSkillInputSchema,
+  installSkillInputSchema,
+  migrateAgentsSkillsInputSchema,
+  updateSkillsInputSchema,
+  type AssetKind
+} from "@chain-hub/contracts";
 import { resolveChainHome } from "@chain-hub/storage";
 import { startServer } from "@chain-hub/server";
 
@@ -145,6 +155,82 @@ assetCommand
       kind: commandOptions.kind,
       name: commandOptions.name
     });
+    console.log(JSON.stringify(asset, null, 2));
+  });
+
+const skillCommand = program.command("skill").description("Install and manage skills in the hub");
+
+skillCommand
+  .command("install")
+  .description("Install a skill into the hub from a local path or git repo, then project to editors")
+  .option("--path <dir>", "Local skill directory containing SKILL.md")
+  .option("--repo <url>", "Git repository URL or path")
+  .option("--subdir <path>", "Skill folder inside the git repo")
+  .option("--name <name>", "Override skill name")
+  .option("--force", "Replace an existing hub skill", false)
+  .action(
+    async (commandOptions: {
+      path?: string;
+      repo?: string;
+      subdir?: string;
+      name?: string;
+      force?: boolean;
+    }) => {
+      const options = program.opts<{ chainHome?: string }>();
+      const input = installSkillInputSchema.parse({
+        path: commandOptions.path,
+        repo: commandOptions.repo,
+        subdir: commandOptions.subdir,
+        name: commandOptions.name,
+        force: commandOptions.force
+      });
+      const result = await installLibrarySkill(options.chainHome, input);
+      console.log(JSON.stringify(result, null, 2));
+    }
+  );
+
+skillCommand
+  .command("update")
+  .description("Reinstall hub skills from their recorded upstream sources")
+  .option("--name <name>", "Update a single skill (default: all locked skills)")
+  .option("--force", "Update even when the content hash is unchanged", false)
+  .action(async (commandOptions: { name?: string; force?: boolean }) => {
+    const options = program.opts<{ chainHome?: string }>();
+    const input = updateSkillsInputSchema.parse({
+      name: commandOptions.name,
+      force: commandOptions.force
+    });
+    const result = await updateLibrarySkills(options.chainHome, input);
+    console.log(JSON.stringify(result, null, 2));
+  });
+
+skillCommand
+  .command("migrate-agents")
+  .description("Import skills from ~/.agents/.skill-lock.json into the hub")
+  .option("--lock-path <path>", "Override agents skill-lock path")
+  .option("--force", "Replace skills that already exist in the hub", false)
+  .action(async (commandOptions: { lockPath?: string; force?: boolean }) => {
+    const options = program.opts<{ chainHome?: string }>();
+    const input = migrateAgentsSkillsInputSchema.parse({
+      lockPath: commandOptions.lockPath,
+      force: commandOptions.force
+    });
+    const result = await migrateAgentsLibrarySkills(options.chainHome, input);
+    console.log(JSON.stringify(result, null, 2));
+  });
+
+skillCommand
+  .command("fork")
+  .description("Copy an upstream-owned skill into a local editable skill (no lock entry)")
+  .requiredOption("--name <name>", "Upstream skill name in the hub")
+  .option("--as <name>", "Name for the local fork (default: <name>-local)")
+  .action(async (commandOptions: { name: string; as?: string }) => {
+    const options = program.opts<{ chainHome?: string }>();
+    const input = forkSkillInputSchema.parse({
+      name: commandOptions.name,
+      as: commandOptions.as
+    });
+    const asset = await forkLibrarySkill(options.chainHome, input);
     console.log(JSON.stringify(asset, null, 2));
   });
 

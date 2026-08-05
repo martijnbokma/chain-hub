@@ -8,6 +8,7 @@ import {
   captureEvent,
   createAsset,
   createMemoryNote,
+  deleteAsset,
   discoverAssets,
   getIntegrations,
   getLearningsTimeline,
@@ -61,6 +62,18 @@ describe("initializeHub", () => {
       const stat = await fs.stat(path.join(hub, dir));
       expect(stat.isDirectory()).toBe(true);
     }
+  });
+
+  it("seeds welcome on first run only and does not recreate it after delete", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    const afterInit = await listAssets(hub, "skills");
+    expect(afterInit.some((asset) => asset.name === "welcome")).toBe(true);
+
+    await deleteAsset(hub, "skills", "welcome");
+    const afterDelete = await listAssets(hub, "skills");
+    expect(afterDelete.some((asset) => asset.name === "welcome")).toBe(false);
   });
 });
 

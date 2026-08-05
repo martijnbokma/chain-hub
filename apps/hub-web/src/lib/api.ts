@@ -4,12 +4,17 @@ import type {
   AssetDetail,
   DiscoveredAsset,
   ImportAssetInput,
+  InstallSkillInput,
+  InstallSkillBundleInput,
+  InstallSkillResult,
   Integration,
+  MigrateAgentsSkillsResult,
   SetupGuide,
   LearningsTimeline,
   ReflectionReport,
   MemoryNote,
-  MemorySearchResult
+  MemorySearchResult,
+  UpdateSkillsResult
 } from '@/types';
 
 /**
@@ -57,8 +62,40 @@ export const libraryApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
+    }),
+  installSkill: (data: InstallSkillInput) =>
+    fetch('/api/library/skills/install', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  installSkillBundle: (data: InstallSkillBundleInput) =>
+    fetch('/api/library/skills/install-bundle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  updateSkills: (data: { name?: string; force?: boolean } = {}) =>
+    fetch('/api/library/skills/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  forkSkill: (data: { name: string; as?: string }) =>
+    fetch('/api/library/skills/fork', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  migrateAgentsSkills: (data: { lockPath?: string; force?: boolean } = {}) =>
+    fetch('/api/library/skills/migrate-agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     })
 };
+
+export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult };
 
 // Integrations API
 export const integrationsApi = {

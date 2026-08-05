@@ -8,11 +8,12 @@ import {
   dirHasAnyFile,
   listFlatCandidates,
   listSkillCandidates,
+  pathExists,
   readUnmanagedCandidates,
-  removeEmptyDir,
   removeManagedFile,
   writeManagedFile
 } from "./files.js";
+import { projectSkillSidecars, removeEditorSkillDirectory } from "../skill-install.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Claude Code discovery paths (user-level): docs/editor-adapters-research.md#claude-code
@@ -43,12 +44,16 @@ function buildContent(asset: AssetDetail): string {
   return stringifyFrontmatter(data, body);
 }
 
-async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
+async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (!SUPPORTED_KINDS.includes(asset.kind)) {
     return;
   }
 
   await writeManagedFile(targetPath(homeDir, asset.kind, asset.name), buildContent(asset), "frontmatter", options);
+
+  if (asset.kind === "skills") {
+    await projectSkillSidecars(chainHome, path.dirname(targetPath(homeDir, "skills", asset.name)), asset.name);
+  }
 }
 
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
@@ -56,12 +61,16 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
     return;
   }
 
-  const filePath = targetPath(homeDir, kind, name);
-  await removeManagedFile(filePath);
-
   if (kind === "skills") {
-    await removeEmptyDir(path.dirname(filePath));
+    const filePath = targetPath(homeDir, kind, name);
+    await removeManagedFile(filePath);
+    if (!(await pathExists(filePath))) {
+      await removeEditorSkillDirectory(path.dirname(filePath));
+    }
+    return;
   }
+
+  await removeManagedFile(targetPath(homeDir, kind, name));
 }
 
 async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {

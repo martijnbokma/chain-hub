@@ -9,10 +9,10 @@ import {
   listSkillCandidates,
   pathExists,
   readUnmanagedCandidates,
-  removeEmptyDir,
   removeManagedFile,
   writeManagedFile
 } from "./files.js";
+import { projectSkillSidecars, removeEditorSkillDirectory } from "../skill-install.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Zed discovery paths (user-level): docs/editor-adapters-research.md#zed
@@ -62,9 +62,10 @@ async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[]): Pro
   await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header");
 }
 
-async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
+async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (asset.kind === "skills") {
     await writeManagedFile(skillPath(homeDir, asset.name), buildSkillContent(asset), "frontmatter", options);
+    await projectSkillSidecars(chainHome, path.dirname(skillPath(homeDir, asset.name)), asset.name);
     return;
   }
 
@@ -80,16 +81,18 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
   if (kind === "skills") {
     const filePath = skillPath(homeDir, name);
     await removeManagedFile(filePath);
-    await removeEmptyDir(path.dirname(filePath));
+    if (!(await pathExists(filePath))) {
+      await removeEditorSkillDirectory(path.dirname(filePath));
+    }
   }
 }
 
-async function resync(_chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
+async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
   const skills = assets.filter((asset) => asset.kind === "skills");
   const rules = assets.filter((asset) => asset.kind === "rules");
 
   for (const skill of skills) {
-    await writeManagedFile(skillPath(homeDir, skill.name), buildSkillContent(skill));
+    await writeAsset(chainHome, homeDir, skill);
   }
 
   await rebuildRulesFile(homeDir, rules);
