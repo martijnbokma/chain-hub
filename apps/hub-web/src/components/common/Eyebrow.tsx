@@ -5,5 +5,9 @@ interface EyebrowProps {
 }
 
 export function Eyebrow({ children }: EyebrowProps) {
-  return <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{children}</p>;
+  return (
+    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+      {children}
+    </p>
+  );
 }

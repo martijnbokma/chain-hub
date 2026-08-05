@@ -5,7 +5,7 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 
-import { captureInputSchema, createAssetInputSchema, createMemoryNoteInputSchema, type AssetKind, updateAssetInputSchema, updateMemoryNoteInputSchema } from "@chain-hub/contracts";
+import { captureInputSchema, createAssetInputSchema, createMemoryNoteInputSchema, importAssetInputSchema, type AssetKind, updateAssetInputSchema, updateMemoryNoteInputSchema } from "@chain-hub/contracts";
 import {
   captureHubEvent,
   connectEditors,
@@ -13,6 +13,7 @@ import {
   createLibraryAsset,
   deleteHubMemoryNote,
   deleteLibraryAsset,
+  discoverLibraryAssets,
   getDashboardOverview,
   getGuidedSetup,
   getHubLearningsTimeline,
@@ -22,6 +23,7 @@ import {
   getIntegrationStatus,
   getLibrary,
   getLibraryAsset,
+  importLibraryAsset,
   listHubMemoryNotes,
   searchHubMemoryNotes,
   updateHubMemoryNote,
@@ -75,6 +77,17 @@ export function createServer(options: StartServerOptions = {}) {
     const name = context.req.param("name");
     await deleteLibraryAsset(options.chainHome, kind, name);
     return context.json({ ok: true });
+  });
+
+  app.get("/api/library/discover", async (context) => {
+    const discovered = await discoverLibraryAssets();
+    return context.json(discovered);
+  });
+
+  app.post("/api/library/import", async (context) => {
+    const payload = importAssetInputSchema.parse(await context.req.json());
+    const asset = await importLibraryAsset(options.chainHome, payload);
+    return context.json(asset, 201);
   });
 
   app.get("/api/integrations", async (context) => {

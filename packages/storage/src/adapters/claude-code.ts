@@ -4,8 +4,16 @@ import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "
 
 import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
 import { FRONTMATTER_MARKER_KEY, markerSource } from "./marker.js";
-import { dirHasAnyFile, removeEmptyDir, removeManagedFile, writeManagedFile } from "./files.js";
-import type { EditorAdapter } from "./types.js";
+import {
+  dirHasAnyFile,
+  listFlatCandidates,
+  listSkillCandidates,
+  readUnmanagedCandidates,
+  removeEmptyDir,
+  removeManagedFile,
+  writeManagedFile
+} from "./files.js";
+import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Claude Code discovery paths (user-level): docs/editor-adapters-research.md#claude-code
 const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules"];
@@ -35,12 +43,12 @@ function buildContent(asset: AssetDetail): string {
   return stringifyFrontmatter(data, body);
 }
 
-async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail): Promise<void> {
+async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (!SUPPORTED_KINDS.includes(asset.kind)) {
     return;
   }
 
-  await writeManagedFile(targetPath(homeDir, asset.kind, asset.name), buildContent(asset));
+  await writeManagedFile(targetPath(homeDir, asset.kind, asset.name), buildContent(asset), "frontmatter", options);
 }
 
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
@@ -80,6 +88,16 @@ async function status(homeDir: string): Promise<Integration> {
   };
 }
 
+async function discover(homeDir: string): Promise<DiscoveredCandidate[]> {
+  const results: DiscoveredCandidate[] = [];
+
+  results.push(...(await readUnmanagedCandidates(await listSkillCandidates(baseDir(homeDir, "skills")), "skills")));
+  results.push(...(await readUnmanagedCandidates(await listFlatCandidates(baseDir(homeDir, "agents"), ".md"), "agents")));
+  results.push(...(await readUnmanagedCandidates(await listFlatCandidates(baseDir(homeDir, "rules"), ".md"), "rules")));
+
+  return results;
+}
+
 export const claudeCodeAdapter: EditorAdapter = {
   id: "claude-code",
   label: "Claude Code",
@@ -88,5 +106,6 @@ export const claudeCodeAdapter: EditorAdapter = {
   status,
   writeAsset,
   removeAsset,
-  resync
+  resync,
+  discover
 };

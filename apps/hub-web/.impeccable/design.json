@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-26T23:13:48Z",
+  "title": "Design System: Chain Hub v2",
+  "extensions": {
+    "colorMeta": {
+      "night-navy": {
+        "role": "neutral",
+        "displayName": "Night Navy",
+        "canonical": "#020617",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "panel-navy": {
+        "role": "neutral",
+        "displayName": "Panel Navy",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "border-slate": {
+        "role": "neutral",
+        "displayName": "Border Slate",
+        "canonical": "#1e293b",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "muted-slate": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#94a3b8",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "fog-slate": {
+        "role": "neutral",
+        "displayName": "Fog Slate",
+        "canonical": "#e2e8f0",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "signal-green": {
+        "role": "primary",
+        "displayName": "Signal Green",
+        "canonical": "#22c55e",
+        "tonalRamp": ["#052e16", "#14532d", "#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac"]
+      },
+      "deep-green-ink": {
+        "role": "primary-foreground",
+        "displayName": "Deep Green Ink",
+        "canonical": "#052e16",
+        "tonalRamp": ["#052e16", "#14532d", "#166534", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac"]
+      },
+      "success-emerald": {
+        "role": "status-success",
+        "displayName": "Success Emerald",
+        "canonical": "#10b981",
+        "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#6ee7b7"]
+      },
+      "warning-amber": {
+        "role": "status-warning",
+        "displayName": "Warning Amber",
+        "canonical": "#f59e0b",
+        "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d"]
+      },
+      "destructive-red": {
+        "role": "status-destructive",
+        "displayName": "Destructive Red",
+        "canonical": "#ef4444",
+        "tonalRamp": ["#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level H2 headings, one per screen. Monospace (Martian Mono) for a control-panel register." },
+      "body": { "displayName": "Body", "purpose": "All standard UI copy, descriptions, list rows. IBM Plex Sans." },
+      "label": { "displayName": "Eyebrow / Label", "purpose": "Uppercase, wide-tracked kicker line above every section or card title." }
+    },
+    "shadows": [
+      { "name": "sheen", "value": "inset 0 1px 0 rgba(255,255,255,0.04)", "purpose": "Applied to every resting Card; a faint top-lit bevel, never a lifted drop shadow." },
+      { "name": "overlay", "value": "0 25px 50px -12px rgba(0,0,0,0.5)", "purpose": "shadow-2xl, dialogs and modals only." }
+    ],
+    "motion": [],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default button variant. Signal Green fill, Deep Green Ink text — the single primary action in a view.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Create asset</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 2.5rem; padding: 0 1rem; border-radius: 1rem; font-size: 0.875rem; font-weight: 500; font-family: 'IBM Plex Sans', system-ui, sans-serif; border: none; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-primary { background: #22c55e; color: #052e16; } .ds-btn-primary:hover { background: #16a34a; } .ds-btn-primary:focus-visible { outline: 2px solid #22c55e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Bordered, transparent-fill variant for secondary actions (Cancel, Delete confirmation trigger).",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: #e2e8f0; border: 1px solid #1e293b; } .ds-btn-secondary:hover { background: rgba(15,23,42,0.7); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "No border or fill at rest; lowest-emphasis action (nav items, inline icon actions).",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Dismiss</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #94a3b8; border: none; } .ds-btn-ghost:hover { background: #0f172a; color: #e2e8f0; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-accent",
+      "description": "Pill badge family. Shown here in the Signal Green 'accent' variant; success/warning/destructive swap the hue but keep the same tinted-opacity recipe.",
+      "html": "<span class=\"ds-badge ds-badge-accent\">4 visible</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 0.75rem; font-weight: 500; font-family: 'IBM Plex Sans', system-ui, sans-serif; border: 1px solid transparent; } .ds-badge-accent { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.2); color: #22c55e; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The base surface for nearly every grouped block of content. Flat, no drop shadow, faint inset top sheen.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-eyebrow\">Overview</p><h3 class=\"ds-card-title\">Initialization</h3><p class=\"ds-card-body\">No structural issues detected.</p></div>",
+      "css": ".ds-card { background: rgba(15,23,42,0.9); backdrop-filter: blur(4px); border: 1px solid #1e293b; border-radius: 1rem; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); padding: 1.5rem; } .ds-eyebrow { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.18em; color: #94a3b8; margin: 0 0 4px 0; } .ds-card-title { font-family: 'Martian Mono', 'JetBrains Mono', monospace; font-size: 1.125rem; font-weight: 600; color: #e2e8f0; margin: 0 0 8px 0; } .ds-card-body { font-size: 0.875rem; color: #94a3b8; margin: 0; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Single-line text field. Border shifts to Signal Green on focus; no glow ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search assets\" />",
+      "css": ".ds-input { display: flex; height: 2.5rem; width: 100%; border-radius: 1rem; border: 1px solid #1e293b; background: rgba(2,6,23,0.7); padding: 8px 12px; font-size: 0.875rem; color: #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.2); outline: none; transition: border-color 0.15s ease; } .ds-input::placeholder { color: #94a3b8; } .ds-input:focus-visible { border-color: #22c55e; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Ops Console",
+    "overview": "Chain Hub v2 reads as a quiet, technical console you'd trust to run unattended overnight: near-black navy surfaces, restrained slate-gray text, and exactly one signal color that only lights up when something needs your attention. Headings run in a monospace display face (Martian Mono) against IBM Plex Sans body copy — a deliberate \"engineering tool,\" not \"consumer app,\" register. Cards sit flat with only the faintest inset sheen at their top edge instead of drop shadows; real elevation is reserved for the two things that actually float above the console: dialogs and the mobile navigation drawer.\n\nThe system explicitly rejects the look of a typical AI product — no gradients-as-decoration, no violet/purple SaaS palette, no rounded-blob illustrations. It is closer to a well-made local dev tool than a marketing surface.",
+    "keyCharacteristics": [
+      "Near-monochrome navy/slate base; one accent color used sparingly",
+      "Monospace display type paired with humanist sans body type",
+      "Flat surfaces with an inset top-highlight instead of drop shadows",
+      "Elevation appears only on dialogs and overlays, never on resting cards",
+      "Uniform ~16px corner radius ties cards, buttons, inputs, and menus together"
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Signal Green appears only on the single primary action per view, the active navigation item, and focus rings. If more than one element on a screen is fighting for Signal Green, that's a bug in the composition, not a case for a second accent.", "section": "colors" },
+      { "name": "The Tinted-Opacity Badge Rule", "body": "Every non-neutral badge (success/warning/destructive) uses the same recipe: border-{hue}-500/20, bg-{hue}-500/10, text-{hue}-300. Never a solid-fill badge.", "section": "colors" },
+      { "name": "The Eyebrow Rule", "body": "Every card or section that names a concept leads with an uppercase, wide-tracked label line before its title — never a title alone.", "section": "typography" },
+      { "name": "The Flat-At-Rest Rule", "body": "Nothing on the page surface itself casts a shadow. Depth is reserved for things that are genuinely above the page — dialogs, the mobile nav sheet — never for cards, buttons, or list rows sitting in the normal document flow.", "section": "elevation" },
+      { "name": "The One Radius Rule", "body": "Cards and interactive controls (buttons, inputs, menu items) share the same 1rem corner radius. A new component introducing a different large-surface radius breaks the console's visual unity.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do use only the semantic Tailwind tokens already in @theme (bg-background, text-foreground, border-border, bg-primary, etc.) — never a raw hex code or an arbitrary color value in a component.",
+      "Do keep Signal Green rare: one primary action, one active nav state, one focus ring per view.",
+      "Do give resting cards the inset sheen, never a drop shadow.",
+      "Do use lucide-react exclusively for icons, and sonner exclusively for toast feedback.",
+      "Do step card/grid padding and column count up from mobile (p-4/1-col) to desktop (sm:p-6/md:+xl: multi-col) rather than shrinking a fixed desktop layout."
+    ],
+    "donts": [
+      "Don't introduce a second saturated accent color; status colors stay in their tinted-opacity badge lane, not as button or card fills.",
+      "Don't add drop shadows to cards, list rows, or anything resting in normal document flow.",
+      "Don't use arbitrary pixel values for spacing or radius; the system already resolves to one shared 1rem corner radius and Tailwind's default spacing scale.",
+      "Don't build a custom button/input/badge from scratch — extend the existing shadcn/ui primitives in components/ui/."
+    ]
+  }
+}

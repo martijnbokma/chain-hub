@@ -55,6 +55,10 @@ export function DialogTrigger({
   });
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const INITIAL_FOCUS_SELECTOR = 'input:not([type="hidden"]):not([disabled]), textarea:not([disabled])';
+
 export function DialogContent({
   children,
   className
@@ -63,28 +67,67 @@ export function DialogContent({
   className?: string;
 }) {
   const { open, setOpen } = useDialogContext();
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const setOpenRef = React.useRef(setOpen);
+  setOpenRef.current = setOpen;
 
   React.useEffect(() => {
     if (!open) {
       return;
     }
 
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const preferredField = contentRef.current?.querySelector<HTMLElement>(INITIAL_FOCUS_SELECTOR);
+    const focusable = contentRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    (preferredField ?? focusable?.[0] ?? contentRef.current)?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        setOpenRef.current(false);
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements = contentRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (!focusableElements || focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (!contentRef.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, setOpen]);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
+    };
+    // setOpen is read through setOpenRef so an unstable onOpenChange identity
+    // (a fresh inline function on every parent render) can't retrigger this
+    // setup — which would re-run focus-trap init and steal focus mid-dialog.
+  }, [open]);
 
   if (!open) {
     return null;
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <div
         aria-hidden="true"
         className="absolute inset-0"
@@ -93,10 +136,12 @@ export function DialogContent({
       <div
         aria-modal="true"
         className={cn(
-          "relative z-10 w-full max-w-2xl rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl",
+          "relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-y-auto rounded-2xl border border-border bg-popover text-popover-foreground shadow-overlay outline-none",
           className
         )}
+        ref={contentRef}
         role="dialog"
+        tabIndex={-1}
       >
         <button
           aria-label="Close dialog"
@@ -114,7 +159,7 @@ export function DialogContent({
 }
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("grid gap-2 p-6 pb-3", className)} {...props} />;
+  return <div className={cn("grid gap-2 p-4 pb-3 sm:p-6 sm:pb-3", className)} {...props} />;
 }
 
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
@@ -126,9 +171,9 @@ export function DialogDescription({ className, ...props }: React.HTMLAttributes<
 }
 
 export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("grid gap-4 p-6 pt-0", className)} {...props} />;
+  return <div className={cn("grid gap-4 p-4 pt-0 sm:p-6 sm:pt-0", className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-wrap justify-end gap-3 p-6 pt-0", className)} {...props} />;
+  return <div className={cn("flex flex-wrap justify-end gap-3 p-4 pt-0 sm:p-6 sm:pt-0", className)} {...props} />;
 }

@@ -396,5 +396,19 @@ chain validate
 
 ---
 
+## Learned User Preferences
+
+- Hub UI should feel premium, simple, sleek, and trustworthy—not a dense console/terminal aesthetic and not marketing-card or AI-slop layouts (oversized radii, sparse stadium cards, eyebrow-on-everything).
+- Cool Trust is the chosen visual direction: near-white zinc page, white surfaces, slate text, orange as the sole brand accent, ~10–12px radius, tight type scale, checklist/list density over card grids.
+- Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
+
+## Learned Workspace Facts
+
+- Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and `apps/hub-web/.impeccable/` (not ad-hoc styling guesses).
+- Keep `ComingSoonPage.tsx`; it is still needed for `apps/marketing-site`, which remains under development.
+- The shared design skill lives at `/Users/silverfox/www/skills` (moved out of `.claude/skills/design/` in this repo).
+
+---
+
 *Last updated: July 8, 2026*
 *This file complements CLAUDE.md and AI_CONTEXT.md*

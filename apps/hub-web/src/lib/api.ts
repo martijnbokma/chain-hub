@@ -1,7 +1,9 @@
-import type { 
-  Overview, 
-  AssetRecord, 
+import type {
+  Overview,
+  AssetRecord,
   AssetDetail,
+  DiscoveredAsset,
+  ImportAssetInput,
   Integration,
   SetupGuide,
   LearningsTimeline,
@@ -45,9 +47,16 @@ export const libraryApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
-  delete: (kind: string, name: string) => 
+  delete: (kind: string, name: string) =>
     fetch(`/api/library/${kind}/${name}`, {
       method: 'DELETE'
+    }),
+  discover: () => getJson<DiscoveredAsset[]>('/api/library/discover'),
+  import: (data: ImportAssetInput) =>
+    fetch('/api/library/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     })
 };
 

@@ -4,8 +4,16 @@ import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "
 
 import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
 import { FRONTMATTER_MARKER_KEY, HEADER_MARKER, markerSource } from "./marker.js";
-import { dirHasAnyFile, pathExists, removeEmptyDir, removeManagedFile, writeManagedFile } from "./files.js";
-import type { EditorAdapter } from "./types.js";
+import {
+  dirHasAnyFile,
+  listSkillCandidates,
+  pathExists,
+  readUnmanagedCandidates,
+  removeEmptyDir,
+  removeManagedFile,
+  writeManagedFile
+} from "./files.js";
+import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Zed discovery paths (user-level): docs/editor-adapters-research.md#zed
 // Agents/workflows have no native concept in Zed — intentionally skipped.
@@ -54,9 +62,9 @@ async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[]): Pro
   await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header");
 }
 
-async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail): Promise<void> {
+async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (asset.kind === "skills") {
-    await writeManagedFile(skillPath(homeDir, asset.name), buildSkillContent(asset));
+    await writeManagedFile(skillPath(homeDir, asset.name), buildSkillContent(asset), "frontmatter", options);
     return;
   }
 
@@ -104,6 +112,13 @@ async function status(homeDir: string): Promise<Integration> {
   };
 }
 
+// Only skills are discoverable — rules are a merge kind (one generated AGENTS.md), and
+// there's no reliable way to split a foreign, hand-written AGENTS.md back into discrete
+// named rule assets, so rules are intentionally excluded from discovery.
+async function discover(homeDir: string): Promise<DiscoveredCandidate[]> {
+  return readUnmanagedCandidates(await listSkillCandidates(skillsDir(homeDir)), "skills");
+}
+
 export const zedAdapter: EditorAdapter = {
   id: "zed",
   label: "Zed",
@@ -112,5 +127,6 @@ export const zedAdapter: EditorAdapter = {
   status,
   writeAsset,
   removeAsset,
-  resync
+  resync,
+  discover
 };

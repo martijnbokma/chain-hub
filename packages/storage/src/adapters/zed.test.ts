@@ -97,6 +97,44 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
   });
 });
 
+describe("zedAdapter.discover", () => {
+  it("finds a plain, unmanaged skill", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".agents", "skills", "hand-written", "SKILL.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text.", "utf8");
+
+    const discovered = await zedAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]).toMatchObject({
+      kind: "skills",
+      name: "hand-written",
+      content: "# A hand-written skill\n\nBody text."
+    });
+  });
+
+  it("never returns rules, even a foreign hand-written AGENTS.md", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "# My own instructions\n\nDo X, then Y.", "utf8");
+
+    const discovered = await zedAdapter.discover(homeDir);
+
+    expect(discovered.some((c) => c.kind === "rules")).toBe(false);
+  });
+
+  it("excludes chain-hub-managed skills", async () => {
+    const homeDir = await makeTmpHome();
+    await zedAdapter.writeAsset("/chain-home", homeDir, makeAsset());
+
+    const discovered = await zedAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(0);
+  });
+});
+
 describe("zedAdapter.status", () => {
   it("reports skills+rules as supported, agents+workflows as unsupported", async () => {
     const homeDir = await makeTmpHome();

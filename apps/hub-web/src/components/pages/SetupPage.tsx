@@ -4,11 +4,43 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { setupApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { SetupGuide } from '@/types';
+
+function statusLabel(status: SetupGuide['steps'][number]['status']): string {
+  switch (status) {
+    case 'done':
+      return 'Done';
+    case 'current':
+      return 'Up next';
+    case 'pending':
+      return 'Not started';
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+function statusVariant(
+  status: SetupGuide['steps'][number]['status']
+): 'success' | 'warning' | 'default' {
+  switch (status) {
+    case 'done':
+      return 'success';
+    case 'current':
+      return 'warning';
+    case 'pending':
+      return 'default';
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
 
 export function SetupPage() {
   const queryClient = useQueryClient();
@@ -45,52 +77,73 @@ export function SetupPage() {
   }
 
   return (
-    <section className="grid gap-5">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div>
-          <Eyebrow>Setup</Eyebrow>
-          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Sequential setup, not scattered features.
+    <section className="mx-auto grid w-full max-w-3xl gap-8">
+      <header className="grid gap-3">
+        <Eyebrow>Setup</Eyebrow>
+        <div className="grid gap-2">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Get your hub ready
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-            The rebuild turns first-run into a calm checklist: initialize the local hub, create your first reusable
-            asset, connect editors, then validate the structure.
+          <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
+            Initialize the local hub, create a reusable asset, connect editors, then validate the
+            structure.
           </p>
         </div>
-        <Card>
-          <CardHeader className="pb-3">
-            <Badge variant="success">Chain home</Badge>
-          </CardHeader>
-          <CardContent>
-            <p className="break-all text-sm text-muted-foreground">{guide.data.chainHome}</p>
-          </CardContent>
-        </Card>
-      </div>
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Chain home</span>
+          <code className="break-all rounded-md bg-muted px-1.5 py-0.5 text-xs text-foreground">
+            {guide.data.chainHome}
+          </code>
+        </p>
+      </header>
 
-      <div className="grid gap-4">
-        {guide.data.steps.map((step, index) => (
-          <Card key={step.id}>
-            <CardHeader>
-              <div className="flex items-start gap-3">
-                <span className="font-display text-sm text-primary">{String(index + 1).padStart(2, '0')}</span>
-                <div>
-                  <Eyebrow>{step.status}</Eyebrow>
-                  <CardTitle>{step.label}</CardTitle>
+      <ol className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+        {guide.data.steps.map((step, index) => {
+          const isCurrent = step.status === 'current';
+          const showConnect = step.action === 'connect' && !step.complete;
+
+          return (
+            <li
+              className={cn(
+                'grid gap-3 border-b border-border p-4 last:border-b-0',
+                'sm:grid-cols-[2.5rem_minmax(0,1fr)] sm:items-start',
+                isCurrent && 'bg-muted/40'
+              )}
+              key={step.id}
+            >
+              <span
+                className={cn(
+                  'pt-0.5 font-mono text-xs tabular-nums',
+                  isCurrent ? 'font-medium text-primary' : 'text-muted-foreground'
+                )}
+              >
+                {String(index + 1).padStart(2, '0')}
+              </span>
+
+              <div className="grid min-w-0 gap-3">
+                <div className="grid gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-medium text-foreground">{step.label}</h3>
+                    <Badge variant={statusVariant(step.status)}>{statusLabel(step.status)}</Badge>
+                  </div>
+                  <p className="text-sm leading-5 text-muted-foreground">{step.description}</p>
                 </div>
+
+                {showConnect ? (
+                  <Button
+                    className="w-fit"
+                    disabled={setupEditors.isPending}
+                    onClick={() => setupEditors.mutate()}
+                    size="sm"
+                  >
+                    {setupEditors.isPending ? 'Connecting…' : 'Connect editors'}
+                  </Button>
+                ) : null}
               </div>
-              <Badge variant={step.complete ? 'success' : 'warning'}>{step.complete ? 'Done' : 'Open'}</Badge>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <CardDescription>{step.description}</CardDescription>
-              {step.action === 'connect' && !step.complete ? (
-                <Button disabled={setupEditors.isPending} onClick={() => setupEditors.mutate()}>
-                  {setupEditors.isPending ? 'Connecting...' : 'Connect editors'}
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }

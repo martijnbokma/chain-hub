@@ -55,7 +55,7 @@ export function Tabs({
 export function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("inline-flex w-fit items-center gap-1 rounded-xl border border-border bg-background/50 p-1", className)}
+      className={cn("inline-flex w-fit items-center gap-1 rounded-xl border border-border bg-background p-1", className)}
       {...props}
     />
   );

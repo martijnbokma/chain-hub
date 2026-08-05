@@ -74,6 +74,42 @@ describe("windsurfAdapter.removeAsset", () => {
   });
 });
 
+describe("windsurfAdapter.discover", () => {
+  it("finds a plain, unmanaged rule under .devin/rules", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".devin", "rules", "hand-written.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "Rule body.", "utf8");
+
+    const discovered = await windsurfAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]).toMatchObject({ kind: "rules", name: "hand-written", content: "Rule body." });
+  });
+
+  it("dedupes a name that exists in both .devin and .windsurf, preferring .devin", async () => {
+    const homeDir = await makeTmpHome();
+    await fs.mkdir(path.join(homeDir, ".devin", "workflows"), { recursive: true });
+    await fs.writeFile(path.join(homeDir, ".devin", "workflows", "deploy.md"), "Devin version.", "utf8");
+    await fs.mkdir(path.join(homeDir, ".windsurf", "workflows"), { recursive: true });
+    await fs.writeFile(path.join(homeDir, ".windsurf", "workflows", "deploy.md"), "Windsurf version.", "utf8");
+
+    const discovered = await windsurfAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0].content).toBe("Devin version.");
+  });
+
+  it("excludes chain-hub-managed rules/workflows", async () => {
+    const homeDir = await makeTmpHome();
+    await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
+
+    const discovered = await windsurfAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(0);
+  });
+});
+
 describe("windsurfAdapter.status", () => {
   it("reports rules+workflows as supported, skills+agents as unsupported", async () => {
     const homeDir = await makeTmpHome();

@@ -1,16 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Database, Zap, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, Zap } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { overviewApi, learningsApi } from '@/lib/api';
 import { EVENT_TYPE_BADGE } from '@/lib/constants';
-import type { Overview, LearningsTimeline } from '@/types';
 
 export function OverviewPage() {
   const navigate = useNavigate();
@@ -38,116 +37,121 @@ export function OverviewPage() {
     return <EmptyState description="The overview has no data yet." title="Overview unavailable" />;
   }
 
+  const isHealthy = data.health.issues.length === 0;
+  const assetEntries = Object.entries(data.assetCounts);
+
   return (
-    <section className="grid gap-5">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div>
-          <Eyebrow>Overview</Eyebrow>
-          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            One calm surface for a local-first AI workspace.
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
-            Chain Hub v2 reduces the product to its core: initialize a local hub, manage reusable guidance,
-            validate structure, and connect editors from one place.
+    <section className="mx-auto grid w-full max-w-5xl gap-8">
+      <header className="grid gap-3">
+        <Eyebrow>Overview</Eyebrow>
+        <div className="grid gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">Hub status</h2>
+            <Badge variant={isHealthy ? 'success' : 'warning'}>
+              {isHealthy ? 'Healthy' : 'Needs attention'}
+            </Badge>
+          </div>
+          <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
+            Manage reusable guidance, validate structure, and connect editors from one place.
           </p>
         </div>
-        <Card>
-          <CardHeader className="pb-3">
-            <Badge variant={data.health.issues.length === 0 ? 'success' : 'warning'}>
-              {data.health.issues.length === 0 ? 'Healthy' : 'Needs attention'}
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            <p className="break-all text-sm text-muted-foreground">{data.chainHome}</p>
-          </CardContent>
-        </Card>
-      </div>
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Chain home</span>
+          <code className="break-all rounded-md bg-muted px-1.5 py-0.5 text-xs text-foreground">
+            {data.chainHome}
+          </code>
+        </p>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Object.entries(data.assetCounts).map(([kind, count]) => (
-          <Card key={kind}>
-            <CardHeader className="pb-2">
-              <Eyebrow>{kind}</Eyebrow>
-            </CardHeader>
-            <CardContent>
-              <strong className="font-display text-4xl tracking-tight">{count}</strong>
-            </CardContent>
-          </Card>
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
+        {assetEntries.map(([kind, count]) => (
+          <div className="grid gap-1 bg-card p-4" key={kind}>
+            <p className="text-xs font-medium capitalize text-muted-foreground">{kind}</p>
+            <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{count}</p>
+          </div>
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
           <CardHeader>
-            <div>
-              <Eyebrow>Health</Eyebrow>
-              <CardTitle>Initialization</CardTitle>
-            </div>
+            <CardTitle>Initialization</CardTitle>
+            <Badge variant={isHealthy ? 'success' : 'warning'}>
+              {isHealthy ? 'OK' : `${data.health.issues.length} issue${data.health.issues.length === 1 ? '' : 's'}`}
+            </Badge>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <p className="text-sm text-muted-foreground">
-              Initialized: {data.initializedAt ? new Date(data.initializedAt).toLocaleString() : 'No'}
+            <p className="text-sm leading-5 text-muted-foreground">
+              Initialized:{' '}
+              <span className="text-foreground">
+                {data.initializedAt ? new Date(data.initializedAt).toLocaleString() : 'Not yet'}
+              </span>
             </p>
             {data.health.issues.length > 0 ? (
-              <ul className="list-inside list-disc space-y-1 text-sm text-foreground">
+              <ul className="grid list-inside list-disc gap-1 text-sm text-foreground">
                 {data.health.issues.map((issue) => (
                   <li key={issue}>{issue}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">No structural issues detected.</p>
+              <p className="text-sm leading-5 text-muted-foreground">No structural issues detected.</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <Database className="size-4 text-primary" />
-              <div>
-                <Eyebrow>Storage</Eyebrow>
-                <CardTitle>SQLite index</CardTitle>
-              </div>
-            </div>
+            <CardTitle>Storage</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            <p className="break-all text-sm text-muted-foreground">{data.storage.databasePath}</p>
-            <p className="text-sm text-foreground">Indexed assets: {data.storage.indexedAssets}</p>
+            <p className="text-sm leading-5 text-muted-foreground">
+              Indexed assets:{' '}
+              <span className="font-medium tabular-nums text-foreground">{data.storage.indexedAssets}</span>
+            </p>
+            <code className="break-all rounded-md bg-muted px-1.5 py-1 text-xs text-foreground">
+              {data.storage.databasePath}
+            </code>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Zap className="size-4 text-primary" />
-                <div>
-                  <Eyebrow>Learnings</Eyebrow>
-                  <CardTitle>Recent events</CardTitle>
-                </div>
-              </div>
-              <Button onClick={() => navigate('/learnings')} variant="secondary">
-                View all
-              </Button>
-            </div>
+            <CardTitle>Recent events</CardTitle>
+            <Button onClick={() => navigate('/learnings')} size="sm" variant="secondary">
+              View all
+            </Button>
           </CardHeader>
           <CardContent className="grid gap-2">
             {!learnings.data || learnings.data.events.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No events captured yet. Use <code className="rounded bg-muted px-1 py-0.5 text-xs">chain capture</code> or Cmd+K.</p>
+              <p className="text-sm leading-5 text-muted-foreground">
+                No events yet. Use <code className="rounded bg-muted px-1 py-0.5 text-xs">chain capture</code> or
+                Cmd+K.
+              </p>
             ) : (
               learnings.data.events.slice(0, 3).map((event) => {
                 const badge = EVENT_TYPE_BADGE[event.type];
                 return (
-                  <div className="flex items-start gap-3 rounded-lg border border-border px-3 py-2" key={event.id}>
+                  <div
+                    className="flex items-start gap-3 rounded-lg border border-border px-3 py-2"
+                    key={event.id}
+                  >
                     <div className="flex min-w-0 flex-1 items-start gap-2">
-                      {event.type === 'success' && <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-green-500" />}
-                      {event.type === 'failure' && <XCircle className="mt-0.5 size-3.5 shrink-0 text-red-500" />}
-                      {event.type === 'correction' && <Zap className="mt-0.5 size-3.5 shrink-0 text-yellow-500" />}
-                      {event.type === 'note' && <FileText className="mt-0.5 size-3.5 shrink-0 text-primary" />}
+                      {event.type === 'success' ? (
+                        <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
+                      ) : null}
+                      {event.type === 'failure' ? (
+                        <XCircle className="mt-0.5 size-3.5 shrink-0 text-red-600" />
+                      ) : null}
+                      {event.type === 'correction' ? (
+                        <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                      ) : null}
+                      {event.type === 'note' ? (
+                        <FileText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                      ) : null}
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-foreground">{event.skill}</p>
+                        <p className="truncate text-sm font-medium text-foreground">{event.skill}</p>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{event.summary}</p>
                       </div>
                     </div>
@@ -161,32 +165,58 @@ export function OverviewPage() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Eyebrow>Skill signals</Eyebrow>
-                <CardTitle>Active skills</CardTitle>
-              </div>
-              <Button onClick={() => navigate('/learnings')} variant="secondary">
-                Reflect
-              </Button>
-            </div>
+            <CardTitle>Active skills</CardTitle>
+            <Button onClick={() => navigate('/learnings')} size="sm" variant="secondary">
+              Reflect
+            </Button>
           </CardHeader>
           <CardContent className="grid gap-2">
             {!learnings.data || learnings.data.events.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No skills tracked yet.</p>
+              <p className="text-sm leading-5 text-muted-foreground">No skills tracked yet.</p>
             ) : (
-              [...new Set(learnings.data.events.map((e) => e.skill))].slice(0, 5).map((skill) => {
-                const skillEvents = learnings.data!.events.filter((e) => e.skill === skill);
-                const successCount = skillEvents.filter((e) => e.type === 'success').length;
-                const failureCount = skillEvents.filter((e) => e.type === 'failure').length;
-                const correctionCount = skillEvents.filter((e) => e.type === 'correction').length;
+              [...new Set(learnings.data.events.map((event) => event.skill))].slice(0, 5).map((skill) => {
+                const skillEvents = learnings.data!.events.filter((event) => event.skill === skill);
+                const successCount = skillEvents.filter((event) => event.type === 'success').length;
+                const failureCount = skillEvents.filter((event) => event.type === 'failure').length;
+                const correctionCount = skillEvents.filter((event) => event.type === 'correction').length;
+
                 return (
-                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2" key={skill}>
+                  <div
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+                    key={skill}
+                  >
                     <span className="truncate text-sm text-foreground">{skill}</span>
                     <div className="flex shrink-0 gap-1.5">
-                      {successCount > 0 && <Badge variant="success">{successCount}</Badge>}
-                      {correctionCount > 0 && <Badge variant="warning">{correctionCount}</Badge>}
-                      {failureCount > 0 && <Badge variant="destructive">{failureCount}</Badge>}
+                      {successCount > 0 ? (
+                        <Badge
+                          aria-label={`${successCount} success${successCount === 1 ? '' : 'es'}`}
+                          className="gap-1"
+                          variant="success"
+                        >
+                          <CheckCircle2 aria-hidden="true" className="size-3" />
+                          {successCount}
+                        </Badge>
+                      ) : null}
+                      {correctionCount > 0 ? (
+                        <Badge
+                          aria-label={`${correctionCount} correction${correctionCount === 1 ? '' : 's'}`}
+                          className="gap-1"
+                          variant="warning"
+                        >
+                          <Zap aria-hidden="true" className="size-3" />
+                          {correctionCount}
+                        </Badge>
+                      ) : null}
+                      {failureCount > 0 ? (
+                        <Badge
+                          aria-label={`${failureCount} failure${failureCount === 1 ? '' : 's'}`}
+                          className="gap-1"
+                          variant="destructive"
+                        >
+                          <XCircle aria-hidden="true" className="size-3" />
+                          {failureCount}
+                        </Badge>
+                      ) : null}
                     </div>
                   </div>
                 );

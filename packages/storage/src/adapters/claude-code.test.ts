@@ -129,6 +129,45 @@ describe("claudeCodeAdapter.status", () => {
   });
 });
 
+describe("claudeCodeAdapter.discover", () => {
+  it("finds a plain, unmanaged native skill file", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".claude", "skills", "hand-written", "SKILL.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text.", "utf8");
+
+    const discovered = await claudeCodeAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]).toMatchObject({
+      kind: "skills",
+      name: "hand-written",
+      content: "# A hand-written skill\n\nBody text."
+    });
+  });
+
+  it("excludes files that already carry the chain-hub marker", async () => {
+    const homeDir = await makeTmpHome();
+    await claudeCodeAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "rules", name: "managed-rule", content: "Managed content." }));
+
+    const discovered = await claudeCodeAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(0);
+  });
+
+  it("discovers unmanaged agents and rules alongside skills", async () => {
+    const homeDir = await makeTmpHome();
+    await fs.mkdir(path.join(homeDir, ".claude", "agents"), { recursive: true });
+    await fs.writeFile(path.join(homeDir, ".claude", "agents", "reviewer.md"), "Reviews code.", "utf8");
+    await fs.mkdir(path.join(homeDir, ".claude", "rules"), { recursive: true });
+    await fs.writeFile(path.join(homeDir, ".claude", "rules", "style.md"), "Use tabs.", "utf8");
+
+    const discovered = await claudeCodeAdapter.discover(homeDir);
+
+    expect(discovered.map((c) => c.kind).sort()).toEqual(["agents", "rules"]);
+  });
+});
+
 describe("claudeCodeAdapter.resync", () => {
   it("writes every supported asset and skips unsupported kinds", async () => {
     const homeDir = await makeTmpHome();

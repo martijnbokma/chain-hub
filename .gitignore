@@ -17,3 +17,15 @@ chain-hub-data/
 
 # hub-web Vite build
 apps/hub-web/dist/
+
+# Playwright MCP debug snapshots/screenshots
+.playwright-mcp/
+
+# Ad-hoc UI verification screenshots dumped at repo root
+/*.png
+
+# Local agent / editor tooling (not product source)
+.specstory/
+.remember/
+.claude/settings.local.json
+.cursor/hooks/state/

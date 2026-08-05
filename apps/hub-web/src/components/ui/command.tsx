@@ -22,7 +22,7 @@ export function Command({ className, ...props }: React.ComponentProps<typeof Com
 
 export function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandInputPrimitive>) {
   return (
-    <div className="flex items-center rounded-xl border border-border bg-background/60 px-3" cmdk-input-wrapper="">
+    <div className="flex items-center rounded-xl border border-border bg-background/60 px-3 focus-within:border-ring" cmdk-input-wrapper="">
       <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
       <CommandInputPrimitive
         className={cn(

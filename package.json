@@ -20,8 +20,8 @@
     "test": "turbo run test"
   },
   "devDependencies": {
-    "@types/node": "^24.0.13",
-    "turbo": "^2.0.12",
-    "typescript": "^5.5.4"
+    "@types/node": "^24.13.3",
+    "turbo": "^2.10.7",
+    "typescript": "^5.9.3"
   }
 }

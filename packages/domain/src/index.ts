@@ -1,4 +1,4 @@
-import type { AssetKind, CaptureInput, CreateAssetInput, CreateMemoryNoteInput } from "@chain-hub/contracts";
+import type { AssetKind, CaptureInput, CreateAssetInput, CreateMemoryNoteInput, ImportAssetInput } from "@chain-hub/contracts";
 import {
   buildReflectionReport,
   captureEvent,
@@ -7,6 +7,7 @@ import {
   createMemoryNote,
   deleteAsset,
   deleteMemoryNote,
+  discoverAssets,
   getAsset,
   getIntegrations,
   getLearningsTimeline,
@@ -14,6 +15,7 @@ import {
   getMemorySummary,
   getOverview,
   getSetupGuide,
+  importDiscoveredAsset,
   initializeHub,
   listAssets,
   listMemoryNotes,
@@ -61,6 +63,16 @@ export async function updateLibraryAsset(chainHome: string | undefined, kind: As
 export async function deleteLibraryAsset(chainHome: string | undefined, kind: AssetKind, name: string) {
   await deleteAsset(chainHome, kind, name);
   await syncAssetToEditors(chainHome, kind, name, null);
+}
+
+export async function discoverLibraryAssets() {
+  return discoverAssets();
+}
+
+export async function importLibraryAsset(chainHome: string | undefined, input: ImportAssetInput) {
+  const asset = await importDiscoveredAsset(chainHome, input);
+  await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
+  return asset;
 }
 
 export async function getIntegrationStatus(chainHome?: string) {

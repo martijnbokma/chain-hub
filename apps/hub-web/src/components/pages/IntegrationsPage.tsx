@@ -4,10 +4,10 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { integrationsApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { Integration } from '@/types';
 
 export function IntegrationsPage() {
@@ -40,46 +40,61 @@ export function IntegrationsPage() {
   }
 
   if (integrations.isError) {
-    return <EmptyState description="Integration status is temporarily unavailable." title="Unable to load integrations" />;
+    return (
+      <EmptyState description="Integration status is temporarily unavailable." title="Unable to load integrations" />
+    );
   }
 
   if (!integrations.data) {
     return <EmptyState description="There is no integration data to show yet." title="Integrations unavailable" />;
   }
 
-  return (
-    <section className="grid gap-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Eyebrow>Integrations</Eyebrow>
-          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            One mounted hub per editor.
-          </h2>
-        </div>
-        <Button disabled={setup.isPending} onClick={() => setup.mutate()}>
-          {setup.isPending ? 'Connecting...' : 'Connect editors'}
-        </Button>
-      </div>
+  const connectedCount = integrations.data.filter((integration) => integration.connected).length;
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+  return (
+    <section className="mx-auto grid w-full max-w-3xl gap-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="grid gap-2">
+          <Eyebrow>Integrations</Eyebrow>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">Linked editors</h2>
+            <Badge variant="default">
+              {connectedCount}/{integrations.data.length}
+            </Badge>
+          </div>
+          <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
+            Mount the hub into each supported editor on this machine.
+          </p>
+        </div>
+        <Button className="w-fit shrink-0" disabled={setup.isPending} onClick={() => setup.mutate()}>
+          {setup.isPending ? 'Connecting…' : 'Connect editors'}
+        </Button>
+      </header>
+
+      <ul className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
         {integrations.data.map((integration) => (
-          <Card key={integration.id}>
-            <CardHeader>
-              <div>
-                <Eyebrow>Adapter</Eyebrow>
-                <CardTitle>{integration.label}</CardTitle>
+          <li
+            className={cn(
+              'grid gap-3 border-b border-border p-4 last:border-b-0',
+              'sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'
+            )}
+            key={integration.id}
+          >
+            <div className="grid min-w-0 gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-medium text-foreground">{integration.label}</h3>
+                <Badge variant={integration.connected ? 'success' : 'warning'}>
+                  {integration.connected ? 'Connected' : 'Not connected'}
+                </Badge>
               </div>
-              <Badge variant={integration.connected ? 'success' : 'warning'}>
-                {integration.connected ? 'Connected' : 'Missing'}
-              </Badge>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              {integration.targetPaths.map((targetPath) => (
-                <p key={targetPath} className="break-all text-sm text-muted-foreground">
-                  {targetPath}
-                </p>
-              ))}
-              <p className="text-sm text-muted-foreground">Mode: {integration.mode}</p>
+              <p className="text-xs text-muted-foreground">Mode: {integration.mode}</p>
+              <div className="grid gap-1">
+                {integration.targetPaths.map((targetPath) => (
+                  <code className="break-all text-xs text-muted-foreground" key={targetPath}>
+                    {targetPath}
+                  </code>
+                ))}
+              </div>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {integration.supportedKinds.map((kind) => (
                   <Badge key={kind} variant="accent">
@@ -87,15 +102,16 @@ export function IntegrationsPage() {
                   </Badge>
                 ))}
                 {integration.unsupportedKinds.map((kind) => (
-                  <Badge key={kind} variant="default" className="opacity-60 line-through">
+                  <Badge className="opacity-60 line-through" key={kind} variant="default">
                     {kind}
+                    <span className="sr-only"> (not supported by this editor)</span>
                   </Badge>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

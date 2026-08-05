@@ -4,8 +4,8 @@ import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "
 
 import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
 import { FRONTMATTER_MARKER_KEY, markerSource } from "./marker.js";
-import { dirHasAnyFile, removeManagedFile, writeManagedFile } from "./files.js";
-import type { EditorAdapter } from "./types.js";
+import { dirHasAnyFile, listFlatCandidates, readUnmanagedCandidates, removeManagedFile, writeManagedFile } from "./files.js";
+import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Windsurf rebranded to "Devin Desktop" (~2026-06-02, confirmed via redirect check —
 // see docs/editor-adapters-research.md#windsurf--devin-desktop). Paths are mid-migration,
@@ -41,13 +41,15 @@ function buildContent(asset: AssetDetail): string {
   return stringifyFrontmatter(data, body);
 }
 
-async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail): Promise<void> {
+async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (asset.kind !== "rules" && asset.kind !== "workflows") {
     return;
   }
 
   const content = buildContent(asset);
-  await Promise.all(targetPaths(homeDir, asset.kind, asset.name).map((filePath) => writeManagedFile(filePath, content)));
+  await Promise.all(
+    targetPaths(homeDir, asset.kind, asset.name).map((filePath) => writeManagedFile(filePath, content, "frontmatter", options))
+  );
 }
 
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
@@ -82,6 +84,20 @@ async function status(homeDir: string): Promise<Integration> {
   };
 }
 
+async function discoverKind(homeDir: string, kind: "rules" | "workflows"): Promise<DiscoveredCandidate[]> {
+  // Prefer .devin/ (new primary); only fall back to .windsurf/ for names not already found there.
+  const primary = await listFlatCandidates(path.join(homeDir, NEW_ROOT, kind), ".md");
+  const fallback = await listFlatCandidates(path.join(homeDir, LEGACY_ROOT, kind), ".md");
+  const seenNames = new Set(primary.map((candidate) => candidate.name));
+  const merged = [...primary, ...fallback.filter((candidate) => !seenNames.has(candidate.name))];
+
+  return readUnmanagedCandidates(merged, kind);
+}
+
+async function discover(homeDir: string): Promise<DiscoveredCandidate[]> {
+  return [...(await discoverKind(homeDir, "rules")), ...(await discoverKind(homeDir, "workflows"))];
+}
+
 export const windsurfAdapter: EditorAdapter = {
   id: "windsurf",
   label: "Windsurf (Devin Desktop)",
@@ -90,5 +106,6 @@ export const windsurfAdapter: EditorAdapter = {
   status,
   writeAsset,
   removeAsset,
-  resync
+  resync,
+  discover
 };

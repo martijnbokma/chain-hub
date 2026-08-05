@@ -8,11 +8,15 @@ import {
   captureEvent,
   createAsset,
   createMemoryNote,
+  discoverAssets,
   getIntegrations,
   getLearningsTimeline,
+  importDiscoveredAsset,
   initializeHub,
+  listAssets,
   searchMemoryNotes,
-  setupIntegrations
+  setupIntegrations,
+  syncAssetToEditors
 } from "./index.js";
 
 async function makeTmpHub(): Promise<string> {
@@ -187,6 +191,52 @@ describe("setupIntegrations", () => {
     expect(claudeCode?.mode).toBe("managed");
     expect(claudeCode?.supportedKinds).toEqual(["skills", "agents", "rules"]);
     expect(claudeCode?.unsupportedKinds).toEqual(["workflows"]);
+  });
+});
+
+describe("discoverAssets + importDiscoveredAsset", () => {
+  it("discovers a hand-written native file and reports it with editor context", async () => {
+    const filePath = path.join(tmpHome, ".claude", "skills", "hand-written", "SKILL.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text.", "utf8");
+
+    const discovered = await discoverAssets();
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]).toMatchObject({ editorId: "claude-code", kind: "skills", name: "hand-written" });
+  });
+
+  it("imports a discovered asset into the hub, after which it's no longer discoverable", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    const filePath = path.join(tmpHome, ".claude", "rules", "hand-written.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "Always write tests first.", "utf8");
+
+    const imported = await importDiscoveredAsset(hub, { editorId: "claude-code", kind: "rules", name: "hand-written" });
+    expect(imported.content).toBe("Always write tests first.");
+
+    const assets = await listAssets(hub, "rules");
+    expect(assets.some((asset) => asset.name === "hand-written")).toBe(true);
+
+    // Importing alone doesn't rewrite the source file — that only happens once the
+    // regular sync path (syncAssetToEditors) runs, adopting it everywhere.
+    await syncAssetToEditors(hub, "rules", "hand-written", imported);
+    const rewritten = await fs.readFile(filePath, "utf8");
+    expect(rewritten).toContain("chain_hub_source: rules/hand-written");
+
+    const discoveredAfter = await discoverAssets();
+    expect(discoveredAfter.some((candidate) => candidate.name === "hand-written")).toBe(false);
+  });
+
+  it("throws when the requested candidate no longer exists", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    await expect(importDiscoveredAsset(hub, { editorId: "claude-code", kind: "rules", name: "missing" })).rejects.toThrow(
+      /No importable/
+    );
   });
 });
 

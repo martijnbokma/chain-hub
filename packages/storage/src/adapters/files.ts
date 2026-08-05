@@ -1,8 +1,11 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 
-import { parseFrontmatter } from "./frontmatter.js";
+import type { AssetKind } from "@chain-hub/contracts";
+
+import { deriveDescription, parseFrontmatter } from "./frontmatter.js";
 import { hasFrontmatterMarker, hasHeaderMarker } from "./marker.js";
+import type { DiscoveredCandidate } from "./types.js";
 
 export type MarkerCheck = "frontmatter" | "header";
 
@@ -22,9 +25,17 @@ async function isManaged(content: string, markerCheck: MarkerCheck): Promise<boo
 /**
  * Writes a Chain-Hub-generated file, refusing to clobber a file that already
  * exists but isn't itself Chain-Hub-managed (a user's own hand-written file).
+ *
+ * `force: true` skips that guard — used only when adopting a file the user just
+ * chose to import, where writing over the exact source file is the intended effect.
  */
-export async function writeManagedFile(filePath: string, content: string, markerCheck: MarkerCheck = "frontmatter"): Promise<void> {
-  if (await pathExists(filePath)) {
+export async function writeManagedFile(
+  filePath: string,
+  content: string,
+  markerCheck: MarkerCheck = "frontmatter",
+  options?: { force?: boolean }
+): Promise<void> {
+  if (!options?.force && (await pathExists(filePath))) {
     const existing = await fs.readFile(filePath, "utf8");
     if (!(await isManaged(existing, markerCheck))) {
       console.warn(`[chain-hub] skipping ${filePath}: file exists and is not Chain Hub managed`);
@@ -66,4 +77,82 @@ export async function dirHasAnyFile(dirPath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export interface CandidateFile {
+  name: string;
+  filePath: string;
+}
+
+/** Subdirectories of `skillsDir` that contain a SKILL.md — the shape every editor's flat-skills folder uses. */
+export async function listSkillCandidates(skillsDir: string): Promise<CandidateFile[]> {
+  let entries;
+
+  try {
+    entries = await fs.readdir(skillsDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const results: CandidateFile[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const filePath = path.join(skillsDir, entry.name, "SKILL.md");
+
+    if (await pathExists(filePath)) {
+      results.push({ name: entry.name, filePath });
+    }
+  }
+
+  return results;
+}
+
+/** Reads each candidate and keeps only the ones that aren't already Chain-Hub-managed. */
+export async function readUnmanagedCandidates(candidates: CandidateFile[], kind: AssetKind): Promise<DiscoveredCandidate[]> {
+  const results: DiscoveredCandidate[] = [];
+
+  for (const { name, filePath } of candidates) {
+    const raw = await fs.readFile(filePath, "utf8");
+    const { data, body, description } = deriveDescription(raw, name);
+
+    if (hasFrontmatterMarker(data)) {
+      continue;
+    }
+
+    // Preserve a human-authored frontmatter `description` that the body itself doesn't
+    // already restate as a heading — otherwise it's silently lost on import.
+    const bodyHasHeading = /^#{1,6}\s+/.test(body.trim());
+    const content = bodyHasHeading || description === name ? body : `# ${description}\n\n${body}`;
+
+    results.push({ kind, name, content, sourcePath: filePath });
+  }
+
+  return results;
+}
+
+/** Flat files directly under `dir` matching `extension` (e.g. `.md`, `.mdc`), one per rule/workflow. */
+export async function listFlatCandidates(dir: string, extension: string): Promise<CandidateFile[]> {
+  let entries;
+
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const results: CandidateFile[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(extension)) {
+      continue;
+    }
+
+    results.push({ name: entry.name.slice(0, -extension.length), filePath: path.join(dir, entry.name) });
+  }
+
+  return results;
 }

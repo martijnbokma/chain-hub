@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Command as CommandIcon, Link2, Sparkles, PanelLeft, FolderTree, BookMarked, Zap } from 'lucide-react';
+import { Command as CommandIcon, Link2, Sparkles, PanelLeft, FolderTree, BookMarked, Zap, type LucideIcon } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -19,10 +19,11 @@ import {
   SidebarHeader, 
   SidebarInset, 
   SidebarMenu, 
-  SidebarMenuButton, 
-  SidebarMenuItem, 
-  SidebarProvider, 
-  SidebarTrigger 
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar
 } from '../ui/sidebar';
 import { Textarea } from '../ui/textarea';
 import { cn } from '../../lib/utils';
@@ -32,6 +33,36 @@ import type { Integration, CaptureEventType, CaptureEvent } from '../../types';
 
 interface ShellProps {
   children: React.ReactNode;
+}
+
+interface SidebarNavLinkProps {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  isActive: boolean;
+}
+
+function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className="h-9"
+        isActive={isActive}
+        onClick={() => {
+          if (isMobile) {
+            setOpenMobile(false);
+          }
+        }}
+        render={<NavLink to={to} />}
+        tooltip={label}
+      >
+        <Icon />
+        <span>{label}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 }
 
 interface ActionItem {
@@ -83,7 +114,7 @@ export function Shell({ children }: ShellProps) {
       setCommandOpen(false);
       toast.success('Event captured');
     },
-    onError: () => toast.error('Capture failed')
+    onError: () => toast.error('Unable to capture event')
   });
 
   const connectEditors = useMutation({
@@ -186,38 +217,40 @@ export function Shell({ children }: ShellProps) {
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
+        <SidebarHeader className="border-b border-sidebar-border pb-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<NavLink to="/" />} size="lg">
-                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 font-semibold text-primary">
-                    CH
+              <SidebarMenuButton className="gap-2.5" render={<NavLink to="/" />} size="lg">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+                  CH
+                </span>
+                <div className="grid min-w-0 flex-1 items-center text-left leading-tight">
+                  <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                    Chain Hub
                   </span>
-                  <div className="grid flex-1 text-left leading-tight">
-                    <span className="truncate text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      Chain Hub v2
-                    </span>
-                    <span className="truncate text-xs font-semibold">Local control plane</span>
-                  </div>
+                  <span className="truncate text-xs text-muted-foreground">Local control plane</span>
+                </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
+          <SidebarGroup className="pt-3">
             <SidebarGroupContent>
               <SidebarMenu>
                 {links.map((link) => {
-                  const isActive = link.to === '/' ? location.pathname === '/' : location.pathname.startsWith(link.to);
+                  const isActive =
+                    link.to === '/' ? location.pathname === '/' : location.pathname.startsWith(link.to);
 
                   return (
-                    <SidebarMenuItem key={link.to}>
-                      <SidebarMenuButton className="h-11 md:h-8" isActive={isActive} render={<NavLink to={link.to} />} tooltip={link.label}>
-                          <link.icon />
-                          <span>{link.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <SidebarNavLink
+                      icon={link.icon}
+                      isActive={isActive}
+                      key={link.to}
+                      label={link.label}
+                      to={link.to}
+                    />
                   );
                 })}
               </SidebarMenu>
@@ -225,35 +258,46 @@ export function Shell({ children }: ShellProps) {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="gap-3">
-          <Button className="w-full justify-between" onClick={() => setCommandOpen(true)} variant="secondary">
-            <span className="inline-flex items-center gap-2">
-              <CommandIcon className="size-4 shrink-0" />
-              <span className="group-data-[collapsible=icon]:hidden">Command menu</span>
+        <SidebarFooter className="gap-2 border-t border-sidebar-border">
+          <Button
+            aria-label="Open command menu"
+            className={cn(
+              'h-9 w-full justify-start gap-2 whitespace-nowrap px-3',
+              'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8',
+              'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0'
+            )}
+            onClick={() => setCommandOpen(true)}
+            variant="secondary"
+          >
+            <CommandIcon className="size-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+              Command
             </span>
-            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Cmd/Ctrl + K</span>
+            <kbd className="pointer-events-none rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+              ⌘K
+            </kbd>
           </Button>
 
-          <div className="grid gap-2 rounded-lg border border-border bg-card px-3 py-3 group-data-[collapsible=icon]:hidden">
+          <div className="grid gap-2.5 rounded-xl border border-border px-3 py-3 group-data-[collapsible=icon]:hidden">
             <div className="flex items-center justify-between gap-2">
               <Eyebrow>Linked editors</Eyebrow>
-              <span className="font-display text-[11px] text-muted-foreground">
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
                 {connectedCount}/{integrations.data?.length ?? 0}
               </span>
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-2">
               {(integrations.data ?? []).map((integration) => (
-                <div className="flex items-center gap-2" key={integration.id}>
+                <div className="flex min-w-0 items-center gap-2.5" key={integration.id}>
                   <span
                     aria-hidden="true"
                     className={cn(
                       'size-1.5 shrink-0 rounded-full',
-                      integration.connected ? 'bg-primary' : 'bg-muted-foreground/25'
+                      integration.connected ? 'bg-primary' : 'bg-muted-foreground/30'
                     )}
                   />
                   <span
                     className={cn(
-                      'truncate text-xs',
+                      'truncate text-xs leading-none',
                       integration.connected ? 'text-foreground' : 'text-muted-foreground'
                     )}
                   >
@@ -261,17 +305,25 @@ export function Shell({ children }: ShellProps) {
                   </span>
                 </div>
               ))}
-              {integrations.data?.length === 0 && (
+              {integrations.data?.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No editors linked yet.</p>
-              )}
+              ) : null}
             </div>
           </div>
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex items-center gap-2 border-b border-border px-4 py-3 sm:px-6">
+        <header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
           <SidebarTrigger className="size-11 md:size-7" />
+          <NavLink className="flex items-center gap-2 md:hidden" to="/">
+            <span className="flex aspect-square size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-semibold text-primary">
+              CH
+            </span>
+            <span className="font-display text-sm font-semibold tracking-tight text-foreground">
+              Chain Hub v2
+            </span>
+          </NavLink>
         </header>
         <main className="px-4 py-4 sm:px-6 sm:py-6">{children}</main>
       </SidebarInset>

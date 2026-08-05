@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Trash2, FileText } from 'lucide-react';
+import { Search, Plus, Trash2, FileText, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +67,7 @@ export function MemoryPage() {
       void queryClient.invalidateQueries({ queryKey: ['memory-search'] });
       toast.success('Note saved');
     },
-    onError: () => toast.error('Failed to save note')
+    onError: () => toast.error('Unable to save note')
   });
 
   const createNote = useMutation({
@@ -90,7 +90,7 @@ export function MemoryPage() {
       setSelectedPath(note.relativePath);
       toast.success('Note created');
     },
-    onError: () => toast.error('Failed to create note')
+    onError: () => toast.error('Unable to create note')
   });
 
   const deleteNote = useMutation({
@@ -107,7 +107,7 @@ export function MemoryPage() {
       setEditorContent('');
       toast.success('Note deleted');
     },
-    onError: () => toast.error('Failed to delete note')
+    onError: () => toast.error('Unable to delete note')
   });
 
   const displayNotes: Array<{ relativePath: string; title: string; updatedAt: string; excerpt?: string }> = isSearching
@@ -117,25 +117,27 @@ export function MemoryPage() {
   const isLoading = isSearching ? searchResults.isLoading : notesList.isLoading;
 
   return (
-    <section className="grid gap-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+    <section className="grid gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="grid gap-2">
           <Eyebrow>Memory</Eyebrow>
-          <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Keep context close, not scattered.
-          </h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Notes</h2>
+          <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
+            Keep local markdown context close to the hub.
+          </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button className="w-fit shrink-0" onClick={() => setCreateOpen(true)}>
           <Plus className="size-4" />
           New note
         </Button>
-      </div>
+      </header>
 
-      <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-        <div className="grid gap-3">
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+        <div className={cn('grid gap-3', selectedPath && 'hidden lg:grid')}>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Search notes"
               className="pl-9"
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search notes…"
@@ -145,12 +147,10 @@ export function MemoryPage() {
 
           <Card className="overflow-hidden">
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <Eyebrow>Notes</Eyebrow>
-                <Badge>{displayNotes.length}</Badge>
-              </div>
+              <CardTitle>Index</CardTitle>
+              <Badge>{displayNotes.length}</Badge>
             </CardHeader>
-            <CardContent className="grid gap-1 p-2">
+            <CardContent className="grid gap-1 p-2 pt-0">
               {isLoading ? (
                 <p className="px-3 py-4 text-sm text-muted-foreground">Loading…</p>
               ) : displayNotes.length === 0 ? (
@@ -161,8 +161,8 @@ export function MemoryPage() {
                 displayNotes.map((note) => (
                   <button
                     className={cn(
-                      'w-full rounded-lg px-3 py-3 text-left transition-colors hover:bg-accent',
-                      selectedPath === note.relativePath && 'bg-accent'
+                      'w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted',
+                      selectedPath === note.relativePath && 'bg-muted'
                     )}
                     key={note.relativePath}
                     onClick={() => setSelectedPath(note.relativePath)}
@@ -172,9 +172,9 @@ export function MemoryPage() {
                       <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">{note.title}</p>
-                        {note.excerpt && (
+                        {note.excerpt ? (
                           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{note.excerpt}</p>
-                        )}
+                        ) : null}
                         <p className="mt-1 text-xs text-muted-foreground">
                           {new Date(note.updatedAt).toLocaleDateString()}
                         </p>
@@ -187,21 +187,31 @@ export function MemoryPage() {
           </Card>
         </div>
 
-        <Card>
+        <Card className={cn(!selectedPath && 'hidden lg:block')}>
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <Eyebrow>Editor</Eyebrow>
-                <CardTitle>
-                  {selectedNote.data ? selectedNote.data.title : 'No note selected'}
-                </CardTitle>
-                {selectedNote.data && (
-                  <CardDescription className="break-all">{selectedNote.data.relativePath}</CardDescription>
-                )}
+              <div className="flex items-start gap-3">
+                {selectedPath ? (
+                  <Button
+                    className="size-11 lg:hidden"
+                    onClick={() => setSelectedPath(null)}
+                    size="icon-sm"
+                    variant="ghost"
+                  >
+                    <ArrowLeft className="size-4" />
+                    <span className="sr-only">Back to notes</span>
+                  </Button>
+                ) : null}
+                <div className="grid min-w-0 gap-1">
+                  <CardTitle>
+                    {selectedNote.data ? selectedNote.data.title : 'No note selected'}
+                  </CardTitle>
+                  {selectedNote.data ? (
+                    <CardDescription className="break-all">{selectedNote.data.relativePath}</CardDescription>
+                  ) : null}
+                </div>
               </div>
-              {selectedNote.data && (
-                <Badge variant="accent">md</Badge>
-              )}
+              {selectedNote.data ? <Badge variant="accent">md</Badge> : null}
             </div>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -274,7 +284,7 @@ export function MemoryPage() {
           </DialogHeader>
           <DialogBody>
             <div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">
-              {selectedNote.data ? `Delete: ${selectedNote.data.relativePath}` : 'No note selected.'}
+              {selectedNote.data ? `${selectedNote.data.relativePath} will be permanently deleted.` : 'No note is selected.'}
             </div>
           </DialogBody>
           <DialogFooter>

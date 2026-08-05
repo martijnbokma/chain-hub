@@ -8,11 +8,13 @@ import {
   connectEditors,
   createLibraryAsset,
   deleteLibraryAsset,
+  discoverLibraryAssets,
   getDashboardOverview,
   getGuidedSetup,
   getHubReflectionReport,
   getLibrary,
   getLibraryAsset,
+  importLibraryAsset,
   initializeChainHub,
   updateLibraryAsset,
   validateChainHub,
@@ -121,6 +123,29 @@ assetCommand
     const options = program.opts<{ chainHome?: string }>();
     await deleteLibraryAsset(options.chainHome, commandOptions.kind, commandOptions.name);
     console.log(JSON.stringify({ ok: true, removed: `${commandOptions.kind}/${commandOptions.name}` }, null, 2));
+  });
+
+assetCommand
+  .command("discover")
+  .description("List native editor assets not yet tracked by the hub")
+  .action(async () => {
+    const discovered = await discoverLibraryAssets();
+    console.log(JSON.stringify(discovered, null, 2));
+  });
+
+assetCommand
+  .command("import")
+  .requiredOption("--editor <id>", "Editor id to import from (e.g. claude-code)")
+  .requiredOption("--kind <kind>", "Asset kind")
+  .requiredOption("--name <name>", "Asset name")
+  .action(async (commandOptions: { editor: string; kind: AssetKind; name: string }) => {
+    const options = program.opts<{ chainHome?: string }>();
+    const asset = await importLibraryAsset(options.chainHome, {
+      editorId: commandOptions.editor,
+      kind: commandOptions.kind,
+      name: commandOptions.name
+    });
+    console.log(JSON.stringify(asset, null, 2));
   });
 
 program

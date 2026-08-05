@@ -13,6 +13,8 @@ import {
   type CaptureInput,
   type CreateAssetInput,
   type CreateMemoryNoteInput,
+  type DiscoveredAsset,
+  type ImportAssetInput,
   type Integration,
   type LearningsTimeline,
   type MemoryFile,
@@ -565,6 +567,54 @@ export async function syncAssetToEditors(
       console.warn(`[chain-hub] editor sync failed for ${adapter.id} (${kind}/${name}):`, error);
     }
   }
+}
+
+/** Native editor files that aren't yet Chain-Hub-managed — candidates a user can import into the hub. */
+export async function discoverAssets(): Promise<DiscoveredAsset[]> {
+  const homeDir = resolveHomeDir();
+  const results: DiscoveredAsset[] = [];
+
+  for (const adapter of EDITOR_ADAPTERS) {
+    for (const candidate of await adapter.discover(homeDir)) {
+      results.push({
+        editorId: adapter.id,
+        editorLabel: adapter.label,
+        kind: candidate.kind,
+        name: candidate.name,
+        preview: makeExcerpt(candidate.content),
+        sourcePath: candidate.sourcePath
+      });
+    }
+  }
+
+  return results;
+}
+
+/** Adopts a discovered native file into the hub as a regular managed asset. */
+export async function importDiscoveredAsset(chainHomeInput: string | undefined, input: ImportAssetInput): Promise<AssetDetail> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  const adapter = EDITOR_ADAPTERS.find((candidate) => candidate.id === input.editorId);
+
+  if (!adapter) {
+    throw new Error(`Unknown editor: ${input.editorId}`);
+  }
+
+  const candidates = await adapter.discover(resolveHomeDir());
+  const match = candidates.find((candidate) => candidate.kind === input.kind && candidate.name === input.name);
+
+  if (!match) {
+    throw new Error(`No importable ${input.kind}/${input.name} found for ${input.editorId}`);
+  }
+
+  const asset = await createAsset(chainHome, { kind: match.kind, name: match.name, content: match.content });
+
+  // Adopt the exact source file: force-write the marker into it so it stops being
+  // "foreign" from the origin adapter's point of view. Without this, the regular
+  // guarded sync path would (correctly, for any other file) refuse to touch it.
+  const homeDir = resolveHomeDir();
+  await adapter.writeAsset(chainHome, homeDir, asset, { force: true });
+
+  return asset;
 }
 
 export async function validateHub(chainHomeInput?: string): Promise<ValidationResult> {

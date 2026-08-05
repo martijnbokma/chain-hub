@@ -80,6 +80,29 @@ describe("cursorAdapter.removeAsset", () => {
   });
 });
 
+describe("cursorAdapter.discover", () => {
+  it("finds a plain, unmanaged .mdc rule file", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".cursor", "rules", "hand-written.mdc");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "---\ndescription: Hand written\n---\n\nRule body.", "utf8");
+
+    const discovered = await cursorAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]).toMatchObject({ kind: "rules", name: "hand-written", content: "# Hand written\n\nRule body." });
+  });
+
+  it("excludes chain-hub-managed skills and rules", async () => {
+    const homeDir = await makeTmpHome();
+    await cursorAdapter.writeAsset("/chain-home", homeDir, makeAsset());
+
+    const discovered = await cursorAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(0);
+  });
+});
+
 describe("cursorAdapter.status", () => {
   it("reports supported/unsupported kinds correctly", async () => {
     const homeDir = await makeTmpHome();

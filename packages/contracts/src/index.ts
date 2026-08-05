@@ -40,6 +40,21 @@ export const overviewSchema = z.object({
   })
 });
 
+export const discoveredAssetSchema = z.object({
+  editorId: z.string(),
+  editorLabel: z.string(),
+  kind: z.enum(assetKinds),
+  name: z.string(),
+  preview: z.string(),
+  sourcePath: z.string()
+});
+
+export const importAssetInputSchema = z.object({
+  editorId: z.string(),
+  kind: z.enum(assetKinds),
+  name: z.string()
+});
+
 export const integrationModeSchema = z.enum(["managed", "symlink", "missing", "conflict"]);
 
 export const integrationSchema = z.object({
@@ -184,6 +199,8 @@ export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>;
 export type Overview = z.infer<typeof overviewSchema>;
 export type Integration = z.infer<typeof integrationSchema>;
 export type IntegrationMode = z.infer<typeof integrationModeSchema>;
+export type DiscoveredAsset = z.infer<typeof discoveredAssetSchema>;
+export type ImportAssetInput = z.infer<typeof importAssetInputSchema>;
 export type ValidationResult = z.infer<typeof validationSchema>;
 export type SetupStep = z.infer<typeof setupStepSchema>;
 export type SetupGuide = z.infer<typeof setupGuideSchema>;
