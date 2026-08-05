@@ -76,8 +76,8 @@ export function TabsTrigger({
   return (
     <button
       className={cn(
-        "rounded-lg px-3 py-2 text-sm transition-colors",
-        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+        "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
         className
       )}
       onClick={() => context.setValue(value)}

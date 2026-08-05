@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -19,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { learningsApi } from '@/lib/api';
@@ -46,10 +48,10 @@ export function LearningsPage() {
 
   const captureEvent = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/learnings/capture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: captureType, skill: captureSkill, summary: captureSummary })
+      const response = await learningsApi.captureEvent({
+        type: captureType,
+        skill: captureSkill,
+        summary: captureSummary
       });
       if (!response.ok) throw new Error('Capture failed');
       return response.json() as Promise<CaptureEvent>;
@@ -108,16 +110,18 @@ export function LearningsPage() {
       </header>
 
       {(timeline.data?.skippedLines ?? 0) > 0 ? (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-          <XCircle className="mt-0.5 size-4 shrink-0" />
-          <span>
+        <Alert variant="warning">
+          <AlertIcon>
+            <XCircle />
+          </AlertIcon>
+          <AlertDescription>
             {timeline.data!.skippedLines} malformed{' '}
             {timeline.data!.skippedLines === 1 ? 'line' : 'lines'} in the learnings log were skipped.
             The file at{' '}
-            <code className="rounded bg-black/10 px-1 text-foreground">{timeline.data!.logPath}</code>{' '}
-            may need manual repair.
-          </span>
-        </div>
+            <code className="font-mono text-xs text-foreground">{timeline.data!.logPath}</code> may
+            need manual repair.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <Tabs defaultValue="timeline">
@@ -126,9 +130,11 @@ export function LearningsPage() {
           <TabsTrigger value="reflect">Reflect</TabsTrigger>
         </TabsList>
 
-        <TabsContent className="mt-4 grid gap-4" value="timeline">
+        <TabsContent className="mt-0 grid gap-4" value="timeline">
           <div className="flex flex-wrap gap-3">
             <Select
+              aria-label="Filter by event type"
+              className="w-fit min-w-40"
               onChange={(event) => setFilterType(event.target.value as CaptureEventType | '__all__')}
               value={filterType}
             >
@@ -148,7 +154,21 @@ export function LearningsPage() {
           </div>
 
           {timeline.isLoading ? (
-            <EmptyState description="Loading timeline…" title="Loading" />
+            <div
+              aria-busy="true"
+              aria-label="Loading timeline"
+              className="overflow-hidden rounded-2xl border border-border bg-card shadow-card"
+            >
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div className="grid gap-2 border-b border-border p-4 last:border-b-0" key={index}>
+                  <div className="flex items-center justify-between gap-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-4 w-full max-w-md" />
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <EmptyState
               description={
@@ -159,7 +179,7 @@ export function LearningsPage() {
               title={events.length === 0 ? 'Timeline is empty' : 'No matches'}
             />
           ) : (
-            <ul className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+            <ul className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
               {filtered.map((event) => {
                 const badge = EVENT_TYPE_BADGE[event.type];
                 return (
@@ -167,16 +187,16 @@ export function LearningsPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
                         {event.type === 'success' ? (
-                          <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                          <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-emerald-600" />
                         ) : null}
                         {event.type === 'failure' ? (
-                          <XCircle className="size-4 shrink-0 text-red-600" />
+                          <XCircle aria-hidden="true" className="size-4 shrink-0 text-red-600" />
                         ) : null}
                         {event.type === 'correction' ? (
-                          <Zap className="size-4 shrink-0 text-amber-600" />
+                          <Zap aria-hidden="true" className="size-4 shrink-0 text-amber-600" />
                         ) : null}
                         {event.type === 'note' ? (
-                          <FileText className="size-4 shrink-0 text-muted-foreground" />
+                          <FileText aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         ) : null}
                         <span className="truncate text-sm font-medium text-foreground">{event.skill}</span>
                         <Badge variant={badge.variant}>{badge.label}</Badge>
@@ -193,9 +213,13 @@ export function LearningsPage() {
           )}
         </TabsContent>
 
-        <TabsContent className="mt-4 grid gap-4" value="reflect">
+        <TabsContent className="mt-0 grid gap-4" value="reflect">
           {reflect.isLoading ? (
-            <EmptyState description="Generating reflection…" title="Loading" />
+            <div aria-busy="true" aria-label="Loading reflection" className="grid gap-3">
+              <Skeleton className="h-3 w-64" />
+              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-40 w-full" />
+            </div>
           ) : !reflect.data || reflect.data.skills.length === 0 ? (
             <EmptyState
               description="Capture some events first and the reflect view will group them by skill."
@@ -217,7 +241,7 @@ export function LearningsPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <CardTitle>{skillData.skill}</CardTitle>
                             <Badge variant={trend.variant}>
-                              {trend.icon} {skillData.trend}
+                              <span aria-hidden="true">{trend.icon}</span> {skillData.trend}
                             </Badge>
                           </div>
                           <CardDescription>
@@ -241,24 +265,26 @@ export function LearningsPage() {
                           ) : null}
                         </div>
                       </CardHeader>
-                      <CardContent className="grid gap-2">
-                        <p className="text-xs font-medium text-muted-foreground">Recent events</p>
-                        {skillData.recentEvents.map((event) => (
-                          <div
-                            className="flex items-start gap-3 rounded-lg border border-border px-3 py-2"
-                            key={event.id}
-                          >
-                            <span className="mt-0.5 shrink-0 text-xs text-muted-foreground">
-                              {new Date(event.capturedAt).toLocaleDateString()}
-                            </span>
-                            <div className="min-w-0">
-                              <Badge className="mb-1" variant={EVENT_TYPE_BADGE[event.type].variant}>
-                                {event.type}
-                              </Badge>
-                              <p className="text-sm leading-5 text-muted-foreground">{event.summary}</p>
-                            </div>
-                          </div>
-                        ))}
+                      <CardContent className="p-0">
+                        <p className="px-4 pb-2 text-xs font-medium text-muted-foreground">Recent events</p>
+                        <ul>
+                          {skillData.recentEvents.map((event) => (
+                            <li
+                              className="flex items-start gap-3 border-t border-border px-4 py-3"
+                              key={event.id}
+                            >
+                              <span className="mt-0.5 shrink-0 text-xs text-muted-foreground">
+                                {new Date(event.capturedAt).toLocaleDateString()}
+                              </span>
+                              <div className="min-w-0">
+                                <Badge className="mb-1" variant={EVENT_TYPE_BADGE[event.type].variant}>
+                                  {event.type}
+                                </Badge>
+                                <p className="text-sm leading-5 text-muted-foreground">{event.summary}</p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
                       </CardContent>
                     </Card>
                   );

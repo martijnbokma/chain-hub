@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
+import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { overviewApi, learningsApi } from '@/lib/api';
 import { EVENT_TYPE_BADGE } from '@/lib/constants';
 
@@ -24,7 +25,7 @@ export function OverviewPage() {
   });
 
   if (overview.isLoading) {
-    return <EmptyState description="The overview is loading." title="Loading overview" />;
+    return <PageSkeleton variant="dashboard" />;
   }
 
   if (overview.isError) {
@@ -57,13 +58,11 @@ export function OverviewPage() {
         </div>
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Chain home</span>
-          <code className="break-all rounded-md bg-muted px-1.5 py-0.5 text-xs text-foreground">
-            {data.chainHome}
-          </code>
+          <code className="break-all font-mono text-xs text-foreground">{data.chainHome}</code>
         </p>
       </header>
 
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-card sm:grid-cols-2 xl:grid-cols-4">
         {assetEntries.map(([kind, count]) => (
           <div className="grid gap-1 bg-card p-4" key={kind}>
             <p className="text-xs font-medium capitalize text-muted-foreground">{kind}</p>
@@ -108,9 +107,7 @@ export function OverviewPage() {
               Indexed assets:{' '}
               <span className="font-medium tabular-nums text-foreground">{data.storage.indexedAssets}</span>
             </p>
-            <code className="break-all rounded-md bg-muted px-1.5 py-1 text-xs text-foreground">
-              {data.storage.databasePath}
-            </code>
+            <code className="break-all font-mono text-xs text-muted-foreground">{data.storage.databasePath}</code>
           </CardContent>
         </Card>
       </div>
@@ -119,46 +116,47 @@ export function OverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Recent events</CardTitle>
-            <Button onClick={() => navigate('/learnings')} size="sm" variant="secondary">
+            <Button className="w-fit" onClick={() => navigate('/learnings')} size="sm" variant="secondary">
               View all
             </Button>
           </CardHeader>
-          <CardContent className="grid gap-2">
+          <CardContent className="p-0">
             {!learnings.data || learnings.data.events.length === 0 ? (
-              <p className="text-sm leading-5 text-muted-foreground">
-                No events yet. Use <code className="rounded bg-muted px-1 py-0.5 text-xs">chain capture</code> or
-                Cmd+K.
+              <p className="px-4 pb-4 text-sm leading-5 text-muted-foreground">
+                No events yet. Use <code className="font-mono text-xs">chain capture</code> or Cmd+K.
               </p>
             ) : (
-              learnings.data.events.slice(0, 3).map((event) => {
-                const badge = EVENT_TYPE_BADGE[event.type];
-                return (
-                  <div
-                    className="flex items-start gap-3 rounded-lg border border-border px-3 py-2"
-                    key={event.id}
-                  >
-                    <div className="flex min-w-0 flex-1 items-start gap-2">
-                      {event.type === 'success' ? (
-                        <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
-                      ) : null}
-                      {event.type === 'failure' ? (
-                        <XCircle className="mt-0.5 size-3.5 shrink-0 text-red-600" />
-                      ) : null}
-                      {event.type === 'correction' ? (
-                        <Zap className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
-                      ) : null}
-                      {event.type === 'note' ? (
-                        <FileText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                      ) : null}
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">{event.skill}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{event.summary}</p>
+              <ul>
+                {learnings.data.events.slice(0, 3).map((event) => {
+                  const badge = EVENT_TYPE_BADGE[event.type];
+                  return (
+                    <li
+                      className="flex items-start gap-3 border-t border-border px-4 py-3"
+                      key={event.id}
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-2">
+                        {event.type === 'success' ? (
+                          <CheckCircle2 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
+                        ) : null}
+                        {event.type === 'failure' ? (
+                          <XCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-red-600" />
+                        ) : null}
+                        {event.type === 'correction' ? (
+                          <Zap aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                        ) : null}
+                        {event.type === 'note' ? (
+                          <FileText aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                        ) : null}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{event.skill}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{event.summary}</p>
+                        </div>
                       </div>
-                    </div>
-                    <Badge variant={badge.variant}>{badge.label}</Badge>
-                  </div>
-                );
-              })
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </CardContent>
         </Card>
@@ -166,61 +164,63 @@ export function OverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Active skills</CardTitle>
-            <Button onClick={() => navigate('/learnings')} size="sm" variant="secondary">
+            <Button className="w-fit" onClick={() => navigate('/learnings')} size="sm" variant="secondary">
               Reflect
             </Button>
           </CardHeader>
-          <CardContent className="grid gap-2">
+          <CardContent className="p-0">
             {!learnings.data || learnings.data.events.length === 0 ? (
-              <p className="text-sm leading-5 text-muted-foreground">No skills tracked yet.</p>
+              <p className="px-4 pb-4 text-sm leading-5 text-muted-foreground">No skills tracked yet.</p>
             ) : (
-              [...new Set(learnings.data.events.map((event) => event.skill))].slice(0, 5).map((skill) => {
-                const skillEvents = learnings.data!.events.filter((event) => event.skill === skill);
-                const successCount = skillEvents.filter((event) => event.type === 'success').length;
-                const failureCount = skillEvents.filter((event) => event.type === 'failure').length;
-                const correctionCount = skillEvents.filter((event) => event.type === 'correction').length;
+              <ul>
+                {[...new Set(learnings.data.events.map((event) => event.skill))].slice(0, 5).map((skill) => {
+                  const skillEvents = learnings.data!.events.filter((event) => event.skill === skill);
+                  const successCount = skillEvents.filter((event) => event.type === 'success').length;
+                  const failureCount = skillEvents.filter((event) => event.type === 'failure').length;
+                  const correctionCount = skillEvents.filter((event) => event.type === 'correction').length;
 
-                return (
-                  <div
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
-                    key={skill}
-                  >
-                    <span className="truncate text-sm text-foreground">{skill}</span>
-                    <div className="flex shrink-0 gap-1.5">
-                      {successCount > 0 ? (
-                        <Badge
-                          aria-label={`${successCount} success${successCount === 1 ? '' : 'es'}`}
-                          className="gap-1"
-                          variant="success"
-                        >
-                          <CheckCircle2 aria-hidden="true" className="size-3" />
-                          {successCount}
-                        </Badge>
-                      ) : null}
-                      {correctionCount > 0 ? (
-                        <Badge
-                          aria-label={`${correctionCount} correction${correctionCount === 1 ? '' : 's'}`}
-                          className="gap-1"
-                          variant="warning"
-                        >
-                          <Zap aria-hidden="true" className="size-3" />
-                          {correctionCount}
-                        </Badge>
-                      ) : null}
-                      {failureCount > 0 ? (
-                        <Badge
-                          aria-label={`${failureCount} failure${failureCount === 1 ? '' : 's'}`}
-                          className="gap-1"
-                          variant="destructive"
-                        >
-                          <XCircle aria-hidden="true" className="size-3" />
-                          {failureCount}
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })
+                  return (
+                    <li
+                      className="flex items-center justify-between gap-3 border-t border-border px-4 py-3"
+                      key={skill}
+                    >
+                      <span className="truncate text-sm text-foreground">{skill}</span>
+                      <div className="flex shrink-0 gap-1.5">
+                        {successCount > 0 ? (
+                          <Badge
+                            aria-label={`${successCount} success${successCount === 1 ? '' : 'es'}`}
+                            className="gap-1"
+                            variant="success"
+                          >
+                            <CheckCircle2 aria-hidden="true" className="size-3" />
+                            {successCount}
+                          </Badge>
+                        ) : null}
+                        {correctionCount > 0 ? (
+                          <Badge
+                            aria-label={`${correctionCount} correction${correctionCount === 1 ? '' : 's'}`}
+                            className="gap-1"
+                            variant="warning"
+                          >
+                            <Zap aria-hidden="true" className="size-3" />
+                            {correctionCount}
+                          </Badge>
+                        ) : null}
+                        {failureCount > 0 ? (
+                          <Badge
+                            aria-label={`${failureCount} failure${failureCount === 1 ? '' : 's'}`}
+                            className="gap-1"
+                            variant="destructive"
+                          >
+                            <XCircle aria-hidden="true" className="size-3" />
+                            {failureCount}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </CardContent>
         </Card>

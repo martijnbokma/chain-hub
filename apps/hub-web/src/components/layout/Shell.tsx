@@ -4,7 +4,6 @@ import { Command as CommandIcon, Link2, Sparkles, PanelLeft, FolderTree, BookMar
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -27,9 +26,8 @@ import {
 } from '../ui/sidebar';
 import { Textarea } from '../ui/textarea';
 import { cn } from '../../lib/utils';
-import { getJson, integrationsApi, learningsApi } from '../../lib/api';
-import { Eyebrow } from '../common/Eyebrow';
-import type { Integration, CaptureEventType, CaptureEvent } from '../../types';
+import { integrationsApi, learningsApi } from '../../lib/api';
+import type { CaptureEventType, CaptureEvent } from '../../types';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -63,14 +61,6 @@ function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
-}
-
-interface ActionItem {
-  id: string;
-  label: string;
-  description: string;
-  keywords: string;
-  run: () => void;
 }
 
 export function Shell({ children }: ShellProps) {
@@ -119,7 +109,11 @@ export function Shell({ children }: ShellProps) {
 
   const connectEditors = useMutation({
     mutationFn: async () => {
-      return await integrationsApi.setup();
+      const response = await integrationsApi.setup();
+      if (!response.ok) {
+        throw new Error('Unable to connect editors');
+      }
+      return response.json();
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['setup'] });
@@ -278,9 +272,9 @@ export function Shell({ children }: ShellProps) {
             </kbd>
           </Button>
 
-          <div className="grid gap-2.5 rounded-xl border border-border px-3 py-3 group-data-[collapsible=icon]:hidden">
+          <div className="grid gap-2.5 rounded-2xl border border-border px-3 py-3 group-data-[collapsible=icon]:hidden">
             <div className="flex items-center justify-between gap-2">
-              <Eyebrow>Linked editors</Eyebrow>
+              <p className="text-xs font-medium text-muted-foreground">Linked editors</p>
               <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
                 {connectedCount}/{integrations.data?.length ?? 0}
               </span>
@@ -292,7 +286,7 @@ export function Shell({ children }: ShellProps) {
                     aria-hidden="true"
                     className={cn(
                       'size-1.5 shrink-0 rounded-full',
-                      integration.connected ? 'bg-primary' : 'bg-muted-foreground/30'
+                      integration.connected ? 'bg-emerald-500' : 'bg-muted-foreground/30'
                     )}
                   />
                   <span
@@ -320,7 +314,7 @@ export function Shell({ children }: ShellProps) {
             <span className="flex aspect-square size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-semibold text-primary">
               CH
             </span>
-            <span className="font-display text-sm font-semibold tracking-tight text-foreground">
+            <span className="text-sm font-semibold tracking-tight text-foreground">
               Chain Hub v2
             </span>
           </NavLink>

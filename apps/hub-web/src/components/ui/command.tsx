@@ -14,7 +14,7 @@ import { cn } from "../../lib/utils";
 export function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
-      className={cn("flex h-full w-full flex-col overflow-hidden rounded-xl bg-transparent text-foreground", className)}
+      className={cn("flex h-full w-full flex-col overflow-hidden rounded-2xl bg-transparent text-foreground", className)}
       {...props}
     />
   );
@@ -22,11 +22,11 @@ export function Command({ className, ...props }: React.ComponentProps<typeof Com
 
 export function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandInputPrimitive>) {
   return (
-    <div className="flex items-center rounded-xl border border-border bg-background/60 px-3 focus-within:border-ring" cmdk-input-wrapper="">
+    <div className="flex items-center rounded-xl border border-border bg-background px-3 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30" cmdk-input-wrapper="">
       <Search className="mr-2 size-4 shrink-0 text-muted-foreground" />
       <CommandInputPrimitive
         className={cn(
-          "flex h-11 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         {...props}
@@ -51,7 +51,7 @@ export function CommandItem({ className, ...props }: React.ComponentProps<typeof
   return (
     <CommandItemPrimitive
       className={cn(
-        "grid cursor-pointer gap-1 rounded-xl border border-border bg-background/40 px-4 py-3 text-left text-sm outline-none transition-colors data-[selected=true]:bg-secondary",
+        "grid cursor-pointer gap-1 rounded-xl px-3 py-2.5 text-left text-sm outline-none transition-colors data-[selected=true]:bg-muted",
         className
       )}
       {...props}

@@ -9,11 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
+import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { memoryApi } from '@/lib/api';
-import type { MemoryNote, MemorySearchResult } from '@/types';
+import type { MemoryNote } from '@/types';
 
 export function MemoryPage() {
   const queryClient = useQueryClient();
@@ -116,6 +117,10 @@ export function MemoryPage() {
 
   const isLoading = isSearching ? searchResults.isLoading : notesList.isLoading;
 
+  if (notesList.isLoading && !isSearching) {
+    return <PageSkeleton variant="workspace" />;
+  }
+
   return (
     <section className="grid gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -150,38 +155,45 @@ export function MemoryPage() {
               <CardTitle>Index</CardTitle>
               <Badge>{displayNotes.length}</Badge>
             </CardHeader>
-            <CardContent className="grid gap-1 p-2 pt-0">
+            <CardContent className="p-0">
               {isLoading ? (
-                <p className="px-3 py-4 text-sm text-muted-foreground">Loading…</p>
+                <div className="grid gap-3 p-4" aria-busy="true" aria-label="Loading notes">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
               ) : displayNotes.length === 0 ? (
-                <p className="px-3 py-4 text-sm text-muted-foreground">
+                <p className="px-4 py-4 text-sm text-muted-foreground">
                   {isSearching ? 'No results found.' : 'No notes yet. Create your first note.'}
                 </p>
               ) : (
-                displayNotes.map((note) => (
-                  <button
-                    className={cn(
-                      'w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted',
-                      selectedPath === note.relativePath && 'bg-muted'
-                    )}
-                    key={note.relativePath}
-                    onClick={() => setSelectedPath(note.relativePath)}
-                    type="button"
-                  >
-                    <div className="flex items-start gap-2">
-                      <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">{note.title}</p>
-                        {note.excerpt ? (
-                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{note.excerpt}</p>
-                        ) : null}
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(note.updatedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))
+                <ul>
+                  {displayNotes.map((note) => (
+                    <li key={note.relativePath}>
+                      <button
+                        className={cn(
+                          'w-full border-t border-border px-4 py-3 text-left transition-colors hover:bg-muted',
+                          selectedPath === note.relativePath && 'bg-muted'
+                        )}
+                        onClick={() => setSelectedPath(note.relativePath)}
+                        type="button"
+                      >
+                        <div className="flex items-start gap-2">
+                          <FileText aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">{note.title}</p>
+                            {note.excerpt ? (
+                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{note.excerpt}</p>
+                            ) : null}
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {new Date(note.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>
@@ -193,7 +205,7 @@ export function MemoryPage() {
               <div className="flex items-start gap-3">
                 {selectedPath ? (
                   <Button
-                    className="size-11 lg:hidden"
+                    className="lg:hidden"
                     onClick={() => setSelectedPath(null)}
                     size="icon-sm"
                     variant="ghost"
@@ -207,7 +219,9 @@ export function MemoryPage() {
                     {selectedNote.data ? selectedNote.data.title : 'No note selected'}
                   </CardTitle>
                   {selectedNote.data ? (
-                    <CardDescription className="break-all">{selectedNote.data.relativePath}</CardDescription>
+                    <CardDescription className="break-all font-mono text-xs">
+                      {selectedNote.data.relativePath}
+                    </CardDescription>
                   ) : null}
                 </div>
               </div>
@@ -216,27 +230,38 @@ export function MemoryPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             {selectedNote.isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading note…</p>
+              <div className="grid gap-3" aria-busy="true" aria-label="Loading note">
+                <Skeleton className="h-120 w-full" />
+                <div className="flex gap-3">
+                  <Skeleton className="h-9 w-28" />
+                  <Skeleton className="h-9 w-24" />
+                </div>
+              </div>
             ) : selectedNote.data ? (
               <>
                 <Textarea
-                  className="min-h-[480px] font-mono text-xs leading-6"
+                  className="min-h-120 font-mono text-xs leading-6"
                   onChange={(e) => setEditorContent(e.target.value)}
                   rows={20}
                   value={editorContent}
                 />
                 <div className="flex flex-wrap gap-3">
-                  <Button disabled={saveNote.isPending} onClick={() => saveNote.mutate()}>
+                  <Button className="w-fit" disabled={saveNote.isPending} onClick={() => saveNote.mutate()}>
                     {saveNote.isPending ? 'Saving…' : 'Save note'}
                   </Button>
-                  <Button disabled={deleteNote.isPending} onClick={() => setDeleteOpen(true)} variant="secondary">
+                  <Button
+                    className="w-fit"
+                    disabled={deleteNote.isPending}
+                    onClick={() => setDeleteOpen(true)}
+                    variant="secondary"
+                  >
                     <Trash2 className="size-4" />
                     Delete
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm leading-5 text-muted-foreground">
                 Select a note from the index or create a new one.
               </p>
             )}
@@ -283,13 +308,13 @@ export function MemoryPage() {
             <DialogDescription>This permanently removes the note file from the memory folder.</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
               {selectedNote.data ? `${selectedNote.data.relativePath} will be permanently deleted.` : 'No note is selected.'}
             </div>
           </DialogBody>
           <DialogFooter>
             <Button onClick={() => setDeleteOpen(false)} variant="secondary">Cancel</Button>
-            <Button disabled={deleteNote.isPending} onClick={() => deleteNote.mutate()}>
+            <Button disabled={deleteNote.isPending} onClick={() => deleteNote.mutate()} variant="destructive">
               {deleteNote.isPending ? 'Deleting…' : 'Confirm delete'}
             </Button>
           </DialogFooter>

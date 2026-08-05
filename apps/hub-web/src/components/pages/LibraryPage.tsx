@@ -1,27 +1,113 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Trash2, Sparkles, ArrowLeft } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Trash2,
+  Sparkles,
+  ArrowLeft,
+  Bot,
+  Workflow,
+  ScrollText,
+  type LucideIcon
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
+import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { libraryApi } from '@/lib/api';
 import type { AssetKind, FilterKind, AssetRecord, AssetDetail, DiscoveredAsset } from '@/types';
 
-type IndexRow =
-  | { type: 'header'; kind: string; count: number }
-  | { type: 'item'; asset: AssetRecord };
+const KIND_META: Record<AssetKind, { label: string; icon: LucideIcon }> = {
+  skills: { label: 'Skill', icon: Sparkles },
+  agents: { label: 'Agent', icon: Bot },
+  workflows: { label: 'Workflow', icon: Workflow },
+  rules: { label: 'Rule', icon: ScrollText }
+};
+
+function resolveKindMeta(kind: string): { label: string; icon: LucideIcon } {
+  if (kind === 'skills' || kind === 'agents' || kind === 'workflows' || kind === 'rules') {
+    return KIND_META[kind];
+  }
+  return KIND_META.skills;
+}
+
+interface AssetCardProps {
+  asset: AssetRecord;
+  selected: boolean;
+  compact?: boolean;
+  onSelect: () => void;
+}
+
+function AssetCard({ asset, selected, compact = false, onSelect }: AssetCardProps) {
+  const meta = resolveKindMeta(asset.kind);
+  const Icon = meta.icon;
+
+  return (
+    <button
+      className={cn(
+        'group grid w-full gap-3 rounded-xl border border-border bg-card text-left shadow-card transition-colors',
+        'hover:border-primary/25 hover:bg-muted/50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        selected && 'border-primary/40 bg-primary/5 ring-1 ring-primary/15',
+        compact ? 'gap-2 p-3' : 'p-4'
+      )}
+      onClick={onSelect}
+      type="button"
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            'flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors',
+            selected && 'bg-primary/10 text-primary'
+          )}
+        >
+          <Icon className="size-4" />
+        </span>
+        <div className="grid min-w-0 flex-1 gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-medium text-foreground">{asset.name}</span>
+            <Badge variant="accent">{meta.label}</Badge>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{asset.relativePath}</p>
+          {compact ? null : (
+            <p className="text-xs text-muted-foreground">
+              Updated {new Date(asset.updatedAt).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+        {compact ? (
+          <time
+            className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground"
+            dateTime={asset.updatedAt}
+          >
+            {new Date(asset.updatedAt).toLocaleDateString()}
+          </time>
+        ) : null}
+      </div>
+    </button>
+  );
+}
 
 export function LibraryPage() {
   const queryClient = useQueryClient();
@@ -192,37 +278,10 @@ export function LibraryPage() {
     }, {});
   }, [discoverQuery.data]);
 
-  const indexRows = useMemo<IndexRow[]>(() => {
-    const rows: IndexRow[] = [];
-    for (const [kind, items] of Object.entries(grouped)) {
-      rows.push({ type: 'header', kind, count: items.length });
-      for (const asset of items) {
-        rows.push({ type: 'item', asset });
-      }
-    }
-    return rows;
-  }, [grouped]);
-
-  const kindHeaderIndex = useMemo(() => {
-    const map: Record<string, number> = {};
-    indexRows.forEach((row, index) => {
-      if (row.type === 'header') {
-        map[row.kind] = index;
-      }
-    });
-    return map;
-  }, [indexRows]);
-
-  const indexScrollRef = useRef<HTMLDivElement | null>(null);
-  const indexVirtualizer = useVirtualizer({
-    count: indexRows.length,
-    estimateSize: (index) => (indexRows[index]?.type === 'header' ? 44 : 72),
-    getScrollElement: () => indexScrollRef.current,
-    overscan: 10
-  });
+  const kindSections = Object.entries(grouped);
 
   if (library.isLoading) {
-    return <EmptyState description="The asset index is loading." title="Loading library" />;
+    return <PageSkeleton className="h-[calc(100vh-108px)]" variant="workspace" />;
   }
 
   if (library.isError) {
@@ -282,94 +341,72 @@ export function LibraryPage() {
         </Tabs>
       </div>
 
-      <div className={cn(
-        'flex-1 min-h-0 grid gap-4',
-        selected ? 'xl:grid-cols-2' : 'grid-cols-1 max-w-4xl mx-auto w-full'
-      )}>
-        <Card className={cn('flex flex-col overflow-hidden', selected && 'hidden xl:flex')}>
-          <CardHeader>
-            <CardTitle>Index</CardTitle>
-            <Badge variant="default">{filteredAssets.length}</Badge>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col gap-3 min-h-0">
-            {Object.keys(grouped).length > 1 && (
-              <div className="flex shrink-0 flex-wrap gap-2 border-b border-border pb-3">
-                {Object.entries(grouped).map(([kind, items]) => (
-                  <button
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-transparent px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                    key={kind}
-                    onClick={() => {
-                      const index = kindHeaderIndex[kind];
-                      if (index !== undefined) {
-                        indexVirtualizer.scrollToIndex(index, { align: 'start' });
-                      }
-                    }}
-                    type="button"
-                  >
-                    {kind}
-                    <span className="text-xs text-muted-foreground/70">{items.length}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="flex-1 min-h-0 overflow-y-auto" ref={indexScrollRef}>
-              {indexRows.length > 0 ? (
-                <div style={{ height: indexVirtualizer.getTotalSize(), position: 'relative' }}>
-                  {indexVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const row = indexRows[virtualRow.index];
+      {kindSections.length > 1 ? (
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {kindSections.map(([kind, items]) => (
+            <Button
+              className="h-7 gap-1.5 px-2.5 capitalize"
+              key={kind}
+              onClick={() => {
+                document
+                  .getElementById(`library-kind-${kind}`)
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              {kind}
+              <span className="tabular-nums text-muted-foreground">{items.length}</span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
-                    return (
-                      <div
-                        data-index={virtualRow.index}
-                        key={virtualRow.key}
-                        ref={indexVirtualizer.measureElement}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          transform: `translateY(${virtualRow.start}px)`
-                        }}
-                      >
-                        {row.type === 'header' ? (
-                          <div className="flex items-center justify-between gap-3 pb-2 pt-3">
-                            <h3 className="text-sm font-semibold capitalize text-foreground">{row.kind}</h3>
-                            <Badge>{row.count}</Badge>
-                          </div>
-                        ) : (
-                          <button
-                            className={cn(
-                              'mb-1 flex w-full items-start justify-between gap-3 rounded-lg border border-transparent bg-transparent px-3 py-2.5 text-left transition-colors hover:bg-muted',
-                              selected?.kind === row.asset.kind &&
-                                selected?.name === row.asset.name &&
-                                'bg-muted'
-                            )}
-                            onClick={() => setSelected({ kind: row.asset.kind as AssetKind, name: row.asset.name })}
-                            type="button"
-                          >
-                            <div className="min-w-0">
-                              <strong className="text-sm font-medium">{row.asset.name}</strong>
-                              <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                {row.asset.relativePath}
-                              </p>
-                            </div>
-                            <code className="shrink-0 text-xs text-muted-foreground">
-                              {new Date(row.asset.updatedAt).toLocaleDateString()}
-                            </code>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                  No assets match the current search and filter.
-                </div>
-              )}
+      <div
+        className={cn(
+          'grid min-h-0 flex-1 gap-4',
+          selected ? 'xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]' : 'grid-cols-1'
+        )}
+      >
+        <div className={cn('min-h-0 overflow-y-auto', selected && 'hidden xl:block')}>
+          {kindSections.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+              No assets match the current search and filter.
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <div className="grid gap-6 pb-2">
+              {kindSections.map(([kind, items]) => (
+                <section className="grid gap-3" id={`library-kind-${kind}`} key={kind}>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold capitalize text-foreground">{kind}</h3>
+                    <Badge variant="default">{items.length}</Badge>
+                  </div>
+                  <div
+                    className={cn(
+                      'grid gap-3',
+                      selected ? 'grid-cols-1' : 'sm:grid-cols-2 xl:grid-cols-3'
+                    )}
+                  >
+                    {items.map((asset) => (
+                      <AssetCard
+                        asset={asset}
+                        compact={Boolean(selected)}
+                        key={`${asset.kind}-${asset.name}`}
+                        onSelect={() =>
+                          setSelected({ kind: asset.kind as AssetKind, name: asset.name })
+                        }
+                        selected={
+                          selected?.kind === asset.kind && selected?.name === asset.name
+                        }
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
 
         {selected ? (
           <Card
@@ -381,7 +418,7 @@ export function LibraryPage() {
             <CardHeader>
               <div className="flex items-start gap-3">
                 <Button
-                  className="size-11 xl:hidden"
+                  className="xl:hidden"
                   onClick={() => setSelected(null)}
                   size="icon-sm"
                   variant="ghost"
@@ -399,16 +436,21 @@ export function LibraryPage() {
             <CardContent className="grid flex-1 grid-rows-[1fr_auto] gap-4 overflow-hidden">
               <div className="min-h-0">
                 <Textarea
-                  className="h-full resize-none font-mono text-xs leading-6 xl:min-h-[200px]"
+                  className="h-full min-h-50 resize-none font-mono text-xs leading-6"
                   onChange={(event) => setEditorContent(event.target.value)}
                   value={editorContent}
                 />
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button disabled={saveAsset.isPending} onClick={() => saveAsset.mutate()}>
+                <Button className="w-fit" disabled={saveAsset.isPending} onClick={() => saveAsset.mutate()}>
                   {saveAsset.isPending ? 'Saving…' : 'Save changes'}
                 </Button>
-                <Button disabled={removeAsset.isPending} onClick={() => setRemoveOpen(true)} variant="secondary">
+                <Button
+                  className="w-fit"
+                  disabled={removeAsset.isPending}
+                  onClick={() => setRemoveOpen(true)}
+                  variant="secondary"
+                >
                   <Trash2 className="size-4" />
                   {removeAsset.isPending ? 'Deleting…' : 'Delete asset'}
                 </Button>
@@ -473,7 +515,7 @@ export function LibraryPage() {
             <DialogDescription>This removes the selected asset from the local hub and updates the SQLite index.</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <div className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
               {selected ? `${selected.kind}/${selected.name} will be permanently deleted.` : 'No asset is selected.'}
             </div>
           </DialogBody>
@@ -481,7 +523,11 @@ export function LibraryPage() {
             <Button onClick={() => setRemoveOpen(false)} variant="secondary">
               Cancel
             </Button>
-            <Button disabled={!selected || removeAsset.isPending} onClick={() => removeAsset.mutate()}>
+            <Button
+              disabled={!selected || removeAsset.isPending}
+              onClick={() => removeAsset.mutate()}
+              variant="destructive"
+            >
               {removeAsset.isPending ? 'Deleting…' : 'Confirm delete'}
             </Button>
           </DialogFooter>
@@ -499,44 +545,49 @@ export function LibraryPage() {
           </DialogHeader>
           <DialogBody>
             {discoverQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">Scanning linked editors...</p>
+              <div aria-busy="true" aria-label="Scanning editors" className="grid gap-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
             ) : Object.entries(groupedDiscovered).length > 0 ? (
               <div className="grid gap-5">
                 {Object.entries(groupedDiscovered).map(([editorLabel, candidates]) => (
                   <div className="grid gap-2" key={editorLabel}>
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-display text-base font-semibold">{editorLabel}</h3>
+                      <h3 className="text-sm font-semibold text-foreground">{editorLabel}</h3>
                       <Badge>{candidates.length}</Badge>
                     </div>
-                    <div className="grid gap-2">
+                    <ul className="overflow-hidden rounded-2xl border border-border">
                       {candidates.map((candidate) => (
-                        <div
-                          className="flex min-w-0 items-start justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3 py-3"
+                        <li
+                          className="flex min-w-0 items-start justify-between gap-3 border-b border-border px-3 py-3 last:border-b-0"
                           key={`${candidate.editorId}-${candidate.kind}-${candidate.name}`}
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <strong className="text-sm">{candidate.name}</strong>
+                              <strong className="text-sm font-medium text-foreground">{candidate.name}</strong>
                               <Badge variant="accent">{candidate.kind}</Badge>
                             </div>
                             <p className="mt-1 truncate text-xs text-muted-foreground">{candidate.preview}</p>
                           </div>
                           <Button
-                            className="shrink-0"
+                            className="w-fit shrink-0"
                             disabled={importAsset.isPending}
                             onClick={() => importAsset.mutate(candidate)}
                             size="sm"
                           >
                             Import
                           </Button>
-                        </div>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
                 Nothing to import — every native asset in your linked editors is already tracked by the hub.
               </div>
             )}

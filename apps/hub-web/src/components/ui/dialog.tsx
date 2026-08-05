@@ -127,7 +127,7 @@ export function DialogContent({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
       <div
         aria-hidden="true"
         className="absolute inset-0"
@@ -145,7 +145,7 @@ export function DialogContent({
       >
         <button
           aria-label="Close dialog"
-          className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           onClick={() => setOpen(false)}
           type="button"
         >
@@ -163,11 +163,11 @@ export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLD
 }
 
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn("pr-10 font-display text-xl font-semibold tracking-tight", className)} {...props} />;
+  return <h2 className={cn("pr-10 text-xl font-semibold tracking-tight text-foreground", className)} {...props} />;
 }
 
 export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm leading-6 text-muted-foreground", className)} {...props} />;
+  return <p className={cn("text-sm leading-5 text-muted-foreground", className)} {...props} />;
 }
 
 export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

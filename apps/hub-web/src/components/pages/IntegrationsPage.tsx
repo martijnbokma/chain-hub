@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
+import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { integrationsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { Integration } from '@/types';
@@ -19,7 +20,7 @@ export function IntegrationsPage() {
 
   const setup = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/integrations/setup', { method: 'POST' });
+      const response = await integrationsApi.setup();
       if (!response.ok) {
         throw new Error('Unable to setup integrations');
       }
@@ -36,7 +37,7 @@ export function IntegrationsPage() {
   });
 
   if (integrations.isLoading) {
-    return <EmptyState description="Integration status is loading." title="Loading integrations" />;
+    return <PageSkeleton variant="checklist" />;
   }
 
   if (integrations.isError) {
@@ -71,7 +72,7 @@ export function IntegrationsPage() {
         </Button>
       </header>
 
-      <ul className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+      <ul className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
         {integrations.data.map((integration) => (
           <li
             className={cn(
@@ -90,7 +91,7 @@ export function IntegrationsPage() {
               <p className="text-xs text-muted-foreground">Mode: {integration.mode}</p>
               <div className="grid gap-1">
                 {integration.targetPaths.map((targetPath) => (
-                  <code className="break-all text-xs text-muted-foreground" key={targetPath}>
+                  <code className="break-all font-mono text-xs text-muted-foreground" key={targetPath}>
                     {targetPath}
                   </code>
                 ))}

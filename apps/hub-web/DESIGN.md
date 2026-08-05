@@ -124,6 +124,14 @@ Chain Hub v2 is a light, premium product surface: zinc neutrals, white panels, a
 - Surfaces: `12px` (`rounded-2xl` token maps to 12px)
 - Badges / command chips: `rounded-full`
 
+## Alerts
+
+Inline callouts use `Alert` (`default` | `warning` | `destructive`) with the tinted-opacity badge recipe. Prefer `Alert` over ad-hoc bordered banners.
+
+## Loading
+
+Page-level loading uses `PageSkeleton` variants (`checklist` | `dashboard` | `workspace`) matching the three surface types. Inline panels use `Skeleton`.
+
 ## Do's and Don'ts
 
 ### Do

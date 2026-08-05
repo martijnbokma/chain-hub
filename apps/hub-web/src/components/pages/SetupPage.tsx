@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
-import { setupApi } from '@/lib/api';
+import { PageSkeleton } from '@/components/common/PageSkeleton';
+import { setupApi, integrationsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { SetupGuide } from '@/types';
 
@@ -51,7 +52,7 @@ export function SetupPage() {
 
   const setupEditors = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/integrations/setup', { method: 'POST' });
+      const response = await integrationsApi.setup();
       if (!response.ok) {
         throw new Error('Unable to connect editors');
       }
@@ -69,7 +70,7 @@ export function SetupPage() {
   });
 
   if (guide.isLoading) {
-    return <EmptyState description="The guided setup is loading." title="Loading setup guide" />;
+    return <PageSkeleton variant="checklist" />;
   }
 
   if (guide.isError || !guide.data) {
@@ -91,13 +92,13 @@ export function SetupPage() {
         </div>
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Chain home</span>
-          <code className="break-all rounded-md bg-muted px-1.5 py-0.5 text-xs text-foreground">
+          <code className="break-all font-mono text-xs text-foreground">
             {guide.data.chainHome}
           </code>
         </p>
       </header>
 
-      <ol className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+      <ol className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
         {guide.data.steps.map((step, index) => {
           const isCurrent = step.status === 'current';
           const showConnect = step.action === 'connect' && !step.complete;

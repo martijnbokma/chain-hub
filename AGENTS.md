@@ -399,7 +399,9 @@ chain validate
 ## Learned User Preferences
 
 - Hub UI should feel premium, simple, sleek, and trustworthy—not a dense console/terminal aesthetic and not marketing-card or AI-slop layouts (oversized radii, sparse stadium cards, eyebrow-on-everything).
-- Cool Trust is the chosen visual direction: near-white zinc page, white surfaces, slate text, orange as the sole brand accent, ~10–12px radius, tight type scale, checklist/list density over card grids.
+- Cool Trust is the chosen visual direction: near-white zinc page, white surfaces, slate text, orange as the sole brand accent (One Signal—not for status dots or hover/selection fills), ~10–12px radius, tight type scale.
+- Standardize hub-web layouts by surface type (Direction A): checklist for Setup/Integrations/Learnings; dashboard for Overview; workspace master–detail for Library/Memory (Library browse may use compact asset cards).
+- Prefer rebuilding UI against existing design-system components and tokens; flag gaps and make the smallest addition rather than inventing one-off primitives.
 - Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
 
 ## Learned Workspace Facts
@@ -407,6 +409,7 @@ chain validate
 - Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and `apps/hub-web/.impeccable/` (not ad-hoc styling guesses).
 - Keep `ComingSoonPage.tsx`; it is still needed for `apps/marketing-site`, which remains under development.
 - The shared design skill lives at `/Users/silverfox/www/skills` (moved out of `.claude/skills/design/` in this repo).
+- Cross-IDE rules direction: keep one hub-owned source of truth and project/sync into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than maintaining separate per-IDE rule trees by hand.
 
 ---
 
