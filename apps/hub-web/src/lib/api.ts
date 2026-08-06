@@ -14,7 +14,8 @@ import type {
   ReflectionReport,
   MemoryNote,
   MemorySearchResult,
-  UpdateSkillsResult
+  UpdateSkillsResult,
+  ValidationResult
 } from '@/types';
 
 /**
@@ -33,6 +34,11 @@ export async function getJson<T>(url: string): Promise<T> {
 // Overview API
 export const overviewApi = {
   get: () => getJson<Overview>('/api/overview')
+};
+
+// Validate API
+export const validateApi = {
+  run: () => getJson<ValidationResult>('/api/validate')
 };
 
 // Library API

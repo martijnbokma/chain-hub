@@ -35,6 +35,7 @@ import {
 } from "@chain-hub/contracts";
 import { resolveChainHome } from "@chain-hub/storage";
 import { startServer } from "@chain-hub/server";
+import { formatReflectionReport } from "./reflect-format.js";
 
 const program = new Command();
 
@@ -299,23 +300,8 @@ program
       return;
     }
 
-    console.log(`\nReflection report — ${new Date(report.generatedAt).toLocaleString()}`);
-    console.log(`${report.totalEvents} events across ${report.totalSkills} skills\n`);
-
-    if (report.skills.length === 0) {
-      console.log("No events captured yet. Run: chain capture --event note --skill <slug> --summary <text>");
-      return;
-    }
-
-    for (const skill of report.skills) {
-      const trendIcon = ({ improving: "↑", struggling: "↓", stable: "→", new: "★" } as Record<string, string>)[skill.trend] ?? "?";
-      console.log(`  ${trendIcon} ${skill.skill}  [${skill.trend}]`);
-      console.log(`    ${skill.totalEvents} events: ${skill.successCount} success / ${skill.failureCount} failure / ${skill.correctionCount} correction / ${skill.noteCount} note`);
-      for (const e of skill.recentEvents) {
-        const ts = new Date(e.capturedAt).toLocaleDateString();
-        console.log(`    · [${e.type}] ${e.summary}  (${ts})`);
-      }
-      console.log();
+    for (const line of formatReflectionReport(report)) {
+      console.log(line);
     }
   });
 

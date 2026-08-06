@@ -1,8 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { Command as CommandIcon, Link2, Sparkles, PanelLeft, FolderTree, BookMarked, Zap, type LucideIcon } from 'lucide-react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { Button } from '../ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
@@ -26,12 +24,12 @@ import {
 } from '../ui/sidebar';
 import { Textarea } from '../ui/textarea';
 import { cn } from '../../lib/utils';
-import { integrationsApi, learningsApi } from '../../lib/api';
-import type { CaptureEventType, CaptureEvent } from '../../types';
+import type { CaptureEventType } from '../../types';
 import { ShellToolbarHost, ShellToolbarProvider } from './ShellToolbar';
+import { useCommandPalette } from './useCommandPalette';
 
 interface ShellProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 interface SidebarNavLinkProps {
@@ -65,16 +63,24 @@ function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps
 }
 
 export function Shell({ children }: ShellProps) {
-  const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
-  const [commandOpen, setCommandOpen] = useState(false);
 
-  const integrations = useQuery({
-    queryKey: ['integrations'],
-    queryFn: () => integrationsApi.getAll()
-  });
-  const connectedCount = integrations.data?.filter((integration) => integration.connected).length ?? 0;
+  const {
+    commandOpen,
+    setCommandOpen,
+    actions,
+    integrations,
+    connectedCount,
+    captureOpen,
+    setCaptureOpen,
+    captureType,
+    setCaptureType,
+    captureSkill,
+    setCaptureSkill,
+    captureSummary,
+    setCaptureSummary,
+    captureEventMutation
+  } = useCommandPalette();
 
   const links = [
     { to: '/setup', label: 'Setup', icon: Sparkles },
@@ -84,130 +90,6 @@ export function Shell({ children }: ShellProps) {
     { to: '/learnings', label: 'Learnings', icon: Zap },
     { to: '/integrations', label: 'Integrations', icon: Link2 }
   ];
-
-  const [captureOpen, setCaptureOpen] = useState(false);
-  const [captureType, setCaptureType] = useState<CaptureEventType>('note');
-  const [captureSkill, setCaptureSkill] = useState('');
-  const [captureSummary, setCaptureSummary] = useState('');
-
-  const captureEventMutation = useMutation({
-    mutationFn: async () => {
-      const response = await learningsApi.captureEvent({ type: captureType, skill: captureSkill, summary: captureSummary });
-      if (!response.ok) throw new Error('Capture failed');
-      return response.json() as Promise<CaptureEvent>;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['learnings'] });
-      setCaptureOpen(false);
-      setCaptureSkill('');
-      setCaptureSummary('');
-      setCaptureType('note');
-      setCommandOpen(false);
-      toast.success('Event captured');
-    },
-    onError: () => toast.error('Unable to capture event')
-  });
-
-  const connectEditors = useMutation({
-    mutationFn: async () => {
-      const response = await integrationsApi.setup();
-      if (!response.ok) {
-        throw new Error('Unable to connect editors');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['setup'] });
-      void queryClient.invalidateQueries({ queryKey: ['integrations'] });
-      void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success('Editors connected');
-      setCommandOpen(false);
-    },
-    onError: () => {
-      toast.error('Unable to connect editors');
-    }
-  });
-
-  const actions = useMemo(
-    () => [
-      {
-        id: 'go-setup',
-        label: 'Open setup',
-        description: 'Review the guided setup checklist.',
-        keywords: 'setup guided checklist onboarding',
-        run: () => navigate('/setup')
-      },
-      {
-        id: 'go-overview',
-        label: 'Open overview',
-        description: 'See health, storage, and asset counts.',
-        keywords: 'overview health storage dashboard',
-        run: () => navigate('/')
-      },
-      {
-        id: 'go-library',
-        label: 'Open library',
-        description: 'Browse indexed assets and edit content.',
-        keywords: 'library assets editor skills rules workflows agents',
-        run: () => navigate('/library')
-      },
-      {
-        id: 'go-memory',
-        label: 'Open memory',
-        description: 'Inspect the memory folder and recent note files.',
-        keywords: 'memory notes files summary',
-        run: () => navigate('/memory')
-      },
-      {
-        id: 'create-asset',
-        label: 'Create asset',
-        description: 'Jump to the library and open the create flow.',
-        keywords: 'new asset create library',
-        run: () => navigate('/library?create=1')
-      },
-      {
-        id: 'go-integrations',
-        label: 'Open integrations',
-        description: 'Inspect editor mounts and adapter state.',
-        keywords: 'integrations editors mounts adapters',
-        run: () => navigate('/integrations')
-      },
-      {
-        id: 'go-learnings',
-        label: 'Open learnings',
-        description: 'Review the captured event timeline.',
-        keywords: 'learnings events capture timeline reflect',
-        run: () => navigate('/learnings')
-      },
-      {
-        id: 'capture-event',
-        label: 'Capture event',
-        description: 'Quickly log a success, failure, correction, or note.',
-        keywords: 'capture event log note success failure correction',
-        run: () => { setCaptureOpen(true); }
-      },
-      {
-        id: 'connect-editors',
-        label: 'Connect editors',
-        description: 'Run the integration setup flow from the command palette.',
-        keywords: 'connect editors integrations setup',
-        run: () => connectEditors.mutate()
-      }
-    ],
-    [connectEditors, navigate]
-  );
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setCommandOpen((current) => !current);
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   return (
     <ShellToolbarProvider>
@@ -288,7 +170,7 @@ export function Shell({ children }: ShellProps) {
                       aria-hidden="true"
                       className={cn(
                         'size-1.5 shrink-0 rounded-full',
-                        integration.connected ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                        integration.connected ? 'bg-success' : 'bg-muted-foreground/30'
                       )}
                     />
                     <span

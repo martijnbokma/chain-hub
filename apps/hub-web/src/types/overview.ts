@@ -4,6 +4,11 @@ export type AgentsSkillsDrift = {
   missingCount: number;
 };
 
+export type ValidationResult = {
+  ok: boolean;
+  issues: string[];
+};
+
 export type Overview = {
   chainHome: string;
   initializedAt: string | null;

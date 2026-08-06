@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -7,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { setupApi, integrationsApi } from '@/lib/api';
+import { setupApi, integrationsApi, validateApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import type { SetupGuide } from '@/types';
+import type { Integration, SetupGuide } from '@/types';
 
 function statusLabel(status: SetupGuide['steps'][number]['status']): string {
   switch (status) {
@@ -44,10 +45,26 @@ function statusVariant(
 }
 
 export function SetupPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const guide = useQuery({
     queryKey: ['setup'],
     queryFn: () => setupApi.getGuide()
+  });
+
+  const runValidate = useMutation({
+    mutationFn: () => validateApi.run(),
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({ queryKey: ['setup'] });
+      if (result.ok) {
+        toast.success('Structure is valid — no issues found');
+      } else {
+        toast.error(`${result.issues.length} issue${result.issues.length === 1 ? '' : 's'}: ${result.issues.slice(0, 2).join('; ')}${result.issues.length > 2 ? '…' : ''}`);
+      }
+    },
+    onError: () => {
+      toast.error('Unable to run validation');
+    }
   });
 
   const setupEditors = useMutation({
@@ -56,13 +73,23 @@ export function SetupPage() {
       if (!response.ok) {
         throw new Error('Unable to connect editors');
       }
-      return response.json();
+      return (await response.json()) as Integration[];
     },
-    onSuccess: () => {
+    onSuccess: (integrations) => {
       void queryClient.invalidateQueries({ queryKey: ['setup'] });
       void queryClient.invalidateQueries({ queryKey: ['integrations'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success('Editors connected');
+
+      const failed = integrations.filter((integration) => !integration.connected);
+      if (failed.length > 0) {
+        toast.warning(
+          `Connected ${integrations.length - failed.length}/${integrations.length} editors — ${failed
+            .map((integration) => integration.label)
+            .join(', ')} failed`
+        );
+        return;
+      }
+      toast.success(`Connected ${integrations.length} editor${integrations.length === 1 ? '' : 's'}`);
     },
     onError: () => {
       toast.error('Unable to connect editors');
@@ -86,8 +113,8 @@ export function SetupPage() {
             Get your hub ready
           </h2>
           <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
-            Initialize the local hub, create a reusable asset, connect editors, then validate the
-            structure.
+            Four steps to get every editor reading from one source of truth — so a skill or rule you
+            write once shows up everywhere, not just where you wrote it.
           </p>
         </div>
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -102,6 +129,8 @@ export function SetupPage() {
         {guide.data.steps.map((step, index) => {
           const isCurrent = step.status === 'current';
           const showConnect = step.action === 'connect' && !step.complete;
+          const showCreateAsset = step.action === 'create-asset' && !step.complete;
+          const showValidate = step.action === 'validate' && !step.complete;
 
           return (
             <li
@@ -138,6 +167,23 @@ export function SetupPage() {
                     size="sm"
                   >
                     {setupEditors.isPending ? 'Connecting…' : 'Connect editors'}
+                  </Button>
+                ) : null}
+
+                {showCreateAsset ? (
+                  <Button className="w-fit" onClick={() => navigate('/library?create=1')} size="sm">
+                    Create asset
+                  </Button>
+                ) : null}
+
+                {showValidate ? (
+                  <Button
+                    className="w-fit"
+                    disabled={runValidate.isPending}
+                    onClick={() => runValidate.mutate()}
+                    size="sm"
+                  >
+                    {runValidate.isPending ? 'Validating…' : 'Run validation'}
                   </Button>
                 ) : null}
               </div>

@@ -64,7 +64,7 @@ export function IntegrationsPage() {
             </Badge>
           </div>
           <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
-            Mount the hub into each supported editor on this machine.
+            Link each supported editor on this machine to the hub so they all stay in sync.
           </p>
         </div>
         <Button className="w-fit shrink-0" disabled={setup.isPending} onClick={() => setup.mutate()}>

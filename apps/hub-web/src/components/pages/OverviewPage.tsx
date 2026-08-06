@@ -190,13 +190,13 @@ export function OverviewPage() {
                     >
                       <div className="flex min-w-0 flex-1 items-start gap-2">
                         {event.type === 'success' ? (
-                          <CheckCircle2 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
+                          <CheckCircle2 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-success" />
                         ) : null}
                         {event.type === 'failure' ? (
-                          <XCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-red-600" />
+                          <XCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-destructive" />
                         ) : null}
                         {event.type === 'correction' ? (
-                          <Zap aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                          <Zap aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-warning" />
                         ) : null}
                         {event.type === 'note' ? (
                           <FileText aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />

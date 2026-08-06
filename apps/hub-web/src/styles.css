@@ -18,6 +18,12 @@
   --color-border: #e4e4e7;
   --color-input: #e4e4e7;
   --color-ring: #f97316;
+  --color-success: #10b981;
+  --color-success-foreground: #047857;
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #b45309;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #b91c1c;
   --color-sidebar: #ffffff;
   --color-sidebar-foreground: var(--color-foreground);
   --color-sidebar-primary: var(--color-primary);
