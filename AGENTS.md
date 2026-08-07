@@ -419,8 +419,9 @@ chain validate
 ## Learned Workspace Facts
 
 - Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and `apps/hub-web/.impeccable/` (not ad-hoc styling guesses).
-- Keep `ComingSoonPage.tsx`; it is still needed for `apps/marketing-site`, which remains under development.
-- Personal skills vault lives at `/Users/silverfox/www/skills` (includes the shared design skill moved out of `.claude/skills/design/` in this repo).
+- `apps/marketing-site` remains under development with its own inline coming-soon page (no shared `ComingSoonPage` in hub-web).
+- Personal skills vault lives at `/Users/silverfox/www/skills` (shared design skill lives there; not vendored under `.claude/skills/` in this repo).
+- Historical improve-app journey docs live under `docs/archive/` (not product SoT).
 - Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
 - Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`docs/intent/hub-skills-control-plane.md`, `docs/specs/hub-skill-install.md`).
 - External `npx skills add` / `~/.agents` installs are imported into Hub on `chain hub` / `chain setup` start (no force overwrite), with remaining agents↔Hub drift surfaced on Overview/Library.

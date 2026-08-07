@@ -11,16 +11,15 @@ This document provides a **selective index** of the codebase. Use it to quickly 
 ```text
 chain-hub-v2/
 ├── apps/
-│   └── hub-web/           # React Dashboard (Vite + Tailwind v4 + shadcn/ui)
+│   ├── hub-web/           # React Dashboard (Vite + Tailwind v4 + shadcn/ui)
+│   └── marketing-site/    # Marketing site (under development)
 ├── packages/
 │   ├── cli/               # CLI entrypoint (Commander)
 │   ├── server/            # Hono API server
 │   ├── domain/            # Business logic & use-cases
 │   ├── storage/           # SQLite + filesystem adapters
-│   ├── contracts/         # Shared Zod schemas & types
-│   └── config/            # Shared configs (tsconfig, eslint)
-├── docs/                  # Architecture & product documentation
-└── scripts/               # Utility scripts
+│   └── contracts/         # Shared Zod schemas & types
+└── docs/                  # Specs, intent, research, archived journey docs
 ```
 
 ---
@@ -66,11 +65,13 @@ chain-hub-v2/
 **API Route Groups**:
 - `/api/overview` — Hub health, counts, storage stats
 - `/api/library` — Asset CRUD operations
-- `/api/memory` — Note management and search
-- `/api/learnings` — Timeline and reflection data
+- `/api/memory` — Note management and search (CLI/API; no hub-web page)
+- `/api/learnings` — Timeline and reflection data (CLI/API; no hub-web page)
 - `/api/setup` — Guided setup endpoints
 - `/api/integrations` — Editor connection status
 - `/api/validate` — Validation results
+- `/api/settings/ai` — Local-first AI provider settings
+- `/api/ai/draft-prompt` — Prompt/asset drafting
 
 **Framework**: Hono 4.5.8 + @hono/node-server 1.13.1
 
@@ -167,50 +168,53 @@ hub-web/
 │   │   │   ├── sheet.tsx
 │   │   │   ├── tooltip.tsx
 │   │   │   ├── command.tsx
+│   │   ├── ui/             # shadcn/ui primitives (in use)
+│   │   │   ├── alert.tsx
 │   │   │   ├── badge.tsx
-│   │   │   ├── avatar.tsx
-│   │   │   ├── breadcrumb.tsx
-│   │   │   ├── scroll-area.tsx
-│   │   │   └── tabs.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── command.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── …
+│   │   │   └── tooltip.tsx
 │   │   │
-│   │   ├── layout/         # Layout components
-│   │   │   ├── PageLayout.tsx
-│   │   │   ├── Header.tsx
-│   │   │   ├── Sidebar.tsx
-│   │   │   └── Navigation.tsx
+│   │   ├── layout/         # Shell + command palette
+│   │   │   ├── Shell.tsx
+│   │   │   ├── ShellToolbar.tsx
+│   │   │   └── useCommandPalette.ts
 │   │   │
 │   │   ├── common/         # Shared reusable components
-│   │   │   ├── AssetCard.tsx
-│   │   │   ├── AssetList.tsx
-│   │   │   ├── SearchInput.tsx
-│   │   │   └── ...
+│   │   │   ├── EmptyState.tsx
+│   │   │   ├── Eyebrow.tsx
+│   │   │   ├── MarkdownSourceEditor.tsx
+│   │   │   ├── PageSkeleton.tsx
+│   │   │   └── ThemeToggle.tsx
 │   │   │
 │   │   └── pages/          # Page components (route-level)
-│   │       ├── Overview.tsx
-│   │       ├── Library.tsx
-│   │       ├── Memory.tsx
-│   │       ├── Learnings.tsx
-│   │       ├── Integrations.tsx
-│   │       └── Setup.tsx
+│   │       ├── OverviewPage.tsx
+│   │       ├── LibraryPage.tsx
+│   │       ├── IntegrationsPage.tsx
+│   │       ├── SetupPage.tsx
+│   │       ├── SettingsPage.tsx
+│   │       └── library/    # Library master–detail + dialogs
 │   │
 │   ├── types/              # TypeScript type definitions
 │   │   ├── index.ts
 │   │   ├── assets.ts
 │   │   ├── overview.ts
-│   │   ├── memory.ts
-│   │   ├── learnings.ts
+│   │   ├── ai.ts
 │   │   ├── setup.ts
 │   │   └── integrations.ts
 │   │
 │   ├── hooks/              # React hooks
-│   │   ├── use-api.ts      # API client hook
-│   │   ├── use-toast.ts    # Toast notification hook
-│   │   └── ...
+│   │   ├── use-mobile.ts
+│   │   └── use-theme.ts
 │   │
 │   └── lib/                # Utilities and configurations
-│       ├── api-client.ts   # HTTP client configuration
-│       ├── constants.ts    # Application constants
-│       └── utils.ts        # Utility functions
+│       ├── api.ts
+│       ├── constants.ts
+│       ├── theme.ts
+│       └── utils.ts
 │
 ├── vite.config.ts
 ├── components.json        # shadcn/ui configuration
@@ -224,41 +228,34 @@ hub-web/
 
 ### Primary Navigation
 
-1. **Overview** (`/overview`)
-   - Setup status widget
-   - Sync status indicator
-   - Validation status badge
-   - Recent activity timeline
-   - Recommended next action
-
-2. **Library** (`/library`)
-   - Asset browser (skills, agents, workflows, rules)
-   - Search and filtering
-   - Create/edit/delete assets
-   - Asset detail view
-
-3. **Memory** (`/memory`)
-   - Note index with search
-   - Markdown editor
-   - Create/delete notes
-   - Tag management
-
-4. **Learnings** (`/learnings`)
-   - Capture timeline (filtered by type/skill)
-   - Per-skill reflection view
-   - Statistical insights
-
-5. **Integrations** (`/integrations`)
-   - Connected editors list
-   - Health check status
-   - Sync actions
-   - Adapter-specific configuration
-
-6. **Setup** (`/setup`)
+1. **Setup** (`/setup`)
    - Guided checklist
    - Step-by-step initialization
    - Progress tracking
    - Validation feedback
+
+2. **Overview** (`/`)
+   - Hub health
+   - Asset counts / storage
+   - Validation status
+   - Recommended next action
+
+3. **Library** (`/library`)
+   - Asset browser (skills, agents, workflows, rules, prompts)
+   - Search and filtering
+   - Create/edit/delete assets
+   - Asset detail view
+
+4. **Integrations** (`/integrations`)
+   - Connected editors list
+   - Health check status
+   - Sync actions
+
+5. **Settings** (`/settings`)
+   - Theme preference
+   - Local-first AI providers (BYOK / Ollama)
+
+Memory notes and learnings are CLI/API surfaces today (`chain capture` / `chain reflect`, `/api/memory`, `/api/learnings`) — not dashboard routes.
 
 ---
 
@@ -326,7 +323,7 @@ hub-web/
 - Storage: Learning adapter in `packages/storage/src/`
 - Server: Learnings routes in `packages/server/src/`
 - CLI: capture and reflect commands in `packages/cli/src/`
-- UI: Learnings page in `apps/hub-web/src/`
+- UI: no hub-web Learnings page (CLI/API only)
 
 **Event Types**: success, failure, correction, note
 

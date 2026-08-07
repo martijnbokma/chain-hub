@@ -120,13 +120,14 @@ chain reflect --json
 | Page | What it does |
 |---|---|
 | **Setup** | Guided checklist: init → assets → connect → validate |
-| **Overview** | Health, asset counts, storage stats, learnings widget |
-| **Library** | Browse, create, edit, and delete skills/agents/workflows/rules |
-| **Memory** | Searchable note index, markdown editor, create/delete notes |
-| **Learnings** | Capture timeline (filtered by type/skill) + per-skill Reflect tab |
+| **Overview** | Health, asset counts, storage stats |
+| **Library** | Browse, create, edit, and delete skills/agents/workflows/rules/prompts |
 | **Integrations** | Editor mount status for Cursor, Claude Code, Windsurf, Zed |
+| **Settings** | Theme + local-first AI providers (BYOK / Ollama) |
 
-Command palette: **Cmd/Ctrl + K** — navigate, create assets, capture events, connect editors.
+Command palette: **Cmd/Ctrl + K** — navigate, create assets, connect editors, theme/AI shortcuts.
+
+Memory notes and learnings remain available via CLI (`chain capture` / `chain reflect`) and `/api/memory` + `/api/learnings`; there is no Memory/Learnings dashboard page today.
 
 ## API routes
 
@@ -154,6 +155,9 @@ The dashboard API runs on the same port as the hub server.
 | GET | `/api/integrations` | Integration status |
 | POST | `/api/integrations/setup` | Run editor setup |
 | GET | `/api/validate` | Validation result |
+| GET | `/api/settings/ai` | AI provider/model settings (no secrets) |
+| PUT | `/api/settings/ai` | Update AI settings / API keys |
+| POST | `/api/ai/draft-prompt` | Draft asset content with configured provider |
 
 ## Global install (development)
 

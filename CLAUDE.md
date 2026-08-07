@@ -42,16 +42,15 @@
 ```
 chain-hub-v2/
 ├── apps/
-│   └── hub-web/           # React dashboard (Vite + Tailwind v4 + shadcn/ui)
+│   ├── hub-web/           # React dashboard (Vite + Tailwind v4 + shadcn/ui)
+│   └── marketing-site/    # Marketing site (under development)
 ├── packages/
 │   ├── cli/               # chain binary entrypoint (Commander)
 │   ├── server/            # Hono localhost API server
 │   ├── domain/            # Business logic and use-cases
 │   ├── storage/           # SQLite + filesystem adapters
-│   ├── contracts/         # Shared Zod schemas and TypeScript types
-│   └── config/            # Shared tsconfig/eslint presets
-├── docs/                 # Architecture, analysis, product docs
-└── scripts/              # Utility scripts
+│   └── contracts/         # Shared Zod schemas and TypeScript types
+└── docs/                  # Specs, intent, research, archived journey docs
 ```
 
 ### Domain Boundaries
@@ -197,16 +196,18 @@ All shared types and Zod schemas live in `@chain-hub/contracts`. Key schemas:
 - `ValidationResultSchema` — Validates hub health checks
 
 ### API Routes
-All routes are defined in `packages/server/src/routes/`. The dashboard API runs on the same port as the hub server.
+All dashboard API routes are registered in `packages/server/src/index.ts`. The dashboard API runs on the same port as the hub server.
 
 Primary route groups:
 - `/api/overview` — Hub health, counts, storage stats
 - `/api/library` — Asset CRUD operations
-- `/api/memory` — Note management and search
-- `/api/learnings` — Timeline and reflection
+- `/api/memory` — Note management and search (CLI/API; no hub-web page)
+- `/api/learnings` — Timeline and reflection (CLI/API; no hub-web page)
 - `/api/setup` — Guided setup
 - `/api/integrations` — Editor integration status
 - `/api/validate` — Validation results
+- `/api/settings/ai` — Local-first AI provider settings
+- `/api/ai/draft-prompt` — Prompt/asset drafting
 
 ---
 
@@ -223,7 +224,7 @@ Primary route groups:
 - Strong grouping, progressive disclosure
 
 ### Interaction Patterns
-- **Cmd/Ctrl + K** — Global command palette (navigation, asset creation, capture, connections)
+- **Cmd/Ctrl + K** — Global command palette (navigation, asset creation, connections, settings)
 - **Wizard-like** — Setup and repair flows
 - **Dashboard-like** — Inspection and state management
 - **One primary action per screen** — Clear, focused UX
