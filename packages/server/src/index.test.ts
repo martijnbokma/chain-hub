@@ -224,3 +224,69 @@ describe("GET /api/setup", () => {
     expect(guide.steps.length).toBeGreaterThan(0);
   });
 });
+
+describe("AI settings and draft-prompt", () => {
+  it("GET /api/settings/ai returns defaults without secrets", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const settings = await getJson<{
+      provider: string;
+      anthropicApiKeyConfigured: boolean;
+      openaiApiKeyConfigured: boolean;
+    }>(app, "/api/settings/ai");
+    expect(settings.provider).toBe("ollama");
+    expect(settings.anthropicApiKeyConfigured).toBe(false);
+    expect(settings.openaiApiKeyConfigured).toBe(false);
+  });
+
+  it("PUT /api/settings/ai stores provider and key without leaking it", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const res = await app.request("/api/settings/ai", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: "openai",
+        openaiApiKey: "sk-secret-for-test"
+      })
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as {
+      provider: string;
+      openaiApiKeyConfigured: boolean;
+    };
+    expect(data.provider).toBe("openai");
+    expect(data.openaiApiKeyConfigured).toBe(true);
+    expect(JSON.stringify(data)).not.toContain("sk-secret-for-test");
+  });
+
+  it("POST /api/ai/draft-prompt rejects empty intent", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const res = await app.request("/api/ai/draft-prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ intent: "" })
+    });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("POST /api/ai/draft-prompt returns 400 when Anthropic key is missing", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    await app.request("/api/settings/ai", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "anthropic" })
+    });
+
+    const res = await app.request("/api/ai/draft-prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ intent: "Write a helpful prompt" })
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toMatch(/Anthropic API key/i);
+  });
+});

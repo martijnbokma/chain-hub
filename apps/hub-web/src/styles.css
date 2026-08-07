@@ -1,45 +1,126 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #f97316;
+  --success: #10b981;
+  --success-foreground: #047857;
+  --warning: #f59e0b;
+  --warning-foreground: #b45309;
+  --destructive: #ef4444;
+  --destructive-foreground: #b91c1c;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-primary: #f97316;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: color-mix(in srgb, #f97316 10%, transparent);
+  --sidebar-accent-foreground: #f97316;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #f97316;
+  --elevation-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 3px rgb(24 24 27 / 0.06);
+  --elevation-popover: 0 8px 24px -8px rgb(24 24 27 / 0.14);
+  --elevation-overlay: 0 16px 48px -12px rgb(24 24 27 / 0.2);
+}
+
+/* Cool Trust Dark — prompts slate neutrals + Hub orange signal */
+.dark {
+  --background: #0d1318;
+  --foreground: #e8eef2;
+  --card: #141c23;
+  --card-foreground: #e8eef2;
+  --popover: #141c23;
+  --popover-foreground: #e8eef2;
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  --secondary: #1b2a33;
+  --secondary-foreground: #e8eef2;
+  --muted: #1b2a33;
+  --muted-foreground: #93a2af;
+  --accent: #1b2a33;
+  --accent-foreground: #e8eef2;
+  --border: #2a3844;
+  --input: #2a3844;
+  --ring: #f97316;
+  --success: #10b981;
+  --success-foreground: #6ee7b7;
+  --warning: #f59e0b;
+  --warning-foreground: #fcd34d;
+  --destructive: #ef4444;
+  --destructive-foreground: #fca5a5;
+  --sidebar: #101820;
+  --sidebar-foreground: #e8eef2;
+  --sidebar-primary: #f97316;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: color-mix(in srgb, #f97316 14%, transparent);
+  --sidebar-accent-foreground: #f97316;
+  --sidebar-border: #2a3844;
+  --sidebar-ring: #f97316;
+  --elevation-card: 0 1px 2px rgb(0 0 0 / 0.24), 0 1px 3px rgb(0 0 0 / 0.28);
+  --elevation-popover: 0 8px 24px -8px rgb(0 0 0 / 0.45);
+  --elevation-overlay: 0 16px 48px -12px rgb(0 0 0 / 0.55);
+}
+
 @theme {
-  --color-background: #fafafa;
-  --color-foreground: #18181b;
-  --color-card: #ffffff;
-  --color-card-foreground: #18181b;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #18181b;
-  --color-primary: #f97316;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f4f4f5;
-  --color-secondary-foreground: #18181b;
-  --color-muted: #f4f4f5;
-  --color-muted-foreground: #71717a;
-  --color-accent: #f4f4f5;
-  --color-accent-foreground: #18181b;
-  --color-border: #e4e4e7;
-  --color-input: #e4e4e7;
-  --color-ring: #f97316;
-  --color-success: #10b981;
-  --color-success-foreground: #047857;
-  --color-warning: #f59e0b;
-  --color-warning-foreground: #b45309;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #b91c1c;
-  --color-sidebar: #ffffff;
-  --color-sidebar-foreground: var(--color-foreground);
-  --color-sidebar-primary: var(--color-primary);
-  --color-sidebar-primary-foreground: var(--color-primary-foreground);
-  --color-sidebar-accent: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  --color-sidebar-accent-foreground: var(--color-primary);
-  --color-sidebar-border: var(--color-border);
-  --color-sidebar-ring: var(--color-ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-xl: 10px;
   --radius-2xl: 12px;
-  --shadow-card: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 3px rgb(24 24 27 / 0.06);
-  --shadow-popover: 0 8px 24px -8px rgb(24 24 27 / 0.14);
-  --shadow-overlay: 0 16px 48px -12px rgb(24 24 27 / 0.2);
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-3xs: 0.625rem;
+  --text-3xs--line-height: 0.875rem;
+  --shadow-card: var(--elevation-card);
+  --shadow-popover: var(--elevation-popover);
+  --shadow-overlay: var(--elevation-overlay);
 }
 
 @layer base {
@@ -51,8 +132,19 @@
     color-scheme: light;
   }
 
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply min-h-dvh bg-background font-sans text-foreground antialiased;
+  }
+
+  html.dark body {
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgb(127 176 209 / 0.07), transparent 55%),
+      linear-gradient(180deg, var(--background) 0%, #101820 100%);
+    background-attachment: fixed;
   }
 
   a {
@@ -83,5 +175,133 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* prompt-kit Loader keyframes */
+@keyframes typing {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes loading-dots {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.6);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes text-blink {
+  0%,
+  100% {
+    color: var(--color-primary);
+  }
+  50% {
+    color: var(--color-muted-foreground);
+  }
+}
+
+@keyframes bounce-dots {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes thin-pulse {
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: 150% center;
+  }
+  100% {
+    background-position: -150% center;
+  }
+}
+
+@keyframes wave-bars {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(0.6);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
+@keyframes spinner-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }

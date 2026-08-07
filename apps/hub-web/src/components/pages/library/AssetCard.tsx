@@ -59,7 +59,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
         </div>
         {compact ? (
           <time
-            className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground"
+            className="shrink-0 font-mono text-2xs tabular-nums text-muted-foreground"
             dateTime={asset.updatedAt}
           >
             {new Date(asset.updatedAt).toLocaleDateString()}

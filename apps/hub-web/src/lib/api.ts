@@ -10,12 +10,14 @@ import type {
   Integration,
   MigrateAgentsSkillsResult,
   SetupGuide,
-  LearningsTimeline,
-  ReflectionReport,
-  MemoryNote,
-  MemorySearchResult,
   UpdateSkillsResult,
-  ValidationResult
+  ValidationResult,
+  AiSettingsPublic,
+  UpdateAiSettingsInput,
+  DraftAssetInput,
+  DraftAssetResult,
+  DraftPromptInput,
+  DraftPromptResult
 } from '@/types';
 
 /**
@@ -114,39 +116,21 @@ export const setupApi = {
   getGuide: () => getJson<SetupGuide>('/api/setup')
 };
 
-// Learnings API
-export const learningsApi = {
-  getTimeline: () => getJson<LearningsTimeline>('/api/learnings'),
-  getReflection: () => getJson<ReflectionReport>('/api/learnings/reflect'),
-  captureEvent: (data: { type: string; skill: string; summary: string }) => 
-    fetch('/api/learnings/capture', {
+// AI settings + prompt drafting
+export const aiSettingsApi = {
+  get: () => getJson<AiSettingsPublic>('/api/settings/ai'),
+  update: (data: UpdateAiSettingsInput) =>
+    fetch('/api/settings/ai', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  draftPrompt: (data: DraftAssetInput) =>
+    fetch('/api/ai/draft-prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     })
 };
 
-// Memory API
-export const memoryApi = {
-  getNotes: () => getJson<MemoryNote[]>('/api/memory/notes'),
-  searchNotes: (query: string) => 
-    getJson<MemorySearchResult[]>(`/api/memory/search?q=${encodeURIComponent(query)}`),
-  getNoteByPath: (path: string) => 
-    getJson<MemoryNote>(`/api/memory/note?path=${encodeURIComponent(path)}`),
-  createNote: (data: { name: string; subdirectory?: string; content: string }) => 
-    fetch('/api/memory/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
-  updateNote: (path: string, data: { content: string }) => 
-    fetch(`/api/memory/note?path=${encodeURIComponent(path)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
-  deleteNote: (path: string) => 
-    fetch(`/api/memory/note?path=${encodeURIComponent(path)}`, {
-      method: 'DELETE'
-    })
-};
+export type { AiSettingsPublic, UpdateAiSettingsInput, DraftAssetInput, DraftAssetResult, DraftPromptInput, DraftPromptResult };

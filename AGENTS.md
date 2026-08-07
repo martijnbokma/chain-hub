@@ -369,8 +369,14 @@ bun run typecheck && bun run lint && bun run test
 # Build everything  
 bun run build
 
-# Start development
+# Start development (hub stack: server + dashboard + packages)
 bun run dev
+
+# Faster loop: server + hub-web only
+bun run dev:hub
+
+# Everything including marketing + CLI watch
+bun run dev:all
 
 # Start dashboard
 bun run hub
@@ -405,6 +411,10 @@ chain validate
 - Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
 - Prefer not editing marketplace/upstream-installed skills in place when updates would overwrite local changes; contribute via PR/fork to the owner instead.
 - Library should surface skill provenance/source so it is clear where each skill came from.
+- Prefer a single canonical hub at `~/.chain-hub` for CLI and dashboard; avoid parallel alternate `CHAIN_HOME` locations for day-to-day use.
+- Hub AI should stay local-first (BYOK Anthropic/OpenAI/Mistral + Ollama; no Chain cloud); AI prompt help belongs primarily in the Create flow for prompts.
+- Prefer prompt-kit building blocks (`PromptInput`, `PromptSuggestion`, `Loader`) for AI UI, adapted to Cool Trust tokens—not stock prompt-kit styling.
+- AI-drafted prompts/content should be written in English even when the user writes intents in Dutch; surface LLM failures as plain user-friendly messages, not raw API JSON.
 
 ## Learned Workspace Facts
 
@@ -413,6 +423,9 @@ chain validate
 - Personal skills vault lives at `/Users/silverfox/www/skills` (includes the shared design skill moved out of `.claude/skills/design/` in this repo).
 - Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
 - Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`docs/intent/hub-skills-control-plane.md`, `docs/specs/hub-skill-install.md`).
+- External `npx skills add` / `~/.agents` installs are imported into Hub on `chain hub` / `chain setup` start (no force overwrite), with remaining agents↔Hub drift surfaced on Overview/Library.
+- Windsurf/Devin adapter syncs skills to `~/.codeium/windsurf/skills/` and dual-writes rules/workflows under `~/.devin` + `~/.windsurf`; agents have no native Devin target.
+- Hub AI settings live under `/settings`: provider/model config in `~/.chain-hub/system/ai-config.json`, API keys in `~/.chain-hub/system/secrets.json`; providers are Anthropic, OpenAI, Ollama, and Mistral with per-provider model selection and key/docs links; Create-flow drafting uses `POST /api/ai/draft-prompt`.
 
 ---
 

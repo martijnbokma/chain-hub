@@ -1,5 +1,6 @@
-import React, { Suspense } from 'react';
-import { ArrowLeft, ExternalLink, GitFork, RefreshCw, Trash2 } from 'lucide-react';
+import React, { Suspense, useState } from 'react';
+import { ArrowLeft, Check, ClipboardCopy, ExternalLink, GitFork, RefreshCw, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { AssetKind, SkillLockEntry } from '@/types';
-import { formatSkillSource, formatSkillSourceType } from './asset-helpers';
+import { contentForClipboard, formatSkillSource, formatSkillSourceType } from './asset-helpers';
 
 const MarkdownSourceEditor = React.lazy(async () => {
   const module = await import('@/components/common/MarkdownSourceEditor');
@@ -49,6 +50,26 @@ export function AssetDetailPanel({
   onRequestDelete,
   isDeleting
 }: AssetDetailPanelProps) {
+  const [copied, setCopied] = useState(false);
+  const isPrompt = selected.kind === 'prompts';
+
+  async function handleCopy() {
+    const text = contentForClipboard(editorContent, selected.kind).trim();
+    if (!text) {
+      toast.error(isPrompt ? 'Nothing to copy yet' : 'Content is empty');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success(isPrompt ? 'Prompt copied' : 'Content copied');
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error('Could not copy to clipboard');
+    }
+  }
+
   return (
     <Card
       className={cn(
@@ -118,13 +139,25 @@ export function AssetDetailPanel({
           </Suspense>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Button
+            className="w-fit"
+            disabled={!editorContent.trim()}
+            onClick={() => {
+              void handleCopy();
+            }}
+            type="button"
+            variant={isPrompt ? 'default' : 'secondary'}
+          >
+            {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
+            {copied ? 'Copied' : isPrompt ? 'Copy prompt' : 'Copy'}
+          </Button>
           {isUpstreamSkill ? (
             <Button className="w-fit" disabled={isForking} onClick={onFork}>
               <GitFork className="size-4" />
               {isForking ? 'Forking…' : 'Fork to customize'}
             </Button>
           ) : (
-            <Button className="w-fit" disabled={isSaving} onClick={onSave}>
+            <Button className="w-fit" disabled={isSaving} onClick={onSave} variant={isPrompt ? 'secondary' : 'default'}>
               {isSaving ? 'Saving…' : 'Save changes'}
             </Button>
           )}

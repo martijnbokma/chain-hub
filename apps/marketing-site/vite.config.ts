@@ -8,6 +8,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  clearScreen: false,
   resolve: {
     alias: {
       "@": path.resolve(dirname, "./src")
@@ -15,6 +16,7 @@ export default defineConfig({
   },
   server: {
     port: 4322,
+    strictPort: true,
     allowedHosts: ["dev.jewebsite.online"]
   }
 });

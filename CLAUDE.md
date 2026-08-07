@@ -68,8 +68,10 @@ chain-hub-v2/
 ### Workspace
 - `bun install` — Install all dependencies
 - `bun run build` — Build all packages in dependency order
-- `bun run dev` — Run all packages in watch mode
-- `bun run dev:hub` — Run server in dev mode
+- `bun run dev` — Hub stack in watch mode (server + hub-web + packages)
+- `bun run dev:hub` — Server + hub-web only (fastest dashboard loop)
+- `bun run dev:all` — All packages including marketing-site and CLI
+- `bun run dev:marketing` — Marketing site only
 - `bun run hub` — Build + start dashboard (production mode)
 - `bun run lint` — Run ESLint across workspace
 - `bun run typecheck` — Type check all packages
@@ -213,7 +215,7 @@ Primary route groups:
 **Target feel**: Raycast + Linear — keyboard-first, fast, dense information, minimal chrome, subtle borders.
 
 ### Design Principles
-- Dark, quiet, editorial aesthetic
+- Light, quiet, editorial aesthetic ("Cool Trust": zinc neutrals, single orange signal accent — see `apps/hub-web/.impeccable/design.json`)
 - Minimal chrome, sharp hierarchy
 - Compact chips and segmented controls
 - No decorative overload

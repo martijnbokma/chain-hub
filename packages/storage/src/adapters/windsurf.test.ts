@@ -52,13 +52,31 @@ describe("windsurfAdapter.writeAsset", () => {
     }
   });
 
-  it("skips skills and agents (skills format unconfirmed, agents has no native target)", async () => {
+  it("writes a skill to ~/.codeium/windsurf/skills with name+description frontmatter", async () => {
     const homeDir = await makeTmpHome();
-    await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "skills", name: "demo" }));
+    const asset = makeAsset({
+      id: "skills:demo",
+      kind: "skills",
+      name: "demo",
+      relativePath: "skills/demo/SKILL.md",
+      content: "# Demo Skill\n\nDoes a demo thing."
+    });
+
+    await windsurfAdapter.writeAsset("/chain-home", homeDir, asset);
+
+    const filePath = path.join(homeDir, ".codeium", "windsurf", "skills", "demo", "SKILL.md");
+    const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
+    expect(data.name).toBe("demo");
+    expect(data.description).toBe("Demo Skill");
+    expect(data.chain_hub_source).toBe("skills/demo");
+  });
+
+  it("skips agents (no native target)", async () => {
+    const homeDir = await makeTmpHome();
     await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "agents", name: "reviewer" }));
 
-    await expect(fs.stat(path.join(homeDir, ".devin", "skills"))).rejects.toThrow();
     await expect(fs.stat(path.join(homeDir, ".devin", "agents"))).rejects.toThrow();
+    await expect(fs.stat(path.join(homeDir, ".codeium", "windsurf", "agents"))).rejects.toThrow();
   });
 });
 
@@ -71,6 +89,21 @@ describe("windsurfAdapter.removeAsset", () => {
     for (const root of [".devin", ".windsurf"]) {
       await expect(fs.stat(path.join(homeDir, root, "rules", "style.md"))).rejects.toThrow();
     }
+  });
+
+  it("removes a managed skill file and its directory", async () => {
+    const homeDir = await makeTmpHome();
+    const asset = makeAsset({
+      id: "skills:demo",
+      kind: "skills",
+      name: "demo",
+      relativePath: "skills/demo/SKILL.md",
+      content: "# Demo\n\nBody."
+    });
+    await windsurfAdapter.writeAsset("/chain-home", homeDir, asset);
+    await windsurfAdapter.removeAsset("/chain-home", homeDir, "skills", "demo");
+
+    await expect(fs.stat(path.join(homeDir, ".codeium", "windsurf", "skills", "demo"))).rejects.toThrow();
   });
 });
 
@@ -85,6 +118,18 @@ describe("windsurfAdapter.discover", () => {
 
     expect(discovered).toHaveLength(1);
     expect(discovered[0]).toMatchObject({ kind: "rules", name: "hand-written", content: "Rule body." });
+  });
+
+  it("finds an unmanaged skill under ~/.codeium/windsurf/skills", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".codeium", "windsurf", "skills", "hand-written", "SKILL.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "---\nname: hand-written\ndescription: Local skill\n---\n\nBody.", "utf8");
+
+    const discovered = await windsurfAdapter.discover(homeDir);
+
+    expect(discovered).toHaveLength(1);
+    expect(discovered[0]).toMatchObject({ kind: "skills", name: "hand-written" });
   });
 
   it("dedupes a name that exists in both .devin and .windsurf, preferring .devin", async () => {
@@ -111,11 +156,23 @@ describe("windsurfAdapter.discover", () => {
 });
 
 describe("windsurfAdapter.status", () => {
-  it("reports rules+workflows as supported, skills+agents as unsupported", async () => {
+  it("reports skills+rules+workflows as supported, agents as unsupported", async () => {
     const homeDir = await makeTmpHome();
     const result = await windsurfAdapter.status(homeDir);
-    expect(result.supportedKinds).toEqual(["rules", "workflows"]);
-    expect(result.unsupportedKinds).toEqual(["skills", "agents"]);
+    expect(result.supportedKinds).toEqual(["skills", "rules", "workflows"]);
+    expect(result.unsupportedKinds).toEqual(["agents"]);
     expect(result.label).toBe("Windsurf (Devin Desktop)");
+    expect(result.targetPaths).toContain(path.join(homeDir, ".codeium", "windsurf", "skills"));
+  });
+
+  it("reports connected when global skills dir has entries", async () => {
+    const homeDir = await makeTmpHome();
+    const skillFile = path.join(homeDir, ".codeium", "windsurf", "skills", "demo", "SKILL.md");
+    await fs.mkdir(path.dirname(skillFile), { recursive: true });
+    await fs.writeFile(skillFile, "---\nname: demo\ndescription: Demo\n---\n\nBody.", "utf8");
+
+    const result = await windsurfAdapter.status(homeDir);
+    expect(result.connected).toBe(true);
+    expect(result.mode).toBe("managed");
   });
 });

@@ -1,4 +1,4 @@
-import { Sparkles, Bot, Workflow, ScrollText, type LucideIcon } from 'lucide-react';
+import { Sparkles, Bot, Workflow, ScrollText, NotebookText, type LucideIcon } from 'lucide-react';
 
 import type { AssetKind, InstallSkillBundleInput, SkillLockEntry } from '@/types';
 
@@ -51,11 +51,12 @@ export const KIND_META: Record<AssetKind, { label: string; icon: LucideIcon }> =
   skills: { label: 'Skill', icon: Sparkles },
   agents: { label: 'Agent', icon: Bot },
   workflows: { label: 'Workflow', icon: Workflow },
-  rules: { label: 'Rule', icon: ScrollText }
+  rules: { label: 'Rule', icon: ScrollText },
+  prompts: { label: 'Prompt', icon: NotebookText }
 };
 
 export function resolveKindMeta(kind: string): { label: string; icon: LucideIcon } {
-  if (kind === 'skills' || kind === 'agents' || kind === 'workflows' || kind === 'rules') {
+  if (kind === 'skills' || kind === 'agents' || kind === 'workflows' || kind === 'rules' || kind === 'prompts') {
     return KIND_META[kind];
   }
   return KIND_META.skills;
@@ -77,6 +78,64 @@ export function formatSkillSource(provenance: SkillLockEntry | null | undefined)
   return provenance.source;
 }
 
+const NAME_STOP_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'for',
+  'from',
+  'in',
+  'into',
+  'of',
+  'on',
+  'or',
+  'the',
+  'to',
+  'with',
+  'that',
+  'this',
+  'want',
+  'please',
+  'write',
+  'create',
+  'make',
+  'help',
+  'me',
+  'my',
+  'een',
+  'de',
+  'het',
+  'van',
+  'voor',
+  'met',
+  'ik',
+  'wil',
+  'een',
+  'maak',
+  'schrijf'
+]);
+
+/** Derive a hub asset slug from free-form intent / description text. */
+export function suggestAssetNameFromText(input: string, maxLength = 48): string {
+  const words = input
+    .trim()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]+/g, ' ')
+    .split(/[\s-]+/)
+    .filter((word) => word.length > 0 && !NAME_STOP_WORDS.has(word));
+
+  const slug = (words.length > 0 ? words : input.trim().toLowerCase().split(/\s+/))
+    .slice(0, 6)
+    .join('-')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug.slice(0, maxLength).replace(/-+$/g, '');
+}
+
 export function formatSkillSourceType(provenance: SkillLockEntry | null | undefined): string {
   if (!provenance) {
     return 'local';
@@ -85,4 +144,28 @@ export function formatSkillSourceType(provenance: SkillLockEntry | null | undefi
     return 'upload';
   }
   return provenance.sourceType;
+}
+
+/** Strip leading YAML frontmatter so clipboard paste is usable prompt body. */
+export function stripYamlFrontmatter(content: string): string {
+  const trimmed = content.trimStart();
+  if (!trimmed.startsWith('---')) {
+    return content;
+  }
+
+  const fenceEnd = trimmed.indexOf('\n---', 3);
+  if (fenceEnd === -1) {
+    return content;
+  }
+
+  const afterFence = trimmed.slice(fenceEnd + 4);
+  return afterFence.replace(/^\r?\n/, '');
+}
+
+/** Text ready to paste into a chat — prompts drop frontmatter; other kinds copy as-is. */
+export function contentForClipboard(content: string, kind: AssetKind): string {
+  if (kind === 'prompts') {
+    return stripYamlFrontmatter(content);
+  }
+  return content;
 }

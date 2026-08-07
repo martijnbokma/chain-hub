@@ -1,0 +1,105 @@
+import { z } from "zod";
+
+import { assetKinds } from "./asset.js";
+
+export const aiProviders = ["anthropic", "openai", "mistral", "ollama"] as const;
+
+export const aiProviderSchema = z.enum(aiProviders);
+
+export type AiProvider = z.infer<typeof aiProviderSchema>;
+
+export const DEFAULT_AI_MODELS = {
+  anthropic: "claude-sonnet-4-5",
+  openai: "gpt-4o-mini",
+  mistral: "mistral-small-latest",
+  ollama: "llama3.2"
+} as const;
+
+export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
+
+export const aiConfigSchema = z.object({
+  version: z.literal(1),
+  provider: aiProviderSchema.default("ollama"),
+  models: z
+    .object({
+      anthropic: z.string().min(1).default(DEFAULT_AI_MODELS.anthropic),
+      openai: z.string().min(1).default(DEFAULT_AI_MODELS.openai),
+      mistral: z.string().min(1).default(DEFAULT_AI_MODELS.mistral),
+      ollama: z.string().min(1).default(DEFAULT_AI_MODELS.ollama)
+    })
+    .default({ ...DEFAULT_AI_MODELS }),
+  ollamaBaseUrl: z.string().url().default(DEFAULT_OLLAMA_BASE_URL)
+});
+
+export const aiSecretsSchema = z.object({
+  version: z.literal(1),
+  anthropicApiKey: z.string().optional(),
+  openaiApiKey: z.string().optional(),
+  mistralApiKey: z.string().optional()
+});
+
+/** Public settings returned to the dashboard — never includes raw API keys. */
+export const aiSettingsPublicSchema = z.object({
+  provider: aiProviderSchema,
+  models: z.object({
+    anthropic: z.string(),
+    openai: z.string(),
+    mistral: z.string(),
+    ollama: z.string()
+  }),
+  ollamaBaseUrl: z.string(),
+  anthropicApiKeyConfigured: z.boolean(),
+  openaiApiKeyConfigured: z.boolean(),
+  mistralApiKeyConfigured: z.boolean()
+});
+
+export const updateAiSettingsInputSchema = z.object({
+  provider: aiProviderSchema.optional(),
+  models: z
+    .object({
+      anthropic: z.string().min(1).optional(),
+      openai: z.string().min(1).optional(),
+      mistral: z.string().min(1).optional(),
+      ollama: z.string().min(1).optional()
+    })
+    .optional(),
+  ollamaBaseUrl: z.string().url().optional(),
+  anthropicApiKey: z.string().min(1).optional(),
+  openaiApiKey: z.string().min(1).optional(),
+  mistralApiKey: z.string().min(1).optional(),
+  clearAnthropicApiKey: z.boolean().optional(),
+  clearOpenaiApiKey: z.boolean().optional(),
+  clearMistralApiKey: z.boolean().optional()
+});
+
+export const draftAssetKindSchema = z.union([z.enum(assetKinds), z.literal("auto")]);
+
+export type DraftAssetKind = z.infer<typeof draftAssetKindSchema>;
+
+export const draftAssetInputSchema = z.object({
+  intent: z.string().min(1),
+  kind: draftAssetKindSchema.default("auto"),
+  name: z.string().min(1).optional()
+});
+
+/** @deprecated Prefer draftAssetInputSchema — kept for existing callers. */
+export const draftPromptInputSchema = draftAssetInputSchema;
+
+export const draftAssetResultSchema = z.object({
+  content: z.string().min(1),
+  suggestedName: z.string().optional(),
+  recommendedKind: z.enum(assetKinds),
+  reason: z.string().min(1).optional()
+});
+
+/** @deprecated Prefer draftAssetResultSchema */
+export const draftPromptResultSchema = draftAssetResultSchema;
+
+export type AiConfig = z.infer<typeof aiConfigSchema>;
+export type AiSecrets = z.infer<typeof aiSecretsSchema>;
+export type AiSettingsPublic = z.infer<typeof aiSettingsPublicSchema>;
+export type UpdateAiSettingsInput = z.infer<typeof updateAiSettingsInputSchema>;
+export type DraftAssetInput = z.input<typeof draftAssetInputSchema>;
+export type DraftAssetResult = z.infer<typeof draftAssetResultSchema>;
+export type DraftPromptInput = DraftAssetInput;
+export type DraftPromptResult = DraftAssetResult;

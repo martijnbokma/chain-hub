@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { integrationsApi, learningsApi } from '../../lib/api';
-import type { CaptureEvent, CaptureEventType } from '../../types';
+import { useTheme } from '../../hooks/use-theme';
+import { integrationsApi } from '../../lib/api';
 
 export interface CommandAction {
   id: string;
@@ -14,10 +14,11 @@ export interface CommandAction {
   run: () => void;
 }
 
-/** Command palette state, capture-event dialog state, and the ⌘K shortcut — split out of Shell so the shortcut and its actions are testable without the sidebar JSX. */
+/** Command palette state and the ⌘K shortcut — split out of Shell so the shortcut and its actions are testable without the sidebar JSX. */
 export function useCommandPalette() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { setPreference } = useTheme();
   const [commandOpen, setCommandOpen] = useState(false);
 
   const integrations = useQuery({
@@ -25,29 +26,6 @@ export function useCommandPalette() {
     queryFn: () => integrationsApi.getAll()
   });
   const connectedCount = integrations.data?.filter((integration) => integration.connected).length ?? 0;
-
-  const [captureOpen, setCaptureOpen] = useState(false);
-  const [captureType, setCaptureType] = useState<CaptureEventType>('note');
-  const [captureSkill, setCaptureSkill] = useState('');
-  const [captureSummary, setCaptureSummary] = useState('');
-
-  const captureEventMutation = useMutation({
-    mutationFn: async () => {
-      const response = await learningsApi.captureEvent({ type: captureType, skill: captureSkill, summary: captureSummary });
-      if (!response.ok) throw new Error('Capture failed');
-      return response.json() as Promise<CaptureEvent>;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['learnings'] });
-      setCaptureOpen(false);
-      setCaptureSkill('');
-      setCaptureSummary('');
-      setCaptureType('note');
-      setCommandOpen(false);
-      toast.success('Event captured');
-    },
-    onError: () => toast.error('Unable to capture event')
-  });
 
   const connectEditors = useMutation({
     mutationFn: async () => {
@@ -72,13 +50,6 @@ export function useCommandPalette() {
   const actions: CommandAction[] = useMemo(
     () => [
       {
-        id: 'go-setup',
-        label: 'Open setup',
-        description: 'Review the guided setup checklist.',
-        keywords: 'setup guided checklist onboarding',
-        run: () => navigate('/setup')
-      },
-      {
         id: 'go-overview',
         label: 'Open overview',
         description: 'See health, storage, and asset counts.',
@@ -91,13 +62,6 @@ export function useCommandPalette() {
         description: 'Browse indexed assets and edit content.',
         keywords: 'library assets editor skills rules workflows agents',
         run: () => navigate('/library')
-      },
-      {
-        id: 'go-memory',
-        label: 'Open memory',
-        description: 'Inspect the memory folder and recent note files.',
-        keywords: 'memory notes files summary',
-        run: () => navigate('/memory')
       },
       {
         id: 'create-asset',
@@ -114,18 +78,39 @@ export function useCommandPalette() {
         run: () => navigate('/integrations')
       },
       {
-        id: 'go-learnings',
-        label: 'Open learnings',
-        description: 'Review the captured event timeline.',
-        keywords: 'learnings events capture timeline reflect',
-        run: () => navigate('/learnings')
+        id: 'go-settings',
+        label: 'Open settings',
+        description: 'Configure appearance and AI providers.',
+        keywords: 'settings ai anthropic openai mistral ollama api key theme appearance',
+        run: () => navigate('/settings')
       },
       {
-        id: 'capture-event',
-        label: 'Capture event',
-        description: 'Quickly log a success, failure, correction, or note.',
-        keywords: 'capture event log note success failure correction',
-        run: () => { setCaptureOpen(true); }
+        id: 'go-setup',
+        label: 'Open setup',
+        description: 'Review the guided setup checklist.',
+        keywords: 'setup guided checklist onboarding',
+        run: () => navigate('/setup')
+      },
+      {
+        id: 'theme-light',
+        label: 'Use light theme',
+        description: 'Switch to Cool Trust light.',
+        keywords: 'theme light appearance day',
+        run: () => setPreference('light')
+      },
+      {
+        id: 'theme-dark',
+        label: 'Use dark theme',
+        description: 'Switch to Cool Trust Dark.',
+        keywords: 'theme dark appearance night',
+        run: () => setPreference('dark')
+      },
+      {
+        id: 'theme-system',
+        label: 'Use system theme',
+        description: 'Follow the OS light/dark preference.',
+        keywords: 'theme system appearance auto',
+        run: () => setPreference('system')
       },
       {
         id: 'connect-editors',
@@ -135,7 +120,7 @@ export function useCommandPalette() {
         run: () => connectEditors.mutate()
       }
     ],
-    [connectEditors, navigate]
+    [connectEditors, navigate, setPreference]
   );
 
   useEffect(() => {
@@ -156,15 +141,6 @@ export function useCommandPalette() {
     actions,
     integrations,
     connectedCount,
-    captureOpen,
-    setCaptureOpen,
-    captureType,
-    setCaptureType,
-    captureSkill,
-    setCaptureSkill,
-    captureSummary,
-    setCaptureSummary,
-    captureEventMutation,
     connectEditors
   };
 }

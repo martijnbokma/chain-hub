@@ -21,13 +21,14 @@ import { isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { ShellToolbar } from '@/components/layout/ShellToolbar';
-import { libraryApi, overviewApi } from '@/lib/api';
+import { libraryApi, overviewApi, aiSettingsApi } from '@/lib/api';
 import type {
   AssetKind,
   FilterKind,
   AssetRecord,
   AssetDetail,
   DiscoveredAsset,
+  DraftPromptResult,
   InstallSkillResult,
   MigrateAgentsSkillsResult,
   UpdateSkillsResult
@@ -35,7 +36,7 @@ import type {
 import { AssetDetailPanel } from './library/AssetDetailPanel';
 import { AssetList } from './library/AssetList';
 import { type BrowsedSkillFolder, readBrowsedSkillFolder } from './library/asset-helpers';
-import { CreateAssetDialog } from './library/CreateAssetDialog';
+import { CreateAssetDialog, type DraftKindChoice } from './library/CreateAssetDialog';
 import { DiscoverDialog } from './library/DiscoverDialog';
 import { InstallSkillDialog } from './library/InstallSkillDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
@@ -59,9 +60,29 @@ export function LibraryPage() {
   const [browsedFolder, setBrowsedFolder] = useState<BrowsedSkillFolder | null>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [draftName, setDraftName] = useState('');
+  const [draftKindChoice, setDraftKindChoice] = useState<DraftKindChoice>('auto');
   const [draftKind, setDraftKind] = useState<AssetKind>('skills');
+  const [kindReason, setKindReason] = useState<string | null>(null);
   const [draftContent, setDraftContent] = useState('# New Asset\n');
+  const [draftIntent, setDraftIntent] = useState('');
   const [editorContent, setEditorContent] = useState('');
+
+  const handleDraftKindChoiceChange = (value: DraftKindChoice) => {
+    setDraftKindChoice(value);
+    setKindReason(null);
+    if (value !== 'auto') {
+      setDraftKind(value);
+    }
+  };
+
+  const resetCreateDraft = () => {
+    setDraftName('');
+    setDraftContent('# New Asset\n');
+    setDraftIntent('');
+    setDraftKindChoice('auto');
+    setDraftKind('skills');
+    setKindReason(null);
+  };
 
   const syncCreateParam = (open: boolean) => {
     const next = new URLSearchParams(searchParams);
@@ -101,29 +122,69 @@ export function LibraryPage() {
 
   const createAsset = useMutation({
     mutationFn: async () => {
-      const response = await libraryApi.create({
-        kind: draftKind,
-        name: draftName,
-        content: draftContent
-      });
+      let response: Response;
+      try {
+        response = await libraryApi.create({
+          kind: draftKind,
+          name: draftName,
+          content: draftContent
+        });
+      } catch {
+        throw new Error('Hub server is unreachable. Run `bun run dev` or `chain hub` and try again.');
+      }
       if (!response.ok) {
-        throw new Error('Unable to create asset');
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || `Unable to create asset (${response.status})`);
       }
       return response.json() as Promise<AssetDetail>;
     },
     onSuccess: (asset) => {
-      setDraftName('');
-      setDraftContent('# New Asset\n');
+      resetCreateDraft();
       setSelected({ kind: asset.kind as AssetKind, name: asset.name });
       setCreateOpen(false);
       syncCreateParam(false);
       void queryClient.invalidateQueries({ queryKey: ['library'] });
-      void queryClient.invalidateQueries({ queryKey: ['setup'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
+      void queryClient.invalidateQueries({ queryKey: ['setup'] });
       toast.success(`Created ${asset.kind}/${asset.name}`);
     },
-    onError: () => {
-      toast.error('Unable to create asset');
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Unable to create asset');
+    }
+  });
+
+  const draftPromptWithAi = useMutation({
+    mutationFn: async () => {
+      const response = await aiSettingsApi.draftPrompt({
+        intent: draftIntent.trim(),
+        kind: draftKindChoice,
+        name: draftName.trim() || undefined
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || 'Unable to draft asset. Check Settings → AI.');
+      }
+      return response.json() as Promise<DraftPromptResult>;
+    },
+    onSuccess: (result) => {
+      setDraftContent(result.content);
+      setDraftKind(result.recommendedKind);
+      if (draftKindChoice === 'auto') {
+        setKindReason(result.reason ?? `Best fit as ${result.recommendedKind}`);
+      } else {
+        setKindReason(null);
+      }
+      if (!draftName.trim() && result.suggestedName) {
+        setDraftName(result.suggestedName);
+      }
+      toast.success(
+        draftKindChoice === 'auto'
+          ? `Draft ready as ${result.recommendedKind} — review and create`
+          : 'Draft ready — review and create'
+      );
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Unable to draft asset');
     }
   });
 
@@ -395,21 +456,8 @@ export function LibraryPage() {
           <option value="agents">Agents</option>
           <option value="workflows">Workflows</option>
           <option value="rules">Rules</option>
+          <option value="prompts">Prompts</option>
         </Select>
-
-        <Tabs
-          className="hidden shrink-0 gap-0 md:block"
-          onValueChange={(value) => setFilterKind(value as FilterKind)}
-          value={filterKind}
-        >
-          <TabsList>
-            <TabsTrigger value="__all__">All</TabsTrigger>
-            <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="agents">Agents</TabsTrigger>
-            <TabsTrigger value="workflows">Workflows</TabsTrigger>
-            <TabsTrigger value="rules">Rules</TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         <Button
           className="w-fit shrink-0"
@@ -479,7 +527,22 @@ export function LibraryPage() {
   return (
     <>
       {toolbar}
-      <section className="flex h-[calc(100vh-108px)] flex-col">
+      <div className="flex h-[calc(100vh-108px)] flex-col">
+      <Tabs
+        className="mb-4 hidden shrink-0 gap-0 border-b border-border pb-3 md:block"
+        onValueChange={(value) => setFilterKind(value as FilterKind)}
+        value={filterKind}
+      >
+        <TabsList>
+          <TabsTrigger value="__all__">All</TabsTrigger>
+          <TabsTrigger value="skills">Skills</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+          <TabsTrigger value="workflows">Workflows</TabsTrigger>
+          <TabsTrigger value="rules">Rules</TabsTrigger>
+          <TabsTrigger value="prompts">Prompts</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <section className="flex min-h-0 flex-1 flex-col">
       {hasAgentsDrift && agentsDrift ? (
         <div className="shrink-0 px-0 pb-3">
           <Alert className="items-center" variant="warning">
@@ -546,18 +609,24 @@ export function LibraryPage() {
 
       <CreateAssetDialog
         draftContent={draftContent}
-        draftKind={draftKind}
+        draftIntent={draftIntent}
+        draftKindChoice={draftKindChoice}
         draftName={draftName}
+        isDrafting={draftPromptWithAi.isPending}
         isSubmitting={createAsset.isPending}
+        kindReason={kindReason}
         onDraftContentChange={setDraftContent}
-        onDraftKindChange={setDraftKind}
+        onDraftIntentChange={setDraftIntent}
+        onDraftKindChoiceChange={handleDraftKindChoiceChange}
         onDraftNameChange={setDraftName}
+        onDraftWithAi={() => draftPromptWithAi.mutate()}
         onOpenChange={(open) => {
           setCreateOpen(open);
           syncCreateParam(open);
         }}
         onSubmit={() => createAsset.mutate()}
         open={createOpen}
+        resolvedKind={draftKind}
       />
 
       <InstallSkillDialog
@@ -608,6 +677,7 @@ export function LibraryPage() {
         open={discoverOpen}
       />
       </section>
+      </div>
     </>
   );
 }

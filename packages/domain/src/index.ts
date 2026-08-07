@@ -3,11 +3,14 @@ import type {
   CaptureInput,
   CreateAssetInput,
   CreateMemoryNoteInput,
+  DraftAssetInput,
+  DraftPromptInput,
   ForkSkillInput,
   ImportAssetInput,
   InstallSkillBundleInput,
   InstallSkillInput,
   MigrateAgentsSkillsInput,
+  UpdateAiSettingsInput,
   UpdateSkillsInput
 } from "@chain-hub/contracts";
 import {
@@ -20,6 +23,7 @@ import {
   deleteMemoryNote,
   discoverAssets,
   forkSkill,
+  getAiSettingsPublic,
   getAsset,
   getIntegrations,
   getLearningsTimeline,
@@ -34,14 +38,21 @@ import {
   listAssets,
   listMemoryNotes,
   migrateAgentsSkills,
+  readAiConfig,
+  readAiSecrets,
   searchMemoryNotes,
   setupIntegrations,
   syncAssetToEditors,
+  updateAiSettings,
   updateAsset,
   updateMemoryNote,
   updateSkills,
   validateHub
 } from "@chain-hub/storage";
+
+import { generateAssetDraft } from "./ai-providers.js";
+
+export { AiProviderError } from "./ai-providers.js";
 
 export async function initializeChainHub(chainHome?: string) {
   const result = await initializeHub(chainHome);
@@ -229,4 +240,23 @@ export async function getHubReflectionReport(chainHome: string | undefined) {
 
 export async function writeHubReflection(chainHome: string | undefined) {
   return writeReflectionMarkdown(chainHome);
+}
+
+export async function getHubAiSettings(chainHome?: string) {
+  return getAiSettingsPublic(chainHome);
+}
+
+export async function updateHubAiSettings(chainHome: string | undefined, input: UpdateAiSettingsInput) {
+  return updateAiSettings(chainHome, input);
+}
+
+export async function draftHubAsset(chainHome: string | undefined, input: DraftAssetInput) {
+  const config = await readAiConfig(chainHome);
+  const secrets = await readAiSecrets(chainHome);
+  return generateAssetDraft({ config, secrets, input });
+}
+
+/** @deprecated Prefer draftHubAsset */
+export async function draftHubPrompt(chainHome: string | undefined, input: DraftPromptInput) {
+  return draftHubAsset(chainHome, { ...input, kind: input.kind ?? "prompts" });
 }

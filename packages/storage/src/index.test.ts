@@ -205,6 +205,32 @@ describe("setupIntegrations", () => {
     expect(claudeCode?.supportedKinds).toEqual(["skills", "agents", "rules"]);
     expect(claudeCode?.unsupportedKinds).toEqual(["workflows"]);
   });
+
+  it("does not fail when claude and zed skill dirs alias the same path via symlink", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    await createAsset(hub, {
+      kind: "skills",
+      name: "with-sidecar",
+      content: "# With sidecar\n\nBody."
+    });
+
+    const agentsSkillDir = path.join(tmpHome, ".agents", "skills", "with-sidecar");
+    const claudeSkillLink = path.join(tmpHome, ".claude", "skills", "with-sidecar");
+    await fs.mkdir(path.dirname(claudeSkillLink), { recursive: true });
+    await fs.mkdir(agentsSkillDir, { recursive: true });
+    await fs.writeFile(path.join(agentsSkillDir, "SKILL.md"), "legacy unmanaged skill", "utf8");
+    await fs.symlink(agentsSkillDir, claudeSkillLink, "dir");
+
+    const sidecarDir = path.join(hub, "skills", "with-sidecar", "assets");
+    await fs.mkdir(sidecarDir, { recursive: true });
+    await fs.writeFile(path.join(sidecarDir, "helper.txt"), "sidecar payload", "utf8");
+
+    await setupIntegrations(hub);
+
+    const copied = await fs.readFile(path.join(agentsSkillDir, "assets", "helper.txt"), "utf8");
+    expect(copied).toBe("sidecar payload");
+  });
 });
 
 describe("discoverAssets + importDiscoveredAsset", () => {

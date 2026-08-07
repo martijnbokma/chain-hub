@@ -515,6 +515,34 @@ export async function migrateAgentsSkillLock(
   return { lockPath, results };
 }
 
+async function resolveEditorSkillDir(editorSkillDir: string): Promise<string> {
+  if (!(await pathExists(editorSkillDir))) {
+    return editorSkillDir;
+  }
+
+  try {
+    return await fs.realpath(editorSkillDir);
+  } catch {
+    return editorSkillDir;
+  }
+}
+
+async function copySidecarEntry(from: string, to: string): Promise<void> {
+  await fs.rm(to, { recursive: true, force: true });
+
+  try {
+    await fs.cp(from, to, { recursive: true });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+    if (code !== "EEXIST") {
+      throw error;
+    }
+
+    await fs.rm(to, { recursive: true, force: true });
+    await fs.cp(from, to, { recursive: true });
+  }
+}
+
 export async function projectSkillSidecars(chainHome: string, editorSkillDir: string, name: string): Promise<void> {
   const sourceDir = skillDir(chainHome, name);
 
@@ -522,7 +550,8 @@ export async function projectSkillSidecars(chainHome: string, editorSkillDir: st
     return;
   }
 
-  await fs.mkdir(editorSkillDir, { recursive: true });
+  const resolvedEditorSkillDir = await resolveEditorSkillDir(editorSkillDir);
+  await fs.mkdir(resolvedEditorSkillDir, { recursive: true });
 
   const entries = await fs.readdir(sourceDir, { withFileTypes: true });
 
@@ -532,9 +561,8 @@ export async function projectSkillSidecars(chainHome: string, editorSkillDir: st
     }
 
     const from = path.join(sourceDir, entry.name);
-    const to = path.join(editorSkillDir, entry.name);
-    await fs.rm(to, { recursive: true, force: true });
-    await fs.cp(from, to, { recursive: true });
+    const to = path.join(resolvedEditorSkillDir, entry.name);
+    await copySidecarEntry(from, to);
   }
 }
 

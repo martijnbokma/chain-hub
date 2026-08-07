@@ -6,6 +6,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { Prec } from '@codemirror/state';
 import { tags as t } from '@lezer/highlight';
 
+import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
 
 interface MarkdownSourceEditorProps {
@@ -18,101 +19,103 @@ interface MarkdownSourceEditorProps {
 }
 
 const coolTrustHighlight = HighlightStyle.define([
-  { tag: t.heading, color: '#18181b', fontWeight: '600' },
-  { tag: t.strong, color: '#18181b', fontWeight: '600' },
-  { tag: t.emphasis, color: '#3f3f46', fontStyle: 'italic' },
-  { tag: t.link, color: '#ea580c' },
-  { tag: t.url, color: '#71717a' },
-  { tag: t.monospace, color: '#3f3f46' },
+  { tag: t.heading, color: 'var(--color-foreground)', fontWeight: '600' },
+  { tag: t.strong, color: 'var(--color-foreground)', fontWeight: '600' },
+  { tag: t.emphasis, color: 'var(--color-muted-foreground)', fontStyle: 'italic' },
+  { tag: t.link, color: 'var(--color-primary)' },
+  { tag: t.url, color: 'var(--color-muted-foreground)' },
+  { tag: t.monospace, color: 'var(--color-muted-foreground)' },
   { tag: t.strikethrough, textDecoration: 'line-through' },
-  { tag: t.quote, color: '#71717a', fontStyle: 'italic' },
-  { tag: t.list, color: '#f97316' },
-  { tag: t.meta, color: '#a1a1aa' },
-  { tag: t.comment, color: '#a1a1aa' },
-  { tag: t.keyword, color: '#ea580c' },
-  { tag: t.string, color: '#0f766e' },
-  { tag: t.number, color: '#b45309' },
-  { tag: t.bool, color: '#b45309' },
-  { tag: t.atom, color: '#b45309' },
-  { tag: t.propertyName, color: '#18181b' },
-  { tag: t.variableName, color: '#18181b' },
-  { tag: t.typeName, color: '#0f766e' },
-  { tag: t.operator, color: '#71717a' },
-  { tag: t.punctuation, color: '#71717a' },
-  { tag: t.contentSeparator, color: '#d4d4d8' },
-  { tag: t.processingInstruction, color: '#71717a' },
-  { tag: t.labelName, color: '#ea580c' }
+  { tag: t.quote, color: 'var(--color-muted-foreground)', fontStyle: 'italic' },
+  { tag: t.list, color: 'var(--color-primary)' },
+  { tag: t.meta, color: 'var(--color-muted-foreground)' },
+  { tag: t.comment, color: 'var(--color-muted-foreground)' },
+  { tag: t.keyword, color: 'var(--color-primary)' },
+  { tag: t.string, color: 'var(--color-success-foreground)' },
+  { tag: t.number, color: 'var(--color-warning-foreground)' },
+  { tag: t.bool, color: 'var(--color-warning-foreground)' },
+  { tag: t.atom, color: 'var(--color-warning-foreground)' },
+  { tag: t.propertyName, color: 'var(--color-foreground)' },
+  { tag: t.variableName, color: 'var(--color-foreground)' },
+  { tag: t.typeName, color: 'var(--color-success-foreground)' },
+  { tag: t.operator, color: 'var(--color-muted-foreground)' },
+  { tag: t.punctuation, color: 'var(--color-muted-foreground)' },
+  { tag: t.contentSeparator, color: 'var(--color-border)' },
+  { tag: t.processingInstruction, color: 'var(--color-muted-foreground)' },
+  { tag: t.labelName, color: 'var(--color-primary)' }
 ]);
 
-const coolTrustTheme = EditorView.theme(
-  {
-    '&': {
-      color: '#18181b',
-      backgroundColor: '#fafafa',
-      fontSize: '12px',
-      height: '100%'
+function createCoolTrustTheme(isDark: boolean) {
+  return EditorView.theme(
+    {
+      '&': {
+        color: 'var(--color-foreground)',
+        backgroundColor: 'var(--color-background)',
+        fontSize: '12px',
+        height: '100%'
+      },
+      '.cm-content': {
+        fontFamily: 'var(--font-mono)',
+        caretColor: 'var(--color-primary)',
+        lineHeight: '1.5',
+        padding: '12px 0'
+      },
+      '.cm-cursor, .cm-dropCursor': {
+        borderLeftColor: 'var(--color-primary)'
+      },
+      '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+        backgroundColor: 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
+      },
+      '.cm-activeLine': {
+        backgroundColor: 'var(--color-muted)'
+      },
+      '.cm-gutters': {
+        backgroundColor: 'var(--color-background)',
+        color: 'var(--color-muted-foreground)',
+        border: 'none',
+        borderRight: '1px solid var(--color-border)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '11px'
+      },
+      '.cm-activeLineGutter': {
+        backgroundColor: 'var(--color-muted)',
+        color: 'var(--color-muted-foreground)'
+      },
+      '.cm-lineNumbers .cm-gutterElement': {
+        padding: '0 12px 0 8px',
+        minWidth: '2.5rem'
+      },
+      '.cm-scroller': {
+        overflow: 'auto',
+        fontFamily: 'var(--font-mono)'
+      },
+      '&.cm-focused': {
+        outline: 'none'
+      },
+      '.cm-matchingBracket, .cm-nonmatchingBracket': {
+        backgroundColor: 'color-mix(in srgb, var(--color-primary) 18%, transparent)',
+        outline: 'none'
+      },
+      '.cm-tooltip': {
+        backgroundColor: 'var(--color-card)',
+        border: '1px solid var(--color-border)',
+        borderRadius: '10px',
+        color: 'var(--color-foreground)',
+        boxShadow: 'var(--shadow-popover)'
+      },
+      '.cm-panels': {
+        backgroundColor: 'var(--color-card)',
+        color: 'var(--color-foreground)'
+      },
+      '.cm-foldPlaceholder': {
+        backgroundColor: 'var(--color-muted)',
+        border: 'none',
+        color: 'var(--color-muted-foreground)'
+      }
     },
-    '.cm-content': {
-      fontFamily: 'var(--font-mono)',
-      caretColor: '#f97316',
-      lineHeight: '1.5',
-      padding: '12px 0'
-    },
-    '.cm-cursor, .cm-dropCursor': {
-      borderLeftColor: '#f97316'
-    },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: 'color-mix(in srgb, #f97316 14%, transparent)'
-    },
-    '.cm-activeLine': {
-      backgroundColor: '#f4f4f5'
-    },
-    '.cm-gutters': {
-      backgroundColor: '#fafafa',
-      color: '#a1a1aa',
-      border: 'none',
-      borderRight: '1px solid #e4e4e7',
-      fontFamily: 'var(--font-mono)',
-      fontSize: '11px'
-    },
-    '.cm-activeLineGutter': {
-      backgroundColor: '#f4f4f5',
-      color: '#71717a'
-    },
-    '.cm-lineNumbers .cm-gutterElement': {
-      padding: '0 12px 0 8px',
-      minWidth: '2.5rem'
-    },
-    '.cm-scroller': {
-      overflow: 'auto',
-      fontFamily: 'var(--font-mono)'
-    },
-    '&.cm-focused': {
-      outline: 'none'
-    },
-    '.cm-matchingBracket, .cm-nonmatchingBracket': {
-      backgroundColor: 'color-mix(in srgb, #f97316 18%, transparent)',
-      outline: 'none'
-    },
-    '.cm-tooltip': {
-      backgroundColor: '#ffffff',
-      border: '1px solid #e4e4e7',
-      borderRadius: '10px',
-      color: '#18181b',
-      boxShadow: 'var(--shadow-popover)'
-    },
-    '.cm-panels': {
-      backgroundColor: '#ffffff',
-      color: '#18181b'
-    },
-    '.cm-foldPlaceholder': {
-      backgroundColor: '#f4f4f5',
-      border: 'none',
-      color: '#71717a'
-    }
-  },
-  { dark: false }
-);
+    { dark: isDark }
+  );
+}
 
 export function MarkdownSourceEditor({
   value,
@@ -122,13 +125,14 @@ export function MarkdownSourceEditor({
   className,
   'aria-label': ariaLabel = 'Markdown source editor'
 }: MarkdownSourceEditorProps) {
+  const { isDark } = useTheme();
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
   const extensions = useMemo(
     () => [
       markdown({ base: markdownLanguage }),
-      coolTrustTheme,
+      createCoolTrustTheme(isDark),
       syntaxHighlighting(coolTrustHighlight),
       EditorView.lineWrapping,
       Prec.highest(
@@ -146,7 +150,7 @@ export function MarkdownSourceEditor({
         ])
       )
     ],
-    [readOnly]
+    [isDark, readOnly]
   );
 
   return (

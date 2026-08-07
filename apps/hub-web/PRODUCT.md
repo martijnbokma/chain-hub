@@ -26,7 +26,7 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 
 ## Operating Context
 
-- Runs entirely on the user's own machine: a local Hono API server (default port 2342) plus this Vite/React dashboard, started via the `chain hub` CLI command or `bun run dev:hub`.
+- Runs entirely on the user's own machine: a local Hono API server (default port 2342) plus this Vite/React dashboard, started via the `chain hub` CLI command or `bun run dev` / `bun run dev:hub`.
 - The hub folder (default `~/.chain-hub`, overridable via `CHAIN_HOME`) is the on-disk source of truth: SQLite metadata index + Markdown/YAML asset files.
 - Linked editors today: Claude Code, Cursor, Windsurf (rebranded Devin Desktop), and Zed — each with different native storage conventions the dashboard's Integrations page surfaces per-editor (supported vs. unsupported asset kinds, connection status).
 - Part of a Bun + Turborepo monorepo (`packages/{cli,server,domain,storage,contracts}` + `apps/hub-web`); the dashboard only talks to the local `/api/*` HTTP surface, never directly to storage.
@@ -39,7 +39,7 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 - Integrations page: per-editor connection status, and which of the four asset kinds each editor actually supports natively (e.g. Cursor has no native "agents" concept; Zed only supports one merged rules file).
 - Memory page: free-form Markdown notes stored in the hub's `memory/` folder, with search.
 - Learnings page: capture/timeline/reflect view over a JSONL event log (success/failure/correction/note).
-- Setup page: sequential guided checklist (initialize → create first asset → connect editors → validate).
+- Setup page: sequential guided checklist (initialize → create first asset → connect editors → validate). Reachable from Settings, Overview (when incomplete), and the command palette — not a primary sidebar destination.
 - Hard constraint: **local-first, no cloud or hosted component** — everything the dashboard shows and does must be explainable as "this is what's on disk / reachable on localhost right now."
 - Undecided / explicitly out of scope for this surface: multi-user or team-shared hub UX (tracked at the product-roadmap level, not designed here yet).
 

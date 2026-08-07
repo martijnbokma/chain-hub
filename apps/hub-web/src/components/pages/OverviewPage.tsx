@@ -1,31 +1,25 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Download, XCircle, FileText, Zap } from 'lucide-react';
+import { Download, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { libraryApi, overviewApi, learningsApi } from '@/lib/api';
-import { EVENT_TYPE_BADGE } from '@/lib/constants';
+import { libraryApi, overviewApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import type { MigrateAgentsSkillsResult } from '@/types';
 
 export function OverviewPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const overview = useQuery({
     queryKey: ['overview'],
     queryFn: () => overviewApi.get()
-  });
-
-  const learnings = useQuery({
-    queryKey: ['learnings'],
-    queryFn: () => learningsApi.getTimeline()
   });
 
   const importAgentsSkills = useMutation({
@@ -67,6 +61,7 @@ export function OverviewPage() {
   const assetEntries = Object.entries(data.assetCounts);
   const agentsDrift = data.agentsSkillsDrift;
   const hasAgentsDrift = agentsDrift.missingCount > 0;
+  const needsSetup = !data.health.initialized || data.storage.indexedAssets === 0;
 
   return (
     <section className="mx-auto grid w-full max-w-5xl gap-8">
@@ -88,6 +83,22 @@ export function OverviewPage() {
           <code className="break-all font-mono text-xs text-foreground">{data.chainHome}</code>
         </p>
       </header>
+
+      {needsSetup ? (
+        <Alert className="items-center" variant="default">
+          <AlertIcon>
+            <Sparkles />
+          </AlertIcon>
+          <AlertDescription>
+            {data.health.initialized
+              ? 'Your hub is initialized but has no indexed assets yet. Finish the guided checklist to add your first asset and connect editors.'
+              : 'This hub is not fully set up yet. Open the guided checklist to initialize, add your first asset, and connect editors.'}
+          </AlertDescription>
+          <Link className={cn(buttonVariants({ size: 'sm' }), 'shrink-0')} to="/setup">
+            Open setup
+          </Link>
+        </Alert>
+      ) : null}
 
       {hasAgentsDrift ? (
         <Alert className="items-center" variant="warning">
@@ -162,120 +173,6 @@ export function OverviewPage() {
               <span className="font-medium tabular-nums text-foreground">{data.storage.indexedAssets}</span>
             </p>
             <code className="break-all font-mono text-xs text-muted-foreground">{data.storage.databasePath}</code>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent events</CardTitle>
-            <Button className="w-fit" onClick={() => navigate('/learnings')} size="sm" variant="secondary">
-              View all
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            {!learnings.data || learnings.data.events.length === 0 ? (
-              <p className="px-4 pb-4 text-sm leading-5 text-muted-foreground">
-                No events yet. Use <code className="font-mono text-xs">chain capture</code> or Cmd+K.
-              </p>
-            ) : (
-              <ul>
-                {learnings.data.events.slice(0, 3).map((event) => {
-                  const badge = EVENT_TYPE_BADGE[event.type];
-                  return (
-                    <li
-                      className="flex items-start gap-3 border-t border-border px-4 py-3"
-                      key={event.id}
-                    >
-                      <div className="flex min-w-0 flex-1 items-start gap-2">
-                        {event.type === 'success' ? (
-                          <CheckCircle2 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-success" />
-                        ) : null}
-                        {event.type === 'failure' ? (
-                          <XCircle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-                        ) : null}
-                        {event.type === 'correction' ? (
-                          <Zap aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-warning" />
-                        ) : null}
-                        {event.type === 'note' ? (
-                          <FileText aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                        ) : null}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">{event.skill}</p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{event.summary}</p>
-                        </div>
-                      </div>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Active skills</CardTitle>
-            <Button className="w-fit" onClick={() => navigate('/learnings')} size="sm" variant="secondary">
-              Reflect
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            {!learnings.data || learnings.data.events.length === 0 ? (
-              <p className="px-4 pb-4 text-sm leading-5 text-muted-foreground">No skills tracked yet.</p>
-            ) : (
-              <ul>
-                {[...new Set(learnings.data.events.map((event) => event.skill))].slice(0, 5).map((skill) => {
-                  const skillEvents = learnings.data!.events.filter((event) => event.skill === skill);
-                  const successCount = skillEvents.filter((event) => event.type === 'success').length;
-                  const failureCount = skillEvents.filter((event) => event.type === 'failure').length;
-                  const correctionCount = skillEvents.filter((event) => event.type === 'correction').length;
-
-                  return (
-                    <li
-                      className="flex items-center justify-between gap-3 border-t border-border px-4 py-3"
-                      key={skill}
-                    >
-                      <span className="truncate text-sm text-foreground">{skill}</span>
-                      <div className="flex shrink-0 gap-1.5">
-                        {successCount > 0 ? (
-                          <Badge
-                            aria-label={`${successCount} success${successCount === 1 ? '' : 'es'}`}
-                            className="gap-1"
-                            variant="success"
-                          >
-                            <CheckCircle2 aria-hidden="true" className="size-3" />
-                            {successCount}
-                          </Badge>
-                        ) : null}
-                        {correctionCount > 0 ? (
-                          <Badge
-                            aria-label={`${correctionCount} correction${correctionCount === 1 ? '' : 's'}`}
-                            className="gap-1"
-                            variant="warning"
-                          >
-                            <Zap aria-hidden="true" className="size-3" />
-                            {correctionCount}
-                          </Badge>
-                        ) : null}
-                        {failureCount > 0 ? (
-                          <Badge
-                            aria-label={`${failureCount} failure${failureCount === 1 ? '' : 's'}`}
-                            className="gap-1"
-                            variant="destructive"
-                          >
-                            <XCircle aria-hidden="true" className="size-3" />
-                            {failureCount}
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
           </CardContent>
         </Card>
       </div>

@@ -1,30 +1,27 @@
 import type { ReactNode } from 'react';
-import { Command as CommandIcon, Link2, Sparkles, PanelLeft, FolderTree, BookMarked, Zap, type LucideIcon } from 'lucide-react';
+import { Command as CommandIcon, Link2, PanelLeft, FolderTree, Settings, type LucideIcon } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
+import { ThemeToggle } from '../common/ThemeToggle';
 import { Button } from '../ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Select } from '../ui/select';
-import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarFooter, 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarHeader, 
-  SidebarInset, 
-  SidebarMenu, 
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
   useSidebar
 } from '../ui/sidebar';
-import { Textarea } from '../ui/textarea';
 import { cn } from '../../lib/utils';
-import type { CaptureEventType } from '../../types';
 import { ShellToolbarHost, ShellToolbarProvider } from './ShellToolbar';
 import { useCommandPalette } from './useCommandPalette';
 
@@ -65,30 +62,13 @@ function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps
 export function Shell({ children }: ShellProps) {
   const location = useLocation();
 
-  const {
-    commandOpen,
-    setCommandOpen,
-    actions,
-    integrations,
-    connectedCount,
-    captureOpen,
-    setCaptureOpen,
-    captureType,
-    setCaptureType,
-    captureSkill,
-    setCaptureSkill,
-    captureSummary,
-    setCaptureSummary,
-    captureEventMutation
-  } = useCommandPalette();
+  const { commandOpen, setCommandOpen, actions, integrations, connectedCount } = useCommandPalette();
 
   const links = [
-    { to: '/setup', label: 'Setup', icon: Sparkles },
     { to: '/', label: 'Overview', icon: PanelLeft },
     { to: '/library', label: 'Library', icon: FolderTree },
-    { to: '/memory', label: 'Memory', icon: BookMarked },
-    { to: '/learnings', label: 'Learnings', icon: Zap },
-    { to: '/integrations', label: 'Integrations', icon: Link2 }
+    { to: '/integrations', label: 'Integrations', icon: Link2 },
+    { to: '/settings', label: 'Settings', icon: Settings }
   ];
 
   return (
@@ -151,7 +131,7 @@ export function Shell({ children }: ShellProps) {
               <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
                 Command
               </span>
-              <kbd className="pointer-events-none rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+              <kbd className="pointer-events-none rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-3xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
                 ⌘K
               </kbd>
             </Button>
@@ -159,7 +139,7 @@ export function Shell({ children }: ShellProps) {
             <div className="grid gap-2.5 rounded-2xl border border-border px-3 py-3 group-data-[collapsible=icon]:hidden">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-muted-foreground">Linked editors</p>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                <span className="font-mono text-2xs tabular-nums text-muted-foreground">
                   {connectedCount}/{integrations.data?.length ?? 0}
                 </span>
               </div>
@@ -209,6 +189,7 @@ export function Shell({ children }: ShellProps) {
               </span>
             </NavLink>
             <ShellToolbarHost className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" />
+            <ThemeToggle />
           </header>
           <main className="px-4 py-4 sm:px-6 sm:py-6">{children}</main>
         </SidebarInset>
@@ -250,51 +231,6 @@ export function Shell({ children }: ShellProps) {
               </CommandList>
             </Command>
           </DialogBody>
-        </DialogContent>
-      </Dialog>
-      <Dialog onOpenChange={setCaptureOpen} open={captureOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Capture event</DialogTitle>
-            <DialogDescription>Log a learning, correction, or note to the hub timeline.</DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <label className="grid gap-2">
-              <span className="text-sm text-muted-foreground">Type</span>
-              <Select onChange={(e) => setCaptureType(e.target.value as CaptureEventType)} value={captureType}>
-                <option value="note">note</option>
-                <option value="success">success</option>
-                <option value="failure">failure</option>
-                <option value="correction">correction</option>
-              </Select>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm text-muted-foreground">Skill / topic</span>
-              <Input
-                onChange={(e) => setCaptureSkill(e.target.value)}
-                placeholder="e.g. react-patterns"
-                value={captureSkill}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm text-muted-foreground">Summary</span>
-              <Textarea
-                onChange={(e) => setCaptureSummary(e.target.value)}
-                placeholder="What happened or what did you learn?"
-                rows={4}
-                value={captureSummary}
-              />
-            </label>
-          </DialogBody>
-          <DialogFooter>
-            <Button onClick={() => setCaptureOpen(false)} variant="secondary">Cancel</Button>
-            <Button
-              disabled={captureEventMutation.isPending || captureSkill.trim().length === 0 || captureSummary.trim().length === 0}
-              onClick={() => captureEventMutation.mutate()}
-            >
-              {captureEventMutation.isPending ? 'Capturing…' : 'Capture'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
       </SidebarProvider>

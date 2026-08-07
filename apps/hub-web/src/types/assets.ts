@@ -1,4 +1,4 @@
-export type AssetKind = "skills" | "agents" | "workflows" | "rules";
+export type AssetKind = "skills" | "agents" | "workflows" | "rules" | "prompts";
 export type FilterKind = AssetKind | "__all__";
 
 export type SkillLockEntry = {

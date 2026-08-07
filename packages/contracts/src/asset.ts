@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const assetKinds = ["skills", "agents", "workflows", "rules"] as const;
+export const assetKinds = ["skills", "agents", "workflows", "rules", "prompts"] as const;
 
 export type AssetKind = (typeof assetKinds)[number];
 

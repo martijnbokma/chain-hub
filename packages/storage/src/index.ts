@@ -45,3 +45,10 @@ export {
   buildReflectionReport,
   writeReflectionMarkdown
 } from "./learnings.js";
+
+export {
+  getAiSettingsPublic,
+  updateAiSettings,
+  readAiConfig,
+  readAiSecrets
+} from "./ai-settings.js";

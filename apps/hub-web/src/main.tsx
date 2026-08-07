@@ -5,17 +5,26 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { App } from "./app";
+import { useTheme } from "./hooks/use-theme";
 import "./styles.css";
 
 const queryClient = new QueryClient();
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+function Root() {
+  const { resolved } = useTheme();
+
+  return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
-        <Toaster position="top-right" richColors theme="dark" />
+        <Toaster position="top-right" richColors theme={resolved} />
       </BrowserRouter>
     </QueryClientProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <Root />
   </React.StrictMode>
 );

@@ -9,17 +9,20 @@ import {
   captureInputSchema,
   createAssetInputSchema,
   createMemoryNoteInputSchema,
+  draftAssetInputSchema,
   forkSkillInputSchema,
   importAssetInputSchema,
   installSkillBundleInputSchema,
   installSkillInputSchema,
   migrateAgentsSkillsInputSchema,
   type AssetKind,
+  updateAiSettingsInputSchema,
   updateAssetInputSchema,
   updateMemoryNoteInputSchema,
   updateSkillsInputSchema
 } from "@chain-hub/contracts";
 import {
+  AiProviderError,
   captureHubEvent,
   connectEditors,
   createHubMemoryNote,
@@ -27,9 +30,11 @@ import {
   deleteHubMemoryNote,
   deleteLibraryAsset,
   discoverLibraryAssets,
+  draftHubAsset,
   forkLibrarySkill,
   getDashboardOverview,
   getGuidedSetup,
+  getHubAiSettings,
   getHubLearningsTimeline,
   getHubMemory,
   getHubMemoryNote,
@@ -45,6 +50,7 @@ import {
   searchHubMemoryNotes,
   summarizeAgentsSkillSync,
   syncAgentsSkillsIntoHub,
+  updateHubAiSettings,
   updateHubMemoryNote,
   updateLibraryAsset,
   updateLibrarySkills,
@@ -122,9 +128,27 @@ export function createServer(options: StartServerOptions = {}) {
   });
 
   app.post("/api/library", async (context) => {
-    const payload = createAssetInputSchema.parse(await context.req.json());
-    const asset = await createLibraryAsset(options.chainHome, payload);
-    return context.json(asset, 201);
+    try {
+      const payload = createAssetInputSchema.parse(await context.req.json());
+      const asset = await createLibraryAsset(options.chainHome, payload);
+      return context.json(asset, 201);
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "issues" in error &&
+        Array.isArray((error as { issues: unknown }).issues)
+      ) {
+        const issues = (error as { issues: Array<{ message: string }> }).issues;
+        const detail = issues.map((issue) => issue.message).join("; ") || "Invalid asset input";
+        return context.json({ error: detail }, 400);
+      }
+      if (error instanceof Error) {
+        const status = /already exists|cannot be empty/i.test(error.message) ? 400 : 500;
+        return context.json({ error: error.message }, status);
+      }
+      return context.json({ error: "Unable to create asset" }, 500);
+    }
   });
 
   app.put("/api/library/:kind/:name", async (context) => {
@@ -221,6 +245,31 @@ export function createServer(options: StartServerOptions = {}) {
     return context.json(report);
   });
 
+  app.get("/api/settings/ai", async (context) => {
+    const settings = await getHubAiSettings(options.chainHome);
+    return context.json(settings);
+  });
+
+  app.put("/api/settings/ai", async (context) => {
+    const payload = updateAiSettingsInputSchema.parse(await context.req.json());
+    const settings = await updateHubAiSettings(options.chainHome, payload);
+    return context.json(settings);
+  });
+
+  app.post("/api/ai/draft-prompt", async (context) => {
+    const payload = draftAssetInputSchema.parse(await context.req.json());
+    try {
+      const result = await draftHubAsset(options.chainHome, payload);
+      return context.json(result);
+    } catch (error) {
+      if (error instanceof AiProviderError) {
+        const status = error.status === 502 ? 502 : 400;
+        return context.json({ error: error.message }, status);
+      }
+      throw error;
+    }
+  });
+
   if (options.staticRoot) {
     app.use("*", serveStatic({ root: options.staticRoot }));
 
@@ -248,8 +297,13 @@ export async function startServer(options: StartServerOptions = {}) {
     console.warn(`Agents skill sync failed: ${message}`);
   }
 
-  return serve({
-    fetch: app.fetch,
-    port
+  return await new Promise<ReturnType<typeof serve>>((resolve, reject) => {
+    const server = serve({ fetch: app.fetch, port }, () => {
+      resolve(server);
+    });
+
+    server.once("error", (error: Error) => {
+      reject(error);
+    });
   });
 }

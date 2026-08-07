@@ -81,14 +81,16 @@ export async function setupIntegrations(chainHomeInput?: string): Promise<Integr
     (await listAssets(chainHome)).map((record) => getAsset(chainHome, record.kind, record.name))
   );
 
-  await Promise.all(
-    LEGACY_INTEGRATION_TARGETS.map(async (target) => {
+  // Run adapters sequentially — parallel resync races when editor paths alias the same
+  // directory (e.g. ~/.claude/skills/foo symlinked to ~/.agents/skills/foo).
+  for (const target of LEGACY_INTEGRATION_TARGETS) {
+    try {
       const adapter = findAdapter(target.id);
 
       if (adapter) {
         await removeLegacySymlink(target.id, homeDir);
         await adapter.resync(chainHome, homeDir, assets);
-        return;
+        continue;
       }
 
       const targetPath = path.join(homeDir, target.relativeTarget);
@@ -97,12 +99,14 @@ export async function setupIntegrations(chainHomeInput?: string): Promise<Integr
       await ensureDir(targetParent);
 
       if (await pathExists(targetPath)) {
-        return;
+        continue;
       }
 
       await fs.symlink(chainHome, targetPath, "dir");
-    })
-  );
+    } catch (error) {
+      console.warn(`[chain-hub] editor setup failed for ${target.id}:`, error);
+    }
+  }
 
   return getIntegrations(chainHome);
 }
