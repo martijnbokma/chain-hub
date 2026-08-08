@@ -117,7 +117,8 @@ export function LibraryPage() {
       }
       const response = await libraryApi.update(selected.kind, selected.name, { content: editorContent });
       if (!response.ok) {
-        throw new Error('Unable to update asset');
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || 'Unable to update asset');
       }
       return response.json() as Promise<AssetDetail>;
     },
@@ -126,8 +127,8 @@ export function LibraryPage() {
       void queryClient.invalidateQueries({ queryKey: ['library', 'detail', asset.kind, asset.name] });
       toast.success(`Saved ${asset.kind}/${asset.name}`);
     },
-    onError: () => {
-      toast.error('Unable to save asset');
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Unable to save asset');
     }
   });
 
@@ -407,6 +408,7 @@ export function LibraryPage() {
     <LibraryToolbar
       assetCount={filteredAssets.length}
       filterKind={filterKind}
+      isCompact={selected !== null}
       isUpdatingSkills={updateSkills.isPending}
       onCreate={() => createFlow.setCreateOpenSynced(true)}
       onDiscover={() => setDiscoverOpen(true)}

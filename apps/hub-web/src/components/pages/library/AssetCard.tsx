@@ -15,6 +15,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
   const Icon = meta.icon;
   const sourceLabel =
     asset.kind === 'skills' ? formatSkillSource(asset.provenance) : null;
+  const hasCompatError = (asset.compatIssues ?? []).some((issue) => issue.severity === 'error');
 
   return (
     <button
@@ -44,6 +45,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
             {asset.kind === 'skills' ? (
               <Badge variant="default">{formatSkillSourceType(asset.provenance)}</Badge>
             ) : null}
+            {hasCompatError ? <Badge variant="warning">Missing description</Badge> : null}
           </div>
           <p className="truncate text-xs text-muted-foreground" title={asset.relativePath}>
             {asset.relativePath}

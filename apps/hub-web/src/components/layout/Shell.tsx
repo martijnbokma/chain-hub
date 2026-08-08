@@ -8,7 +8,7 @@ import {
   Settings,
   type LucideIcon
 } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { ASSET_KIND_LABELS, ASSET_KINDS } from '../../lib/constants';
 import { cn } from '../../lib/utils';
@@ -18,6 +18,14 @@ import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger
+} from '../ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -83,11 +91,13 @@ function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps
 
 function LibraryNavItem() {
   const location = useLocation();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const navigate = useNavigate();
+  const { isMobile, setOpenMobile, state } = useSidebar();
   const isLibraryRoute = location.pathname.startsWith('/library');
   const kindParam = new URLSearchParams(location.search).get('kind');
   const activeKind = isAssetKind(kindParam) ? kindParam : null;
   const [open, setOpen] = useState(isLibraryRoute);
+  const isIconCollapsed = state === 'collapsed' && !isMobile;
 
   useEffect(() => {
     if (isLibraryRoute) {
@@ -95,12 +105,58 @@ function LibraryNavItem() {
     }
   }, [isLibraryRoute]);
 
+  if (isIconCollapsed) {
+    return (
+      <SidebarMenuItem>
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger
+            aria-label="Library"
+            className={cn(
+              'flex size-8 items-center justify-center rounded-xl text-sidebar-foreground outline-hidden ring-sidebar-ring transition-colors',
+              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2',
+              'data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground',
+              '[&_svg]:size-4 [&_svg]:shrink-0',
+              isLibraryRoute && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+            )}
+          >
+            <FolderTree />
+            <span className="sr-only">Library</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-44 rounded-xl" side="right" sideOffset={8}>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Library</DropdownMenuLabel>
+              <DropdownMenuItem
+                className={cn(isLibraryRoute && activeKind === null && 'bg-accent text-accent-foreground')}
+                onClick={() => {
+                  navigate('/library');
+                }}
+              >
+                All assets
+              </DropdownMenuItem>
+              {ASSET_KINDS.map((kind) => (
+                <DropdownMenuItem
+                  className={cn(activeKind === kind && 'bg-accent text-accent-foreground')}
+                  key={kind}
+                  onClick={() => {
+                    navigate(`/library?kind=${kind}`);
+                  }}
+                >
+                  {ASSET_KIND_LABELS[kind]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    );
+  }
+
   return (
     <SidebarMenuItem>
       <Collapsible className="group/collapsible w-full" onOpenChange={setOpen} open={open}>
-        <div className="flex w-full items-center gap-0.5 group-data-[collapsible=icon]:block">
+        <div className="flex w-full items-center gap-0.5">
           <SidebarMenuButton
-            className="h-9 min-w-0 flex-1 group-data-[collapsible=icon]:flex-none"
+            className="h-9 min-w-0 flex-1"
             isActive={isLibraryRoute && activeKind === null}
             onClick={() => {
               setOpen(true);
@@ -117,8 +173,7 @@ function LibraryNavItem() {
             className={cn(
               'flex size-7 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground',
               'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              'outline-hidden ring-sidebar-ring focus-visible:ring-2',
-              'group-data-[collapsible=icon]:hidden'
+              'outline-hidden ring-sidebar-ring focus-visible:ring-2'
             )}
           >
             <ChevronRight className="size-4 transition-transform group-data-open/collapsible:rotate-90" />
@@ -155,19 +210,16 @@ export function Shell({ children }: ShellProps) {
     <ShellToolbarProvider>
       <SidebarProvider>
         <Sidebar collapsible="icon">
-          <SidebarHeader className="border-b border-sidebar-border pb-2">
+          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton className="gap-2.5" render={<NavLink to="/" />} size="lg">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+                <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-primary font-mono text-xs text-primary">
                     CH
                   </span>
-                  <div className="grid min-w-0 flex-1 items-center text-left leading-tight">
-                    <span className="truncate text-sm font-semibold tracking-tight text-foreground">
-                      Chain Hub
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">Local control plane</span>
-                  </div>
+                  <span className="truncate font-display text-xl font-semibold uppercase tracking-wide text-foreground">
+                    Chain Hub
+                  </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -257,14 +309,14 @@ export function Shell({ children }: ShellProps) {
         </Sidebar>
 
         <SidebarInset className="min-w-0 overflow-x-hidden">
-          <header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
-            <SidebarTrigger className="size-11 md:size-7" />
-            <NavLink className="flex items-center gap-2 md:hidden" to="/">
-              <span className="flex aspect-square size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-semibold text-primary">
+          <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
+            <SidebarTrigger />
+            <NavLink className="flex items-center gap-3 md:hidden" to="/">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-primary font-mono text-xs text-primary">
                 CH
               </span>
-              <span className="text-sm font-semibold tracking-tight text-foreground">
-                Chain Hub v2
+              <span className="font-display text-xl font-semibold uppercase tracking-wide text-foreground">
+                Chain Hub
               </span>
             </NavLink>
             <ShellToolbarHost className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" />

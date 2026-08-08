@@ -2,6 +2,7 @@ import type { AssetKind } from "@chain-hub/contracts";
 
 export type {
   AssetKind,
+  AssetCompatIssue,
   AssetRecord,
   AssetDetail,
   InstallSkillInput,

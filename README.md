@@ -1,4 +1,4 @@
-# Chain Hub v2
+# Chain Hub
 
 A local-first AI workspace control plane — one hub folder, one CLI, one dashboard, every editor.
 

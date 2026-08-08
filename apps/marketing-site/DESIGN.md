@@ -145,7 +145,7 @@ The hero's inline SVG: a hub node (rounded rect, orange 2px stroke) trunk-and-bu
 - **Focus:** border shifts to the ring color (orange), no glow.
 
 ### Navigation
-A single titleblock header bar: a bordered `CH` mark plus the wordmark on the left, a mono "REV A — PREVIEW" stamp on the right, separated from the page by one hairline rule. No nav links — this is a single-page pre-launch surface.
+A single titleblock header bar: a bordered `CH` mark plus the wordmark on the left, separated from the page by one hairline rule. No nav links — this is a single-page launch surface.
 
 ## Do's and Don'ts
 

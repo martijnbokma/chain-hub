@@ -1,5 +1,5 @@
 ---
-name: Chain Hub v2
+name: Chain Hub
 description: Local-first AI workspace control plane — a cool, premium product app that feels simple, trustworthy, and easy to use.
 colors:
   primary: "#F97316"
@@ -15,11 +15,11 @@ colors:
   destructive: "#ef4444"
 typography:
   display:
-    fontFamily: "Inter, system-ui, -apple-system, sans-serif"
+    fontFamily: "Big Shoulders Display Variable, Big Shoulders Display, system-ui, sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.25
-    letterSpacing: "-0.01em"
+    letterSpacing: "0.025em"
   body:
     fontFamily: "Inter, system-ui, -apple-system, sans-serif"
     fontSize: "0.875rem"
@@ -58,17 +58,17 @@ components:
     padding: "0.125rem 0.625rem"
 ---
 
-# Design System: Chain Hub v2
+# Design System: Chain Hub
 
 ## Overview
 
 **Creative North Star: "Cool Trust"**
 
-Chain Hub v2 is a light, premium product surface: zinc neutrals, white panels, and a single orange signal for the one action that matters. It should feel closer to a polished admin product (clear, calm, credible) than a marketing landing page or a dark terminal console.
+Chain Hub is a light, premium product surface: zinc neutrals, white panels, and a single orange signal for the one action that matters. It should feel closer to a polished admin product (clear, calm, credible) than a marketing landing page or a dark terminal console.
 
 **Key Characteristics:**
 - Cool zinc/near-white neutrals; one orange accent
-- Inter for UI type; JetBrains Mono only for literal values (paths, IDs, step indices)
+- Inter for UI type; Big Shoulders Display only for the “Chain Hub” wordmark; JetBrains Mono only for literal values (paths, IDs, step indices)
 - Tight radii (10px controls / 12px surfaces) — never stadium cards
 - Subtle resting elevation; content width constrained for readable line length
 - Status sits next to content; primary actions are `w-fit`, never full-bleed by default
@@ -95,6 +95,7 @@ Chain Hub v2 is a light, premium product surface: zinc neutrals, white panels, a
 ## Typography
 
 ### Hierarchy
+- **Wordmark** (`font-display text-xl font-semibold uppercase tracking-wide` + bordered `CH` mark): shell brand only — matches marketing titleblock
 - **Page title** (`text-xl font-semibold`): one per screen
 - **Row / card title** (`text-sm font-medium` or `font-semibold`)
 - **Body** (`text-sm leading-5`)
@@ -103,6 +104,7 @@ Chain Hub v2 is a light, premium product surface: zinc neutrals, white panels, a
 - **Mono literal** (`font-mono text-xs`): paths, IDs, step numbers
 
 ### Named Rules
+**The Display Budget.** Big Shoulders Display is brand-only — the shell wordmark. Do not use it for page titles, nav, or body.
 **The Eyebrow Budget.** Do not put an eyebrow above every card or list row. Prefer a single page-level eyebrow.
 
 ## Layout

@@ -1,6 +1,6 @@
-# Chain Hub v2 — Project Map
+# Chain Hub — Project Map
 
-> **Navigation Guide**: Hierarchical overview of the Chain Hub v2 codebase for efficient context loading.
+> **Navigation Guide**: Hierarchical overview of the Chain Hub codebase for efficient context loading.
 
 This document provides a **selective index** of the codebase. Use it to quickly locate relevant files for specific tasks without loading unnecessary context.
 
@@ -9,7 +9,7 @@ This document provides a **selective index** of the codebase. Use it to quickly 
 ## 🗺️ Architecture Overview
 
 ```text
-chain-hub-v2/
+chain-hub/
 ├── apps/
 │   ├── hub-web/           # React Dashboard (Vite + Tailwind v4 + shadcn/ui)
 │   └── marketing-site/    # Marketing site (under development)
@@ -257,7 +257,7 @@ hub-web/
    - Theme preference
    - Local-first AI providers (BYOK / Ollama)
 
-Memory notes and learnings are CLI/API surfaces (`chain capture` / `chain reflect`, `/api/memory`, `/api/learnings`) — not dashboard routes. **v2 phase 1 decision:** keep them CLI/API-only (no hub-web page, sidebar, or command-palette entry) until an explicit later IA change.
+Memory notes and learnings are CLI/API surfaces (`chain capture` / `chain reflect`, `/api/memory`, `/api/learnings`) — not dashboard routes. **Phase 1 decision:** keep them CLI/API-only (no hub-web page, sidebar, or command-palette entry) until an explicit later IA change.
 
 ---
 

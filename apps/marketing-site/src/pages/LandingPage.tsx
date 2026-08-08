@@ -5,15 +5,16 @@ import {
   Workflow,
   ScrollText,
   Brain,
+  Heart,
   Link2,
   Terminal,
   LayoutDashboard,
-  Mail,
 } from 'lucide-react';
 import dashboardOverview from '../assets/dashboard-overview.webp';
 import dashboardLibrary from '../assets/dashboard-library.webp';
 
 const EDITORS = ['Cursor', 'Claude Code', 'Windsurf', 'Zed'];
+const REPO_URL = 'https://github.com/martijnbokma/chain-hub';
 
 const assets = [
   { icon: BookOpen, name: 'Skills', description: 'Reusable capabilities your editor can invoke on demand.' },
@@ -41,9 +42,23 @@ const surfaces = [
   },
 ];
 
+function GithubIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.11.78-.25.78-.55 0-.27-.01-1.16-.02-2.11-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.69-1.28-1.69-1.04-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.02 1.76 2.68 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a10.98 10.98 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.41-5.27 5.69.42.36.78 1.07.78 2.17 0 1.57-.01 2.83-.01 3.22 0 .3.2.66.79.55A10.52 10.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+    </svg>
+  );
+}
+
 function TitleblockBar() {
   return (
-    <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between border-b border-border pb-4">
+    <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center border-b border-border pb-4">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-sm border border-primary flex items-center justify-center font-mono text-xs text-primary">
           CH
@@ -51,9 +66,6 @@ function TitleblockBar() {
         <span className="font-display font-semibold text-xl tracking-wide text-foreground uppercase">
           Chain Hub
         </span>
-      </div>
-      <div className="font-mono text-[11px] tracking-widest text-muted-foreground border border-border rounded-sm px-3 py-1.5 uppercase">
-        Rev A — Preview
       </div>
     </header>
   );
@@ -160,10 +172,23 @@ function HubSchematic() {
 function FramedFigure({ src, alt, caption }: { src: string; alt: string; caption: string }) {
   return (
     <div className="text-left">
-      <div className="bp-corners border border-border rounded-sm overflow-hidden bg-card aspect-[16/10]">
-        <img src={src} alt={alt} className="w-full h-full object-cover object-top block" loading="lazy" />
-      </div>
-      <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-3">{caption}</p>
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`${alt} — opens full size in a new tab`}
+        className="group bp-corners block border border-border rounded-sm overflow-hidden bg-card aspect-[16/10] cursor-zoom-in"
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-full object-cover object-top block transition-transform duration-300 group-hover:scale-[1.03]"
+          loading="lazy"
+        />
+      </a>
+      <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-3">
+        {caption} — <span className="text-primary">view full size</span>
+      </p>
     </div>
   );
 }
@@ -183,16 +208,21 @@ export function LandingPage() {
               Every editor.
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-md mb-8">
-              Stop copy-pasting the same rules and prompts into every editor. Chain Hub keeps
-              skills, agents, workflows, rules, and memory in one folder on disk, synced out to
-              Cursor, Claude Code, Windsurf, and Zed.
+              You're juggling Cursor, Claude Code, Windsurf, and Zed — copy-pasting the same
+              rules, prompts, and skills into each one, with no way to tell which copy is
+              current. Chain Hub keeps one editable version on disk as the single source of
+              truth, synced out to every editor you use.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 mb-10">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <a
-                href="#waitlist"
-                className="px-6 py-3 rounded-sm bg-primary hover:opacity-90 text-primary-foreground font-medium transition-opacity text-center"
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="View on GitHub — opens in a new tab"
+                className="px-6 py-3 rounded-sm bg-primary hover:opacity-90 text-primary-foreground font-medium transition-opacity text-center inline-flex items-center justify-center gap-2"
               >
-                Join the waitlist
+                <GithubIcon size={18} />
+                View on GitHub
               </a>
               <a
                 href="#proof"
@@ -201,6 +231,9 @@ export function LandingPage() {
                 See the dashboard
               </a>
             </div>
+            <p className="text-sm text-muted-foreground mb-10">
+              Free &amp; open source — nothing leaves your machine.
+            </p>
             <div className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase border-t border-border pt-4 flex flex-wrap gap-x-6 gap-y-1">
               <span>Sheet 1/1</span>
               <span>Local-first</span>
@@ -208,7 +241,12 @@ export function LandingPage() {
               <span>Chain Hub</span>
             </div>
           </div>
-          <HubSchematic />
+          <div>
+            <HubSchematic />
+            <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-4 text-center">
+              Two editors, two copies to sync by hand. Four editors, four. One hub — still one.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -229,7 +267,7 @@ export function LandingPage() {
                   {name}
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+              <p className="text-base text-muted-foreground leading-relaxed max-w-prose">{description}</p>
             </div>
           ))}
         </div>
@@ -250,10 +288,10 @@ export function LandingPage() {
               <h3 className="font-display font-semibold text-2xl uppercase tracking-wide text-foreground mb-1">
                 {name}
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">{tagline}</p>
+              <p className="text-base text-muted-foreground mb-4">{tagline}</p>
               <ul className="space-y-2">
                 {points.map((point) => (
-                  <li key={point} className="text-sm text-muted-foreground flex items-start gap-2 font-mono">
+                  <li key={point} className="text-base text-muted-foreground flex items-start gap-2 font-mono">
                     <span className="text-primary">&gt;</span>
                     <span className="font-sans">{point}</span>
                   </li>
@@ -284,37 +322,50 @@ export function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section id="waitlist" className="bp-grid">
+      <section className="bp-grid">
         <div className="max-w-3xl mx-auto px-6 py-20 text-center">
           <h2 className="font-display font-bold text-4xl md:text-5xl uppercase text-foreground mb-4">
             Ready when you are.
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Chain Hub is pre-launch. Leave your email and we'll notify you when the CLI and
-            dashboard ship.
+            Chain Hub is free and open source. Clone it, read the code, or follow along as it
+            ships.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto mb-4">
-            <input
-              type="email"
-              placeholder="you@domain.com"
-              className="flex-1 px-4 py-3 rounded-sm bg-card border border-input text-foreground placeholder-muted-foreground font-mono text-sm focus:outline-none focus:border-ring transition-colors"
-            />
-            <button className="px-6 py-3 rounded-sm bg-primary hover:opacity-90 text-primary-foreground font-medium transition-opacity flex items-center justify-center gap-2 whitespace-nowrap">
-              <Mail size={16} />
-              Notify me
-            </button>
+          <div className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+            <span>01 Clone the repo</span>
+            <span>02 chain init</span>
+            <span>03 chain setup</span>
           </div>
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="View on GitHub — opens in a new tab"
+            className="px-6 py-3 rounded-sm bg-primary hover:opacity-90 text-primary-foreground font-medium transition-opacity inline-flex items-center justify-center gap-2"
+          >
+            <GithubIcon size={18} />
+            View on GitHub
+          </a>
         </div>
       </section>
 
       <footer className="max-w-6xl mx-auto px-6 py-10 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-          Rev A — Chain Hub
-        </div>
+        <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
+          Made with
+          <Heart className="size-3.5 fill-primary text-primary" aria-label="love" />
+          by{' '}
+          <a
+            href="https://martijnbokma.nl"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Martijn Bokma — opens in a new tab"
+            className="inline-block -my-3 py-3 hover:text-foreground transition-colors"
+          >
+            Martijn Bokma <span aria-hidden="true">↗</span>
+          </a>
+        </p>
         <div className="flex items-center gap-8 text-sm text-muted-foreground">
-          <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
-          <a href="#" className="hover:text-foreground transition-colors">Discord</a>
-          <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
+          <a href={REPO_URL} target="_blank" rel="noreferrer" aria-label="GitHub — opens in a new tab" className="inline-block -my-3 py-3 hover:text-foreground transition-colors">GitHub <span aria-hidden="true">↗</span></a>
         </div>
       </footer>
     </div>

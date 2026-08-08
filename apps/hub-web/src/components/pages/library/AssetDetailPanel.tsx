@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -11,10 +11,12 @@ import {
   ListChecks,
   Sparkles,
   Trash2,
+  Wrench,
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/contracts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,11 +112,31 @@ export function AssetDetailPanel({
   const [renameValue, setRenameValue] = useState(selected.name);
   const isPrompt = selected.kind === 'prompts';
   const canRename = !isUpstreamSkill;
+  const compatIssues = useMemo(
+    () => listAssetCompatIssues(selected.kind, editorContent),
+    [selected.kind, editorContent]
+  );
+  const blockingCompatIssue = compatIssues.find((issue) => issue.severity === 'error') ?? null;
+  const canSave = !isUpstreamSkill && !isSaving && !blockingCompatIssue;
 
   useEffect(() => {
     setRenameValue(selected.name);
     setIsRenamingUi(false);
   }, [selected.kind, selected.name]);
+
+  function handleFixDescription() {
+    const next = ensureExplicitDescription(editorContent, selected.name);
+    onEditorChange(next);
+    toast.success('Added description from heading — save to apply');
+  }
+
+  function handleSave() {
+    if (blockingCompatIssue) {
+      toast.error(blockingCompatIssue.message);
+      return;
+    }
+    onSave();
+  }
 
   async function handleCopy() {
     const text = contentForClipboard(editorContent, selected.kind).trim();
@@ -233,6 +255,25 @@ export function AssetDetailPanel({
       </CardHeader>
       <CardContent className="grid flex-1 grid-rows-[minmax(0,auto)_1fr_auto] gap-4 overflow-hidden">
         <div className="grid min-h-0 max-h-72 gap-3 overflow-y-auto">
+          {blockingCompatIssue ? (
+            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-foreground">Editor compatibility</span>
+                <Badge variant="warning">Missing description</Badge>
+              </div>
+              <p className="mt-1 leading-5 text-foreground/80">{blockingCompatIssue.message}</p>
+              {isUpstreamSkill ? (
+                <p className="mt-2 leading-5 text-foreground/80">
+                  Fork this skill first if you want to add a description locally.
+                </p>
+              ) : (
+                <Button className="mt-3 w-fit" onClick={handleFixDescription} size="sm" type="button">
+                  <Wrench className="size-4" />
+                  Fix from heading
+                </Button>
+              )}
+            </div>
+          ) : null}
           {selected.kind === 'skills' ? (
             <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
               <div className="flex flex-wrap items-center gap-2">
@@ -348,8 +389,8 @@ export function AssetDetailPanel({
               }
               onChange={onEditorChange}
               onSave={() => {
-                if (!isUpstreamSkill && !isSaving) {
-                  onSave();
+                if (canSave) {
+                  handleSave();
                 }
               }}
               readOnly={isUpstreamSkill}
@@ -417,7 +458,7 @@ export function AssetDetailPanel({
               {isForking ? 'Forking…' : 'Fork to customize'}
             </Button>
           ) : (
-            <Button className="ml-auto w-fit" disabled={isSaving} onClick={onSave}>
+            <Button className="ml-auto w-fit" disabled={!canSave} onClick={handleSave}>
               {isSaving ? 'Saving…' : 'Save changes'}
             </Button>
           )}

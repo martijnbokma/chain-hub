@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Chain Hub">
+  <rect width="32" height="32" rx="4" fill="#0d1318"/>
+  <rect x="2.5" y="2.5" width="27" height="27" rx="2" fill="none" stroke="#f97316" stroke-width="2"/>
+  <g fill="none" stroke="#f97316" stroke-width="2.25" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M16 11.3a4.5 4.5 0 1 0 0 9.6"/>
+    <path d="M18.3 11.3v9.6M24 11.3v9.6M18.3 16.1h5.7"/>
+  </g>
+</svg>

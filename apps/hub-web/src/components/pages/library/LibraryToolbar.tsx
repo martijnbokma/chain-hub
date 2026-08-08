@@ -11,6 +11,7 @@ import type { FilterKind, OwnershipFilter } from '@/types';
 interface LibraryToolbarProps {
   assetCount: number;
   filterKind: FilterKind;
+  isCompact: boolean;
   ownership: OwnershipFilter;
   searchQuery: string;
   onOwnershipChange: (value: OwnershipFilter) => void;
@@ -25,6 +26,7 @@ interface LibraryToolbarProps {
 export function LibraryToolbar({
   assetCount,
   filterKind,
+  isCompact,
   ownership,
   searchQuery,
   onOwnershipChange,
@@ -103,32 +105,42 @@ export function LibraryToolbar({
         </TooltipProvider>
       </div>
 
-      <div className="relative min-w-0">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          aria-label="Search assets"
-          className="h-9 pl-9"
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder="Search name, path, or author"
-          value={searchQuery}
-        />
-      </div>
-
-      <Tabs
-        className="gap-0"
-        onValueChange={(value) => {
-          if (value === 'all' || value === 'editable' || value === 'upstream') {
-            onOwnershipChange(value);
-          }
-        }}
-        value={ownership}
+      <div
+        className={cn(
+          'flex min-w-0 flex-col gap-3',
+          !isCompact && 'sm:flex-row sm:items-center'
+        )}
       >
-        <TabsList aria-label="Filter by ownership">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="editable">Editable</TabsTrigger>
-          <TabsTrigger value="upstream">Upstream</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search assets"
+            className="h-9 pl-9"
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            placeholder="Search name, path, or author"
+            value={searchQuery}
+          />
+        </div>
+
+        <Tabs
+          className={cn('shrink-0 gap-0', isCompact ? 'w-full' : 'w-full sm:w-auto')}
+          onValueChange={(value) => {
+            if (value === 'all' || value === 'editable' || value === 'upstream') {
+              onOwnershipChange(value);
+            }
+          }}
+          value={ownership}
+        >
+          <TabsList
+            aria-label="Filter by ownership"
+            className={cn(isCompact ? 'w-full' : 'w-full sm:w-auto')}
+          >
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="editable">Editable</TabsTrigger>
+            <TabsTrigger value="upstream">Upstream</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
     </div>
   );
 }

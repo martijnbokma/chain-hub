@@ -1,8 +1,8 @@
-# Chain Hub v2 — Agent Rules and Project Context
+# Chain Hub — Agent Rules and Project Context
 
 ## Project Overview
 
-**Chain Hub v2** is a local-first AI workspace control plane that provides:
+**Chain Hub** is a local-first AI workspace control plane that provides:
 - One hub folder (`~/.chain-hub`) as single source of truth
 - One CLI (`chain`) for management
 - One dashboard for visual control
@@ -40,7 +40,7 @@
 ## Project Architecture
 
 ```
-chain-hub-v2/
+chain-hub/
 ├── apps/
 │   ├── hub-web/           # React dashboard (Vite + Tailwind v4 + shadcn/ui)
 │   └── marketing-site/    # Marketing site (under development)

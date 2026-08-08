@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/contracts';
 import { aiSettingsApi, libraryApi } from '@/lib/api';
 import type { AssetDetail, AssetKind, DraftPromptResult } from '@/types';
 
@@ -59,12 +60,21 @@ export function useLibraryCreateFlow(options: {
 
   const createAsset = useMutation({
     mutationFn: async () => {
+      const content =
+        draftKind === 'skills'
+          ? ensureExplicitDescription(draftContent, draftName.trim() || 'new-skill')
+          : draftContent;
+      const blocking = listAssetCompatIssues(draftKind, content).find((issue) => issue.severity === 'error');
+      if (blocking) {
+        throw new Error(blocking.message);
+      }
+
       let response: Response;
       try {
         response = await libraryApi.create({
           kind: draftKind,
           name: draftName,
-          content: draftContent
+          content
         });
       } catch {
         throw new Error('Hub server is unreachable. Run `bun run dev` or `chain hub` and try again.');

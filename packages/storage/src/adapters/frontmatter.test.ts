@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveDescription, extractAssetAuthor, parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
+import {
+  deriveDescription,
+  ensureExplicitDescription,
+  extractAssetAuthor,
+  getExplicitDescription,
+  parseFrontmatter,
+  stringifyFrontmatter
+} from "./frontmatter.js";
 
 describe("parseFrontmatter", () => {
   it("returns empty data and original body when no frontmatter fence is present", () => {
@@ -31,6 +38,34 @@ describe("parseFrontmatter", () => {
     const raw = ['---', 'description: "Has: a colon"', '---', '', 'Body'].join("\n");
     const result = parseFrontmatter(raw);
     expect(result.data.description).toBe("Has: a colon");
+  });
+
+  it("parses folded block scalar descriptions", () => {
+    const raw = [
+      "---",
+      "name: bundle-strategy-audit",
+      "description: >-",
+      "  Audits code splitting and lazy-loading.",
+      "  Use when the user asks about bundle size.",
+      "metadata:",
+      "  author: Martijn Bokma",
+      "---",
+      "",
+      "# Bundle Strategy Audit"
+    ].join("\n");
+
+    const result = parseFrontmatter(raw);
+    expect(result.data.description).toBe(
+      "Audits code splitting and lazy-loading. Use when the user asks about bundle size."
+    );
+    expect(result.data.author).toBe("Martijn Bokma");
+    expect(result.body).toBe("# Bundle Strategy Audit");
+  });
+
+  it("treats an empty block scalar description as empty string", () => {
+    const raw = ["---", "name: demo", "description: >-", "---", "", "# Demo"].join("\n");
+    const result = parseFrontmatter(raw);
+    expect(result.data.description).toBe("");
   });
 
   it("treats unterminated fences as no frontmatter", () => {
@@ -74,6 +109,25 @@ describe("deriveDescription", () => {
     expect(result.description).toBe("Explicit description");
   });
 
+  it("uses folded block scalar descriptions instead of the literal >- marker", () => {
+    const content = [
+      "---",
+      "description: >-",
+      "  Real description text for editors.",
+      "---",
+      "",
+      "# Heading"
+    ].join("\n");
+    const result = deriveDescription(content, "fallback-name");
+    expect(result.description).toBe("Real description text for editors.");
+  });
+
+  it("falls back to the first heading when description is an empty block scalar", () => {
+    const content = ["---", "description: >-", "---", "", "# Bundle Strategy Audit"].join("\n");
+    const result = deriveDescription(content, "fallback-name");
+    expect(result.description).toBe("Bundle Strategy Audit");
+  });
+
   it("falls back to the first heading when no description field exists", () => {
     const result = deriveDescription("# My Heading\n\nBody text.", "fallback-name");
     expect(result.description).toBe("My Heading");
@@ -82,5 +136,27 @@ describe("deriveDescription", () => {
   it("falls back to the asset name when neither is present", () => {
     const result = deriveDescription("Just plain text, no heading.", "fallback-name");
     expect(result.description).toBe("fallback-name");
+  });
+});
+
+describe("getExplicitDescription / ensureExplicitDescription", () => {
+  it("returns null when description is missing or blank", () => {
+    expect(getExplicitDescription("# Title\n\nBody")).toBeNull();
+    expect(getExplicitDescription("---\ndescription: >-\n---\n\n# Title")).toBeNull();
+  });
+
+  it("returns trimmed explicit descriptions", () => {
+    expect(getExplicitDescription("---\ndescription: Hello editors\n---\n\n# Title")).toBe("Hello editors");
+  });
+
+  it("injects a heading-based description when missing", () => {
+    const ensured = ensureExplicitDescription("# Bundle Strategy Audit\n\nBody.", "bundle-strategy-audit");
+    expect(getExplicitDescription(ensured)).toBe("Bundle Strategy Audit");
+    expect(ensured).toContain("# Bundle Strategy Audit");
+  });
+
+  it("leaves content unchanged when an explicit description already exists", () => {
+    const content = "---\ndescription: Keep me\n---\n\n# Title\n";
+    expect(ensureExplicitDescription(content, "demo")).toBe(content);
   });
 });

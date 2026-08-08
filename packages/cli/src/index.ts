@@ -44,7 +44,7 @@ export function createProgram(): Command {
 
   program
   .name("chain")
-  .description("Chain Hub v2 local-first CLI")
+  .description("Chain Hub local-first CLI")
   .option("--chain-home <path>", "Override the default chain home");
 
 program
@@ -311,7 +311,7 @@ program
 
 program
   .command("hub")
-  .description("Start the local Chain Hub v2 dashboard")
+  .description("Start the local Chain Hub dashboard")
   .option("--port <port>", "Port for the local dashboard", "2342")
   .option("--no-open", "Do not automatically open the browser")
   .action(async (commandOptions: { port: string; open: boolean }) => {
@@ -333,7 +333,7 @@ program
     });
 
     const url = `http://127.0.0.1:${commandOptions.port}`;
-    console.log(`Chain Hub v2 running at ${url}`);
+    console.log(`Chain Hub running at ${url}`);
     console.log(`Chain home: ${chainHome}`);
 
     if (commandOptions.open !== false) {

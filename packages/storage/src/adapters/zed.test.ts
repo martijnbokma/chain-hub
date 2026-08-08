@@ -26,14 +26,30 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
 }
 
 describe("zedAdapter skills (1:1 kind)", () => {
-  it("writes a flat SKILL.md with required name+description frontmatter", async () => {
+  it("projects a folded hub description into a single-line Zed frontmatter field", async () => {
     const homeDir = await makeTmpHome();
-    await zedAdapter.writeAsset("/chain-home", homeDir, makeAsset());
+    const content = [
+      "---",
+      "name: bundle-strategy-audit",
+      "description: >-",
+      "  Audits code splitting and lazy-loading for editors.",
+      "---",
+      "",
+      "# Bundle Strategy Audit",
+      "",
+      "Body."
+    ].join("\n");
 
-    const filePath = path.join(homeDir, ".agents", "skills", "demo", "SKILL.md");
+    await zedAdapter.writeAsset(
+      "/chain-home",
+      homeDir,
+      makeAsset({ name: "bundle-strategy-audit", content })
+    );
+
+    const filePath = path.join(homeDir, ".agents", "skills", "bundle-strategy-audit", "SKILL.md");
     const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
-    expect(data.name).toBe("demo");
-    expect(data.description).toBe("Demo Skill");
+    expect(data.description).toBe("Audits code splitting and lazy-loading for editors.");
+    expect(data.description).not.toBe(">-");
   });
 
   it("removes a managed skill file and its empty directory", async () => {

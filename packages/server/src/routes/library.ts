@@ -98,17 +98,26 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     } catch (error) {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid asset input",
-        unknownFallback: "Unable to create asset"
+        unknownFallback: "Unable to create asset",
+        clientMessagePattern: /already exists|cannot be empty|description is missing/i
       });
     }
   });
 
   app.put("/api/library/:kind/:name", async (context) => {
-    const kind = context.req.param("kind") as AssetKind;
-    const name = context.req.param("name");
-    const payload = updateAssetInputSchema.parse(await context.req.json());
-    const asset = await updateLibraryAsset(options.chainHome, kind, name, payload.content);
-    return context.json(asset);
+    try {
+      const kind = context.req.param("kind") as AssetKind;
+      const name = context.req.param("name");
+      const payload = updateAssetInputSchema.parse(await context.req.json());
+      const asset = await updateLibraryAsset(options.chainHome, kind, name, payload.content);
+      return context.json(asset);
+    } catch (error) {
+      return respondWithMappedError(context, error, {
+        zodFallback: "Invalid asset update",
+        unknownFallback: "Unable to update asset",
+        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing/i
+      });
+    }
   });
 
   app.post("/api/library/:kind/:name/rename", async (context) => {
@@ -122,7 +131,7 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid rename input",
         unknownFallback: "Unable to rename asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned/i
+        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing/i
       });
     }
   });
@@ -138,7 +147,7 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid convert input",
         unknownFallback: "Unable to convert asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned/i
+        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing/i
       });
     }
   });

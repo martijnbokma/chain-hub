@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 
 import { App } from "./app";
 import { useTheme } from "./hooks/use-theme";
+import "@fontsource-variable/big-shoulders-display";
 import "./styles.css";
 
 const queryClient = new QueryClient();

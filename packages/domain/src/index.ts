@@ -64,7 +64,7 @@ export {
 export async function initializeChainHub(chainHome?: string) {
   const result = await initializeHub(chainHome);
   return {
-    message: `Initialized Chain Hub v2 at ${result.chainHome}`,
+    message: `Initialized Chain Hub at ${result.chainHome}`,
     chainHome: result.chainHome,
     isFirstRun: result.isFirstRun
   };

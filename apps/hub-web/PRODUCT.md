@@ -14,7 +14,7 @@ Team/shared-hub usage exists in the broader product roadmap (see repo-level `REB
 
 ## Product Purpose
 
-Chain Hub v2's dashboard (`apps/hub-web`) is the visual control plane for a local-first AI workspace. It lets a developer initialize a local hub, browse and edit reusable AI guidance, validate the hub's structure, and connect/inspect editor integrations — all from one calm, sequential interface rather than scattered per-editor config files.
+Chain Hub's dashboard (`apps/hub-web`) is the visual control plane for a local-first AI workspace. It lets a developer initialize a local hub, browse and edit reusable AI guidance, validate the hub's structure, and connect/inspect editor integrations — all from one calm, sequential interface rather than scattered per-editor config files.
 
 Success means: the user can tell at a glance whether their hub is healthy, what's synced where, and can make a change in one place and trust it reaches every editor they use.
 
@@ -30,7 +30,7 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 - The hub folder (default `~/.chain-hub`, overridable via `CHAIN_HOME`) is the on-disk source of truth: SQLite metadata index + Markdown/YAML asset files.
 - Linked editors today: Claude Code, Cursor, Windsurf (rebranded Devin Desktop), and Zed — each with different native storage conventions the dashboard's Integrations page surfaces per-editor (supported vs. unsupported asset kinds, connection status).
 - Part of a Bun + Turborepo monorepo (`packages/{cli,server,domain,storage,contracts}` + `apps/hub-web`); the dashboard only talks to the local `/api/*` HTTP surface, never directly to storage.
-- A user may already have an existing, separate Chain Hub installation (the current published product) with a large real asset library (skills, agents, workflows, rules) that predates this v2 rebuild and uses a different on-disk format — the Discover/Import flow is one deliberate bridge between the two, not an automatic migration.
+- A user may already have an existing, separate Chain Hub installation (the current published product) with a large real asset library (skills, agents, workflows, rules) that predates this rebuild and uses a different on-disk format — the Discover/Import flow is one deliberate bridge between the two, not an automatic migration.
 
 ## Capabilities and Constraints
 
@@ -45,7 +45,7 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 
 ## Brand Commitments
 
-Name: **Chain Hub v2**. Existing wordmark/monogram in the app shell: a "CH" mark paired with "Chain Hub v2 — Local control plane." No other product name or rebrand is in play for this surface.
+Name: **Chain Hub**. Existing wordmark/monogram in the app shell: an outlined orange "CH" mark paired with a Big Shoulders Display "CHAIN HUB" title (matches marketing titleblock). No other product name or rebrand is in play for this surface.
 
 ## Evidence on Hand
 

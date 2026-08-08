@@ -15,6 +15,14 @@ export const skillLockEntrySchema = z.object({
   updatedAt: z.string()
 });
 
+export const assetCompatIssueCodeSchema = z.enum(["missing_description"]);
+
+export const assetCompatIssueSchema = z.object({
+  code: assetCompatIssueCodeSchema,
+  severity: z.enum(["error", "warning"]),
+  message: z.string().min(1)
+});
+
 export const assetRecordSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -23,7 +31,9 @@ export const assetRecordSchema = z.object({
   updatedAt: z.string(),
   provenance: skillLockEntrySchema.nullable().optional(),
   /** Frontmatter `author` when present (skills and other markdown assets). */
-  author: z.string().nullable().optional()
+  author: z.string().nullable().optional(),
+  /** Deterministic editor-compat findings (skills: required description, etc.). */
+  compatIssues: z.array(assetCompatIssueSchema).optional()
 });
 
 export const assetDetailSchema = assetRecordSchema.extend({
@@ -215,6 +225,8 @@ export const migrateAgentsSkillsResultSchema = z.object({
   results: z.array(skillBatchItemResultSchema)
 });
 
+export type AssetCompatIssueCode = z.infer<typeof assetCompatIssueCodeSchema>;
+export type AssetCompatIssue = z.infer<typeof assetCompatIssueSchema>;
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 export type AssetDetail = z.infer<typeof assetDetailSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetInputSchema>;

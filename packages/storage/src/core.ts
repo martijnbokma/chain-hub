@@ -5,7 +5,11 @@ import { promises as fs } from "node:fs";
 
 import {
   assetKinds,
+  assertWritableAssetContent,
+  ensureExplicitDescription,
+  extractAssetAuthor,
   isUpstreamOwnedSkill,
+  listAssetCompatIssues,
   type AssetDetail,
   type AssetKind,
   type AssetRecord,
@@ -14,12 +18,17 @@ import {
 } from "@chain-hub/contracts";
 
 import { readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
-import { extractAssetAuthor } from "./adapters/frontmatter.js";
 import { ensureDir, pathExists } from "./shared.js";
 
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
 type DatabaseSyncInstance = import("node:sqlite").DatabaseSync;
+
+function prepareAssetContent(kind: AssetKind, name: string, content: string): string {
+  const prepared = kind === "skills" ? ensureExplicitDescription(content, name) : content;
+  assertWritableAssetContent(kind, prepared);
+  return prepared;
+}
 
 export const CORE_DIRS = [...assetKinds, "memory", "system", "logs"] as const;
 
@@ -133,7 +142,7 @@ async function seedWelcomeSkill(chainHome: string): Promise<void> {
     [
       "# Welcome",
       "",
-      "You are inside Chain Hub v2.",
+      "You are inside Chain Hub.",
       "",
       "- Keep AI guidance local and portable",
       "- Prefer clear workflows over hidden magic",
@@ -274,21 +283,24 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
         const asset = mapAssetRow(row);
         const filePath = path.join(chainHome, asset.relativePath);
         let author: string | null = null;
+        let compatIssues: ReturnType<typeof listAssetCompatIssues> = [];
 
         try {
           const content = await fs.readFile(filePath, "utf8");
           author = extractAssetAuthor(content);
+          compatIssues = listAssetCompatIssues(asset.kind, content);
         } catch {
           author = null;
         }
 
         if (asset.kind !== "skills") {
-          return { ...asset, author };
+          return { ...asset, author, compatIssues };
         }
 
         return {
           ...asset,
           author,
+          compatIssues,
           provenance: skillsLock.skills[asset.name] ?? null
         };
       })
@@ -316,6 +328,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
     updatedAt: stats.mtime.toISOString(),
     content,
     author: extractAssetAuthor(content),
+    compatIssues: listAssetCompatIssues(kind, content),
     provenance
   };
 }
@@ -330,6 +343,7 @@ export async function createAsset(chainHomeInput: string | undefined, input: Cre
     throw new Error("Asset name cannot be empty");
   }
 
+  const content = prepareAssetContent(input.kind, name, input.content);
   const filePath = assetFilePath(chainHome, input.kind, name);
   await ensureDir(path.dirname(filePath));
 
@@ -337,7 +351,7 @@ export async function createAsset(chainHomeInput: string | undefined, input: Cre
     throw new Error(`Asset already exists: ${input.kind}/${name}`);
   }
 
-  await fs.writeFile(filePath, input.content, "utf8");
+  await fs.writeFile(filePath, content, "utf8");
   await syncAssetIndex(chainHome);
 
   return getAsset(chainHome, input.kind, name);
@@ -367,7 +381,9 @@ export async function updateAsset(
     }
   }
 
-  await fs.writeFile(filePath, content, "utf8");
+  const nextContent = prepareAssetContent(kind, name, content);
+
+  await fs.writeFile(filePath, nextContent, "utf8");
   await syncAssetIndex(chainHome);
 
   return getAsset(chainHome, kind, name);
@@ -493,8 +509,9 @@ export async function convertAssetKind(
   }
 
   const content = await fs.readFile(fromPath, "utf8");
+  const nextContent = prepareAssetContent(toKind, toName, content);
   await ensureDir(path.dirname(toPath));
-  await fs.writeFile(toPath, content, "utf8");
+  await fs.writeFile(toPath, nextContent, "utf8");
 
   if (fromKind === "skills") {
     await fs.rm(path.dirname(fromPath), { recursive: true, force: true });

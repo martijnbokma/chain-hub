@@ -33,7 +33,7 @@ function cliArgv(...args: string[]): string[] {
 describe("CLI integration", () => {
   it("init creates a hub and status reports it", async () => {
     await runCli(cliArgv("init"));
-    expect(logs.some((line) => line.includes("Initialized Chain Hub v2"))).toBe(true);
+    expect(logs.some((line) => line.includes("Initialized Chain Hub"))).toBe(true);
 
     logs = [];
     await runCli(cliArgv("status"));

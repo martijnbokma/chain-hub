@@ -5,6 +5,7 @@ export type { Overview, AgentsSkillsDrift, ValidationResult } from './overview';
 export type {
   AssetRecord,
   AssetDetail,
+  AssetCompatIssue,
   AssetKind,
   FilterKind,
   OwnershipFilter,
