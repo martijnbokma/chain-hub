@@ -95,6 +95,50 @@ export const draftAssetResultSchema = z.object({
 /** @deprecated Prefer draftAssetResultSchema */
 export const draftPromptResultSchema = draftAssetResultSchema;
 
+export const classifyAssetInputSchema = z.object({
+  kind: z.enum(assetKinds),
+  name: z.string().min(1),
+  /** When omitted, the server loads hub content for kind/name. */
+  content: z.string().min(1).optional()
+});
+
+export const classifyAssetResultSchema = z.object({
+  currentKind: z.enum(assetKinds),
+  recommendedKind: z.enum(assetKinds),
+  matchesCurrent: z.boolean(),
+  reason: z.string().min(1),
+  suggestedName: z.string().optional()
+});
+
+export const auditAssetFindingSeveritySchema = z.enum(["high", "medium", "low"]);
+
+export const auditAssetFindingSchema = z.object({
+  severity: auditAssetFindingSeveritySchema,
+  title: z.string().min(1).max(120),
+  detail: z.string().min(1).max(500)
+});
+
+/** Same shape as classify for loading an existing asset. */
+export const auditAssetInputSchema = classifyAssetInputSchema;
+
+export const auditAssetResultSchema = z.object({
+  summary: z.string().min(1).max(400),
+  findings: z.array(auditAssetFindingSchema).max(12)
+});
+
+export const improveAssetInputSchema = z.object({
+  kind: z.enum(assetKinds),
+  name: z.string().min(1),
+  /** When omitted, the server loads hub content for kind/name. */
+  content: z.string().min(1).optional(),
+  summary: z.string().min(1).max(400).optional(),
+  findings: z.array(auditAssetFindingSchema).min(1).max(12)
+});
+
+export const improveAssetResultSchema = z.object({
+  content: z.string().min(1)
+});
+
 export type AiConfig = z.infer<typeof aiConfigSchema>;
 export type AiSecrets = z.infer<typeof aiSecretsSchema>;
 export type AiSettingsPublic = z.infer<typeof aiSettingsPublicSchema>;
@@ -103,3 +147,10 @@ export type DraftAssetInput = z.input<typeof draftAssetInputSchema>;
 export type DraftAssetResult = z.infer<typeof draftAssetResultSchema>;
 export type DraftPromptInput = DraftAssetInput;
 export type DraftPromptResult = DraftAssetResult;
+export type ClassifyAssetInput = z.input<typeof classifyAssetInputSchema>;
+export type ClassifyAssetResult = z.infer<typeof classifyAssetResultSchema>;
+export type AuditAssetInput = z.input<typeof auditAssetInputSchema>;
+export type AuditAssetFinding = z.infer<typeof auditAssetFindingSchema>;
+export type AuditAssetResult = z.infer<typeof auditAssetResultSchema>;
+export type ImproveAssetInput = z.input<typeof improveAssetInputSchema>;
+export type ImproveAssetResult = z.infer<typeof improveAssetResultSchema>;

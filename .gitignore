@@ -29,3 +29,4 @@ apps/hub-web/dist/
 .remember/
 .claude/settings.local.json
 .cursor/hooks/state/
+.impeccable/

@@ -17,7 +17,13 @@ import type {
   DraftAssetInput,
   DraftAssetResult,
   DraftPromptInput,
-  DraftPromptResult
+  DraftPromptResult,
+  ClassifyAssetInput,
+  ClassifyAssetResult,
+  AuditAssetInput,
+  AuditAssetResult,
+  ImproveAssetInput,
+  ImproveAssetResult
 } from '@/types';
 
 /**
@@ -57,6 +63,18 @@ export const libraryApi = {
   update: (kind: string, name: string, data: { content: string }) => 
     fetch(`/api/library/${kind}/${name}`, {
       method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  rename: (kind: string, name: string, data: { name: string }) =>
+    fetch(`/api/library/${kind}/${name}/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  convert: (kind: string, name: string, data: { toKind: string; name?: string }) =>
+    fetch(`/api/library/${kind}/${name}/convert`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
@@ -130,7 +148,38 @@ export const aiSettingsApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
+    }),
+  classifyAsset: (data: ClassifyAssetInput) =>
+    fetch('/api/ai/classify-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  auditAsset: (data: AuditAssetInput) =>
+    fetch('/api/ai/audit-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }),
+  improveAsset: (data: ImproveAssetInput) =>
+    fetch('/api/ai/improve-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     })
 };
 
-export type { AiSettingsPublic, UpdateAiSettingsInput, DraftAssetInput, DraftAssetResult, DraftPromptInput, DraftPromptResult };
+export type {
+  AiSettingsPublic,
+  UpdateAiSettingsInput,
+  DraftAssetInput,
+  DraftAssetResult,
+  DraftPromptInput,
+  DraftPromptResult,
+  ClassifyAssetInput,
+  ClassifyAssetResult,
+  AuditAssetInput,
+  AuditAssetResult,
+  ImproveAssetInput,
+  ImproveAssetResult
+};

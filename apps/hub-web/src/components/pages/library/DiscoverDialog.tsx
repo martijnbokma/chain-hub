@@ -37,8 +37,8 @@ export function DiscoverDialog({
         <DialogHeader>
           <DialogTitle>Discover</DialogTitle>
           <DialogDescription>
-            Assets already native in a linked editor but not yet tracked by the hub. Importing copies them in and keeps them
-            in sync everywhere from now on.
+            Assets that exist in a linked editor but are not yet in the hub. Importing copies them in and keeps them in sync
+            everywhere from now on.
           </DialogDescription>
         </DialogHeader>
         <DialogBody>

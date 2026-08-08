@@ -81,6 +81,8 @@ interface CreateAssetDialogProps {
   onOpenChange: (open: boolean) => void;
   draftName: string;
   onDraftNameChange: (value: string) => void;
+  draftNameLocked: boolean;
+  onDraftNameLockedChange: (locked: boolean) => void;
   draftKindChoice: DraftKindChoice;
   onDraftKindChoiceChange: (value: DraftKindChoice) => void;
   resolvedKind: AssetKind;
@@ -100,6 +102,8 @@ export function CreateAssetDialog({
   onOpenChange,
   draftName,
   onDraftNameChange,
+  draftNameLocked,
+  onDraftNameLockedChange,
   draftKindChoice,
   onDraftKindChoiceChange,
   resolvedKind,
@@ -114,7 +118,6 @@ export function CreateAssetDialog({
   isSubmitting
 }: CreateAssetDialogProps) {
   const canDraft = draftIntent.trim().length > 0 && !isDrafting;
-  const [nameLocked, setNameLocked] = useState(false);
   const [copied, setCopied] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
   const isAuto = draftKindChoice === 'auto';
@@ -130,7 +133,6 @@ export function CreateAssetDialog({
 
   useEffect(() => {
     if (!open) {
-      setNameLocked(false);
       setCopied(false);
     }
   }, [open]);
@@ -164,7 +166,7 @@ export function CreateAssetDialog({
   }
 
   const syncNameFromIntent = (intent: string) => {
-    if (nameLocked) {
+    if (draftNameLocked) {
       return;
     }
     onDraftNameChange(suggestAssetNameFromText(intent));
@@ -177,7 +179,7 @@ export function CreateAssetDialog({
 
   const handleKindChange = (value: DraftKindChoice) => {
     onDraftKindChoiceChange(value);
-    if (!nameLocked && draftIntent.trim()) {
+    if (!draftNameLocked && draftIntent.trim()) {
       onDraftNameChange(suggestAssetNameFromText(draftIntent));
     }
   };
@@ -196,14 +198,18 @@ export function CreateAssetDialog({
               onChange={(event) => {
                 const next = event.target.value;
                 onDraftNameChange(next);
-                setNameLocked(next.trim().length > 0);
+                onDraftNameLockedChange(next.trim().length > 0);
               }}
               placeholder="auto from intent…"
               value={draftName}
             />
-            {!nameLocked ? (
-              <span className="text-xs text-muted-foreground">Auto-filled from your intent — edit to lock the name.</span>
-            ) : null}
+            {!draftNameLocked ? (
+              <span className="text-xs text-muted-foreground">
+                Auto-filled from your intent — AI improves it after draft. Edit to lock the name.
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">Name locked — clear the field to unlock auto-naming.</span>
+            )}
           </label>
           <div className="grid gap-2">
             <label className="grid gap-2">

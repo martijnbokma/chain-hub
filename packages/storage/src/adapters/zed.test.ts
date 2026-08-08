@@ -85,7 +85,7 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
     expect(content).toContain("No rules yet.");
   });
 
-  it("does not clobber a pre-existing AGENTS.md without the chain-hub header marker", async () => {
+  it("claims a pre-existing AGENTS.md without the chain-hub header marker on resync", async () => {
     const homeDir = await makeTmpHome();
     const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -93,7 +93,9 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 
     await zedAdapter.resync("/chain-home", homeDir, [makeAsset({ kind: "rules", name: "a", content: "Generated" })]);
 
-    expect(await fs.readFile(filePath, "utf8")).toBe("# My own instructions\n");
+    const content = await fs.readFile(filePath, "utf8");
+    expect(content.startsWith(HEADER_MARKER)).toBe(true);
+    expect(content).toContain("Generated");
   });
 });
 
@@ -140,6 +142,6 @@ describe("zedAdapter.status", () => {
     const homeDir = await makeTmpHome();
     const result = await zedAdapter.status(homeDir);
     expect(result.supportedKinds).toEqual(["skills", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["agents", "workflows"]);
+    expect(result.unsupportedKinds).toEqual(["agents", "workflows", "prompts"]);
   });
 });

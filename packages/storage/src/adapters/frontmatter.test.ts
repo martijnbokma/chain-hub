@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveDescription, parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
+import { deriveDescription, extractAssetAuthor, parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
 
 describe("parseFrontmatter", () => {
   it("returns empty data and original body when no frontmatter fence is present", () => {
@@ -36,6 +36,20 @@ describe("parseFrontmatter", () => {
   it("treats unterminated fences as no frontmatter", () => {
     const result = parseFrontmatter("---\ndescription: x\nBody without closing fence");
     expect(result.data).toEqual({});
+  });
+});
+
+describe("extractAssetAuthor", () => {
+  it("returns null when author is absent", () => {
+    expect(extractAssetAuthor("# Title\n\nBody")).toBeNull();
+    expect(extractAssetAuthor("---\nname: demo\n---\n\nBody")).toBeNull();
+  });
+
+  it("reads top-level and nested metadata author fields", () => {
+    expect(extractAssetAuthor("---\nauthor: Martijn Bokma\n---\n\nBody")).toBe("Martijn Bokma");
+    expect(
+      extractAssetAuthor(["---", "metadata:", "  author: Martijn Bokma", "maintained_by: self", "---", "", "Body"].join("\n"))
+    ).toBe("Martijn Bokma");
   });
 });
 

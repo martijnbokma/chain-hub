@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { Command } from "commander";
 
 import {
@@ -37,9 +38,11 @@ import { resolveChainHome } from "@chain-hub/storage";
 import { startServer } from "@chain-hub/server";
 import { formatReflectionReport } from "./reflect-format.js";
 
-const program = new Command();
+export function createProgram(): Command {
+  const program = new Command();
+  program.exitOverride();
 
-program
+  program
   .name("chain")
   .description("Chain Hub v2 local-first CLI")
   .option("--chain-home <path>", "Override the default chain home");
@@ -144,9 +147,10 @@ assetCommand
 
 assetCommand
   .command("discover")
-  .description("List native editor assets not yet tracked by the hub")
+  .description("List native editor assets not yet in the hub")
   .action(async () => {
-    const discovered = await discoverLibraryAssets();
+    const options = program.opts<{ chainHome?: string }>();
+    const discovered = await discoverLibraryAssets(options.chainHome);
     console.log(JSON.stringify(discovered, null, 2));
   });
 
@@ -339,4 +343,18 @@ program
     }
   });
 
-program.parseAsync(process.argv);
+  return program;
+}
+
+export async function runCli(argv: string[] = process.argv): Promise<Command> {
+  const program = createProgram();
+  await program.parseAsync(argv);
+  return program;
+}
+
+const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
+const isDirectRun = entryPath.length > 0 && import.meta.url === pathToFileURL(entryPath).href;
+
+if (isDirectRun) {
+  await runCli(process.argv);
+}

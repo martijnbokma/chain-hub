@@ -19,7 +19,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
   return (
     <button
       className={cn(
-        'group grid w-full gap-3 rounded-xl border border-border bg-card text-left shadow-card transition-colors',
+        'group grid w-full min-w-0 gap-3 overflow-hidden rounded-xl border border-border bg-card text-left shadow-card transition-colors',
         'hover:border-primary/25 hover:bg-muted/50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         selected && 'border-primary/40 bg-primary/5 ring-1 ring-primary/15',
@@ -28,7 +28,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
       onClick={onSelect}
       type="button"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <span
           className={cn(
             'flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors',
@@ -37,15 +37,22 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
         >
           <Icon className="size-4" />
         </span>
-        <div className="grid min-w-0 flex-1 gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-medium text-foreground">{asset.name}</span>
+        <div className="grid min-w-0 flex-1 gap-1 overflow-hidden">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="min-w-0 truncate text-sm font-medium text-foreground">{asset.name}</span>
             <Badge variant="accent">{meta.label}</Badge>
             {asset.kind === 'skills' ? (
               <Badge variant="default">{formatSkillSourceType(asset.provenance)}</Badge>
             ) : null}
           </div>
-          <p className="truncate text-xs text-muted-foreground">{asset.relativePath}</p>
+          <p className="truncate text-xs text-muted-foreground" title={asset.relativePath}>
+            {asset.relativePath}
+          </p>
+          {asset.author ? (
+            <p className="truncate text-xs text-muted-foreground" title={asset.author}>
+              Author · {asset.author}
+            </p>
+          ) : null}
           {sourceLabel ? (
             <p className="truncate text-xs text-muted-foreground" title={sourceLabel}>
               Source · {sourceLabel}

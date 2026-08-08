@@ -26,8 +26,9 @@ async function isManaged(content: string, markerCheck: MarkerCheck): Promise<boo
  * Writes a Chain-Hub-generated file, refusing to clobber a file that already
  * exists but isn't itself Chain-Hub-managed (a user's own hand-written file).
  *
- * `force: true` skips that guard — used only when adopting a file the user just
- * chose to import, where writing over the exact source file is the intended effect.
+ * `force: true` skips that guard — used when Hub owns this kind/name and is
+ * projecting into the editor slot (sync/setup/import claim), including when an
+ * unmarked twin already sits at that path.
  */
 export async function writeManagedFile(
   filePath: string,

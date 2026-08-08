@@ -58,21 +58,37 @@ export function PageSkeleton({ variant, className }: PageSkeletonProps) {
           className={cn('mx-auto grid w-full max-w-5xl gap-8', className)}
         >
           <HeaderSkeleton />
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div className="grid gap-2 bg-card p-4" key={index}>
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-8 w-12" />
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+            <div className="-m-px grid grid-cols-2 sm:grid-cols-5">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  className={cn(
+                    'grid gap-2 border border-border bg-card p-4',
+                    index === 4 && 'max-sm:col-span-2'
+                  )}
+                  key={index}
+                >
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-8 w-12" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+            <div className="grid gap-3 border-b border-border p-4 sm:flex sm:gap-4">
+              <Skeleton className="h-4 w-16 sm:w-28" />
+              <div className="grid min-w-0 flex-1 gap-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-56" />
               </div>
-            ))}
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-48 w-full" />
+            </div>
+            <div className="grid gap-2 p-4 sm:flex sm:gap-4">
+              <Skeleton className="h-4 w-16 sm:w-28" />
+              <div className="grid min-w-0 flex-1 gap-2">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-3 w-full max-w-md" />
+              </div>
+            </div>
           </div>
         </section>
       );

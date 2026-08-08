@@ -6,7 +6,10 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import {
+  assertSafeRelativeSkillPath,
   isUpstreamOwnedSkill,
+  normalizeSkillName,
+  subdirFromSkillPath,
   type AgentsSkillsDrift,
   type AssetDetail,
   type ForkSkillInput,
@@ -51,14 +54,6 @@ function skillFile(chainHome: string, name: string): string {
   return path.join(skillDir(chainHome, name), "SKILL.md");
 }
 
-function normalizeSkillName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 async function pathExists(target: string): Promise<boolean> {
   try {
     await fs.lstat(target);
@@ -84,6 +79,35 @@ export async function readSkillsLock(chainHome: string): Promise<SkillsLockFile>
 async function writeSkillsLock(chainHome: string, lockFile: SkillsLockFile): Promise<void> {
   await fs.mkdir(path.dirname(skillsLockPath(chainHome)), { recursive: true });
   await fs.writeFile(skillsLockPath(chainHome), `${JSON.stringify(lockFile, null, 2)}\n`, "utf8");
+}
+
+/** Move a skills.lock entry when a hub skill directory is renamed. */
+export async function renameSkillLockEntry(
+  chainHome: string,
+  fromName: string,
+  toName: string
+): Promise<void> {
+  const lockFile = await readSkillsLock(chainHome);
+  const entry = lockFile.skills[fromName];
+  if (!entry) {
+    return;
+  }
+  if (lockFile.skills[toName]) {
+    throw new Error(`Skill lock already has an entry for ${toName}`);
+  }
+  delete lockFile.skills[fromName];
+  lockFile.skills[toName] = entry;
+  await writeSkillsLock(chainHome, lockFile);
+}
+
+/** Drop a skills.lock entry when a skill leaves the skills kind (convert/delete). */
+export async function removeSkillLockEntry(chainHome: string, name: string): Promise<void> {
+  const lockFile = await readSkillsLock(chainHome);
+  if (!lockFile.skills[name]) {
+    return;
+  }
+  delete lockFile.skills[name];
+  await writeSkillsLock(chainHome, lockFile);
 }
 
 async function hashSkillMarkdown(filePath: string): Promise<string> {
@@ -150,30 +174,6 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
   );
 }
 
-function subdirFromSkillPath(skillPath: string | undefined): string | undefined {
-  if (!skillPath) {
-    return undefined;
-  }
-
-  const normalized = skillPath.replace(/\\/g, "/");
-  const dir = path.posix.dirname(normalized);
-  if (!dir || dir === ".") {
-    return undefined;
-  }
-
-  return dir;
-}
-
-function assertSafeRelativePath(relativePath: string): string {
-  const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
-
-  if (!normalized || normalized.includes("..") || path.isAbsolute(normalized)) {
-    throw new Error(`Unsafe skill file path: ${relativePath}`);
-  }
-
-  return normalized;
-}
-
 export async function installSkillFromBundle(
   chainHome: string,
   input: InstallSkillBundleInput,
@@ -215,7 +215,7 @@ export async function installSkillFromBundle(
 
   try {
     for (const file of input.files) {
-      const relative = assertSafeRelativePath(file.path);
+      const relative = assertSafeRelativeSkillPath(file.path);
       const absolute = path.join(stagingDir, relative);
       await fs.mkdir(path.dirname(absolute), { recursive: true });
       await fs.writeFile(absolute, Buffer.from(file.contentBase64, "base64"));

@@ -61,10 +61,12 @@ const INITIAL_FOCUS_SELECTOR = 'input:not([type="hidden"]):not([disabled]), text
 
 export function DialogContent({
   children,
-  className
+  className,
+  showCloseButton = true
 }: {
   children: React.ReactNode;
   className?: string;
+  showCloseButton?: boolean;
 }) {
   const { open, setOpen } = useDialogContext();
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -143,14 +145,16 @@ export function DialogContent({
         role="dialog"
         tabIndex={-1}
       >
-        <button
-          aria-label="Close dialog"
-          className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-          onClick={() => setOpen(false)}
-          type="button"
-        >
-          <X className="size-4" />
-        </button>
+        {showCloseButton ? (
+          <button
+            aria-label="Close dialog"
+            className="absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            onClick={() => setOpen(false)}
+            type="button"
+          >
+            <X className="size-4" />
+          </button>
+        ) : null}
         {children}
       </div>
     </div>,

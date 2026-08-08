@@ -108,7 +108,7 @@ describe("cursorAdapter.status", () => {
     const homeDir = await makeTmpHome();
     const result = await cursorAdapter.status(homeDir);
     expect(result.supportedKinds).toEqual(["skills", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["agents", "workflows"]);
+    expect(result.unsupportedKinds).toEqual(["agents", "workflows", "prompts"]);
     expect(result.mode).toBe("missing");
   });
 });

@@ -289,4 +289,80 @@ describe("AI settings and draft-prompt", () => {
     const data = (await res.json()) as { error: string };
     expect(data.error).toMatch(/Anthropic API key/i);
   });
+
+  it("POST /api/ai/classify-asset returns 400 when Anthropic key is missing", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    await postJson(app, "/api/library", {
+      kind: "prompts",
+      name: "demo-prompt",
+      content: "Review this PR carefully."
+    });
+    await app.request("/api/settings/ai", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "anthropic" })
+    });
+
+    const res = await app.request("/api/ai/classify-asset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "prompts", name: "demo-prompt" })
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toMatch(/Anthropic API key/i);
+  });
+
+  it("POST /api/ai/audit-asset returns 400 when Anthropic key is missing", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    await postJson(app, "/api/library", {
+      kind: "skills",
+      name: "demo-skill",
+      content: "# Demo\n\nBody."
+    });
+    await app.request("/api/settings/ai", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "anthropic" })
+    });
+
+    const res = await app.request("/api/ai/audit-asset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "skills", name: "demo-skill" })
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toMatch(/Anthropic API key/i);
+  });
+
+  it("POST /api/ai/improve-asset returns 400 when Anthropic key is missing", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    await postJson(app, "/api/library", {
+      kind: "skills",
+      name: "demo-skill",
+      content: "# Demo\n\nBody."
+    });
+    await app.request("/api/settings/ai", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "anthropic" })
+    });
+
+    const res = await app.request("/api/ai/improve-asset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "skills",
+        name: "demo-skill",
+        findings: [{ severity: "medium", title: "Tighten steps", detail: "Make steps concrete." }]
+      })
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toMatch(/Anthropic API key/i);
+  });
 });

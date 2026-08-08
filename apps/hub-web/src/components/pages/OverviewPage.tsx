@@ -7,11 +7,11 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { libraryApi, overviewApi } from '@/lib/api';
+import { ASSET_KIND_LABELS, ASSET_KINDS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import type { MigrateAgentsSkillsResult } from '@/types';
 
@@ -36,10 +36,10 @@ export function OverviewPage() {
       const failed = result.results.filter((item) => item.status === 'failed').length;
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success(`Agents migrate: ${migrated} migrated, ${skipped} skipped, ${failed} failed`);
+      toast.success(`Imported from ~/.agents: ${migrated} migrated, ${skipped} skipped, ${failed} failed`);
     },
     onError: () => {
-      toast.error('Unable to migrate from ~/.agents/.skill-lock.json');
+      toast.error('Unable to import from ~/.agents/.skill-lock.json');
     }
   });
 
@@ -58,29 +58,27 @@ export function OverviewPage() {
   }
 
   const isHealthy = data.health.issues.length === 0;
-  const assetEntries = Object.entries(data.assetCounts);
   const agentsDrift = data.agentsSkillsDrift;
   const hasAgentsDrift = agentsDrift.missingCount > 0;
   const needsSetup = !data.health.initialized || data.storage.indexedAssets === 0;
+  const issueCount = data.health.issues.length;
 
   return (
     <section className="mx-auto grid w-full max-w-5xl gap-8">
-      <header className="grid gap-3">
+      <header className="grid gap-2">
         <Eyebrow>Overview</Eyebrow>
-        <div className="grid gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">Hub status</h2>
-            <Badge variant={isHealthy ? 'success' : 'warning'}>
-              {isHealthy ? 'Healthy' : 'Needs attention'}
-            </Badge>
-          </div>
-          <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
-            Manage reusable guidance, validate structure, and connect editors from one place.
-          </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Hub status</h2>
+          <Badge variant={isHealthy ? 'success' : 'warning'}>
+            {isHealthy ? 'Healthy' : 'Needs attention'}
+          </Badge>
         </div>
+        <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
+          Manage reusable guidance, validate structure, and connect editors from one place.
+        </p>
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Chain home</span>
-          <code className="break-all font-mono text-xs text-foreground">{data.chainHome}</code>
+          <code className="break-all font-mono text-xs text-muted-foreground">{data.chainHome}</code>
         </p>
       </header>
 
@@ -127,31 +125,39 @@ export function OverviewPage() {
         </Alert>
       ) : null}
 
-      <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-card sm:grid-cols-2 xl:grid-cols-4">
-        {assetEntries.map(([kind, count]) => (
-          <div className="grid gap-1 bg-card p-4" key={kind}>
-            <p className="text-xs font-medium capitalize text-muted-foreground">{kind}</p>
-            <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{count}</p>
-          </div>
-        ))}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="-m-px grid grid-cols-2 sm:grid-cols-5">
+          {ASSET_KINDS.map((kind) => {
+            const count = data.assetCounts[kind] ?? 0;
+            return (
+              <Link
+                className={cn(
+                  'grid gap-1 border border-border bg-card p-4 transition-colors',
+                  'hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-inset',
+                  'max-sm:last:col-span-2'
+                )}
+                key={kind}
+                to={`/library?kind=${kind}`}
+              >
+                <p className="text-xs font-medium text-muted-foreground">{ASSET_KIND_LABELS[kind]}</p>
+                <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{count}</p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Initialization</CardTitle>
-            <Badge variant={isHealthy ? 'success' : 'warning'}>
-              {isHealthy ? 'OK' : `${data.health.issues.length} issue${data.health.issues.length === 1 ? '' : 's'}`}
-            </Badge>
-          </CardHeader>
-          <CardContent className="grid gap-3">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="grid gap-3 border-b border-border p-4 sm:flex sm:gap-4">
+          <h3 className="shrink-0 text-sm font-semibold tracking-tight text-foreground sm:w-28">Health</h3>
+          <div className="grid min-w-0 flex-1 gap-2">
             <p className="text-sm leading-5 text-muted-foreground">
-              Initialized:{' '}
+              Initialized{' '}
               <span className="text-foreground">
                 {data.initializedAt ? new Date(data.initializedAt).toLocaleString() : 'Not yet'}
               </span>
             </p>
-            {data.health.issues.length > 0 ? (
+            {issueCount > 0 ? (
               <ul className="grid list-inside list-disc gap-1 text-sm text-foreground">
                 {data.health.issues.map((issue) => (
                   <li key={issue}>{issue}</li>
@@ -160,21 +166,18 @@ export function OverviewPage() {
             ) : (
               <p className="text-sm leading-5 text-muted-foreground">No structural issues detected.</p>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Storage</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2">
+          </div>
+        </div>
+        <div className="grid gap-2 p-4 sm:flex sm:gap-4">
+          <h3 className="shrink-0 text-sm font-semibold tracking-tight text-foreground sm:w-28">Storage</h3>
+          <div className="grid min-w-0 flex-1 gap-2">
             <p className="text-sm leading-5 text-muted-foreground">
-              Indexed assets:{' '}
+              Indexed assets{' '}
               <span className="font-medium tabular-nums text-foreground">{data.storage.indexedAssets}</span>
             </p>
             <code className="break-all font-mono text-xs text-muted-foreground">{data.storage.databasePath}</code>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </section>
   );

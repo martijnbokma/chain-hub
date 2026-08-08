@@ -100,7 +100,7 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
 async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
   for (const asset of assets) {
     if (SUPPORTED_KINDS.includes(asset.kind)) {
-      await writeAsset(chainHome, homeDir, asset);
+      await writeAsset(chainHome, homeDir, asset, { force: true });
     }
   }
 }

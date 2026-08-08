@@ -58,7 +58,9 @@ chain-hub-v2/
 **Entry Point**: `packages/server/src/index.ts` → Hono app
 
 **Key Files**:
-- `src/index.ts` — Hono app initialization, route registration
+- `src/index.ts` — Hono app factory, static SPA serving, `startServer`
+- `src/routes/` — Route registrars (`hub`, `library`, `memory`, `learnings`, `ai`)
+- `src/http-errors.ts` — Shared Zod/Error → JSON helpers
 - `src/dev-server.ts` — Development server with hot reload
 - `dist/index.js` — Built server output
 
@@ -105,7 +107,7 @@ chain-hub-v2/
 **Entry Point**: `packages/storage/src/index.ts`
 
 **Responsibilities**:
-- SQLite database operations (via node:sqlite + drizzle-orm)
+- SQLite database operations (via `node:sqlite`, raw SQL)
 - YAML file I/O for assets
 - Markdown file I/O for memory/notes
 - Filesystem operations
@@ -255,7 +257,7 @@ hub-web/
    - Theme preference
    - Local-first AI providers (BYOK / Ollama)
 
-Memory notes and learnings are CLI/API surfaces today (`chain capture` / `chain reflect`, `/api/memory`, `/api/learnings`) — not dashboard routes.
+Memory notes and learnings are CLI/API surfaces (`chain capture` / `chain reflect`, `/api/memory`, `/api/learnings`) — not dashboard routes. **v2 phase 1 decision:** keep them CLI/API-only (no hub-web page, sidebar, or command-palette entry) until an explicit later IA change.
 
 ---
 
@@ -281,11 +283,9 @@ Memory notes and learnings are CLI/API surfaces today (`chain capture` / `chain 
 
 **Purpose**: Centralized HTTP communication with server.
 
-**Location**: `apps/hub-web/src/lib/api-client.ts`
+**Location**: `apps/hub-web/src/lib/api.ts`
 
-**Hook**: `apps/hub-web/src/hooks/use-api.ts`
-
-**Pattern**: TanStack Query for caching, React Query for mutations.
+**Pattern**: TanStack Query for caching and mutations; typed helpers wrap `fetch` to the local Hono API.
 
 ---
 
@@ -295,7 +295,7 @@ Memory notes and learnings are CLI/API surfaces today (`chain capture` / `chain 
 
 **Library**: Sonner 2.0.7
 
-**Hook**: `apps/hub-web/src/hooks/use-toast.ts`
+**Usage**: Call `toast` from `sonner` directly in page/mutation handlers (no `use-toast` wrapper).
 
 ---
 
@@ -304,21 +304,21 @@ Memory notes and learnings are CLI/API surfaces today (`chain capture` / `chain 
 ### Asset Management
 
 **Core Files**:
-- Contracts: `packages/contracts/src/schemas/asset.ts`
-- Domain: Asset service in `packages/domain/src/`
-- Storage: Asset adapter in `packages/storage/src/`
-- Server: Library routes in `packages/server/src/`
-- CLI: Asset commands in `packages/cli/src/`
-- UI: Library page and AssetCard component in `apps/hub-web/src/`
+- Contracts: `packages/contracts/src/asset.ts` (schemas + `normalizeSkillName` / path policy helpers)
+- Domain: `packages/domain/src/skills.ts` (install/update/migrate/fork + editor sync); `ai-providers.ts` for drafting
+- Storage: `packages/storage/src/skill-install.ts` (filesystem/git I/O, lock file); `core.ts` for asset CRUD
+- Server: Library routes in `packages/server/src/routes/library.ts`
+- CLI: Asset/skill commands in `packages/cli/src/`
+- UI: Library page under `apps/hub-web/src/components/pages/library/`
 
-**Asset Kinds**: skills, agents, workflows, rules (extensible)
+**Asset Kinds**: skills, agents, workflows, rules, prompts
 
 ---
 
 ### Learning & Reflection System
 
 **Core Files**:
-- Contracts: `packages/contracts/src/schemas/learning.ts`
+- Contracts: `packages/contracts/src/learning.ts`
 - Domain: Learning service in `packages/domain/src/`
 - Storage: Learning adapter in `packages/storage/src/`
 - Server: Learnings routes in `packages/server/src/`
@@ -332,7 +332,7 @@ Memory notes and learnings are CLI/API surfaces today (`chain capture` / `chain 
 ### Editor Integration
 
 **Core Files**:
-- Contracts: `packages/contracts/src/schemas/integration.ts`
+- Contracts: `packages/contracts/src/hub.ts` (integrations live alongside overview schemas)
 - Domain: Integration service in `packages/domain/src/`
 - Storage: Integration adapter in `packages/storage/src/`
 - Server: Integrations routes in `packages/server/src/`
@@ -383,14 +383,14 @@ All UI components are built on shadcn/ui + Radix UI:
 
 | Use Case | Example Location |
 |---|---|
-| **Form validation** | `apps/hub-web/src/hooks/use-form.ts` (when created) |
-| **API client usage** | `apps/hub-web/src/hooks/use-api.ts` |
-| **Zod schema definition** | `packages/contracts/src/schemas/*.ts` |
+| **Form validation** | Zod schemas in `@chain-hub/contracts` + form state in page components |
+| **API client usage** | `apps/hub-web/src/lib/api.ts` |
+| **Zod schema definition** | `packages/contracts/src/*.ts` (e.g. `asset.ts`, `ai.ts`) |
 | **Hono route definition** | `packages/server/src/index.ts` |
 | **Commander command** | `packages/cli/src/index.ts` |
 | **Storage adapter** | `packages/storage/src/index.ts` |
 | **Domain service** | `packages/domain/src/index.ts` |
-| **Page layout** | `apps/hub-web/src/components/layout/PageLayout.tsx` |
+| **Shell / page chrome** | `apps/hub-web/src/components/layout/Shell.tsx` |
 | **UI component** | `apps/hub-web/src/components/ui/*.tsx` |
 
 ---

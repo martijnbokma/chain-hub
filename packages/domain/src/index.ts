@@ -1,28 +1,28 @@
 import type {
   AssetKind,
+  AuditAssetInput,
   CaptureInput,
+  ClassifyAssetInput,
+  ConvertAssetInput,
   CreateAssetInput,
   CreateMemoryNoteInput,
   DraftAssetInput,
   DraftPromptInput,
-  ForkSkillInput,
   ImportAssetInput,
-  InstallSkillBundleInput,
-  InstallSkillInput,
-  MigrateAgentsSkillsInput,
-  UpdateAiSettingsInput,
-  UpdateSkillsInput
+  ImproveAssetInput,
+  RenameAssetInput,
+  UpdateAiSettingsInput
 } from "@chain-hub/contracts";
 import {
   buildReflectionReport,
   captureEvent,
   writeReflectionMarkdown,
+  convertAssetKind,
   createAsset,
   createMemoryNote,
   deleteAsset,
   deleteMemoryNote,
   discoverAssets,
-  forkSkill,
   getAiSettingsPublic,
   getAsset,
   getIntegrations,
@@ -33,26 +33,33 @@ import {
   getSetupGuide,
   importDiscoveredAsset,
   initializeHub,
-  installSkill,
-  installSkillBundle,
   listAssets,
   listMemoryNotes,
-  migrateAgentsSkills,
   readAiConfig,
   readAiSecrets,
+  renameAsset,
   searchMemoryNotes,
   setupIntegrations,
   syncAssetToEditors,
   updateAiSettings,
   updateAsset,
   updateMemoryNote,
-  updateSkills,
   validateHub
 } from "@chain-hub/storage";
 
-import { generateAssetDraft } from "./ai-providers.js";
+import { auditExistingAsset, classifyExistingAsset, generateAssetDraft, improveExistingAsset } from "./ai-providers.js";
 
 export { AiProviderError } from "./ai-providers.js";
+export {
+  forkLibrarySkill,
+  getHubAgentsSkillsDrift,
+  installLibrarySkill,
+  installLibrarySkillBundle,
+  migrateAgentsLibrarySkills,
+  summarizeAgentsSkillSync,
+  syncAgentsSkillsIntoHub,
+  updateLibrarySkills
+} from "./skills.js";
 
 export async function initializeChainHub(chainHome?: string) {
   const result = await initializeHub(chainHome);
@@ -92,93 +99,37 @@ export async function deleteLibraryAsset(chainHome: string | undefined, kind: As
   await syncAssetToEditors(chainHome, kind, name, null);
 }
 
-export async function discoverLibraryAssets() {
-  return discoverAssets();
+export async function renameLibraryAsset(
+  chainHome: string | undefined,
+  kind: AssetKind,
+  name: string,
+  input: RenameAssetInput
+) {
+  await syncAssetToEditors(chainHome, kind, name, null);
+  const asset = await renameAsset(chainHome, kind, name, input.name);
+  await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
+  return asset;
+}
+
+export async function convertLibraryAssetKind(
+  chainHome: string | undefined,
+  kind: AssetKind,
+  name: string,
+  input: ConvertAssetInput
+) {
+  await syncAssetToEditors(chainHome, kind, name, null);
+  const asset = await convertAssetKind(chainHome, kind, name, input.toKind, input.name);
+  await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
+  return asset;
+}
+
+export async function discoverLibraryAssets(chainHome?: string) {
+  return discoverAssets(chainHome);
 }
 
 export async function importLibraryAsset(chainHome: string | undefined, input: ImportAssetInput) {
   const asset = await importDiscoveredAsset(chainHome, input);
   await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
-  return asset;
-}
-
-export async function installLibrarySkill(chainHome: string | undefined, input: InstallSkillInput) {
-  const result = await installSkill(chainHome, input);
-  await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
-  return result;
-}
-
-export async function installLibrarySkillBundle(
-  chainHome: string | undefined,
-  input: InstallSkillBundleInput
-) {
-  const result = await installSkillBundle(chainHome, input);
-  await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
-  return result;
-}
-
-export async function updateLibrarySkills(chainHome: string | undefined, input: UpdateSkillsInput = {}) {
-  const result = await updateSkills(chainHome, input);
-
-  for (const item of result.results) {
-    if (item.status !== "updated" && item.status !== "migrated") {
-      continue;
-    }
-
-    const asset = await getAsset(chainHome, "skills", item.name);
-    await syncAssetToEditors(chainHome, "skills", item.name, asset);
-  }
-
-  return result;
-}
-
-export async function migrateAgentsLibrarySkills(
-  chainHome: string | undefined,
-  input: MigrateAgentsSkillsInput = {}
-) {
-  const result = await migrateAgentsSkills(chainHome, input);
-
-  for (const item of result.results) {
-    if (item.status !== "migrated" && item.status !== "updated") {
-      continue;
-    }
-
-    const asset = await getAsset(chainHome, "skills", item.name);
-    await syncAssetToEditors(chainHome, "skills", item.name, asset);
-  }
-
-  return result;
-}
-
-/** Incremental import of ~/.agents skills into Hub. Missing lock is a no-op. */
-export async function syncAgentsSkillsIntoHub(
-  chainHome: string | undefined,
-  input: MigrateAgentsSkillsInput = {}
-) {
-  try {
-    return await migrateAgentsLibrarySkills(chainHome, { ...input, force: false });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("Agents skill lock not found")) {
-      return {
-        lockPath: input.lockPath ?? "",
-        results: []
-      };
-    }
-    throw error;
-  }
-}
-
-export function summarizeAgentsSkillSync(result: { results: Array<{ status: string }> }): string {
-  const migrated = result.results.filter((item) => item.status === "migrated").length;
-  const skipped = result.results.filter((item) => item.status === "skipped").length;
-  const failed = result.results.filter((item) => item.status === "failed").length;
-  return `Agents skill sync: ${migrated} migrated, ${skipped} skipped, ${failed} failed`;
-}
-
-export async function forkLibrarySkill(chainHome: string | undefined, input: ForkSkillInput) {
-  const asset = await forkSkill(chainHome, input);
-  await syncAssetToEditors(chainHome, "skills", asset.name, asset);
   return asset;
 }
 
@@ -234,11 +185,11 @@ export async function getHubLearningsTimeline(chainHome: string | undefined, lim
   return getLearningsTimeline(chainHome, limit, offset);
 }
 
-export async function getHubReflectionReport(chainHome: string | undefined) {
+export async function getHubReflectionReport(chainHome?: string) {
   return buildReflectionReport(chainHome);
 }
 
-export async function writeHubReflection(chainHome: string | undefined) {
+export async function writeHubReflection(chainHome?: string) {
   return writeReflectionMarkdown(chainHome);
 }
 
@@ -254,6 +205,53 @@ export async function draftHubAsset(chainHome: string | undefined, input: DraftA
   const config = await readAiConfig(chainHome);
   const secrets = await readAiSecrets(chainHome);
   return generateAssetDraft({ config, secrets, input });
+}
+
+export async function classifyHubAsset(chainHome: string | undefined, input: ClassifyAssetInput) {
+  const config = await readAiConfig(chainHome);
+  const secrets = await readAiSecrets(chainHome);
+  const content =
+    input.content?.trim() ||
+    (await getAsset(chainHome, input.kind, input.name)).content;
+  return classifyExistingAsset({
+    config,
+    secrets,
+    currentKind: input.kind,
+    name: input.name,
+    content
+  });
+}
+
+export async function auditHubAsset(chainHome: string | undefined, input: AuditAssetInput) {
+  const config = await readAiConfig(chainHome);
+  const secrets = await readAiSecrets(chainHome);
+  const content =
+    input.content?.trim() ||
+    (await getAsset(chainHome, input.kind, input.name)).content;
+  return auditExistingAsset({
+    config,
+    secrets,
+    kind: input.kind,
+    name: input.name,
+    content
+  });
+}
+
+export async function improveHubAsset(chainHome: string | undefined, input: ImproveAssetInput) {
+  const config = await readAiConfig(chainHome);
+  const secrets = await readAiSecrets(chainHome);
+  const content =
+    input.content?.trim() ||
+    (await getAsset(chainHome, input.kind, input.name)).content;
+  return improveExistingAsset({
+    config,
+    secrets,
+    kind: input.kind,
+    name: input.name,
+    content,
+    summary: input.summary,
+    findings: input.findings
+  });
 }
 
 /** @deprecated Prefer draftHubAsset */

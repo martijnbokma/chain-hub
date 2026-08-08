@@ -239,7 +239,7 @@ ANALYSIS:
 
 CONTEXT NEEDED:
 - packages/server/src/routes/library.ts (lines 35-50)
-- packages/contracts/src/schemas/user.ts (type definition)
+- packages/contracts/src/hub.ts (type definition)
 - Test that exercises this path
 
 FIX:
@@ -405,30 +405,32 @@ chain validate
 ## Learned User Preferences
 
 - Hub UI should feel premium, simple, sleek, and trustworthy—not a dense console/terminal aesthetic and not marketing-card or AI-slop layouts (oversized radii, sparse stadium cards, eyebrow-on-everything).
-- Cool Trust is the chosen visual direction: near-white zinc page, white surfaces, slate text, orange as the sole brand accent (One Signal—not for status dots or hover/selection fills), ~10–12px radius, tight type scale.
-- Standardize hub-web layouts by surface type (Direction A): checklist for Setup/Integrations/Learnings; dashboard for Overview; workspace master–detail for Library/Memory (Library browse may use compact asset cards).
+- Cool Trust is the chosen visual direction: light default (near-white zinc page, white surfaces) plus switchable Cool Trust Dark (prompts-inspired deep slate canvas/panels); slate text; orange as the sole brand accent in both themes (One Signal—not for status dots or hover/selection fills); ~10–12px radius; tight type scale; theme switch via header, Settings → Appearance, and ⌘K.
+- Standardize hub-web layouts by surface type (Direction A): dashboard Overview as default landing (`/`); checklist for Setup (under Settings, not primary nav) and Integrations; workspace master–detail for Library (browse may use compact asset cards). Primary nav: Overview → Library → Integrations → Settings. Library chrome: Create + Discover (and skills Install/Update) in the Assets title row; full-width search below; filters under search.
 - Prefer rebuilding UI against existing design-system components and tokens; flag gaps and make the smallest addition rather than inventing one-off primitives.
 - Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
 - Prefer not editing marketplace/upstream-installed skills in place when updates would overwrite local changes; contribute via PR/fork to the owner instead.
-- Library should surface skill provenance/source so it is clear where each skill came from.
+- Library should surface skill provenance/source and ownership filters (All / Editable / Upstream): Editable vs Upstream comes from `skills-lock` (not authorship)—path/git installs are Upstream even when user-authored; no lock or `upload://` is Editable; Editable ≠ authored. To keep personal skills Editable, install via dashboard upload (`upload://`), not `chain skill install --path`. Author search uses frontmatter `metadata.author`.
 - Prefer a single canonical hub at `~/.chain-hub` for CLI and dashboard; avoid parallel alternate `CHAIN_HOME` locations for day-to-day use.
-- Hub AI should stay local-first (BYOK Anthropic/OpenAI/Mistral + Ollama; no Chain cloud); AI prompt help belongs primarily in the Create flow for prompts.
+- Hub AI should stay local-first (BYOK Anthropic/OpenAI/Mistral + Ollama; no Chain cloud); AI drafting belongs in the Create flow for all asset kinds (not only prompts), including suggesting the best kind when the intent is ambiguous; detail panel supports Reassess kind (+ Convert) and per-asset Audit with severity findings, then apply/improve from audit; audit is a best-practices quality gate that may return no findings when the asset already meets the bar—no endless polish loops, but stay critical for material gaps; Editable filter is the foundation for AI improve/optimize.
 - Prefer prompt-kit building blocks (`PromptInput`, `PromptSuggestion`, `Loader`) for AI UI, adapted to Cool Trust tokens—not stock prompt-kit styling.
 - AI-drafted prompts/content should be written in English even when the user writes intents in Dutch; surface LLM failures as plain user-friendly messages, not raw API JSON.
 
 ## Learned Workspace Facts
 
-- Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and `apps/hub-web/.impeccable/` (not ad-hoc styling guesses).
+- Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and local `apps/hub-web/.impeccable/` (`.impeccable/` is gitignored agent/design tooling—not committed); not ad-hoc styling guesses.
 - `apps/marketing-site` remains under development with its own inline coming-soon page (no shared `ComingSoonPage` in hub-web).
 - Personal skills vault lives at `/Users/silverfox/www/skills` (shared design skill lives there; not vendored under `.claude/skills/` in this repo).
 - Historical improve-app journey docs live under `docs/archive/` (not product SoT).
 - Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
 - Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`docs/intent/hub-skills-control-plane.md`, `docs/specs/hub-skill-install.md`).
 - External `npx skills add` / `~/.agents` installs are imported into Hub on `chain hub` / `chain setup` start (no force overwrite), with remaining agents↔Hub drift surfaced on Overview/Library.
+- Discover lists only editor candidates whose `kind/name` is not already in the hub inventory (in addition to skipping Chain-Hub-managed editor files).
 - Windsurf/Devin adapter syncs skills to `~/.codeium/windsurf/skills/` and dual-writes rules/workflows under `~/.devin` + `~/.windsurf`; agents have no native Devin target.
-- Hub AI settings live under `/settings`: provider/model config in `~/.chain-hub/system/ai-config.json`, API keys in `~/.chain-hub/system/secrets.json`; providers are Anthropic, OpenAI, Ollama, and Mistral with per-provider model selection and key/docs links; Create-flow drafting uses `POST /api/ai/draft-prompt`.
+- Hub AI settings live under `/settings`: provider/model config in `~/.chain-hub/system/ai-config.json`, API keys in `~/.chain-hub/system/secrets.json`; providers are Anthropic, OpenAI, Ollama, and Mistral with per-provider model selection and key/docs links; Create-flow drafting uses `POST /api/ai/draft-prompt`; existing-asset classify/audit use `POST /api/ai/classify-asset` and `POST /api/ai/audit-asset`.
+- Memory and Learnings are CLI/API-only for v2 phase 1 (no hub-web routes until an explicit IA change).
 
 ---
 
-*Last updated: July 8, 2026*
+*Last updated: August 8, 2026*
 *This file complements CLAUDE.md and AI_CONTEXT.md*

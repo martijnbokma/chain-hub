@@ -6,8 +6,11 @@ export {
   getAsset,
   createAsset,
   updateAsset,
+  renameAsset,
+  convertAssetKind,
   deleteAsset,
-  validateHub
+  validateHub,
+  syncAssetIndex
 } from "./core.js";
 
 export {
@@ -18,6 +21,19 @@ export {
   getAgentsSkillsDrift,
   forkSkill
 } from "./assets.js";
+
+export {
+  installSkillFromSource,
+  installSkillFromBundle,
+  updateSkillsFromLock,
+  migrateAgentsSkillLock,
+  detectAgentsSkillsDrift,
+  forkSkillFromHub,
+  readSkillsLock,
+  renameSkillLockEntry,
+  projectSkillSidecars,
+  removeEditorSkillDirectory
+} from "./skill-install.js";
 
 export {
   getIntegrations,

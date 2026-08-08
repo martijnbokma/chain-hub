@@ -126,3 +126,17 @@ export function deriveDescription(content: string, fallbackName: string): { data
 
   return { data, body, description };
 }
+
+/**
+ * Best-effort author from flat frontmatter (`author:`) including nested forms
+ * like `metadata:` / `  author:` that the flat parser still surfaces as `author`.
+ */
+export function extractAssetAuthor(content: string): string | null {
+  const { data } = parseFrontmatter(content);
+  if (typeof data.author !== "string") {
+    return null;
+  }
+
+  const author = data.author.trim();
+  return author.length > 0 ? author : null;
+}

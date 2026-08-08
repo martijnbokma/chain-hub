@@ -25,7 +25,7 @@
 - **Server**: Hono 4.5.8 + @hono/node-server 1.13.1
 - **Build**: tsup 8.2.4 (packages)
 - **Validation**: Zod (shared across all packages)
-- **Storage**: SQLite via node:sqlite + drizzle-orm
+- **Storage**: SQLite via node:sqlite (raw SQL; no ORM)
 
 ### Frontend Stack
 - **Framework**: React 19.2.7 + React Router 7.18.1
@@ -72,7 +72,7 @@ chain-hub-v2/
 - `bun run dev:all` — All packages including marketing-site and CLI
 - `bun run dev:marketing` — Marketing site only
 - `bun run hub` — Build + start dashboard (production mode)
-- `bun run lint` — Run ESLint across workspace
+- `bun run lint` — Currently aliases `typecheck` (ESLint not configured yet)
 - `bun run typecheck` — Type check all packages
 - `bun run test` — Run all tests
 
@@ -91,7 +91,7 @@ chain-hub-v2/
 - `chain asset update --kind <kind> --name <name> --content <text>`
 - `chain asset remove --kind <kind> --name <name>`
 
-Asset kinds: `skills` · `agents` · `workflows` · `rules`
+Asset kinds: `skills` · `agents` · `workflows` · `rules` · `prompts`
 
 ### Learnings
 - `chain capture --event <type> --skill <slug> --summary "<text>"` (types: success, failure, correction, note)
@@ -128,10 +128,10 @@ Asset kinds: `skills` · `agents` · `workflows` · `rules`
 4. **Error handling** — Use custom error classes, not raw throws
 
 ### Testing
-1. **Vitest** for unit tests (packages/server, packages/storage, packages/domain)
-2. **Testing Library** for component tests (apps/hub-web)
-3. **Playwright** for e2e tests
-4. **Colocate tests** — `__tests__` folder or `.test.ts` alongside source files
+1. **Vitest** for unit/integration tests (packages/server, packages/storage, packages/domain, packages/cli, apps/hub-web)
+2. **Testing Library** for hub-web component smoke tests (Create flow + library helpers)
+3. **Playwright** for e2e tests — not configured yet
+4. **Colocate tests** — `__tests__` folder or `.test.ts` / `.test.tsx` alongside source files
 
 ### File Organization
 - **Components**: PascalCase names, `.tsx` extension

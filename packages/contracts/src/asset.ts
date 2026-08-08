@@ -21,7 +21,9 @@ export const assetRecordSchema = z.object({
   kind: z.enum(assetKinds),
   relativePath: z.string(),
   updatedAt: z.string(),
-  provenance: skillLockEntrySchema.nullable().optional()
+  provenance: skillLockEntrySchema.nullable().optional(),
+  /** Frontmatter `author` when present (skills and other markdown assets). */
+  author: z.string().nullable().optional()
 });
 
 export const assetDetailSchema = assetRecordSchema.extend({
@@ -36,6 +38,16 @@ export const createAssetInputSchema = z.object({
 
 export const updateAssetInputSchema = z.object({
   content: z.string().min(1)
+});
+
+export const renameAssetInputSchema = z.object({
+  name: z.string().min(1)
+});
+
+export const convertAssetInputSchema = z.object({
+  toKind: z.enum(assetKinds),
+  /** Keep current name when omitted. */
+  name: z.string().min(1).optional()
 });
 
 export const discoveredAssetSchema = z.object({
@@ -107,6 +119,49 @@ export function isUpstreamOwnedSkill(entry: SkillLockEntryValue | null | undefin
   return !entry.source.startsWith("upload://");
 }
 
+/**
+ * Hub-editable assets: non-skills always; skills unless upstream-locked (git/path).
+ * Created, forked, and uploaded skills count as editable.
+ */
+export function isEditableHubAsset(asset: {
+  kind: AssetKind;
+  provenance?: SkillLockEntryValue | null;
+}): boolean {
+  if (asset.kind !== "skills") {
+    return true;
+  }
+
+  return !isUpstreamOwnedSkill(asset.provenance);
+}
+
+/** Normalize a skill folder/name to a kebab-case hub slug. */
+export function normalizeSkillName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Derive git subdir from an agents lock skillPath (file path → parent dir). */
+export function subdirFromSkillPath(skillPath: string | undefined): string | undefined {
+  if (!skillPath) return undefined;
+  const normalized = skillPath.replace(/\\/g, "/");
+  const lastSlash = normalized.lastIndexOf("/");
+  if (lastSlash <= 0) return undefined;
+  const dir = normalized.slice(0, lastSlash);
+  if (!dir || dir === ".") return undefined;
+  return dir;
+}
+
+export function assertSafeRelativeSkillPath(relativePath: string): string {
+  const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!normalized || normalized.includes("..") || normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) {
+    throw new Error(`Unsafe skill file path: ${relativePath}`);
+  }
+  return normalized;
+}
+
 /** Best-effort browse URL for contributing changes back to a git skill source. */
 export function resolveSkillUpstreamBrowseUrl(entry: SkillLockEntryValue | null | undefined): string | null {
   if (!entry || entry.sourceType !== "git") {
@@ -164,6 +219,8 @@ export type AssetRecord = z.infer<typeof assetRecordSchema>;
 export type AssetDetail = z.infer<typeof assetDetailSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetInputSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>;
+export type RenameAssetInput = z.infer<typeof renameAssetInputSchema>;
+export type ConvertAssetInput = z.infer<typeof convertAssetInputSchema>;
 export type DiscoveredAsset = z.infer<typeof discoveredAssetSchema>;
 export type ImportAssetInput = z.infer<typeof importAssetInputSchema>;
 export type InstallSkillInput = z.infer<typeof installSkillInputSchema>;

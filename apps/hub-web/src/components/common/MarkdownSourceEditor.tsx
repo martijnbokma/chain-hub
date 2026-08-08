@@ -51,14 +51,13 @@ function createCoolTrustTheme(isDark: boolean) {
       '&': {
         color: 'var(--color-foreground)',
         backgroundColor: 'var(--color-background)',
-        fontSize: '12px',
         height: '100%'
       },
       '.cm-content': {
         fontFamily: 'var(--font-mono)',
         caretColor: 'var(--color-primary)',
         lineHeight: '1.5',
-        padding: '12px 0'
+        padding: '0.75rem 0'
       },
       '.cm-cursor, .cm-dropCursor': {
         borderLeftColor: 'var(--color-primary)'
@@ -75,14 +74,14 @@ function createCoolTrustTheme(isDark: boolean) {
         border: 'none',
         borderRight: '1px solid var(--color-border)',
         fontFamily: 'var(--font-mono)',
-        fontSize: '11px'
+        fontSize: '0.6875rem'
       },
       '.cm-activeLineGutter': {
         backgroundColor: 'var(--color-muted)',
         color: 'var(--color-muted-foreground)'
       },
       '.cm-lineNumbers .cm-gutterElement': {
-        padding: '0 12px 0 8px',
+        padding: '0 0.75rem 0 0.5rem',
         minWidth: '2.5rem'
       },
       '.cm-scroller': {

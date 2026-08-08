@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { aiConfigSchema, type AiSecrets } from "@chain-hub/contracts";
 
-import { AiProviderError, generateAssetDraft } from "./ai-providers.js";
+import { AiProviderError, auditExistingAsset, classifyExistingAsset, generateAssetDraft, improveExistingAsset } from "./ai-providers.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -71,7 +71,7 @@ describe("generateAssetDraft", () => {
 
     expect(result.content).toBe("OpenAI drafted prompt");
     expect(result.recommendedKind).toBe("prompts");
-    expect(result.suggestedName).toBeUndefined();
+    expect(result.suggestedName).toBe("summarize-meeting-notes");
   });
 
   it("calls Mistral and returns content", async () => {
@@ -236,7 +236,7 @@ describe("generateAssetDraft", () => {
           content: [
             {
               type: "text",
-              text: '```json\n{"kind":"workflows","reason":"Ordered release steps fit a workflow."}\n```'
+              text: '```json\n{"kind":"workflows","reason":"Ordered release steps fit a workflow.","suggestedName":"release-checklist"}\n```'
             }
           ]
         });
@@ -256,7 +256,156 @@ describe("generateAssetDraft", () => {
 
     expect(result.recommendedKind).toBe("workflows");
     expect(result.reason).toMatch(/workflow/i);
+    expect(result.suggestedName).toBe("release-checklist");
     expect(result.content).toContain("Release checklist");
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("classifies an existing asset without drafting content", async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        system?: string;
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const system = body.system ?? body.messages?.find((message) => message.role === "system")?.content ?? "";
+      expect(system).toMatch(/assess an existing/i);
+      return Response.json({
+        content: [
+          {
+            type: "text",
+            text: '{"kind":"skills","reason":"Reusable agent procedure with triggers.","suggestedName":"review-pr"}'
+          }
+        ]
+      });
+    }) as typeof fetch;
+
+    const result = await classifyExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      currentKind: "prompts",
+      name: "review-pr",
+      content: "Review pull requests for security issues."
+    });
+
+    expect(result.currentKind).toBe("prompts");
+    expect(result.recommendedKind).toBe("skills");
+    expect(result.matchesCurrent).toBe(false);
+    expect(result.reason).toMatch(/procedure/i);
+    expect(result.suggestedName).toBe("review-pr");
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("audits an existing asset into severity-tagged findings", async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        system?: string;
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const system = body.system ?? body.messages?.find((message) => message.role === "system")?.content ?? "";
+      expect(system).toMatch(/audit an existing/i);
+      return Response.json({
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              summary: "Solid core idea; tighten triggers and constraints.",
+              findings: [
+                {
+                  severity: "high",
+                  title: "Missing triggers",
+                  detail: "Add explicit when-to-use phrases so agents know when to load this skill."
+                },
+                {
+                  severity: "medium",
+                  title: "Vague success criteria",
+                  detail: "Define what a good outcome looks like in one checklist."
+                }
+              ]
+            })
+          }
+        ]
+      });
+    }) as typeof fetch;
+
+    const result = await auditExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "review-pr",
+      content: "# Review\n\nLook at the PR."
+    });
+
+    expect(result.summary).toMatch(/tighten/i);
+    expect(result.findings).toHaveLength(2);
+    expect(result.findings[0]?.severity).toBe("high");
+    expect(result.findings[0]?.title).toMatch(/triggers/i);
+  });
+
+  it("accepts an empty findings list when the asset already meets the bar", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              summary: "Meets skill best practices; no material gaps.",
+              findings: []
+            })
+          }
+        ]
+      })
+    ) as typeof fetch;
+
+    const result = await auditExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "review-pr",
+      content:
+        "---\nname: review-pr\ndescription: Review PRs for security. Use when auditing pull requests.\n---\n\n# Review PR\n\n1. Check auth\n2. Report findings"
+    });
+
+    expect(result.summary).toMatch(/no material/i);
+    expect(result.findings).toEqual([]);
+  });
+
+  it("improves an existing asset from audit findings", async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        system?: string;
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const system = body.system ?? body.messages?.find((message) => message.role === "system")?.content ?? "";
+      const user = body.messages?.find((message) => message.role === "user")?.content ?? "";
+      expect(system).toMatch(/revise an existing/i);
+      expect(user).toMatch(/Missing triggers/i);
+      return Response.json({
+        content: [
+          {
+            type: "text",
+            text: "---\nname: review-pr\ndescription: Review PRs for security. Use when auditing pull requests.\n---\n\n# Review PR\n\n1. Check auth\n2. Report findings"
+          }
+        ]
+      });
+    }) as typeof fetch;
+
+    const result = await improveExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "review-pr",
+      content: "# Review\n\nLook at the PR.",
+      summary: "Needs clearer triggers.",
+      findings: [
+        {
+          severity: "high",
+          title: "Missing triggers",
+          detail: "Add explicit when-to-use phrases."
+        }
+      ]
+    });
+
+    expect(result.content).toContain("name: review-pr");
+    expect(result.content).toMatch(/when auditing/i);
   });
 });

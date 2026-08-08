@@ -10,9 +10,6 @@
       "persistent": true,
       "interruptible": true
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
     "typecheck": {
       "dependsOn": ["^build", "^typecheck"]
     },

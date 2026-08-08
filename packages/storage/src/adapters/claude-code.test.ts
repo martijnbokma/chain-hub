@@ -117,7 +117,7 @@ describe("claudeCodeAdapter.status", () => {
     expect(result.connected).toBe(false);
     expect(result.mode).toBe("missing");
     expect(result.supportedKinds).toEqual(["skills", "agents", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["workflows"]);
+    expect(result.unsupportedKinds).toEqual(["workflows", "prompts"]);
   });
 
   it("reports managed once a synced file exists", async () => {

@@ -21,9 +21,9 @@ export function AssetList({ kindSections, filterKind, selected, onSelect }: Asse
   }
 
   return (
-    <div className="grid gap-6 pb-2">
+    <div className="grid min-w-0 gap-6 pb-2">
       {kindSections.length > 1 && filterKind === '__all__' ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {kindSections.map(([kind, items]) => (
             <Button
               className="h-7 gap-1.5 px-2.5 capitalize"
@@ -44,12 +44,17 @@ export function AssetList({ kindSections, filterKind, selected, onSelect }: Asse
         </div>
       ) : null}
       {kindSections.map(([kind, items]) => (
-        <section className="grid gap-3" id={`library-kind-${kind}`} key={kind}>
+        <section className="grid min-w-0 gap-3" id={`library-kind-${kind}`} key={kind}>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold capitalize text-foreground">{kind}</h3>
             <Badge variant="default">{items.length}</Badge>
           </div>
-          <div className={cn('grid gap-3', selected ? 'grid-cols-1' : 'sm:grid-cols-2 xl:grid-cols-3')}>
+          <div
+            className={cn(
+              'grid min-w-0 gap-3',
+              selected ? 'grid-cols-1' : 'sm:grid-cols-2 xl:grid-cols-3'
+            )}
+          >
             {items.map((asset) => (
               <AssetCard
                 asset={asset}

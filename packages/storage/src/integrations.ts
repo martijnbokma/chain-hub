@@ -138,7 +138,9 @@ export async function syncAssetToEditors(
       }
 
       if (asset) {
-        await adapter.writeAsset(chainHome, homeDir, asset);
+        // Hub owns this kind/name — claim the editor projection slot even if an
+        // unmarked twin already exists there (Hub is source of truth).
+        await adapter.writeAsset(chainHome, homeDir, asset, { force: true });
       } else {
         await adapter.removeAsset(chainHome, homeDir, kind, name);
       }
@@ -148,13 +150,24 @@ export async function syncAssetToEditors(
   }
 }
 
-/** Native editor files that aren't yet Chain-Hub-managed — candidates a user can import into the hub. */
-export async function discoverAssets(): Promise<DiscoveredAsset[]> {
+/**
+ * Native editor files that aren't yet in the hub — import candidates.
+ * Skips: (1) Chain-Hub-managed editor files (adapter marker), and
+ * (2) any kind/name that already exists in the hub inventory (even if the
+ * editor copy is still unmarked — those can't be imported without colliding).
+ */
+export async function discoverAssets(chainHomeInput?: string): Promise<DiscoveredAsset[]> {
+  const chainHome = resolveChainHome(chainHomeInput);
   const homeDir = resolveHomeDir();
+  const hubKeys = new Set((await listAssets(chainHome)).map((asset) => `${asset.kind}/${asset.name}`));
   const results: DiscoveredAsset[] = [];
 
   for (const adapter of EDITOR_ADAPTERS) {
     for (const candidate of await adapter.discover(homeDir)) {
+      if (hubKeys.has(`${candidate.kind}/${candidate.name}`)) {
+        continue;
+      }
+
       results.push({
         editorId: adapter.id,
         editorLabel: adapter.label,
@@ -188,8 +201,8 @@ export async function importDiscoveredAsset(chainHomeInput: string | undefined, 
   const asset = await createAsset(chainHome, { kind: match.kind, name: match.name, content: match.content });
 
   // Adopt the exact source file: force-write the marker into it so it stops being
-  // "foreign" from the origin adapter's point of view. Without this, the regular
-  // guarded sync path would (correctly, for any other file) refuse to touch it.
+  // "foreign" from the origin adapter's point of view. Hub sync also force-claims
+  // projection slots, but import must claim the source even before a full resync.
   const homeDir = resolveHomeDir();
   await adapter.writeAsset(chainHome, homeDir, asset, { force: true });
 

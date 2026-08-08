@@ -13,7 +13,8 @@ import {
   type ValidationResult
 } from "@chain-hub/contracts";
 
-import { readSkillsLock } from "./skill-install.js";
+import { readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
+import { extractAssetAuthor } from "./adapters/frontmatter.js";
 import { ensureDir, pathExists } from "./shared.js";
 
 const require = createRequire(import.meta.url);
@@ -268,17 +269,30 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
 
     const skillsLock = await readSkillsLock(chainHome);
 
-    return rows.map((row) => {
-      const asset = mapAssetRow(row);
-      if (asset.kind !== "skills") {
-        return asset;
-      }
+    return await Promise.all(
+      rows.map(async (row) => {
+        const asset = mapAssetRow(row);
+        const filePath = path.join(chainHome, asset.relativePath);
+        let author: string | null = null;
 
-      return {
-        ...asset,
-        provenance: skillsLock.skills[asset.name] ?? null
-      };
-    });
+        try {
+          const content = await fs.readFile(filePath, "utf8");
+          author = extractAssetAuthor(content);
+        } catch {
+          author = null;
+        }
+
+        if (asset.kind !== "skills") {
+          return { ...asset, author };
+        }
+
+        return {
+          ...asset,
+          author,
+          provenance: skillsLock.skills[asset.name] ?? null
+        };
+      })
+    );
   } finally {
     database.close();
   }
@@ -301,6 +315,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
     relativePath: path.relative(chainHome, filePath),
     updatedAt: stats.mtime.toISOString(),
     content,
+    author: extractAssetAuthor(content),
     provenance
   };
 }
@@ -375,6 +390,121 @@ export async function deleteAsset(chainHomeInput: string | undefined, kind: Asse
   }
 
   await syncAssetIndex(chainHome);
+}
+
+export async function renameAsset(
+  chainHomeInput: string | undefined,
+  kind: AssetKind,
+  currentName: string,
+  nextNameInput: string
+): Promise<AssetDetail> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  const fromName = normalizeAssetName(currentName);
+  const toName = normalizeAssetName(nextNameInput);
+
+  if (!fromName) {
+    throw new Error("Asset name cannot be empty");
+  }
+  if (!toName) {
+    throw new Error("New asset name cannot be empty");
+  }
+
+  const fromPath = assetFilePath(chainHome, kind, fromName);
+  if (!(await pathExists(fromPath))) {
+    throw new Error(`Asset not found: ${kind}/${fromName}`);
+  }
+
+  if (fromName === toName) {
+    return getAsset(chainHome, kind, fromName);
+  }
+
+  const toPath = assetFilePath(chainHome, kind, toName);
+  if (await pathExists(toPath)) {
+    throw new Error(`Asset already exists: ${kind}/${toName}`);
+  }
+
+  if (kind === "skills") {
+    const provenance = (await readSkillsLock(chainHome)).skills[fromName] ?? null;
+    if (isUpstreamOwnedSkill(provenance)) {
+      throw new Error(
+        `Skill skills/${fromName} is upstream-owned. Fork it to customize, or edits will be lost on update.`
+      );
+    }
+    await fs.rename(path.dirname(fromPath), path.dirname(toPath));
+    await renameSkillLockEntry(chainHome, fromName, toName);
+  } else {
+    await ensureDir(path.dirname(toPath));
+    await fs.rename(fromPath, toPath);
+  }
+
+  await syncAssetIndex(chainHome);
+  return getAsset(chainHome, kind, toName);
+}
+
+/**
+ * Move an asset to a different Library kind, keeping content (and optionally renaming).
+ * Upstream-locked skills cannot be converted — fork first.
+ */
+export async function convertAssetKind(
+  chainHomeInput: string | undefined,
+  fromKind: AssetKind,
+  fromNameInput: string,
+  toKind: AssetKind,
+  toNameInput?: string
+): Promise<AssetDetail> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  const fromName = normalizeAssetName(fromNameInput);
+  const toName = normalizeAssetName(toNameInput ?? fromNameInput);
+
+  if (!fromName) {
+    throw new Error("Asset name cannot be empty");
+  }
+  if (!toName) {
+    throw new Error("New asset name cannot be empty");
+  }
+  if (fromKind === toKind && fromName === toName) {
+    return getAsset(chainHome, fromKind, fromName);
+  }
+  if (fromKind === toKind) {
+    return renameAsset(chainHome, fromKind, fromName, toName);
+  }
+
+  const fromPath = assetFilePath(chainHome, fromKind, fromName);
+  if (!(await pathExists(fromPath))) {
+    throw new Error(`Asset not found: ${fromKind}/${fromName}`);
+  }
+
+  if (fromKind === "skills") {
+    const provenance = (await readSkillsLock(chainHome)).skills[fromName] ?? null;
+    if (isUpstreamOwnedSkill(provenance)) {
+      throw new Error(
+        `Skill skills/${fromName} is upstream-owned. Fork it to customize, then convert the fork.`
+      );
+    }
+  }
+
+  const toPath = assetFilePath(chainHome, toKind, toName);
+  if (await pathExists(toPath)) {
+    throw new Error(`Asset already exists: ${toKind}/${toName}`);
+  }
+
+  const content = await fs.readFile(fromPath, "utf8");
+  await ensureDir(path.dirname(toPath));
+  await fs.writeFile(toPath, content, "utf8");
+
+  if (fromKind === "skills") {
+    await fs.rm(path.dirname(fromPath), { recursive: true, force: true });
+    await removeSkillLockEntry(chainHome, fromName);
+  } else {
+    await fs.unlink(fromPath);
+  }
+
+  await syncAssetIndex(chainHome);
+  return getAsset(chainHome, toKind, toName);
 }
 
 export async function validateHub(chainHomeInput?: string): Promise<ValidationResult> {

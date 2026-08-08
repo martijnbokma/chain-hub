@@ -1,11 +1,74 @@
 import { Sparkles, Bot, Workflow, ScrollText, NotebookText, type LucideIcon } from 'lucide-react';
 
-import type { AssetKind, InstallSkillBundleInput, SkillLockEntry } from '@/types';
+import { isEditableHubAsset } from '@chain-hub/contracts';
+import { ASSET_KINDS } from '@/lib/constants';
+import type {
+  AssetKind,
+  AssetRecord,
+  DiscoveredAsset,
+  FilterKind,
+  InstallSkillBundleInput,
+  OwnershipFilter,
+  SkillLockEntry
+} from '@/types';
 
 export type BrowsedSkillFolder = {
   label: string;
   files: InstallSkillBundleInput['files'];
 };
+
+export function parseKindParam(value: string | null): FilterKind {
+  if (value !== null && (ASSET_KINDS as readonly string[]).includes(value)) {
+    return value as AssetKind;
+  }
+  return '__all__';
+}
+
+export function parseOwnershipParam(value: string | null): OwnershipFilter {
+  if (value === 'editable' || value === 'upstream') {
+    return value;
+  }
+  return 'all';
+}
+
+export function filterLibraryAssets(
+  assets: AssetRecord[],
+  filterKind: FilterKind,
+  searchQuery: string,
+  ownership: OwnershipFilter = 'all'
+): AssetRecord[] {
+  const query = searchQuery.trim().toLowerCase();
+  return assets.filter((asset) => {
+    const matchesKind = filterKind === '__all__' || asset.kind === filterKind;
+    const matchesQuery =
+      query.length === 0 ||
+      `${asset.name} ${asset.relativePath} ${asset.kind} ${asset.author ?? ''}`
+        .toLowerCase()
+        .includes(query);
+    const editable = isEditableHubAsset(asset);
+    const matchesOwnership =
+      ownership === 'all' ||
+      (ownership === 'editable' && editable) ||
+      (ownership === 'upstream' && !editable);
+    return matchesKind && matchesQuery && matchesOwnership;
+  });
+}
+
+export function groupAssetsByKind(assets: AssetRecord[]): Record<string, AssetRecord[]> {
+  return assets.reduce<Record<string, AssetRecord[]>>((accumulator, asset) => {
+    accumulator[asset.kind] ??= [];
+    accumulator[asset.kind].push(asset);
+    return accumulator;
+  }, {});
+}
+
+export function groupDiscoveredByEditor(candidates: DiscoveredAsset[]): Record<string, DiscoveredAsset[]> {
+  return candidates.reduce<Record<string, DiscoveredAsset[]>>((accumulator, candidate) => {
+    accumulator[candidate.editorLabel] ??= [];
+    accumulator[candidate.editorLabel].push(candidate);
+    return accumulator;
+  }, {});
+}
 
 export async function fileToBase64(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -110,9 +173,31 @@ const NAME_STOP_WORDS = new Set([
   'met',
   'ik',
   'wil',
-  'een',
   'maak',
-  'schrijf'
+  'schrijf',
+  'dat',
+  'er',
+  'wordt',
+  'worden',
+  'uitgevoerd',
+  'uitvoeren',
+  'als',
+  'om',
+  'te',
+  'kan',
+  'kunnen',
+  'moet',
+  'moeten',
+  'zou',
+  'graag',
+  'nieuwe',
+  'nieuw',
+  'asset',
+  'skill',
+  'prompt',
+  'workflow',
+  'agent',
+  'rule'
 ]);
 
 /** Derive a hub asset slug from free-form intent / description text. */
@@ -124,9 +209,9 @@ export function suggestAssetNameFromText(input: string, maxLength = 48): string 
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9\s-]+/g, ' ')
     .split(/[\s-]+/)
-    .filter((word) => word.length > 0 && !NAME_STOP_WORDS.has(word));
+    .filter((word) => word.length > 1 && !NAME_STOP_WORDS.has(word));
 
-  const slug = (words.length > 0 ? words : input.trim().toLowerCase().split(/\s+/))
+  const slug = words
     .slice(0, 6)
     .join('-')
     .replace(/[^a-z0-9-]+/g, '-')

@@ -8,6 +8,7 @@ import {
   captureEvent,
   createAsset,
   createMemoryNote,
+  convertAssetKind,
   deleteAsset,
   discoverAssets,
   getIntegrations,
@@ -15,6 +16,7 @@ import {
   importDiscoveredAsset,
   initializeHub,
   listAssets,
+  renameAsset,
   searchMemoryNotes,
   setupIntegrations,
   syncAssetToEditors
@@ -178,6 +180,47 @@ describe("buildReflectionReport", () => {
   });
 });
 
+describe("renameAsset", () => {
+  it("renames a markdown asset file and updates the index", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    await createAsset(hub, {
+      kind: "workflows",
+      name: "old-audit-name",
+      content: "# Project Audit\n\nBody."
+    });
+
+    const renamed = await renameAsset(hub, "workflows", "old-audit-name", "project-audit");
+    expect(renamed.name).toBe("project-audit");
+    expect(renamed.relativePath).toBe("workflows/project-audit.md");
+
+    const listed = await listAssets(hub, "workflows");
+    expect(listed.map((asset) => asset.name)).toEqual(["project-audit"]);
+  });
+});
+
+describe("convertAssetKind", () => {
+  it("moves a prompt to skills and removes the old file", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    await createAsset(hub, {
+      kind: "prompts",
+      name: "review-pr",
+      content: "---\nname: review-pr\ndescription: Review PRs\n---\n\n# Review\n\nSteps."
+    });
+
+    const converted = await convertAssetKind(hub, "prompts", "review-pr", "skills");
+    expect(converted.kind).toBe("skills");
+    expect(converted.name).toBe("review-pr");
+    expect(converted.relativePath).toBe("skills/review-pr/SKILL.md");
+
+    const prompts = await listAssets(hub, "prompts");
+    expect(prompts.map((asset) => asset.name)).not.toContain("review-pr");
+    const skills = await listAssets(hub, "skills");
+    expect(skills.some((asset) => asset.name === "review-pr")).toBe(true);
+  });
+});
+
 describe("setupIntegrations", () => {
   it("replaces a legacy whole-folder symlink with adapter-managed native files", async () => {
     const hub = await makeTmpHub();
@@ -203,10 +246,10 @@ describe("setupIntegrations", () => {
     const claudeCode = integrations.find((integration) => integration.id === "claude-code");
     expect(claudeCode?.mode).toBe("managed");
     expect(claudeCode?.supportedKinds).toEqual(["skills", "agents", "rules"]);
-    expect(claudeCode?.unsupportedKinds).toEqual(["workflows"]);
+    expect(claudeCode?.unsupportedKinds).toEqual(["workflows", "prompts"]);
   });
 
-  it("does not fail when claude and zed skill dirs alias the same path via symlink", async () => {
+  it("claims unmarked editor twins when hub already owns the skill name", async () => {
     const hub = await makeTmpHub();
     await initializeHub(hub);
     await createAsset(hub, {
@@ -228,6 +271,10 @@ describe("setupIntegrations", () => {
 
     await setupIntegrations(hub);
 
+    const skillMd = await fs.readFile(path.join(agentsSkillDir, "SKILL.md"), "utf8");
+    expect(skillMd).toContain("chain_hub_source: skills/with-sidecar");
+    expect(skillMd).toContain("Body.");
+
     const copied = await fs.readFile(path.join(agentsSkillDir, "assets", "helper.txt"), "utf8");
     expect(copied).toBe("sidecar payload");
   });
@@ -235,14 +282,61 @@ describe("setupIntegrations", () => {
 
 describe("discoverAssets + importDiscoveredAsset", () => {
   it("discovers a hand-written native file and reports it with editor context", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
     const filePath = path.join(tmpHome, ".claude", "skills", "hand-written", "SKILL.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text.", "utf8");
 
-    const discovered = await discoverAssets();
+    const discovered = await discoverAssets(hub);
 
     expect(discovered).toHaveLength(1);
     expect(discovered[0]).toMatchObject({ editorId: "claude-code", kind: "skills", name: "hand-written" });
+  });
+
+  it("hides editor-native skills that already exist in the hub by kind/name", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    await createAsset(hub, { kind: "skills", name: "already-hub", content: "# Hub\n\nBody." });
+
+    const twinPath = path.join(tmpHome, ".agents", "skills", "already-hub", "SKILL.md");
+    await fs.mkdir(path.dirname(twinPath), { recursive: true });
+    await fs.writeFile(
+      twinPath,
+      "---\nname: already-hub\ndescription: Unmanaged twin\n---\n\nEditor copy.",
+      "utf8"
+    );
+
+    const onlyEditorPath = path.join(tmpHome, ".agents", "skills", "only-editor", "SKILL.md");
+    await fs.mkdir(path.dirname(onlyEditorPath), { recursive: true });
+    await fs.writeFile(
+      onlyEditorPath,
+      "---\nname: only-editor\ndescription: Fresh skill\n---\n\nBody.",
+      "utf8"
+    );
+
+    const discovered = await discoverAssets(hub);
+
+    expect(discovered.some((candidate) => candidate.name === "already-hub")).toBe(false);
+    expect(discovered.some((candidate) => candidate.name === "only-editor")).toBe(true);
+  });
+
+  it("claims an unmarked twin on sync so it is no longer foreign", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    const asset = await createAsset(hub, { kind: "skills", name: "twin", content: "# Twin\n\nHub body." });
+
+    const twinPath = path.join(tmpHome, ".agents", "skills", "twin", "SKILL.md");
+    await fs.mkdir(path.dirname(twinPath), { recursive: true });
+    await fs.writeFile(twinPath, "unmanaged editor copy", "utf8");
+
+    await syncAssetToEditors(hub, "skills", "twin", asset);
+
+    const claimed = await fs.readFile(twinPath, "utf8");
+    expect(claimed).toContain("chain_hub_source: skills/twin");
+    expect(claimed).toContain("Hub body.");
+    expect((await discoverAssets(hub)).some((candidate) => candidate.name === "twin")).toBe(false);
   });
 
   it("imports a discovered asset into the hub, after which it's no longer discoverable", async () => {
@@ -265,7 +359,7 @@ describe("discoverAssets + importDiscoveredAsset", () => {
     const rewritten = await fs.readFile(filePath, "utf8");
     expect(rewritten).toContain("chain_hub_source: rules/hand-written");
 
-    const discoveredAfter = await discoverAssets();
+    const discoveredAfter = await discoverAssets(hub);
     expect(discoveredAfter.some((candidate) => candidate.name === "hand-written")).toBe(false);
   });
 

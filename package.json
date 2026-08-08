@@ -17,7 +17,7 @@
     "dev:hub": "turbo run dev --ui=stream --filter=@chain-hub/server --filter=@chain-hub/hub-web",
     "dev:marketing": "turbo run dev --ui=stream --filter=@chain-hub/marketing-site",
     "hub": "turbo run build && node packages/cli/dist/index.js hub",
-    "lint": "turbo run lint",
+    "lint": "bun run typecheck",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test"
   },

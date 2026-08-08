@@ -5,7 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { getAgentsSkillsDrift, getAsset } from "@chain-hub/storage";
+import { getAsset } from "@chain-hub/storage";
 
 import {
   captureHubEvent,
@@ -14,6 +14,7 @@ import {
   deleteHubMemoryNote,
   deleteLibraryAsset,
   getDashboardOverview,
+  getHubAgentsSkillsDrift,
   getHubLearningsTimeline,
   getHubMemory,
   getHubMemoryNote,
@@ -123,14 +124,14 @@ describe("syncAgentsSkillsIntoHub", () => {
       "utf8"
     );
 
-    const before = await getAgentsSkillsDrift(hub, lockPath);
+    const before = await getHubAgentsSkillsDrift(hub, lockPath);
     expect(before.missingCount).toBe(1);
 
     const result = await syncAgentsSkillsIntoHub(hub, { lockPath });
     expect(result.results[0]?.status).toBe("migrated");
     expect(await getAsset(hub, "skills", "synced-skill")).toMatchObject({ name: "synced-skill" });
 
-    const after = await getAgentsSkillsDrift(hub, lockPath);
+    const after = await getHubAgentsSkillsDrift(hub, lockPath);
     expect(after.missingCount).toBe(0);
   });
 

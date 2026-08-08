@@ -58,8 +58,8 @@ function buildRulesFileContent(ruleAssets: AssetDetail[]): string {
   return `${HEADER_MARKER}\n\n# Chain Hub Rules\n\n${sections.join("\n\n---\n\n")}\n`;
 }
 
-async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[]): Promise<void> {
-  await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header");
+async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[], options?: { force?: boolean }): Promise<void> {
+  await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header", options);
 }
 
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
@@ -73,7 +73,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
   // with the full rule list instead of calling writeAsset directly. This branch
   // only exists so a single rules asset write can't silently drop the file.
   if (asset.kind === "rules") {
-    await rebuildRulesFile(homeDir, [asset]);
+    await rebuildRulesFile(homeDir, [asset], options);
   }
 }
 
@@ -92,10 +92,10 @@ async function resync(chainHome: string, homeDir: string, assets: AssetDetail[])
   const rules = assets.filter((asset) => asset.kind === "rules");
 
   for (const skill of skills) {
-    await writeAsset(chainHome, homeDir, skill);
+    await writeAsset(chainHome, homeDir, skill, { force: true });
   }
 
-  await rebuildRulesFile(homeDir, rules);
+  await rebuildRulesFile(homeDir, rules, { force: true });
 }
 
 async function status(homeDir: string): Promise<Integration> {

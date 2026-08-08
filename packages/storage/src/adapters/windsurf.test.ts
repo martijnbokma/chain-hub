@@ -160,7 +160,7 @@ describe("windsurfAdapter.status", () => {
     const homeDir = await makeTmpHome();
     const result = await windsurfAdapter.status(homeDir);
     expect(result.supportedKinds).toEqual(["skills", "rules", "workflows"]);
-    expect(result.unsupportedKinds).toEqual(["agents"]);
+    expect(result.unsupportedKinds).toEqual(["agents", "prompts"]);
     expect(result.label).toBe("Windsurf (Devin Desktop)");
     expect(result.targetPaths).toContain(path.join(homeDir, ".codeium", "windsurf", "skills"));
   });

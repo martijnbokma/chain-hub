@@ -7,6 +7,7 @@ export type {
   AssetDetail,
   AssetKind,
   FilterKind,
+  OwnershipFilter,
   InstallSkillInput,
   InstallSkillBundleInput,
   InstallSkillResult,
@@ -16,7 +17,7 @@ export type {
 } from './assets';
 
 // Integration types
-export type { Integration } from './integrations';
+export type { Integration, IntegrationMode } from './integrations';
 
 // Discover/import types
 export type { DiscoveredAsset, ImportAssetInput } from './discover';
@@ -32,5 +33,12 @@ export type {
   DraftAssetInput,
   DraftAssetResult,
   DraftPromptInput,
-  DraftPromptResult
+  DraftPromptResult,
+  ClassifyAssetInput,
+  ClassifyAssetResult,
+  AuditAssetInput,
+  AuditAssetFinding,
+  AuditAssetResult,
+  ImproveAssetInput,
+  ImproveAssetResult
 } from './ai';

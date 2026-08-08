@@ -1,4 +1,4 @@
-import { assetKinds, type AiConfig, type AiProvider, type AiSecrets, type AssetKind, type DraftAssetInput, type DraftAssetResult } from "@chain-hub/contracts";
+import { assetKinds, type AiConfig, type AiProvider, type AiSecrets, type AssetKind, type AuditAssetFinding, type AuditAssetResult, type ClassifyAssetResult, type DraftAssetInput, type DraftAssetResult, type ImproveAssetResult } from "@chain-hub/contracts";
 
 const SHARED_DRAFT_RULES = `Shared requirements:
 - Always write the drafted asset content in English, even if the user's intent is in another language
@@ -22,7 +22,74 @@ If it is a sequenced process → workflows.
 If it is a durable do/don't convention → rules.
 
 Respond with ONLY a JSON object (no markdown fences, no extra text):
-{"kind":"skills|agents|workflows|rules|prompts","reason":"one short English sentence"}`;
+{"kind":"skills|agents|workflows|rules|prompts","reason":"one short English sentence","suggestedName":"kebab-case-english-slug"}
+
+suggestedName rules:
+- English kebab-case only (a-z, 0-9, hyphens), max ~48 chars
+- Reflect the asset purpose, not filler words from the user's language
+- Prefer concrete nouns: project-audit-workflow, pr-security-review, named-exports-rule
+- Never copy raw Dutch/other-language stop phrases (dat, er, wordt, uitgevoerd, …)`;
+
+const CLASSIFY_EXISTING_SYSTEM = `You assess an existing Chain Hub asset and recommend the best asset kind.
+
+The asset already has a current kind — confirm it when it fits, or recommend a better kind when the content clearly matches another kind better.
+
+Kinds and when to choose them:
+- skills: reusable agent procedures with clear when-to-use triggers (SKILL.md style); multi-step how-to an agent follows
+- agents: persistent personas / system prompts that define who the agent is across tasks
+- workflows: ordered checklists or multi-step processes a human or agent runs end-to-end
+- rules: standing constraints/conventions that should always (or often) apply in a project/editor
+- prompts: one-shot reusable prompt text for a specific task, not a long-lived procedure or persona
+
+Prefer the most specific fit. If content is a single reusable instruction for one task → prompts.
+If it is a reusable capability agents should discover and follow → skills.
+If it is identity/tone/role → agents.
+If it is a sequenced process → workflows.
+If it is a durable do/don't convention → rules.
+
+Respond with ONLY a JSON object (no markdown fences, no extra text):
+{"kind":"skills|agents|workflows|rules|prompts","reason":"one short English sentence explaining why this kind fits (mention if current kind is wrong)","suggestedName":"kebab-case-english-slug"}
+
+suggestedName rules:
+- English kebab-case only (a-z, 0-9, hyphens), max ~48 chars
+- Reflect the asset purpose; keep the current name when it already fits
+- Prefer concrete nouns over filler words`;
+
+const AUDIT_EXISTING_SYSTEM = `You audit an existing Chain Hub asset against best practices for its kind.
+
+Be a critical reviewer. Report real gaps that hurt usefulness. Do not rubber-stamp mediocre assets as passed, and do not invent endless polish loops.
+
+Best-practice bar by kind:
+- skills: YAML frontmatter with name + description that states what it does AND when to use it; actionable agent workflow; clear constraints; no major redundancy
+- agents: reusable persona with role, boundaries, and response guidance
+- workflows: concrete ordered steps with goal/inputs/outputs when relevant
+- rules: enforceable do/don't guidance, precise enough for agents to follow
+- prompts: clear goal, constraints, and desired output shape
+
+Evaluate: clarity, structure, triggers/when-to-use, actionability for AI agents, missing constraints, harmful redundancy, and fit for the declared kind.
+
+Rules:
+- Write summary and findings in English
+- Be specific to THIS content — no generic advice
+- If something material can be better against the bar above, include it as a finding
+- findings: [] ONLY when the asset clearly meets the bar for its kind (not "good enough" excuses)
+- Do NOT invent findings to fill a quota, and do NOT nitpick taste, synonyms, or optional extras when the core already meets the bar
+- Cap at 8 findings; skip fluff and speculative nice-to-haves
+- severity: high = blocks usefulness or causes misuse; medium = meaningful quality gap; low = minor but still material (not taste)
+- Do not rewrite the full asset; only findings
+
+Respond with ONLY a JSON object (no markdown fences, no extra text):
+{"summary":"one short overall assessment","findings":[{"severity":"high|medium|low","title":"short label","detail":"one or two concrete sentences"}]}`;
+
+const IMPROVE_EXISTING_RULES = `You revise an existing Chain Hub asset using audit findings.
+
+Rules:
+- Return ONLY the complete updated file content (markdown allowed). No fences around the whole file, no preamble
+- Write the improved content in English
+- Address every audit finding when possible without inventing unrelated scope
+- Preserve the asset's core purpose and keep existing frontmatter name/slug when present
+- Keep author/maintained_by/version metadata when already present
+- Be concrete and actionable for AI agents — no fluff`;
 
 const ASSET_DRAFT_SYSTEM: Record<AssetKind, string> = {
   prompts: `You are an expert prompt engineer. The user will describe what a reusable prompt asset should accomplish.
@@ -171,6 +238,13 @@ function systemPromptForKind(kind: AssetKind): string {
   return ASSET_DRAFT_SYSTEM[kind];
 }
 
+function systemPromptForImprove(kind: AssetKind): string {
+  return `${IMPROVE_EXISTING_RULES}
+
+Kind-specific requirements for ${kind}:
+${ASSET_DRAFT_SYSTEM[kind]}`;
+}
+
 function buildUserMessage(input: { intent: string; kind: AssetKind; name?: string }): string {
   const parts = [`Asset kind: ${input.kind}`, `Intent: ${input.intent.trim()}`];
   if (input.name?.trim()) {
@@ -190,17 +264,17 @@ function extractJsonObject(raw: string): unknown {
   const start = candidate.indexOf("{");
   const end = candidate.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) {
-    throw new AiProviderError("AI returned an unreadable kind classification", 502);
+    throw new AiProviderError("AI returned unreadable JSON", 502);
   }
   try {
     return JSON.parse(candidate.slice(start, end + 1)) as unknown;
   } catch {
-    throw new AiProviderError("AI returned an unreadable kind classification", 502);
+    throw new AiProviderError("AI returned unreadable JSON", 502);
   }
 }
 
-function parseClassification(raw: string): { kind: AssetKind; reason: string } {
-  const parsed = extractJsonObject(raw) as { kind?: unknown; reason?: unknown };
+function parseClassification(raw: string): { kind: AssetKind; reason: string; suggestedName?: string } {
+  const parsed = extractJsonObject(raw) as { kind?: unknown; reason?: unknown; suggestedName?: unknown };
   const kind = typeof parsed.kind === "string" ? parsed.kind.trim() : "";
   if (!isAssetKind(kind)) {
     throw new AiProviderError("AI recommended an unknown asset kind", 502);
@@ -209,7 +283,37 @@ function parseClassification(raw: string): { kind: AssetKind; reason: string } {
     typeof parsed.reason === "string" && parsed.reason.trim()
       ? parsed.reason.trim().slice(0, 200)
       : `Best fit as ${kind}`;
-  return { kind, reason };
+  const suggestedName =
+    typeof parsed.suggestedName === "string" ? normalizeSuggestedName(parsed.suggestedName) : undefined;
+  return { kind, reason, ...(suggestedName ? { suggestedName } : {}) };
+}
+
+function normalizeSuggestedName(raw: string): string | undefined {
+  const slug = raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48)
+    .replace(/-+$/g, "");
+  return slug.length > 0 ? slug : undefined;
+}
+
+function extractSuggestedNameFromContent(content: string): string | undefined {
+  const frontmatterName = content.match(/^---\s*\n[\s\S]*?\nname:\s*["']?([a-z0-9][a-z0-9-]*)["']?/i);
+  if (frontmatterName?.[1]) {
+    return normalizeSuggestedName(frontmatterName[1]);
+  }
+
+  const heading = content.match(/^#\s+(.+)$/m);
+  if (heading?.[1]) {
+    return normalizeSuggestedName(heading[1]);
+  }
+
+  return undefined;
 }
 
 function suggestNameFromIntent(intent: string): string {
@@ -246,7 +350,31 @@ function suggestNameFromIntent(intent: string): string {
     "ik",
     "wil",
     "maak",
-    "schrijf"
+    "schrijf",
+    "dat",
+    "er",
+    "wordt",
+    "worden",
+    "uitgevoerd",
+    "uitvoeren",
+    "als",
+    "om",
+    "te",
+    "een",
+    "kan",
+    "kunnen",
+    "moet",
+    "moeten",
+    "zou",
+    "graag",
+    "nieuwe",
+    "nieuw",
+    "asset",
+    "skill",
+    "prompt",
+    "workflow",
+    "agent",
+    "rule"
   ]);
 
   const words = intent
@@ -256,9 +384,9 @@ function suggestNameFromIntent(intent: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s-]+/g, " ")
     .split(/[\s-]+/)
-    .filter((word) => word.length > 0 && !stopWords.has(word));
+    .filter((word) => word.length > 1 && !stopWords.has(word));
 
-  const slug = (words.length > 0 ? words : intent.trim().toLowerCase().split(/\s+/))
+  const slug = words
     .slice(0, 6)
     .join("-")
     .replace(/[^a-z0-9-]+/g, "-")
@@ -465,6 +593,7 @@ export async function generateAssetDraft(params: {
 
   let kind: AssetKind;
   let reason: string | undefined;
+  let classifiedName: string | undefined;
 
   if (requestedKind === "auto") {
     const classificationRaw = await completeChat({
@@ -476,6 +605,7 @@ export async function generateAssetDraft(params: {
     const classified = parseClassification(classificationRaw);
     kind = classified.kind;
     reason = classified.reason;
+    classifiedName = classified.suggestedName;
   } else {
     kind = requestedKind;
   }
@@ -487,7 +617,11 @@ export async function generateAssetDraft(params: {
     userMessage: buildUserMessage({ intent: input.intent, kind, name: input.name })
   });
 
-  const suggestedName = input.name?.trim() ? undefined : suggestNameFromIntent(input.intent) || undefined;
+  const suggestedName =
+    classifiedName ||
+    extractSuggestedNameFromContent(content) ||
+    suggestNameFromIntent(input.intent) ||
+    undefined;
 
   return {
     content,
@@ -495,6 +629,129 @@ export async function generateAssetDraft(params: {
     ...(reason ? { reason } : {}),
     ...(suggestedName ? { suggestedName } : {})
   };
+}
+
+export async function classifyExistingAsset(params: {
+  config: AiConfig;
+  secrets: AiSecrets;
+  currentKind: AssetKind;
+  name: string;
+  content: string;
+}): Promise<ClassifyAssetResult> {
+  const { config, secrets, currentKind, name, content } = params;
+  const truncated = content.trim().slice(0, 12_000);
+  const classificationRaw = await completeChat({
+    config,
+    secrets,
+    system: CLASSIFY_EXISTING_SYSTEM,
+    userMessage: [
+      `Current kind: ${currentKind}`,
+      `Name: ${name}`,
+      "Content:",
+      truncated
+    ].join("\n")
+  });
+  const classified = parseClassification(classificationRaw);
+  return {
+    currentKind,
+    recommendedKind: classified.kind,
+    matchesCurrent: classified.kind === currentKind,
+    reason: classified.reason,
+    ...(classified.suggestedName ? { suggestedName: classified.suggestedName } : {})
+  };
+}
+
+const SEVERITIES = new Set(["high", "medium", "low"]);
+
+function parseAudit(raw: string): AuditAssetResult {
+  const parsed = extractJsonObject(raw) as { summary?: unknown; findings?: unknown };
+  const summary =
+    typeof parsed.summary === "string" && parsed.summary.trim()
+      ? parsed.summary.trim().slice(0, 400)
+      : "Audit complete";
+
+  if (!Array.isArray(parsed.findings)) {
+    throw new AiProviderError("AI audit did not return findings", 502);
+  }
+
+  const findings: AuditAssetFinding[] = [];
+  for (const item of parsed.findings.slice(0, 12)) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const row = item as { severity?: unknown; title?: unknown; detail?: unknown };
+    const severity = typeof row.severity === "string" ? row.severity.trim().toLowerCase() : "";
+    const title = typeof row.title === "string" ? row.title.trim().slice(0, 120) : "";
+    const detail = typeof row.detail === "string" ? row.detail.trim().slice(0, 500) : "";
+    if (!SEVERITIES.has(severity) || !title || !detail) {
+      continue;
+    }
+    findings.push({
+      severity: severity as AuditAssetFinding["severity"],
+      title,
+      detail
+    });
+  }
+
+  return { summary, findings };
+}
+
+export async function auditExistingAsset(params: {
+  config: AiConfig;
+  secrets: AiSecrets;
+  kind: AssetKind;
+  name: string;
+  content: string;
+}): Promise<AuditAssetResult> {
+  const { config, secrets, kind, name, content } = params;
+  const truncated = content.trim().slice(0, 12_000);
+  const auditRaw = await completeChat({
+    config,
+    secrets,
+    system: AUDIT_EXISTING_SYSTEM,
+    userMessage: [`Kind: ${kind}`, `Name: ${name}`, "Content:", truncated].join("\n")
+  });
+  return parseAudit(auditRaw);
+}
+
+export async function improveExistingAsset(params: {
+  config: AiConfig;
+  secrets: AiSecrets;
+  kind: AssetKind;
+  name: string;
+  content: string;
+  summary?: string;
+  findings: AuditAssetFinding[];
+}): Promise<ImproveAssetResult> {
+  const { config, secrets, kind, name, content, summary, findings } = params;
+  const truncated = content.trim().slice(0, 12_000);
+  const findingsBlock = findings
+    .map((finding, index) => `${index + 1}. [${finding.severity}] ${finding.title} — ${finding.detail}`)
+    .join("\n");
+
+  const improved = await completeChat({
+    config,
+    secrets,
+    system: systemPromptForImprove(kind),
+    userMessage: [
+      `Kind: ${kind}`,
+      `Name: ${name}`,
+      summary?.trim() ? `Audit summary: ${summary.trim()}` : null,
+      "Findings to apply:",
+      findingsBlock,
+      "Current content:",
+      truncated
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join("\n")
+  });
+
+  const nextContent = improved.trim();
+  if (!nextContent) {
+    throw new AiProviderError("AI returned empty improved content", 502);
+  }
+
+  return { content: nextContent };
 }
 
 /** @deprecated Prefer generateAssetDraft */

@@ -1,11 +1,23 @@
-import type { ReactNode } from 'react';
-import { Command as CommandIcon, Link2, PanelLeft, FolderTree, Settings, type LucideIcon } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import {
+  ChevronRight,
+  Command as CommandIcon,
+  FolderTree,
+  Link2,
+  PanelLeft,
+  Settings,
+  type LucideIcon
+} from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
+import { ASSET_KIND_LABELS, ASSET_KINDS } from '../../lib/constants';
+import { cn } from '../../lib/utils';
+import type { AssetKind } from '../../types';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { Button } from '../ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import {
   Sidebar,
   SidebarContent,
@@ -17,11 +29,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
   useSidebar
 } from '../ui/sidebar';
-import { cn } from '../../lib/utils';
 import { ShellToolbarHost, ShellToolbarProvider } from './ShellToolbar';
 import { useCommandPalette } from './useCommandPalette';
 
@@ -36,6 +50,16 @@ interface SidebarNavLinkProps {
   isActive: boolean;
 }
 
+function closeMobileSidebar(isMobile: boolean, setOpenMobile: (open: boolean) => void) {
+  if (isMobile) {
+    setOpenMobile(false);
+  }
+}
+
+function isAssetKind(value: string | null): value is AssetKind {
+  return value !== null && (ASSET_KINDS as readonly string[]).includes(value);
+}
+
 function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -45,9 +69,7 @@ function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps
         className="h-9"
         isActive={isActive}
         onClick={() => {
-          if (isMobile) {
-            setOpenMobile(false);
-          }
+          closeMobileSidebar(isMobile, setOpenMobile);
         }}
         render={<NavLink to={to} />}
         tooltip={label}
@@ -59,17 +81,75 @@ function SidebarNavLink({ to, label, icon: Icon, isActive }: SidebarNavLinkProps
   );
 }
 
+function LibraryNavItem() {
+  const location = useLocation();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const isLibraryRoute = location.pathname.startsWith('/library');
+  const kindParam = new URLSearchParams(location.search).get('kind');
+  const activeKind = isAssetKind(kindParam) ? kindParam : null;
+  const [open, setOpen] = useState(isLibraryRoute);
+
+  useEffect(() => {
+    if (isLibraryRoute) {
+      setOpen(true);
+    }
+  }, [isLibraryRoute]);
+
+  return (
+    <SidebarMenuItem>
+      <Collapsible className="group/collapsible w-full" onOpenChange={setOpen} open={open}>
+        <div className="flex w-full items-center gap-0.5 group-data-[collapsible=icon]:block">
+          <SidebarMenuButton
+            className="h-9 min-w-0 flex-1 group-data-[collapsible=icon]:flex-none"
+            isActive={isLibraryRoute && activeKind === null}
+            onClick={() => {
+              setOpen(true);
+              closeMobileSidebar(isMobile, setOpenMobile);
+            }}
+            render={<NavLink to="/library" />}
+            tooltip="Library"
+          >
+            <FolderTree />
+            <span>Library</span>
+          </SidebarMenuButton>
+          <CollapsibleTrigger
+            aria-label="Toggle Library kinds"
+            className={cn(
+              'flex size-7 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground',
+              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              'outline-hidden ring-sidebar-ring focus-visible:ring-2',
+              'group-data-[collapsible=icon]:hidden'
+            )}
+          >
+            <ChevronRight className="size-4 transition-transform group-data-open/collapsible:rotate-90" />
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {ASSET_KINDS.map((kind) => (
+              <SidebarMenuSubItem key={kind}>
+                <SidebarMenuSubButton
+                  isActive={activeKind === kind}
+                  onClick={() => {
+                    closeMobileSidebar(isMobile, setOpenMobile);
+                  }}
+                  render={<NavLink to={`/library?kind=${kind}`} />}
+                >
+                  <span>{ASSET_KIND_LABELS[kind]}</span>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+}
+
 export function Shell({ children }: ShellProps) {
   const location = useLocation();
 
-  const { commandOpen, setCommandOpen, actions, integrations, connectedCount } = useCommandPalette();
-
-  const links = [
-    { to: '/', label: 'Overview', icon: PanelLeft },
-    { to: '/library', label: 'Library', icon: FolderTree },
-    { to: '/integrations', label: 'Integrations', icon: Link2 },
-    { to: '/settings', label: 'Settings', icon: Settings }
-  ];
+  const { commandOpen, setCommandOpen, actionGroups, integrations, connectedCount } = useCommandPalette();
 
   return (
     <ShellToolbarProvider>
@@ -97,20 +177,25 @@ export function Shell({ children }: ShellProps) {
             <SidebarGroup className="pt-3">
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {links.map((link) => {
-                    const isActive =
-                      link.to === '/' ? location.pathname === '/' : location.pathname.startsWith(link.to);
-
-                    return (
-                      <SidebarNavLink
-                        icon={link.icon}
-                        isActive={isActive}
-                        key={link.to}
-                        label={link.label}
-                        to={link.to}
-                      />
-                    );
-                  })}
+                  <SidebarNavLink
+                    icon={PanelLeft}
+                    isActive={location.pathname === '/'}
+                    label="Overview"
+                    to="/"
+                  />
+                  <LibraryNavItem />
+                  <SidebarNavLink
+                    icon={Link2}
+                    isActive={location.pathname.startsWith('/integrations')}
+                    label="Integrations"
+                    to="/integrations"
+                  />
+                  <SidebarNavLink
+                    icon={Settings}
+                    isActive={location.pathname.startsWith('/settings')}
+                    label="Settings"
+                    to="/settings"
+                  />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -171,16 +256,10 @@ export function Shell({ children }: ShellProps) {
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset>
+        <SidebarInset className="min-w-0 overflow-x-hidden">
           <header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
             <SidebarTrigger className="size-11 md:size-7" />
-            <NavLink
-              className={cn(
-                'items-center gap-2 md:hidden',
-                location.pathname.startsWith('/library') ? 'hidden' : 'flex'
-              )}
-              to="/"
-            >
+            <NavLink className="flex items-center gap-2 md:hidden" to="/">
               <span className="flex aspect-square size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-semibold text-primary">
                 CH
               </span>
@@ -191,7 +270,7 @@ export function Shell({ children }: ShellProps) {
             <ShellToolbarHost className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" />
             <ThemeToggle />
           </header>
-          <main className="px-4 py-4 sm:px-6 sm:py-6">{children}</main>
+          <main className="min-w-0 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">{children}</main>
         </SidebarInset>
 
       <Dialog
@@ -200,37 +279,72 @@ export function Shell({ children }: ShellProps) {
         }}
         open={commandOpen}
       >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-lg overflow-hidden p-0" showCloseButton={false}>
+          <DialogHeader className="sr-only">
             <DialogTitle>Command palette</DialogTitle>
-            <DialogDescription>Jump through the hub and trigger common actions without hunting through screens.</DialogDescription>
+            <DialogDescription>
+              Jump through the hub and trigger common actions without hunting through screens.
+            </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-            <Command>
-              <CommandInput placeholder="Search actions" />
-              <CommandList>
-                <CommandEmpty>No matching actions.</CommandEmpty>
-                <CommandGroup heading="Actions">
-                  {actions.map((action) => (
-                    <CommandItem
-                      key={action.id}
-                      keywords={[action.keywords]}
-                      onSelect={() => {
-                        action.run();
-                        if (action.id !== 'connect-editors' && action.id !== 'capture-event') {
-                          setCommandOpen(false);
-                        }
-                      }}
-                      value={`${action.label} ${action.description} ${action.keywords}`}
-                    >
-                      <span className="text-sm font-medium text-foreground">{action.label}</span>
-                      <span className="text-xs text-muted-foreground">{action.description}</span>
-                    </CommandItem>
-                  ))}
+          <Command>
+            <CommandInput placeholder="Search actions…" />
+            <CommandList>
+              <CommandEmpty>No matching actions.</CommandEmpty>
+              {actionGroups.map(({ group, actions: groupActions }) => (
+                <CommandGroup heading={group} key={group}>
+                  {groupActions.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <CommandItem
+                        key={action.id}
+                        keywords={[action.keywords]}
+                        onSelect={() => {
+                          action.run();
+                          if (action.id !== 'connect-editors') {
+                            setCommandOpen(false);
+                          }
+                        }}
+                        value={`${action.label} ${action.description} ${action.keywords}`}
+                      >
+                        <Icon
+                          aria-hidden="true"
+                          className="mt-0.5 size-4 shrink-0 text-muted-foreground group-data-[selected=true]/command-item:text-foreground"
+                        />
+                        <span className="grid min-w-0 flex-1 gap-0.5">
+                          <span className="truncate text-sm font-medium text-foreground">
+                            {action.label}
+                          </span>
+                          <span className="truncate text-xs text-muted-foreground">
+                            {action.description}
+                          </span>
+                        </span>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
-              </CommandList>
-            </Command>
-          </DialogBody>
+              ))}
+            </CommandList>
+            <div className="flex items-center gap-3 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-3xs leading-none">
+                  ↑↓
+                </kbd>
+                move
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-3xs leading-none">
+                  ↵
+                </kbd>
+                run
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-3xs leading-none">
+                  esc
+                </kbd>
+                close
+              </span>
+            </div>
+          </Command>
         </DialogContent>
       </Dialog>
       </SidebarProvider>

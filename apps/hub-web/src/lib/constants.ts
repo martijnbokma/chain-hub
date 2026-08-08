@@ -1,5 +1,15 @@
-// Asset kinds for filtering
-export const ASSET_KINDS = ["skills", "agents", "workflows", "rules", "prompts"] as const;
+import { assetKinds } from "@chain-hub/contracts";
+
+// Asset kinds for filtering — SSOT from @chain-hub/contracts
+export const ASSET_KINDS = assetKinds;
+
+export const ASSET_KIND_LABELS = {
+  skills: "Skills",
+  agents: "Agents",
+  workflows: "Workflows",
+  rules: "Rules",
+  prompts: "Prompts"
+} as const satisfies Record<(typeof ASSET_KINDS)[number], string>;
 
 // Navigation links for the sidebar
 export const SIDEBAR_LINKS = [
