@@ -62,6 +62,33 @@ chain-hub/
 
 ---
 
+## Git Workflow
+
+Git Flow branching model (lightweight, no `git-flow` CLI required).
+
+### Branches
+- **`main`** — production/release-ready code only. Never commit directly.
+- **`develop`** — integration branch, default target for feature work.
+- **`feature/<slug>`** — branch off `develop`, merge back into `develop` via PR. e.g. `feature/hub-web-command-palette`
+- **`fix/<slug>`** — non-urgent bug fixes, branch off `develop`, merge into `develop`.
+- **`release/<version>`** — branch off `develop` when preparing a release (e.g. `release/1.2.0`), merge into both `main` and `develop`, tag on `main`.
+- **`hotfix/<slug>`** — urgent production fix, branch off `main`, merge into both `main` and `develop`, tag on `main`.
+
+### Rules
+1. **Never commit directly to `main` or `develop`** — always use a branch + PR.
+2. **Branch from `develop`** for all new work, unless it's a hotfix (branch from `main`).
+3. **Rebase or merge `develop` into your feature branch** before opening a PR to avoid drift.
+4. **Tag releases on `main`** using semver (`v1.2.0`).
+5. **Delete branches after merge** — keep the branch list clean.
+
+### Commit Messages
+Conventional Commits style: `<type>(<scope>): <description>`
+- Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
+- Scope: package/app name (`hub-web`, `cli`, `server`, `domain`, `storage`, `contracts`)
+- Example: `feat(hub-web): add command palette shortcut`
+
+---
+
 ## Commands
 
 ### Workspace
