@@ -1,0 +1,37 @@
+---
+title: Introduction
+section: Overview
+order: 0
+description: What Chain Hub is and how the CLI, dashboard, and hub folder fit together.
+---
+
+# Chain Hub
+
+Chain Hub is a local-first AI workspace control plane. One hub folder
+(`~/.chain-hub`) is the single source of truth, one CLI (`chain`) manages it,
+one dashboard gives visual control, and every editor you use — Cursor, Claude
+Code, Windsurf, Zed — reads a synced copy.
+
+## Core philosophy
+
+Local-first, editor-agnostic, minimal surface, grows deliberately.
+
+## Two surfaces, one hub folder
+
+**CLI** — the system engine: initialize hub storage, manage assets, validate
+structure, connect editors, run the local hub server.
+
+**Hub Dashboard** — the visual control plane: show system health, guide
+setup, browse assets, inspect integrations, run high-confidence actions.
+
+## Five asset kinds
+
+- **Skills** — reusable capabilities your editor can invoke on demand.
+- **Agents** — personas and behavior presets tuned for specific work.
+- **Workflows** — multi-step processes captured once, run everywhere.
+- **Rules** — guardrails and conventions your AI tools always follow.
+- **Memory** — notes and learnings that carry context across sessions.
+
+See [Hub Folder Structure](/hub-folder) for how these are stored on disk, the
+[CLI Reference](/cli-reference) for every command, or [Architecture](/architecture)
+for how the packages fit together.

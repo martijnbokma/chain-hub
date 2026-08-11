@@ -1,0 +1,59 @@
+---
+title: CLI Reference
+section: Reference
+order: 2
+description: Every chain command, plus the bun workspace scripts around it.
+---
+
+# CLI Reference
+
+## Setup & status
+
+| Command | Description |
+| --- | --- |
+| `chain init` | Initialize hub structure |
+| `chain status` | JSON overview of hub state |
+| `chain validate` | Check structural integrity |
+| `chain setup` | Create editor symlinks |
+| `chain guide` | Show setup checklist |
+| `chain hub [--port N] [--no-open]` | Start local dashboard (port 2342 default) |
+
+## Asset management
+
+| Command | Description |
+| --- | --- |
+| `chain asset list [--kind <kind>]` | List assets, optionally filtered by kind |
+| `chain asset create --kind <kind> --name <name> --content <text>` | Create a new asset |
+| `chain asset show --kind <kind> --name <name>` | Show an asset |
+| `chain asset update --kind <kind> --name <name> --content <text>` | Update an asset |
+| `chain asset remove --kind <kind> --name <name>` | Remove an asset |
+
+Asset kinds: `skills` · `agents` · `workflows` · `rules` · `prompts`
+
+## Learnings
+
+| Command | Description |
+| --- | --- |
+| `chain capture --event <type> --skill <slug> --summary "<text>"` | Capture a learning event |
+| `chain reflect` | Per-skill reflection report |
+| `chain reflect --write` | Write reflection to file |
+| `chain reflect --json` | Raw JSON output |
+
+Event types for `chain capture`: `success`, `failure`, `correction`, `note`.
+
+## Workspace scripts
+
+Run from the repo root with `bun run <script>`.
+
+| Script | Description |
+| --- | --- |
+| `install` | Install all dependencies |
+| `build` | Build all packages in dependency order |
+| `dev` | Hub stack in watch mode (server + hub-web + packages) |
+| `dev:hub` | Server + hub-web only (fastest dashboard loop) |
+| `dev:all` | All packages including marketing-site, docs, and CLI |
+| `dev:marketing` | Marketing site only |
+| `hub` | Build + start dashboard (production mode) |
+| `lint` | Currently aliases `typecheck` |
+| `typecheck` | Type check all packages |
+| `test` | Run all tests |

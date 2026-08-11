@@ -1,0 +1,34 @@
+---
+title: API Routes
+section: Reference
+order: 4
+description: The dashboard API surface and the shared Zod contracts behind it.
+---
+
+# API Routes
+
+All dashboard API routes are registered in `packages/server/src/index.ts` and
+run on the same port as the hub server.
+
+| Route group | Purpose |
+| --- | --- |
+| `/api/overview` | Hub health, counts, storage stats |
+| `/api/library` | Asset CRUD operations |
+| `/api/memory` | Note management and search (CLI/API; no hub-web page) |
+| `/api/learnings` | Timeline and reflection (CLI/API; no hub-web page) |
+| `/api/setup` | Guided setup |
+| `/api/integrations` | Editor integration status |
+| `/api/validate` | Validation results |
+| `/api/settings/ai` | Local-first AI provider settings |
+| `/api/ai/draft-prompt` | Prompt/asset drafting |
+
+## Shared contracts
+
+All shared types and Zod schemas live in `@chain-hub/contracts`. Key schemas:
+
+- **`AssetSchema`** — validates skills, agents, workflows, rules
+- **`LearningEventSchema`** — validates capture events
+- **`ValidationResultSchema`** — validates hub health checks
+
+See [Architecture](/architecture) for how `hub-web`, `server`, `domain`, and
+`storage` divide responsibility around these contracts.

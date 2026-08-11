@@ -26,13 +26,6 @@ export function SheetMarks() {
   );
 }
 
-type NavLink = { label: string; to: string };
-
-const NAV_LINKS: NavLink[] = [
-  { label: 'Home', to: '/' },
-  { label: 'Docs', to: '/docs' },
-];
-
 export function TitleblockBar() {
   return (
     <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between pb-4">
@@ -45,11 +38,13 @@ export function TitleblockBar() {
         </span>
       </Link>
       <nav className="flex items-center gap-6 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        {NAV_LINKS.map((link) => (
-          <Link key={link.to} to={link.to} className="hover:text-foreground transition-colors">
-            {link.label}
-          </Link>
-        ))}
+        <Link to="/" className="hover:text-foreground transition-colors">
+          Home
+        </Link>
+        {/* Separate Vite app (apps/docs), reverse-proxied under /docs — plain link, not a router route here */}
+        <a href="/docs/" className="hover:text-foreground transition-colors">
+          Docs
+        </a>
       </nav>
     </header>
   );
