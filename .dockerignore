@@ -1,0 +1,17 @@
+node_modules
+dist
+.turbo
+*.log
+coverage
+.DS_Store
+.git
+.sandbox-hub/
+.sandbox-*/
+chain-hub-data/
+.vitest-cache/
+.playwright-mcp/
+.specstory/
+.remember/
+.claude/
+.cursor/
+.impeccable/
