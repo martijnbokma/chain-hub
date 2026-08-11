@@ -58,7 +58,7 @@ components:
 
 **Creative North Star: "Control Plane Blueprint"**
 
-Chain Hub is drawn as the schematic it actually is: one hub, numbered signal lines, four editor nodes. The surface borrows its grammar from engineering drawings and patch-bay wiring diagrams — hairline grids, dimension ticks, titleblock stamps, a single signal-orange ink — instead of the dark-gradient-glow hero every AI product ships. This is a deliberate refusal of that category default, confirmed against it directly during the direction round.
+Chain Hub is drawn as the schematic it actually is: one hub, numbered signal lines, four editor nodes. The surface borrows its grammar from engineering drawings and patch-bay wiring diagrams — empty drafting sheets, dimension ticks, titleblock stamps, a single signal-orange ink — instead of the dark-gradient-glow hero every AI product ships. This is a deliberate refusal of that category default, confirmed against it directly during the direction round.
 
 The site commits to one dark, graphite ground (no light mode toggle exists yet; the light tokens in `src/styles.css` are the shared Cool Trust base carried over from the hub-web dashboard but are currently unused on this surface). Depth comes from line weight and hairline borders, never shadow. Orange is spent deliberately: signal lines, active corners, and calls to action — never as a wash.
 
@@ -82,7 +82,7 @@ Two-tone graphite ground with a single signal-orange ink; every other color is a
 - **Signal Foreground** (`#ffffff`): text on the orange primary button.
 - **Ink** (`#e8eef2`): primary text and headline color.
 - **Ink Muted** (`#93a2af`): body copy, captions, annotation labels.
-- **Hairline** (`#2a3844`): every border, divider, and grid line.
+- **Hairline** (`#2a3844`): every border and divider.
 
 ### Named Rules
 **The One Ink Rule.** Orange is the only saturated color on the page. It marks a signal (a wire, a corner, an action) and nothing else — if it's not carrying one of those meanings, it isn't orange.
@@ -111,7 +111,7 @@ Single-column content capped at `max-w-6xl` (72rem), left-aligned, with generous
 
 ## Elevation & Depth
 
-Flat. No `box-shadow` anywhere in the system. Depth and grouping are conveyed entirely by hairline borders, the `bp-grid` hairline background, and orange corner ticks (`bp-corners`) marking a panel as "instrumented" (proof figures, legend table, detail panels).
+Flat. No `box-shadow` anywhere in the system. Depth and grouping are conveyed entirely by hairline borders and orange corner ticks (`bp-corners`) marking a panel as "instrumented" (proof figures, legend table, detail panels). The page ground stays empty graphite — no wallpaper grid — so the schematic and ruled sections carry the blueprint metaphor without texture clutter.
 
 ### Named Rules
 **The No-Shadow Rule.** Structure is drawn, never lit. A panel is bounded by a line, not a blur.
@@ -156,6 +156,7 @@ A single titleblock header bar: a bordered `CH` mark plus the wordmark on the le
 - **Do** caption any new product screenshot in the mono `Fig. N —` style, inside an orange-bracketed frame.
 
 ### Don't:
+- **Don't** add a wallpaper grid or schematic texture behind sections — the empty sheet is intentional; blueprint language lives in the hub schematic, mono labels, and corner ticks, not in a background pattern.
 - **Don't** add a shadow anywhere; depth is drawn with hairlines, never blurred (The No-Shadow Rule).
 - **Don't** stack a small mono eyebrow above a large display headline in the same section (The No-Kicker Rule) — the section's mono label is the heading, not an announcement above one.
 - **Don't** reach for the same-size icon+heading+text card grid for a new list of features; it was deliberately replaced once already (see Legend Table).

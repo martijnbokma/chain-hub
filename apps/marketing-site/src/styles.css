@@ -126,14 +126,7 @@
   animation: bp-fade-up 400ms ease-out forwards;
 }
 
-/* Control Plane Blueprint — hairline schematic grid + drafting corner ticks */
-.bp-grid {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
+/* Control Plane Blueprint — drafting corner ticks on instrumented panels */
 .bp-corners {
   position: relative;
 }
@@ -160,4 +153,46 @@
   right: -2px;
   border-left: none;
   border-top: none;
+}
+
+/* Sheet registration marks — crop ticks at content-column corners, not a wallpaper grid */
+.bp-marks {
+  position: absolute;
+  inset-block: 1.5rem;
+  left: 50%;
+  width: min(calc(100% - 3rem), 72rem);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bp-marks span {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: color-mix(in srgb, var(--border) 85%, transparent);
+  border-style: solid;
+}
+
+.bp-marks span:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-width: 1px 0 0 1px;
+}
+
+.bp-marks span:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-width: 1px 1px 0 0;
+}
+
+.bp-marks span:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 1px 1px;
+}
+
+.bp-marks span:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-width: 0 1px 1px 0;
 }

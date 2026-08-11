@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BookOpen,
   Bot,
@@ -9,9 +10,14 @@ import {
   Link2,
   Terminal,
   LayoutDashboard,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import dashboardOverview from '../assets/dashboard-overview.webp';
 import dashboardLibrary from '../assets/dashboard-library.webp';
+import dashboardSettings from '../assets/dashboard-settings.webp';
+import dashboardSkillDetail from '../assets/dashboard-skill-detail.webp';
 
 const EDITORS = ['Cursor', 'Claude Code', 'Windsurf', 'Zed'];
 const REPO_URL = 'https://github.com/martijnbokma/chain-hub';
@@ -56,9 +62,20 @@ function GithubIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function SheetMarks() {
+  return (
+    <div className="bp-marks" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+      <span />
+    </div>
+  );
+}
+
 function TitleblockBar() {
   return (
-    <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center border-b border-border pb-4">
+    <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center pb-4">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-sm border border-primary flex items-center justify-center font-mono text-xs text-primary">
           CH
@@ -169,37 +186,175 @@ function HubSchematic() {
   );
 }
 
-function FramedFigure({ src, alt, caption }: { src: string; alt: string; caption: string }) {
+type LightboxImage = { src: string; alt: string; caption: string };
+
+function FramedFigure({
+  image,
+  index,
+  onOpen,
+}: {
+  image: LightboxImage;
+  index: number;
+  onOpen: (index: number) => void;
+}) {
   return (
     <div className="text-left">
-      <a
-        href={src}
-        target="_blank"
-        rel="noreferrer"
-        aria-label={`${alt} — opens full size in a new tab`}
-        className="group bp-corners block border border-border rounded-sm overflow-hidden bg-card aspect-[16/10] cursor-zoom-in"
+      <button
+        type="button"
+        onClick={() => onOpen(index)}
+        aria-label={`${image.alt} — view full size`}
+        className="group bp-corners block w-full border border-border rounded-sm overflow-hidden bg-card aspect-[16/10] cursor-zoom-in"
       >
         <img
-          src={src}
-          alt={alt}
+          src={image.src}
+          alt={image.alt}
           className="w-full h-full object-cover object-top block transition-transform duration-300 group-hover:scale-[1.03]"
           loading="lazy"
         />
-      </a>
+      </button>
       <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-3">
-        {caption} — <span className="text-primary">view full size</span>
+        {image.caption} — <span className="text-primary">view full size</span>
       </p>
     </div>
   );
 }
 
+function Lightbox({
+  images,
+  index,
+  onClose,
+  onNavigate,
+}: {
+  images: LightboxImage[];
+  index: number | null;
+  onClose: () => void;
+  onNavigate: (direction: -1 | 1) => void;
+}) {
+  const isOpen = index !== null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key === 'ArrowLeft') onNavigate(-1);
+      if (event.key === 'ArrowRight') onNavigate(1);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = overflow;
+    };
+  }, [isOpen, onClose, onNavigate]);
+
+  if (index === null) return null;
+  const image = images[index];
+  const hasMultiple = images.length > 1;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={image.alt}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute top-6 right-6 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
+      >
+        <X size={20} />
+      </button>
+
+      {hasMultiple && (
+        <>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onNavigate(-1);
+            }}
+            aria-label="Previous screenshot"
+            className="absolute left-6 top-1/2 -translate-y-1/2 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onNavigate(1);
+            }}
+            aria-label="Next screenshot"
+            className="absolute right-6 top-1/2 -translate-y-1/2 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </>
+      )}
+
+      <figure
+        className="bp-corners max-w-5xl w-full border border-border rounded-sm overflow-hidden bg-card"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <img src={image.src} alt={image.alt} className="w-full h-auto block" />
+        <figcaption className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase px-5 py-3 border-t border-border flex items-center justify-between">
+          <span>{image.caption}</span>
+          {hasMultiple && (
+            <span className="text-muted-foreground/70">
+              {index + 1} / {images.length}
+            </span>
+          )}
+        </figcaption>
+      </figure>
+    </div>,
+    document.body,
+  );
+}
+
+const dashboardImages: LightboxImage[] = [
+  {
+    src: dashboardOverview,
+    alt: 'Chain Hub dashboard overview showing hub status and asset counts',
+    caption: 'Fig. 1 — Hub status, live local dashboard',
+  },
+  {
+    src: dashboardLibrary,
+    alt: 'Chain Hub dashboard library showing skills and agents',
+    caption: 'Fig. 2 — Library, browsing skills and agents',
+  },
+  {
+    src: dashboardSkillDetail,
+    alt: 'Chain Hub skill detail view showing the agent-browser skill source',
+    caption: 'Fig. 3 — Asset detail, inspecting a skill file',
+  },
+  {
+    src: dashboardSettings,
+    alt: 'Chain Hub settings page showing theme and local AI provider configuration',
+    caption: 'Fig. 4 — Settings, local AI providers',
+  },
+];
+
 export function LandingPage() {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const navigateLightbox = useCallback((direction: -1 | 1) => {
+    setLightboxIndex((current) => {
+      if (current === null) return current;
+      return (current + direction + dashboardImages.length) % dashboardImages.length;
+    });
+  }, []);
+
   return (
     <div className="min-h-screen">
       <TitleblockBar />
 
       {/* Hero */}
-      <section className="bp-grid border-b border-border">
+      <section className="relative">
+        <SheetMarks />
         <div className="max-w-6xl mx-auto px-6 py-16 grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="font-display font-bold text-6xl md:text-7xl leading-[0.95] uppercase text-foreground mb-6">
@@ -303,26 +458,27 @@ export function LandingPage() {
       </section>
 
       {/* Proof */}
-      <section id="proof" className="max-w-6xl mx-auto px-6 py-16 border-b border-border">
+      <section id="proof" className="max-w-6xl mx-auto px-6 py-16">
         <h2 className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8">
           Detail — the real local dashboard, not a mockup
         </h2>
         <div className="grid md:grid-cols-2 gap-8">
-          <FramedFigure
-            src={dashboardOverview}
-            alt="Chain Hub dashboard overview showing hub status and asset counts"
-            caption="Fig. 1 — Hub status, live local dashboard"
-          />
-          <FramedFigure
-            src={dashboardLibrary}
-            alt="Chain Hub dashboard library showing skills and agents"
-            caption="Fig. 2 — Library, browsing skills and agents"
-          />
+          {dashboardImages.map((image, index) => (
+            <FramedFigure key={image.src} image={image} index={index} onOpen={setLightboxIndex} />
+          ))}
         </div>
       </section>
 
+      <Lightbox
+        images={dashboardImages}
+        index={lightboxIndex}
+        onClose={closeLightbox}
+        onNavigate={navigateLightbox}
+      />
+
       {/* CTA */}
-      <section className="bp-grid">
+      <section className="relative">
+        <SheetMarks />
         <div className="max-w-3xl mx-auto px-6 py-20 text-center">
           <h2 className="font-display font-bold text-4xl md:text-5xl uppercase text-foreground mb-4">
             Ready when you are.
@@ -349,7 +505,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 py-10 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
           Made with
           <Heart className="size-3.5 fill-primary text-primary" aria-label="love" />

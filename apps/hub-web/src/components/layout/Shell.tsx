@@ -14,6 +14,7 @@ import { ASSET_KIND_LABELS, ASSET_KINDS } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 import type { AssetKind } from '../../types';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { SheetMarks } from '../common/SheetMarks';
 import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
@@ -309,7 +310,7 @@ export function Shell({ children }: ShellProps) {
         </Sidebar>
 
         <SidebarInset className="min-w-0 overflow-x-hidden">
-          <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
+          <header className="shell-seam relative flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
             <SidebarTrigger />
             <NavLink className="flex items-center gap-3 md:hidden" to="/">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-primary font-mono text-xs text-primary">
@@ -322,7 +323,10 @@ export function Shell({ children }: ShellProps) {
             <ShellToolbarHost className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" />
             <ThemeToggle />
           </header>
-          <main className="min-w-0 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">{children}</main>
+          <main className="relative min-w-0 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
+            <SheetMarks />
+            {children}
+          </main>
         </SidebarInset>
 
       <Dialog
