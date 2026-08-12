@@ -23,10 +23,10 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   end={page.path === '/'}
                   onClick={onNavigate}
                   className={({ isActive }) =>
-                    `block text-sm py-1.5 px-3 rounded-sm border-l-2 transition-colors ${
+                    `block text-sm py-1.5 px-3 rounded-sm transition-colors ${
                       isActive
-                        ? 'border-primary text-foreground bg-secondary/50'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                        ? 'text-primary font-medium bg-secondary/50'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`
                   }
                 >

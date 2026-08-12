@@ -122,12 +122,12 @@
 }
 
 .docs-prose li {
-  @apply text-base text-muted-foreground leading-relaxed flex items-start gap-2;
+  @apply relative text-base text-muted-foreground leading-relaxed pl-5;
 }
 
 .docs-prose li::before {
   content: ">";
-  @apply text-primary font-mono shrink-0;
+  @apply absolute left-0 text-primary font-mono;
 }
 
 .docs-prose code {
@@ -156,33 +156,4 @@
 
 .docs-prose a {
   @apply text-primary underline underline-offset-2 hover:opacity-80 transition-opacity;
-}
-
-/* Control Plane Blueprint — drafting corner ticks on instrumented panels */
-.bp-corners {
-  position: relative;
-}
-
-.bp-corners::before,
-.bp-corners::after {
-  content: "";
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--primary);
-  pointer-events: none;
-}
-
-.bp-corners::before {
-  top: -2px;
-  left: -2px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.bp-corners::after {
-  bottom: -2px;
-  right: -2px;
-  border-left: none;
-  border-top: none;
 }
