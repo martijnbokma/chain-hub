@@ -1,0 +1,50 @@
+---
+title: Architecture
+section: Reference
+order: 3
+description: How the monorepo is organized and where each responsibility lives.
+---
+
+# Architecture
+
+## Project structure
+
+```
+chain-hub/
+├── apps/
+│   ├── hub-web/           # React dashboard (Vite + Tailwind v4 + shadcn/ui)
+│   ├── marketing-site/    # Marketing site
+│   └── docs/               # This documentation site (Vite + MDX)
+├── packages/
+│   ├── cli/               # chain binary entrypoint (Commander)
+│   ├── server/             # Hono localhost API server
+│   ├── domain/             # Business logic and use-cases
+│   ├── storage/            # SQLite + filesystem adapters
+│   └── contracts/          # Shared Zod schemas and TypeScript types
+└── docs/                   # Specs, intent, research, archived journey docs
+```
+
+## Domain boundaries
+
+- **domain** — Asset lifecycle, validation rules, editor sync logic, learning workflows
+- **storage** — SQLite metadata, YAML/Markdown file I/O, filesystem operations
+- **server** — Maps domain use-cases to HTTP routes (Hono)
+- **cli** — Maps domain use-cases to terminal commands (Commander)
+- **hub-web** — Consumes contracts and API endpoints only (no direct domain/storage access)
+
+Each package stays on its side of this boundary: the dashboard never touches
+SQLite directly, and the CLI never bypasses the storage package.
+
+## Tech stack
+
+**Workspace** — Bun 1.3.11 workspaces, Turborepo for task orchestration,
+TypeScript (5.5.4+ for packages, 6.0.3+ for the Vite apps), Node 22+ with ESM
+modules throughout.
+
+**Backend** — Commander for the CLI, Hono for the local HTTP server, Zod for
+validation shared across every package, SQLite via `node:sqlite` with raw SQL
+(no ORM).
+
+**Frontend (hub-web)** — React 19 + React Router 7, TanStack Query, Tailwind
+CSS v4 with shadcn/ui primitives, cmdk for the command palette, lucide-react
+for icons, sonner for toasts, Vite for the build.

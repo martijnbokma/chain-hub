@@ -17,6 +17,16 @@ export default defineConfig({
   server: {
     port: 4322,
     strictPort: true,
-    allowedHosts: ["dev.jewebsite.online"]
+    allowedHosts: ["dev.jewebsite.online"],
+    proxy: {
+      // apps/docs runs as its own Vite dev server (bun run dev:docs, port
+      // 4323) with base "/docs/" — proxy it through so the "Docs" nav link
+      // works locally the same way it will in production.
+      "/docs": {
+        target: "http://localhost:4323",
+        changeOrigin: true,
+        ws: true
+      }
+    }
   }
 });

@@ -1,0 +1,47 @@
+---
+title: Hub Folder Structure
+section: Reference
+order: 1
+description: What lives on disk under ~/.chain-hub, and how to override its location.
+---
+
+# Hub Folder Structure
+
+The hub lives at `~/.chain-hub/` by default — override with the `CHAIN_HOME`
+environment variable.
+
+```
+~/.chain-hub/
+├── skills/              # SKILL.md files
+├── agents/              # Agent persona files
+├── workflows/           # Workflow .md files
+├── rules/               # Rule files
+├── memory/              # Markdown notes + learnings
+│   ├── learnings/
+│   │   └── events.jsonl # Append-only capture log
+│   └── reflections/     # Written reflection snapshots
+├── system/              # Metadata
+│   ├── chainhub.sqlite  # SQLite metadata index
+│   └── meta.json        # Initialization metadata
+└── logs/                # Application logs
+```
+
+## Asset kinds
+
+Everything under `skills/`, `agents/`, `workflows/`, and `rules/` is one of
+five asset kinds: `skills` · `agents` · `workflows` · `rules` · `prompts`.
+Each asset is a single Markdown file, editable by hand or through
+[`chain asset`](/cli-reference#asset-management) commands.
+
+## Memory and learnings
+
+`memory/learnings/events.jsonl` is an append-only log written by
+[`chain capture`](/cli-reference#learnings) — one JSON line per event
+(`success`, `failure`, `correction`, `note`). `memory/reflections/` holds
+written snapshots produced by `chain reflect --write`.
+
+## System metadata
+
+`system/chainhub.sqlite` is the SQLite index the dashboard and CLI query for
+fast lookups; `system/meta.json` records initialization metadata such as when
+`chain init` first ran.

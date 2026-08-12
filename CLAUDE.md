@@ -43,7 +43,8 @@
 chain-hub/
 ├── apps/
 │   ├── hub-web/           # React dashboard (Vite + Tailwind v4 + shadcn/ui)
-│   └── marketing-site/    # Marketing site (under development)
+│   ├── marketing-site/    # Marketing site (under development)
+│   └── docs/              # Documentation site (Vite + MDX, sidebar nav)
 ├── packages/
 │   ├── cli/               # chain binary entrypoint (Commander)
 │   ├── server/            # Hono localhost API server
@@ -96,8 +97,9 @@ Conventional Commits style: `<type>(<scope>): <description>`
 - `bun run build` — Build all packages in dependency order
 - `bun run dev` — Hub stack in watch mode (server + hub-web + packages)
 - `bun run dev:hub` — Server + hub-web only (fastest dashboard loop)
-- `bun run dev:all` — All packages including marketing-site and CLI
+- `bun run dev:all` — All packages including marketing-site, docs, and CLI
 - `bun run dev:marketing` — Marketing site only
+- `bun run dev:docs` — Documentation site only
 - `bun run hub` — Build + start dashboard (production mode)
 - `bun run lint` — Currently aliases `typecheck` (ESLint not configured yet)
 - `bun run typecheck` — Type check all packages
