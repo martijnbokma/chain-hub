@@ -267,7 +267,7 @@ export async function installSkillFromSource(
   let sourceDir: string;
   let sourceType: SkillLockEntry["sourceType"];
   let source: string;
-  let subdir: string | null = input.subdir ?? null;
+  const subdir: string | null = input.subdir ?? null;
 
   try {
     if (input.path) {

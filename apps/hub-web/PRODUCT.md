@@ -37,7 +37,6 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 - Four asset kinds: skills, agents, workflows, rules — full CRUD via the Library page, backed by `/api/library`.
 - Discover/Import: `/api/library/discover` + `/api/library/import` surface native, not-yet-hub-managed editor content for one-click adoption.
 - Integrations page: per-editor connection status, and which of the four asset kinds each editor actually supports natively (e.g. Cursor has no native "agents" concept; Zed only supports one merged rules file).
-- Memory page: free-form Markdown notes stored in the hub's `memory/` folder, with search.
 - Learnings page: capture/timeline/reflect view over a JSONL event log (success/failure/correction/note).
 - Setup page: sequential guided checklist (initialize → create first asset → connect editors → validate). Reachable from Settings, Overview (when incomplete), and the command palette — not a primary sidebar destination.
 - Hard constraint: **local-first, no cloud or hosted component** — everything the dashboard shows and does must be explainable as "this is what's on disk / reachable on localhost right now."

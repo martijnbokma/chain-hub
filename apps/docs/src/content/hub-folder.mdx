@@ -17,7 +17,7 @@ environment variable.
 ├── workflows/           # Workflow .md files
 ├── rules/               # Rule files
 ├── prompts/             # Reusable prompt files (library-only, no editor sync)
-├── memory/              # Markdown notes + learnings
+├── memory/              # Learning capture + reflection
 │   ├── learnings/
 │   │   └── events.jsonl # Append-only capture log
 │   └── reflections/     # Written reflection snapshots
@@ -45,13 +45,15 @@ are the one kind that gets its own subfolder (`skills/<name>/SKILL.md`)
 instead of a flat file — see [Writing an Asset](/asset-format) for the full
 format and why skills are the exception.
 
-## Memory and learnings
+## Learnings
 
-**Memory is not an asset kind** — it's a separate notes/learnings system,
-unrelated to the Library. `memory/learnings/events.jsonl` is an append-only
-log written by [`chain capture`](/cli-reference#learnings) — one JSON line
-per event (`success`, `failure`, `correction`, `note`). `memory/reflections/`
-holds written snapshots produced by `chain reflect --write`.
+**Learnings is not an asset kind** — it's a separate capture/reflect
+system, unrelated to the Library. `memory/learnings/events.jsonl` is an
+append-only log written by [`chain capture`](/cli-reference#learnings) —
+one JSON line per event (`success`, `failure`, `correction`, `note`).
+`memory/reflections/` holds written snapshots produced by
+`chain reflect --write`. A seeded `rules/chain-hub-learnings.md` asset
+prompts connected editors to call `chain capture` as they work.
 
 ## System metadata
 

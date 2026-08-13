@@ -25,7 +25,11 @@ import type {
   ImproveAssetInput,
   ImproveAssetResult,
   SkillFileEntry,
-  SkillFileContent
+  SkillFileContent,
+  CaptureInput,
+  CaptureEvent,
+  LearningsTimeline,
+  ReflectionReport
 } from '@/types';
 
 /**
@@ -141,6 +145,20 @@ export const integrationsApi = {
 export const setupApi = {
   getGuide: () => getJson<SetupGuide>('/api/setup')
 };
+
+// Learnings API
+export const learningsApi = {
+  getTimeline: () => getJson<LearningsTimeline>('/api/learnings'),
+  getReflection: () => getJson<ReflectionReport>('/api/learnings/reflect'),
+  capture: (data: CaptureInput) =>
+    fetch('/api/learnings/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+};
+
+export type { CaptureEvent };
 
 // AI settings + prompt drafting
 export const aiSettingsApi = {

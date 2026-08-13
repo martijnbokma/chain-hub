@@ -7,7 +7,6 @@ import {
   buildReflectionReport,
   captureEvent,
   createAsset,
-  createMemoryNote,
   convertAssetKind,
   deleteAsset,
   discoverAssets,
@@ -17,7 +16,6 @@ import {
   initializeHub,
   listAssets,
   renameAsset,
-  searchMemoryNotes,
   setupIntegrations,
   syncAssetToEditors
 } from "./index.js";
@@ -373,22 +371,3 @@ describe("discoverAssets + importDiscoveredAsset", () => {
   });
 });
 
-describe("createMemoryNote + searchMemoryNotes", () => {
-  it("creates a note and finds it by search", async () => {
-    const hub = await makeTmpHub();
-    const note = await createMemoryNote(hub, { name: "my-context", content: "# My Context\n\nSome unique text here." });
-    expect(note.relativePath).toContain("my-context.md");
-    expect(note.content).toContain("unique text");
-    const results = await searchMemoryNotes(hub, "unique text");
-    expect(results.length).toBeGreaterThan(0);
-    expect(results[0].relativePath).toBe(note.relativePath);
-  });
-
-  it("returns all notes when search query is empty", async () => {
-    const hub = await makeTmpHub();
-    await createMemoryNote(hub, { name: "note-a", content: "# A" });
-    await createMemoryNote(hub, { name: "note-b", content: "# B" });
-    const results = await searchMemoryNotes(hub, "");
-    expect(results.length).toBeGreaterThanOrEqual(2);
-  });
-});

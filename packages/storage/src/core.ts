@@ -154,6 +154,28 @@ async function seedWelcomeSkill(chainHome: string): Promise<void> {
   );
 }
 
+async function seedLearningsRule(chainHome: string): Promise<void> {
+  const ruleFile = assetFilePath(chainHome, "rules", "chain-hub-learnings");
+
+  if (await pathExists(ruleFile)) {
+    return;
+  }
+
+  await ensureDir(path.join(chainHome, "rules"));
+  await fs.writeFile(
+    ruleFile,
+    [
+      "# Learning capture",
+      "",
+      "After finishing work with a Chain Hub skill, log the outcome:",
+      "",
+      '`chain capture --event <success|failure|correction|note> --skill <slug> --summary "<one line>"`',
+      "",
+      "Use this when a skill clearly worked, clearly failed, needed a correction mid-task, or is worth a note for next time. Skip it for routine work with nothing notable to report."
+    ].join("\n")
+  );
+}
+
 export async function syncAssetIndex(chainHome: string): Promise<void> {
   const discoveredAssets: AssetRecord[] = [];
 
@@ -251,6 +273,7 @@ export async function initializeHub(chainHomeInput?: string): Promise<{ chainHom
   // Seed only on first init — otherwise deleting welcome is undone by every listAssets call.
   if (isFirstRun) {
     await seedWelcomeSkill(chainHome);
+    await seedLearningsRule(chainHome);
     await writeMeta(chainHome, { initializedAt: new Date().toISOString() });
   }
 
@@ -599,21 +622,48 @@ export async function validateHub(chainHomeInput?: string): Promise<ValidationRe
   await initializeHub(chainHome);
   await syncAssetIndex(chainHome);
   const issues: string[] = [];
+  const checks: ValidationResult["checks"] = [];
 
   for (const dirName of CORE_DIRS) {
-    if (!(await pathExists(path.join(chainHome, dirName)))) {
-      issues.push(`Missing directory: ${dirName}`);
+    const dirPath = path.join(chainHome, dirName);
+    const exists = await pathExists(dirPath);
+    if (exists) {
+      checks.push({
+        id: `dir:${dirName}`,
+        label: `Directory exists: ${dirName}`,
+        status: "pass",
+        detail: dirPath
+      });
+    } else {
+      const detail = `Missing directory: ${dirName}`;
+      issues.push(detail);
+      checks.push({
+        id: `dir:${dirName}`,
+        label: `Directory exists: ${dirName}`,
+        status: "fail",
+        detail
+      });
     }
   }
 
   const indexedAssets = await listAssets(chainHome);
 
   if (indexedAssets.length === 0) {
-    issues.push("No assets indexed");
+    const detail = "No assets indexed";
+    issues.push(detail);
+    checks.push({ id: "assets-indexed", label: "At least one asset indexed", status: "fail", detail });
+  } else {
+    checks.push({
+      id: "assets-indexed",
+      label: "At least one asset indexed",
+      status: "pass",
+      detail: `${indexedAssets.length} asset${indexedAssets.length === 1 ? "" : "s"} indexed`
+    });
   }
 
   return {
     ok: issues.length === 0,
-    issues
+    issues,
+    checks
   };
 }

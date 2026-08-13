@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
+  Activity,
   ChevronRight,
   Command as CommandIcon,
   FolderTree,
@@ -235,6 +236,12 @@ export function Shell({ children }: ShellProps) {
                     to="/"
                   />
                   <LibraryNavItem />
+                  <SidebarNavLink
+                    icon={Activity}
+                    isActive={location.pathname.startsWith('/learnings')}
+                    label="Learnings"
+                    to="/learnings"
+                  />
                   <SidebarNavLink
                     icon={Link2}
                     isActive={location.pathname.startsWith('/integrations')}

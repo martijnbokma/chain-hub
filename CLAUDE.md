@@ -101,7 +101,8 @@ Conventional Commits style: `<type>(<scope>): <description>`
 - `bun run dev:marketing` — Marketing site only
 - `bun run dev:docs` — Documentation site only
 - `bun run hub` — Build + start dashboard (production mode)
-- `bun run lint` — Currently aliases `typecheck` (ESLint not configured yet)
+- `bun run lint` — ESLint 9 flat config (`eslint.config.mjs`), whole workspace in one pass
+- `bun run lint:fix` — Same, with auto-fix
 - `bun run typecheck` — Type check all packages
 - `bun run test` — Run all tests
 
@@ -204,7 +205,7 @@ The hub lives at `~/.chain-hub/` by default (override with `CHAIN_HOME`):
 ├── agents/              # Agent persona files
 ├── workflows/           # Workflow .md files
 ├── rules/               # Rule files
-├── memory/              # Markdown notes + learnings
+├── memory/              # Learning capture + reflection (chain capture / chain reflect)
 │   ├── learnings/
 │   │   └── events.jsonl # Append-only capture log
 │   └── reflections/     # Written reflection snapshots
@@ -230,8 +231,7 @@ All dashboard API routes are registered in `packages/server/src/index.ts`. The d
 Primary route groups:
 - `/api/overview` — Hub health, counts, storage stats
 - `/api/library` — Asset CRUD operations
-- `/api/memory` — Note management and search (CLI/API; no hub-web page)
-- `/api/learnings` — Timeline and reflection (CLI/API; no hub-web page)
+- `/api/learnings` — Timeline, reflection, and the Learnings dashboard page
 - `/api/setup` — Guided setup
 - `/api/integrations` — Editor integration status
 - `/api/validate` — Validation results

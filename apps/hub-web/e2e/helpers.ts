@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+
 import { expect, type Page } from "@playwright/test";
 
 /** Fills and submits the Create Asset dialog for a minimal skill. Leaves the dialog closed. */
@@ -16,4 +19,14 @@ export async function createSkillAsset(page: Page, name: string): Promise<void> 
 
   await dialog.getByRole("button", { name: "Create asset" }).click();
   await expect(dialog).toBeHidden();
+}
+
+/** Writes a minimal, unmanaged `<skillDir>/SKILL.md` fixture to disk for install/discover flows. */
+export async function writeSkillFixture(skillDir: string, name: string): Promise<void> {
+  await mkdir(skillDir, { recursive: true });
+  await writeFile(
+    path.join(skillDir, "SKILL.md"),
+    `---\nname: ${name}\ndescription: Fixture skill for e2e testing.\n---\n\n# ${name}\n\nBody.\n`,
+    "utf8"
+  );
 }

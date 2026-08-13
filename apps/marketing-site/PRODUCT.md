@@ -12,7 +12,7 @@ Solo developers and indie hackers who use multiple AI-assisted editors (Cursor, 
 
 ## Product Purpose
 
-Chain Hub is a local-first control plane for a developer's AI working context: skills, agents, workflows, rules, and memory. One hub folder (`~/.chain-hub`) is the single source of truth on disk; one CLI (`chain`) manages it; one local dashboard gives visual control. Success means a developer can define an AI behavior once and have it live correctly in every editor they use, with a dashboard that makes hub health and asset state legible at a glance.
+Chain Hub is a local-first control plane for a developer's AI working context: skills, agents, workflows, rules, and learnings. One hub folder (`~/.chain-hub`) is the single source of truth on disk; one CLI (`chain`) manages it; one local dashboard gives visual control. Success means a developer can define an AI behavior once and have it live correctly in every editor they use, with a dashboard that makes hub health and asset state legible at a glance.
 
 ## Positioning
 
@@ -28,7 +28,7 @@ One source of truth for every AI editor. The alternative today is copy-pasting t
 
 - Not a hosted SaaS and not an AI model — a local system for organizing and syncing reusable AI behavior.
 - Editor-agnostic by design: Cursor, Claude Code, Windsurf, Zed today.
-- Memory/learnings (`chain capture`, `chain reflect`) are CLI/API-only in the current phase, not dashboard surfaces.
+- Learnings (`chain capture`, `chain reflect`) has a hub-web dashboard page (`/learnings`) alongside CLI/API access.
 - No team/multi-user accounts in this phase (explicitly single-user hub).
 - Undecided: exact GA launch date, pricing/licensing model, which additional editors ship next.
 

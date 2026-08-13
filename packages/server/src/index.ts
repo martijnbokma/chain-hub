@@ -9,7 +9,6 @@ import { registerAiRoutes } from "./routes/ai.js";
 import { registerHubRoutes } from "./routes/hub.js";
 import { registerLearningsRoutes } from "./routes/learnings.js";
 import { registerLibraryRoutes } from "./routes/library.js";
-import { registerMemoryRoutes } from "./routes/memory.js";
 
 type StartServerOptions = {
   chainHome?: string;
@@ -23,7 +22,6 @@ export function createServer(options: StartServerOptions = {}) {
 
   registerHubRoutes(app, routeOptions);
   registerLibraryRoutes(app, routeOptions);
-  registerMemoryRoutes(app, routeOptions);
   registerLearningsRoutes(app, routeOptions);
   registerAiRoutes(app, routeOptions);
 

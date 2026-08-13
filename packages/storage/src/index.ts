@@ -48,16 +48,6 @@ export {
 export { getOverview, getSetupGuide } from "./hub.js";
 
 export {
-  getMemorySummary,
-  listMemoryNotes,
-  getMemoryNote,
-  createMemoryNote,
-  updateMemoryNote,
-  deleteMemoryNote,
-  searchMemoryNotes
-} from "./memory.js";
-
-export {
   captureEvent,
   getLearningsTimeline,
   buildReflectionReport,

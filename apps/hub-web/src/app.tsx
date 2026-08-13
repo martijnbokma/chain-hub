@@ -15,6 +15,9 @@ const LibraryPage = lazy(() =>
 const IntegrationsPage = lazy(() =>
   import('./components/pages/IntegrationsPage').then((module) => ({ default: module.IntegrationsPage }))
 );
+const LearningsPage = lazy(() =>
+  import('./components/pages/LearningsPage').then((module) => ({ default: module.LearningsPage }))
+);
 const SettingsPage = lazy(() =>
   import('./components/pages/SettingsPage').then((module) => ({ default: module.SettingsPage }))
 );
@@ -27,6 +30,7 @@ export function App() {
           <Route element={<OverviewPage />} path="/" />
           <Route element={<SetupPage />} path="/setup" />
           <Route element={<LibraryPage />} path="/library" />
+          <Route element={<LearningsPage />} path="/learnings" />
           <Route element={<IntegrationsPage />} path="/integrations" />
           <Route element={<SettingsPage />} path="/settings" />
           <Route

@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Build · Typecheck · Test
+    name: Build · Lint · Typecheck · Test
     runs-on: ubuntu-latest
 
     steps:
@@ -25,6 +25,9 @@ jobs:
 
       - name: Build
         run: bun run build
+
+      - name: Lint
+        run: bun run lint
 
       - name: Typecheck
         run: bun run typecheck

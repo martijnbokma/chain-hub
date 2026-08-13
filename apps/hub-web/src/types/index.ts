@@ -28,6 +28,16 @@ export type { DiscoveredAsset, ImportAssetInput } from './discover';
 // Setup types
 export type { SetupStep, SetupGuide } from './setup';
 
+// Learnings / reflect types
+export type {
+  CaptureEventType,
+  CaptureEvent,
+  CaptureInput,
+  LearningsTimeline,
+  SkillReflection,
+  ReflectionReport
+} from './learnings';
+
 // AI settings / prompt drafting
 export type {
   AiProvider,

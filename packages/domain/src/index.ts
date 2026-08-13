@@ -5,7 +5,6 @@ import type {
   ClassifyAssetInput,
   ConvertAssetInput,
   CreateAssetInput,
-  CreateMemoryNoteInput,
   DraftAssetInput,
   DraftPromptInput,
   ImportAssetInput,
@@ -19,33 +18,26 @@ import {
   writeReflectionMarkdown,
   convertAssetKind,
   createAsset,
-  createMemoryNote,
   deleteAsset,
-  deleteMemoryNote,
   discoverAssets,
   getAiSettingsPublic,
   getAsset,
   getIntegrations,
   getLearningsTimeline,
-  getMemoryNote,
-  getMemorySummary,
   getOverview,
   getSetupGuide,
   importDiscoveredAsset,
   initializeHub,
   listAssets,
-  listMemoryNotes,
   listSkillFiles,
   readAiConfig,
   readAiSecrets,
   readSkillFile,
   renameAsset,
-  searchMemoryNotes,
   setupIntegrations,
   syncAssetToEditors,
   updateAiSettings,
   updateAsset,
-  updateMemoryNote,
   validateHub
 } from "@chain-hub/storage";
 
@@ -157,34 +149,6 @@ export async function validateChainHub(chainHome?: string) {
 
 export async function getGuidedSetup(chainHome?: string) {
   return getSetupGuide(chainHome);
-}
-
-export async function getHubMemory(chainHome?: string) {
-  return getMemorySummary(chainHome);
-}
-
-export async function listHubMemoryNotes(chainHome?: string) {
-  return listMemoryNotes(chainHome);
-}
-
-export async function getHubMemoryNote(chainHome: string | undefined, relativePath: string) {
-  return getMemoryNote(chainHome, relativePath);
-}
-
-export async function createHubMemoryNote(chainHome: string | undefined, input: CreateMemoryNoteInput) {
-  return createMemoryNote(chainHome, input);
-}
-
-export async function updateHubMemoryNote(chainHome: string | undefined, relativePath: string, content: string) {
-  return updateMemoryNote(chainHome, relativePath, content);
-}
-
-export async function deleteHubMemoryNote(chainHome: string | undefined, relativePath: string) {
-  return deleteMemoryNote(chainHome, relativePath);
-}
-
-export async function searchHubMemoryNotes(chainHome: string | undefined, query: string) {
-  return searchMemoryNotes(chainHome, query);
 }
 
 export async function captureHubEvent(chainHome: string | undefined, input: CaptureInput) {

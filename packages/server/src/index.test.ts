@@ -109,49 +109,6 @@ describe("Library CRUD", () => {
   });
 });
 
-describe("Memory notes", () => {
-  it("POST /api/memory/notes creates a note", async () => {
-    const hub = await makeTmpHub();
-    const app = createServer({ chainHome: hub });
-    const { status, data } = await postJson<{ relativePath: string }>(app, "/api/memory/notes", {
-      name: "server-test-note",
-      content: "# Server Note\n\nHello from integration test."
-    });
-    expect(status).toBe(201);
-    expect(data.relativePath).toContain("server-test-note");
-  });
-
-  it("GET /api/memory/notes lists notes", async () => {
-    const hub = await makeTmpHub();
-    const app = createServer({ chainHome: hub });
-    await postJson(app, "/api/memory/notes", { name: "listed-note", content: "# Listed" });
-    const list = await getJson<{ relativePath: string }[]>(app, "/api/memory/notes");
-    expect(list.some((n) => n.relativePath.includes("listed-note"))).toBe(true);
-  });
-
-  it("GET /api/memory/note?path= returns note content", async () => {
-    const hub = await makeTmpHub();
-    const app = createServer({ chainHome: hub });
-    const { data: created } = await postJson<{ relativePath: string }>(app, "/api/memory/notes", {
-      name: "fetch-me",
-      content: "# Fetch Me\n\nUnique content abc123."
-    });
-    const note = await getJson<{ content: string }>(
-      app,
-      `/api/memory/note?path=${encodeURIComponent(created.relativePath)}`
-    );
-    expect(note.content).toContain("abc123");
-  });
-
-  it("GET /api/memory/search?q= returns matching notes", async () => {
-    const hub = await makeTmpHub();
-    const app = createServer({ chainHome: hub });
-    await postJson(app, "/api/memory/notes", { name: "searchable", content: "# Searchable\n\nxyz-unique-token here." });
-    const results = await getJson<{ relativePath: string }[]>(app, "/api/memory/search?q=xyz-unique-token");
-    expect(results.length).toBeGreaterThan(0);
-  });
-});
-
 describe("Learnings", () => {
   it("POST /api/learnings/capture appends event", async () => {
     const hub = await makeTmpHub();

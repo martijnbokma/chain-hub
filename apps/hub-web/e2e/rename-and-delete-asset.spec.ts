@@ -25,5 +25,5 @@ test("renames an asset then deletes it from the library", async ({ page }) => {
 
   await expect(confirmDialog).toBeHidden();
   await expect(page.getByRole("heading", { name: renamedName, exact: true })).not.toBeVisible();
-  await expect(page.getByText(renamedName)).not.toBeVisible();
+  await expect(page.getByRole("button", { name: new RegExp(renamedName) })).not.toBeVisible();
 });

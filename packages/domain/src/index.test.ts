@@ -9,22 +9,16 @@ import { getAsset } from "@chain-hub/storage";
 
 import {
   captureHubEvent,
-  createHubMemoryNote,
   createLibraryAsset,
-  deleteHubMemoryNote,
   deleteLibraryAsset,
   getDashboardOverview,
   getHubAgentsSkillsDrift,
   getHubLearningsTimeline,
-  getHubMemory,
-  getHubMemoryNote,
   getHubReflectionReport,
   getLibrary,
   getLibraryAsset,
   initializeChainHub,
   installLibrarySkill,
-  listHubMemoryNotes,
-  searchHubMemoryNotes,
   syncAgentsSkillsIntoHub,
   updateLibraryAsset,
   validateChainHub,
@@ -219,32 +213,6 @@ describe("library asset CRUD via domain", () => {
   });
 });
 
-describe("memory notes via domain", () => {
-  it("creates, reads, searches, and deletes a note", async () => {
-    const hub = await makeTmpHub();
-    await initializeChainHub(hub);
-
-    const note = await createHubMemoryNote(hub, {
-      name: "domain-test-note",
-      content: "# Domain Test\n\nSome domain-layer content."
-    });
-    expect(note.relativePath).toContain("domain-test-note");
-
-    const fetched = await getHubMemoryNote(hub, note.relativePath);
-    expect(fetched.content).toContain("domain-layer content");
-
-    const list = await listHubMemoryNotes(hub);
-    expect(list.some((n) => n.relativePath === note.relativePath)).toBe(true);
-
-    const results = await searchHubMemoryNotes(hub, "domain-layer");
-    expect(results.length).toBeGreaterThan(0);
-
-    await deleteHubMemoryNote(hub, note.relativePath);
-    const listAfter = await listHubMemoryNotes(hub);
-    expect(listAfter.some((n) => n.relativePath === note.relativePath)).toBe(false);
-  });
-});
-
 describe("learnings via domain", () => {
   it("captures events and retrieves timeline", async () => {
     const hub = await makeTmpHub();
@@ -284,16 +252,5 @@ describe("learnings via domain", () => {
     expect(result.content).toContain("# Reflection");
     const stat = await fs.stat(result.filePath);
     expect(stat.isFile()).toBe(true);
-  });
-});
-
-describe("getHubMemory summary", () => {
-  it("returns memory summary with path and status", async () => {
-    const hub = await makeTmpHub();
-    await initializeChainHub(hub);
-    const memory = await getHubMemory(hub);
-    expect(memory.memoryPath).toContain("memory");
-    expect(memory.status).toBe("empty");
-    expect(typeof memory.totalFiles).toBe("number");
   });
 });

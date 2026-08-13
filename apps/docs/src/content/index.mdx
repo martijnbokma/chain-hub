@@ -35,14 +35,15 @@ setup, browse assets, inspect integrations, run high-confidence actions.
 Assets live in the Library and sync out to your editors — see
 [Editor Setup](/editor-setup) for exactly which editor gets which kind.
 
-## Memory: a separate thing from assets
+## Learnings: a separate thing from assets
 
-**Memory** isn't an asset kind — it's the hub's own notes-and-learnings
+**Learnings** isn't an asset kind — it's the hub's own capture-and-reflect
 system, stored under `~/.chain-hub/memory/`. You capture events
 (`chain capture --event success|failure|correction|note`) as you work, and
 `chain reflect` turns the accumulated events for a skill into a written
-reflection. There's no dashboard page for it yet — it's CLI/API only
-(`/api/memory`, `/api/learnings`).
+reflection. A seeded rule (`chain-hub-learnings`) asks your connected
+editors to call `chain capture` automatically; see the Learnings dashboard
+page for the same view backed by `/api/learnings`.
 
 ## Optional: bring your own LLM
 

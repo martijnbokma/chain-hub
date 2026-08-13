@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -128,9 +129,9 @@ export function SetupPage() {
       <ol className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
         {guide.data.steps.map((step, index) => {
           const isCurrent = step.status === 'current';
-          const showConnect = step.action === 'connect' && !step.complete;
+          const showConnect = step.action === 'connect';
           const showCreateAsset = step.action === 'create-asset' && !step.complete;
-          const showValidate = step.action === 'validate' && !step.complete;
+          const showValidate = step.action === 'validate';
 
           return (
             <li
@@ -160,14 +161,36 @@ export function SetupPage() {
                 </div>
 
                 {showConnect ? (
-                  <Button
-                    className="w-fit"
-                    disabled={setupEditors.isPending}
-                    onClick={() => setupEditors.mutate()}
-                    size="sm"
-                  >
-                    {setupEditors.isPending ? 'Connecting…' : 'Connect editors'}
-                  </Button>
+                  <div className="grid gap-3">
+                    <Button
+                      className="w-fit"
+                      disabled={setupEditors.isPending}
+                      onClick={() => setupEditors.mutate()}
+                      size="sm"
+                    >
+                      {setupEditors.isPending ? 'Connecting…' : 'Connect editors'}
+                    </Button>
+                    {setupEditors.data ? (
+                      <ul className="grid gap-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                        {setupEditors.data.map((integration) => (
+                          <li
+                            className="flex items-center gap-2 text-xs text-foreground"
+                            key={integration.id}
+                          >
+                            {integration.connected ? (
+                              <CheckCircle2 className="size-3.5 shrink-0 text-success" />
+                            ) : (
+                              <XCircle className="size-3.5 shrink-0 text-warning" />
+                            )}
+                            <span className="font-medium">{integration.label}</span>
+                            <span className="text-muted-foreground">
+                              {integration.connected ? `connected (${integration.mode})` : 'not connected'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 {showCreateAsset ? (
@@ -177,14 +200,37 @@ export function SetupPage() {
                 ) : null}
 
                 {showValidate ? (
-                  <Button
-                    className="w-fit"
-                    disabled={runValidate.isPending}
-                    onClick={() => runValidate.mutate()}
-                    size="sm"
-                  >
-                    {runValidate.isPending ? 'Validating…' : 'Run validation'}
-                  </Button>
+                  <div className="grid gap-3">
+                    <Button
+                      className="w-fit"
+                      disabled={runValidate.isPending}
+                      onClick={() => runValidate.mutate()}
+                      size="sm"
+                    >
+                      {runValidate.isPending ? 'Validating…' : 'Run validation'}
+                    </Button>
+                    {runValidate.data ? (
+                      <ul className="grid gap-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                        {runValidate.data.checks.map((check) => (
+                          <li className="flex items-start gap-2 text-xs text-foreground" key={check.id}>
+                            {check.status === 'pass' ? (
+                              <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-success" />
+                            ) : (
+                              <XCircle className="mt-0.5 size-3.5 shrink-0 text-warning" />
+                            )}
+                            <span className="grid gap-0.5">
+                              <span className="font-medium">{check.label}</span>
+                              {check.detail ? (
+                                <span className="break-all font-mono text-[11px] text-muted-foreground">
+                                  {check.detail}
+                                </span>
+                              ) : null}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </li>

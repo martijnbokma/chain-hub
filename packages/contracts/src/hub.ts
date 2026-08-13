@@ -35,13 +35,22 @@ export const integrationSchema = z.object({
   unsupportedKinds: z.array(z.enum(assetKinds))
 });
 
+export const validationCheckSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  status: z.enum(["pass", "fail"]),
+  detail: z.string().optional()
+});
+
 export const validationSchema = z.object({
   ok: z.boolean(),
-  issues: z.array(z.string())
+  issues: z.array(z.string()),
+  checks: z.array(validationCheckSchema)
 });
 
 export type Overview = z.infer<typeof overviewSchema>;
 export type AgentsSkillsDrift = z.infer<typeof agentsSkillsDriftSchema>;
 export type Integration = z.infer<typeof integrationSchema>;
 export type IntegrationMode = z.infer<typeof integrationModeSchema>;
+export type ValidationCheck = z.infer<typeof validationCheckSchema>;
 export type ValidationResult = z.infer<typeof validationSchema>;

@@ -61,7 +61,7 @@ async function removeLegacySymlink(id: string, homeDir: string): Promise<void> {
   }
 }
 
-export async function getIntegrations(chainHomeInput?: string): Promise<Integration[]> {
+export async function getIntegrations(_chainHomeInput?: string): Promise<Integration[]> {
   const homeDir = resolveHomeDir();
 
   return Promise.all(
