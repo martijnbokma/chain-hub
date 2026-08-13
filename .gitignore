@@ -21,6 +21,10 @@ apps/hub-web/dist/
 # Playwright MCP debug snapshots/screenshots
 .playwright-mcp/
 
+# Playwright e2e test artifacts
+apps/hub-web/playwright-report/
+apps/hub-web/test-results/
+
 # Ad-hoc UI verification screenshots dumped at repo root
 /*.png
 

@@ -37,7 +37,7 @@ export const docPages: DocPage[] = Object.entries(modules)
   }))
   .sort((a, b) => a.order - b.order);
 
-const SECTION_ORDER = ['Overview', 'Reference'];
+const SECTION_ORDER = ['Overview', 'Guides', 'Reference'];
 
 export const docSections = SECTION_ORDER.map((section) => ({
   section,

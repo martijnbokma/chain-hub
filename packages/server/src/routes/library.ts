@@ -21,6 +21,8 @@ import {
   forkLibrarySkill,
   getLibrary,
   getLibraryAsset,
+  getSkillFile,
+  getSkillFiles,
   importLibraryAsset,
   installLibrarySkill,
   installLibrarySkillBundle,
@@ -70,6 +72,35 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     const payload = forkSkillInputSchema.parse(await context.req.json());
     const asset = await forkLibrarySkill(options.chainHome, payload);
     return context.json(asset, 201);
+  });
+
+  app.get("/api/library/skills/:name/files", async (context) => {
+    try {
+      const name = context.req.param("name");
+      const files = await getSkillFiles(options.chainHome, name);
+      return context.json({ files });
+    } catch (error) {
+      return respondWithMappedError(context, error, {
+        zodFallback: "Invalid request",
+        unknownFallback: "Unable to list skill files",
+        clientMessagePattern: /not found/i
+      });
+    }
+  });
+
+  app.get("/api/library/skills/:name/files/:path{.+}", async (context) => {
+    try {
+      const name = context.req.param("name");
+      const relativePath = context.req.param("path");
+      const file = await getSkillFile(options.chainHome, name, relativePath);
+      return context.json(file);
+    } catch (error) {
+      return respondWithMappedError(context, error, {
+        zodFallback: "Invalid request",
+        unknownFallback: "Unable to read skill file",
+        clientMessagePattern: /not found|unsafe skill file path|not a file/i
+      });
+    }
   });
 
   app.get("/api/library/discover", async (context) => {

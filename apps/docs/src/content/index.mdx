@@ -30,8 +30,30 @@ setup, browse assets, inspect integrations, run high-confidence actions.
 - **Agents** — personas and behavior presets tuned for specific work.
 - **Workflows** — multi-step processes captured once, run everywhere.
 - **Rules** — guardrails and conventions your AI tools always follow.
-- **Memory** — notes and learnings that carry context across sessions.
+- **Prompts** — one-shot reusable prompt text for a specific task; library-only, not synced to editors.
 
-See [Hub Folder Structure](/hub-folder) for how these are stored on disk, the
+Assets live in the Library and sync out to your editors — see
+[Editor Setup](/editor-setup) for exactly which editor gets which kind.
+
+## Memory: a separate thing from assets
+
+**Memory** isn't an asset kind — it's the hub's own notes-and-learnings
+system, stored under `~/.chain-hub/memory/`. You capture events
+(`chain capture --event success|failure|correction|note`) as you work, and
+`chain reflect` turns the accumulated events for a skill into a written
+reflection. There's no dashboard page for it yet — it's CLI/API only
+(`/api/memory`, `/api/learnings`).
+
+## Optional: bring your own LLM
+
+Drafting, classifying, auditing, and improving assets can be handed off to
+an LLM you connect yourself — Anthropic, OpenAI, Mistral, or a local Ollama
+model. See [AI Providers](/ai-providers). Nothing else in Chain Hub needs
+this — it's entirely optional.
+
+New here? Start with [Getting Started](/getting-started) to install and run
+the hub, then [Writing an Asset](/asset-format) to create your first skill.
+
+See [Hub Folder Structure](/hub-folder) for how assets are stored on disk, the
 [CLI Reference](/cli-reference) for every command, or [Architecture](/architecture)
 for how the packages fit together.

@@ -20,7 +20,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect }: AssetC
   return (
     <button
       className={cn(
-        'card-corners group relative grid w-full min-w-0 gap-3 overflow-hidden rounded-xl border border-border bg-card text-left shadow-card transition-colors',
+        'card-corners group relative grid w-full min-w-0 gap-3 rounded-xl border border-border bg-card text-left shadow-card transition-colors',
         'hover:border-primary/25 hover:bg-muted/50',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         selected && 'border-primary/40 bg-primary/5 ring-1 ring-primary/15',

@@ -1,8 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Chain Hub">
-  <rect width="32" height="32" rx="4" fill="#0d1318"/>
-  <rect x="2.5" y="2.5" width="27" height="27" rx="2" fill="none" stroke="#f97316" stroke-width="2"/>
-  <g fill="none" stroke="#f97316" stroke-width="2.25" stroke-linecap="butt" stroke-linejoin="miter">
-    <path d="M16 11.3a4.5 4.5 0 1 0 0 9.6"/>
-    <path d="M18.3 11.3v9.6M24 11.3v9.6M18.3 16.1h5.7"/>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="22" fill="#18181B"/>
+
+  <!-- corner crop marks -->
+  <g fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 22V9H22"/>
+    <path d="M119 22V9H106"/>
+    <path d="M9 106V119H22"/>
+    <path d="M119 106V119H106"/>
+  </g>
+
+  <!-- "CH" set in Big Shoulders Display (site display font), baked to outlines -->
+  <g fill="#F97316" transform="matrix(0.028,0,0,-0.028,39.67,86.39)">
+    <path d="M425 -17Q243 -17 165.5 60.0Q88 137 85 315Q83 427 82.0 550.0Q81 673 81.0 800.0Q81 927 82.0 1050.5Q83 1174 85 1287Q87 1443 167.0 1529.5Q247 1616 424 1616Q600 1616 679.0 1539.5Q758 1463 764 1285Q765 1250 765.0 1201.5Q765 1153 764.0 1105.5Q763 1058 762 1022H546Q547 1066 547.5 1119.0Q548 1172 548.0 1225.5Q548 1279 547 1323Q546 1382 515.5 1410.0Q485 1438 424 1438Q363 1438 333.0 1410.0Q303 1382 301 1323Q297 1196 295.5 1064.5Q294 933 294.0 800.0Q294 667 295.5 535.0Q297 403 301 277Q303 218 333.5 189.5Q364 161 425 161Q490 161 522.0 189.5Q554 218 555 277Q556 322 556.5 377.5Q557 433 556.0 488.0Q555 543 554 588H771Q773 522 773.5 451.5Q774 381 772 315Q766 137 685.5 60.0Q605 -17 425 -17Z"/>
+    <g transform="translate(899,0)">
+      <path d="M93 0V1600H309V906H542V1600H758V0H542V714H309V0Z"/>
+    </g>
   </g>
 </svg>

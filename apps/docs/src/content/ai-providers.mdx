@@ -1,0 +1,143 @@
+---
+title: AI Providers
+section: Guides
+order: 4
+description: Connect your own LLM — Anthropic, OpenAI, Mistral, or a local Ollama model — to draft, classify, audit, and improve Library assets.
+---
+
+# AI Providers
+
+Chain Hub can call an LLM to help you write Library assets — draft new
+skills/agents/workflows/rules/prompts from a plain-language intent, pick the
+right asset kind automatically, and audit + improve existing assets. None of
+this is required to use Chain Hub; it's an optional assist layered on top of
+the Library. Everything else (hub folder, CLI, editor sync, learnings) works
+with zero AI configured.
+
+You bring your own model. There's no bundled/hosted AI — you either point
+Chain Hub at a provider API key you own, or run a model locally with Ollama.
+
+## Where this lives
+
+**Dashboard → Settings → AI for prompts.** One active provider, plus a model
+and (if applicable) an API key configured per provider — switching the active
+provider later doesn't lose the others' settings.
+
+## Supported providers
+
+| Provider | Default model | Needs | Runs |
+| --- | --- | --- | --- |
+| **Ollama** | `llama3.2` | Ollama installed and running locally | On your machine, no API key, no network egress |
+| **Anthropic** | `claude-sonnet-4-5` | API key from [console.anthropic.com](https://console.anthropic.com/settings/keys) | Anthropic's cloud |
+| **OpenAI** | `gpt-4o-mini` | API key from [platform.openai.com](https://platform.openai.com/api-keys) | OpenAI's cloud |
+| **Mistral** | `mistral-small-latest` | API key from [console.mistral.ai](https://console.mistral.ai/api-keys) | Mistral's cloud |
+
+Each provider row in Settings has a **Model** dropdown (curated list) plus a
+**Custom…** option — enter any model ID the provider actually serves. Ollama
+model names must match something you've already pulled locally
+(`ollama pull <model>`); the curated list is a suggestion, not a source of
+truth for what's installed.
+
+## Set up a cloud provider (Anthropic / OpenAI / Mistral)
+
+1. Open **Settings → AI for prompts**.
+2. Set **Active provider** to the one you want.
+3. Under that provider's card, paste an API key and pick (or type) a model.
+4. Click **Save settings**.
+
+The key field shows `(configured — leave blank to keep)` once a key is
+saved — leaving it blank on a later save keeps the existing key; you only
+retype it to replace it.
+
+## Set up Ollama (local, no API key)
+
+1. Install Ollama: [ollama.com/download](https://ollama.com/download).
+2. Pull a model: `ollama pull llama3.2` (or any model from the
+   [Ollama library](https://ollama.com/library)).
+3. Make sure Ollama is running — it listens on `http://127.0.0.1:11434` by
+   default.
+4. In **Settings → AI for prompts**, set **Active provider** to `Ollama
+   (local)`, confirm the **Base URL** matches where Ollama is listening, and
+   set **Model** to the exact name you pulled.
+5. Save.
+
+Ollama is the only provider with no API key field — Chain Hub just calls
+your local Ollama server's `/api/chat` endpoint directly.
+
+## What "active provider" actually controls
+
+Only **one** provider is active at a time — the one selected under
+**Active provider**. That's the model every AI action below calls. The other
+three providers' settings stay saved (models + keys) so switching back and
+forth doesn't lose configuration, but they aren't called until you make them
+active.
+
+## Where your keys are stored
+
+Everything is local, under your hub folder (`~/.chain-hub/system/` by
+default — see [Hub Folder Structure](/hub-folder)):
+
+- `ai-config.json` — active provider, model per provider, Ollama base URL.
+  No secrets.
+- `secrets.json` — API keys only. Written with file mode `0o600`
+  (owner-read/write only) right after creation.
+
+Keys never leave your machine except in the one place they have to: the
+outbound HTTPS request Chain Hub makes to that provider's API when you
+trigger an AI action. Chain Hub itself doesn't log, proxy, or relay keys
+anywhere else.
+
+## What the AI actually does
+
+Four distinct actions, all going through the same active provider —
+`packages/domain/src/ai-providers.ts` is the single place that builds the
+prompt and calls the model:
+
+| Action | Where you trigger it | What it does |
+| --- | --- | --- |
+| **Draft** | Library → Create → describe intent → *Draft with AI* | Turns a plain-language intent into a complete asset file. If kind is set to "Auto", the model first classifies the intent into `skills`/`agents`/`workflows`/`rules`/`prompts`, then drafts content matching that kind's expected structure (e.g. skills get YAML frontmatter with `name` + `description`). |
+| **Classify** | Asset detail panel → *Kind check* | Re-evaluates an existing asset's content and tells you whether its current kind still fits, or suggests a better one — with a one-line reason. Offers *Convert to `<kind>`* when it disagrees. |
+| **Audit** | Asset detail panel → *Audit* | Reviews an existing asset against kind-specific best practices (for skills: clear frontmatter, actionable steps, no redundancy; for rules: enforceable do/don't guidance; etc.) and returns a summary plus a severity-tagged (`high`/`medium`/`low`) findings list. Empty findings only when the asset genuinely meets the bar — it's told explicitly not to invent filler findings. |
+| **Improve** | Asset detail panel → *Apply improvements* (shown after an audit with findings) | Rewrites the asset to address every audit finding, preserving its core purpose, name, and any existing `author`/`version` metadata. |
+
+All four are just chat completions against your configured model — the
+system prompts live in `ASSET_DRAFT_SYSTEM`, `CLASSIFY_SYSTEM`,
+`AUDIT_EXISTING_SYSTEM`, and `IMPROVE_EXISTING_RULES` in
+`packages/domain/src/ai-providers.ts` if you want to read exactly what's
+sent.
+
+**Upstream-owned skills** (installed from an external source, not authored
+locally) block Improve and Convert — fork the skill first to get a local
+copy you can apply AI changes to. See
+[Writing an Asset](/asset-format#author-field).
+
+## API surface
+
+If you're calling this from a script instead of the dashboard, see
+[API Routes](/api-routes) for the full `/api/settings/ai` and `/api/ai/*`
+endpoint list and their request/response shapes (`@chain-hub/contracts`
+exports the Zod schemas: `UpdateAiSettingsInput`, `DraftAssetInput`,
+`ClassifyAssetInput`, `AuditAssetInput`, `ImproveAssetInput`).
+
+## Errors you might see
+
+Chain Hub maps raw provider errors into one of these before showing you a
+toast — the underlying HTTP status decides which:
+
+- **"`<Provider>` rejected the API key. Update it under Settings → AI."**
+  — 401/403, or the provider's error body mentions an invalid/incorrect key.
+- **"`<Provider>` can't run this request — your account needs more credits
+  or an active plan."** — the error body mentions billing/credits/quota.
+- **"`<Provider>` doesn't recognize that model. Pick another model under
+  Settings → AI."** — 404, or the error body says the model doesn't exist —
+  usually a typo'd custom model ID.
+- **"`<Provider>` rate limit hit. Wait a moment and try again."** — 429.
+- **"Ollama is unreachable at `<baseUrl>`. Start Ollama locally, or update
+  the base URL under Settings → AI."** — the `fetch` to your Ollama base URL
+  failed outright (nothing listening there).
+- **"`<Provider>` is temporarily unavailable. Try again in a moment."** —
+  5xx from the provider.
+- **"`<Provider>` API key is not configured. Add it under Settings → AI."**
+  — you triggered an AI action on a cloud provider with no key saved yet.
+
+See also [Troubleshooting](/troubleshooting) for non-AI errors.

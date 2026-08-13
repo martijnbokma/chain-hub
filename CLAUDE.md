@@ -18,7 +18,7 @@
 - **Package Manager**: Bun 1.3.11 with workspaces
 - **Monorepo**: Turborepo for task orchestration
 - **TypeScript**: 5.5.4+ (packages), 6.0.3+ (hub-web)
-- **Node**: 22.0.0+ (ESM modules)
+- **Node**: 22.13.0+ (ESM modules; `node:sqlite` requires 22.13.0+ unflagged)
 
 ### Backend Stack
 - **CLI**: Commander 12.1.0

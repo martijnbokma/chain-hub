@@ -5,11 +5,14 @@ import {
   Bot,
   Workflow,
   ScrollText,
-  Brain,
+  FileText,
   Heart,
   Link2,
   Terminal,
   LayoutDashboard,
+  Sparkles,
+  HardDrive,
+  Cloud,
   X,
   ChevronLeft,
   ChevronRight,
@@ -28,8 +31,15 @@ const assets = [
   { icon: Bot, name: 'Agents', description: 'Personas and behavior presets tuned for specific work.' },
   { icon: Workflow, name: 'Workflows', description: 'Multi-step processes captured once, run everywhere.' },
   { icon: ScrollText, name: 'Rules', description: 'Guardrails and conventions your AI tools always follow.' },
-  { icon: Brain, name: 'Memory', description: 'Notes and learnings that carry context across sessions.' },
+  { icon: FileText, name: 'Prompts', description: 'One-shot reusable prompt text for a specific task.' },
   { icon: Link2, name: 'Editor connections', description: 'One source of truth, linked into every editor you use.' },
+];
+
+const aiProviders = [
+  { icon: HardDrive, name: 'Ollama', description: 'Local model. No API key, nothing leaves your machine.' },
+  { icon: Cloud, name: 'Anthropic', description: 'Claude models via your own API key.' },
+  { icon: Cloud, name: 'OpenAI', description: 'GPT models via your own API key.' },
+  { icon: Cloud, name: 'Mistral', description: 'Mistral models via your own API key.' },
 ];
 
 const surfaces = [
@@ -415,6 +425,46 @@ export function LandingPage() {
               </ul>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* AI providers */}
+      <section className="max-w-6xl mx-auto px-6 py-16 border-b border-border">
+        <h2 className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8">
+          Optional — bring your own LLM
+        </h2>
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles size={20} className="text-primary" />
+              <h3 className="font-display font-semibold text-2xl uppercase tracking-wide text-foreground">
+                Draft it, improve it, don't retype it
+              </h3>
+            </div>
+            <p className="text-base text-muted-foreground leading-relaxed max-w-md">
+              Connect a model under Settings → AI and the Library can turn a plain-language
+              description into a complete skill, agent, workflow, rule, or prompt — then audit any
+              existing asset against best practices for its kind and rewrite it to fix what it
+              finds. Nothing else in Chain Hub needs this; every other feature works with zero AI
+              configured.
+            </p>
+          </div>
+          <div className="bp-corners border border-border rounded-sm divide-y divide-border">
+            {aiProviders.map(({ icon: Icon, name, description }, i) => (
+              <div key={name} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 px-5 py-4">
+                <div className="flex items-center gap-3 sm:w-40 shrink-0">
+                  <span className="font-mono text-[10px] text-muted-foreground tracking-widest w-12 shrink-0">
+                    REF {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <Icon size={18} className="text-primary shrink-0" />
+                  <h4 className="font-display font-semibold text-base uppercase tracking-wide text-foreground">
+                    {name}
+                  </h4>
+                </div>
+                <p className="text-base text-muted-foreground leading-relaxed">{description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

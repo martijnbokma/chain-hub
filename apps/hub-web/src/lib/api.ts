@@ -23,7 +23,9 @@ import type {
   AuditAssetInput,
   AuditAssetResult,
   ImproveAssetInput,
-  ImproveAssetResult
+  ImproveAssetResult,
+  SkillFileEntry,
+  SkillFileContent
 } from '@/types';
 
 /**
@@ -113,6 +115,12 @@ export const libraryApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
+  getSkillFiles: (name: string) =>
+    getJson<{ files: SkillFileEntry[] }>(`/api/library/skills/${encodeURIComponent(name)}/files`),
+  getSkillFile: (name: string, path: string) =>
+    getJson<SkillFileContent>(
+      `/api/library/skills/${encodeURIComponent(name)}/files/${path.split('/').map(encodeURIComponent).join('/')}`
+    ),
   migrateAgentsSkills: (data: { lockPath?: string; force?: boolean } = {}) =>
     fetch('/api/library/skills/migrate-agents', {
       method: 'POST',

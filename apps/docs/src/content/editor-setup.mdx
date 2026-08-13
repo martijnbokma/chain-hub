@@ -1,0 +1,72 @@
+---
+title: Editor Setup
+section: Guides
+order: 2
+description: Connect Cursor, Claude Code, Windsurf, or Zed to the hub folder.
+---
+
+# Editor Setup
+
+```bash
+chain setup
+```
+
+Runs each supported editor adapter in turn (sequentially, not in parallel —
+parallel resync races when editor paths alias the same directory). Every
+adapter writes files marked as hub-managed; if a file already exists at that
+path and isn't hub-managed, the adapter skips it and logs a warning rather
+than overwriting your work:
+
+```
+[chain-hub] skipping <path>: file exists and is not Chain Hub managed
+```
+
+Remove or rename the conflicting file, then rerun `chain setup`.
+
+## What each editor gets
+
+| Editor | Kinds synced | Skill path | Rules / other |
+| --- | --- | --- | --- |
+| **Claude Code** | skills, agents, rules | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md`, `~/.claude/rules/<name>.md` |
+| **Cursor** | skills, rules | `~/.cursor/skills/<name>/SKILL.md` | `~/.cursor/rules/<name>.mdc` (`alwaysApply: true`) |
+| **Windsurf** | skills, rules, workflows | `~/.codeium/windsurf/skills/<name>/SKILL.md` | dual-written to `~/.devin/{rules,workflows}/` **and** `~/.windsurf/{rules,workflows}/` |
+| **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules concatenated into one `~/.config/zed/AGENTS.md` |
+
+No adapter syncs `agents` or `workflows` universally — Cursor skips both
+(Custom Modes were removed in Cursor 2.1.0), Zed skips both (no native
+concept in Zed). `prompts` isn't synced to any editor today; it's a
+library-only asset kind. See [Writing an Asset](/asset-format) for the full
+kind matrix.
+
+## Checking connection status
+
+`chain status` reports hub health and asset counts — it does **not** include
+editor integration status. For that, use:
+
+- The dashboard's **Integrations** page, or
+- `GET /api/integrations`
+
+Each editor reports `{ connected, mode: "managed" | "missing", targetPaths,
+supportedKinds, unsupportedKinds }`.
+
+## Pulling assets the other direction
+
+`chain setup` only pushes hub assets out to editors. If an editor already
+has skills/rules/etc. you created directly in it (before adopting Chain Hub,
+or outside the hub folder entirely), pull them in instead:
+
+```bash
+chain asset discover
+chain asset import --editor claude-code --kind skills --name my-skill
+```
+
+`discover` lists what each connected editor has that isn't in the hub yet;
+`import` copies one of those into the hub as a normal asset. See
+[CLI Reference](/cli-reference#asset-management).
+
+## Editing synced assets
+
+Treat the hub folder (`~/.chain-hub`) as the source of truth. Editor-side
+files are generated projections — edit through `chain asset update` or the
+dashboard Library, then rerun `chain setup` (or let the dashboard resync) to
+push the change out to every connected editor.

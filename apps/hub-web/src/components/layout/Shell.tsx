@@ -215,9 +215,7 @@ export function Shell({ children }: ShellProps) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-primary font-mono text-xs text-primary">
-                    CH
-                  </span>
+                  <img src="/logo.svg" alt="Chain Hub" className="size-8 shrink-0 rounded-sm" />
                   <span className="truncate font-display text-xl font-semibold uppercase tracking-wide text-foreground">
                     Chain Hub
                   </span>
@@ -310,12 +308,10 @@ export function Shell({ children }: ShellProps) {
         </Sidebar>
 
         <SidebarInset className="min-w-0 overflow-x-hidden">
-          <header className="shell-seam relative flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
+          <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
             <SidebarTrigger />
             <NavLink className="flex items-center gap-3 md:hidden" to="/">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-primary font-mono text-xs text-primary">
-                CH
-              </span>
+              <img src="/logo.svg" alt="Chain Hub" className="size-8 shrink-0 rounded-sm" />
               <span className="font-display text-xl font-semibold uppercase tracking-wide text-foreground">
                 Chain Hub
               </span>

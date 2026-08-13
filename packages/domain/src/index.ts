@@ -35,8 +35,10 @@ import {
   initializeHub,
   listAssets,
   listMemoryNotes,
+  listSkillFiles,
   readAiConfig,
   readAiSecrets,
+  readSkillFile,
   renameAsset,
   searchMemoryNotes,
   setupIntegrations,
@@ -97,6 +99,14 @@ export async function updateLibraryAsset(chainHome: string | undefined, kind: As
 export async function deleteLibraryAsset(chainHome: string | undefined, kind: AssetKind, name: string) {
   await deleteAsset(chainHome, kind, name);
   await syncAssetToEditors(chainHome, kind, name, null);
+}
+
+export async function getSkillFiles(chainHome: string | undefined, name: string) {
+  return listSkillFiles(chainHome, name);
+}
+
+export async function getSkillFile(chainHome: string | undefined, name: string, path: string) {
+  return readSkillFile(chainHome, name, path);
 }
 
 export async function renameLibraryAsset(

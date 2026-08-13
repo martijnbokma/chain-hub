@@ -1,7 +1,7 @@
 ---
 title: API Routes
 section: Reference
-order: 4
+order: 13
 description: The dashboard API surface and the shared Zod contracts behind it.
 ---
 
@@ -19,8 +19,11 @@ run on the same port as the hub server.
 | `/api/setup` | Guided setup |
 | `/api/integrations` | Editor integration status |
 | `/api/validate` | Validation results |
-| `/api/settings/ai` | Local-first AI provider settings |
-| `/api/ai/draft-prompt` | Prompt/asset drafting |
+| `/api/settings/ai` | Local-first AI provider settings — see [AI Providers](/ai-providers) |
+| `/api/ai/draft-prompt` | Draft a Library asset from an intent |
+| `/api/ai/classify-asset` | Re-check an existing asset's kind |
+| `/api/ai/audit-asset` | Audit an existing asset against its kind's best practices |
+| `/api/ai/improve-asset` | Rewrite an asset to address audit findings |
 
 ## Shared contracts
 

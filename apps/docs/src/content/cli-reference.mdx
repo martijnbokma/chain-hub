@@ -1,7 +1,7 @@
 ---
 title: CLI Reference
 section: Reference
-order: 2
+order: 11
 description: Every chain command, plus the bun workspace scripts around it.
 ---
 
@@ -18,7 +18,15 @@ description: Every chain command, plus the bun workspace scripts around it.
 | `chain guide` | Show setup checklist |
 | `chain hub [--port N] [--no-open]` | Start local dashboard (port 2342 default) |
 
+Every command accepts a global `--chain-home <path>` flag (before the
+subcommand) to target a hub other than `~/.chain-hub` for that one
+invocation — see [Getting Started](/getting-started#use-a-different-hub-location).
+
 ## Asset management
+
+`chain asset` reads and writes files directly under the hub folder — the
+same operations the dashboard's Library page performs. See
+[Writing an Asset](/asset-format) for the file format itself.
 
 | Command | Description |
 | --- | --- |
@@ -27,8 +35,34 @@ description: Every chain command, plus the bun workspace scripts around it.
 | `chain asset show --kind <kind> --name <name>` | Show an asset |
 | `chain asset update --kind <kind> --name <name> --content <text>` | Update an asset |
 | `chain asset remove --kind <kind> --name <name>` | Remove an asset |
+| `chain asset discover` | List assets that exist natively in a connected editor but aren't in the hub yet |
+| `chain asset import --editor <id> --kind <kind> --name <name>` | Pull one asset found by `discover` into the hub |
 
 Asset kinds: `skills` · `agents` · `workflows` · `rules` · `prompts`
+
+## Skill management
+
+`chain skill` is separate from `chain asset` — it manages skills that come
+from *outside* the hub (a local directory or a git repo), including the
+lock-file bookkeeping needed to keep them updatable and to protect them from
+accidental local edits.
+
+| Command | Description |
+| --- | --- |
+| `chain skill install --path <dir>` | Install a skill from a local directory containing `SKILL.md` |
+| `chain skill install --repo <url> [--subdir <path>]` | Install a skill from a git repo (optionally a subdirectory of it) |
+| `chain skill install ... [--name <name>] [--force]` | Override the installed name; `--force` replaces an existing hub skill |
+| `chain skill update [--name <name>] [--force]` | Reinstall skills from their recorded upstream source (all locked skills, or just one). `--force` reinstalls even if the content hash hasn't changed |
+| `chain skill migrate-agents [--lock-path <path>] [--force]` | Import skills already tracked in `~/.agents/.skill-lock.json` into the hub |
+| `chain skill fork --name <name> [--as <name>]` | Copy an upstream-owned skill into a local, freely-editable skill (no lock entry, no more "upstream-owned" errors) |
+
+Skills installed via `chain skill install` are **upstream-owned** — editing
+them directly through `chain asset update` (or the dashboard editor) fails.
+`chain skill fork` is the escape hatch: it makes a local copy you can edit
+freely, disconnected from the upstream source. See
+[Writing an Asset → Author field](/asset-format#author-field) for the exact
+error and [Editor Setup](/editor-setup) for how installed skills reach your
+editors.
 
 ## Learnings
 
@@ -51,8 +85,9 @@ Run from the repo root with `bun run <script>`.
 | `build` | Build all packages in dependency order |
 | `dev` | Hub stack in watch mode (server + hub-web + packages) |
 | `dev:hub` | Server + hub-web only (fastest dashboard loop) |
-| `dev:all` | All packages including marketing-site, docs, and CLI |
+| `dev:all` | Every workspace package in watch mode |
 | `dev:marketing` | Marketing site only |
+| `dev:docs` | Documentation site only (this site) |
 | `hub` | Build + start dashboard (production mode) |
 | `lint` | Currently aliases `typecheck` |
 | `typecheck` | Type check all packages |

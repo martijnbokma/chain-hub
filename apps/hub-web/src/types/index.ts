@@ -13,6 +13,8 @@ export type {
   InstallSkillBundleInput,
   InstallSkillResult,
   MigrateAgentsSkillsResult,
+  SkillFileEntry,
+  SkillFileContent,
   SkillLockEntry,
   UpdateSkillsResult
 } from './assets';

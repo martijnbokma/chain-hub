@@ -10,7 +10,9 @@ export {
   convertAssetKind,
   deleteAsset,
   validateHub,
-  syncAssetIndex
+  syncAssetIndex,
+  listSkillFiles,
+  readSkillFile
 } from "./core.js";
 
 export {

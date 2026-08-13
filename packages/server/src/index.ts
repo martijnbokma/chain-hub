@@ -5,8 +5,6 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 
-import { summarizeAgentsSkillSync, syncAgentsSkillsIntoHub } from "@chain-hub/domain";
-
 import { registerAiRoutes } from "./routes/ai.js";
 import { registerHubRoutes } from "./routes/hub.js";
 import { registerLearningsRoutes } from "./routes/learnings.js";
@@ -45,16 +43,6 @@ export function createServer(options: StartServerOptions = {}) {
 export async function startServer(options: StartServerOptions = {}) {
   const port = options.port ?? 2342;
   const app = createServer(options);
-
-  try {
-    const result = await syncAgentsSkillsIntoHub(options.chainHome);
-    if (result.results.length > 0) {
-      console.log(summarizeAgentsSkillSync(result));
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Agents skill sync failed: ${message}`);
-  }
 
   return await new Promise<ReturnType<typeof serve>>((resolve, reject) => {
     const server = serve({ fetch: app.fetch, port }, () => {

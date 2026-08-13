@@ -30,9 +30,7 @@ export function TitleblockBar() {
   return (
     <header className="max-w-6xl mx-auto px-6 pt-6 flex items-center justify-between pb-4">
       <Link to="/" className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-sm border border-primary flex items-center justify-center font-mono text-xs text-primary">
-          CH
-        </div>
+        <img src="/logo.svg" alt="Chain Hub" className="w-8 h-8 rounded-sm" />
         <span className="font-display font-semibold text-xl tracking-wide text-foreground uppercase">
           Chain Hub
         </span>

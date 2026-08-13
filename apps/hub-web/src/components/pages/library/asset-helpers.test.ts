@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { AssetRecord, SkillLockEntry } from "@/types";
 import {
+  contentForClipboard,
   filterLibraryAssets,
+  formatSkillSource,
+  formatSkillSourceType,
   groupAssetsByKind,
   parseKindParam,
   parseOwnershipParam,
+  resolveKindMeta,
+  stripYamlFrontmatter,
   suggestAssetNameFromText
 } from "./asset-helpers";
 
@@ -122,5 +127,81 @@ describe("groupAssetsByKind", () => {
 describe("suggestAssetNameFromText", () => {
   it("derives a kebab slug from intent text", () => {
     expect(suggestAssetNameFromText("Review pull requests for security")).toContain("review");
+  });
+});
+
+describe("resolveKindMeta", () => {
+  it("returns the matching kind label", () => {
+    expect(resolveKindMeta("agents").label).toBe("Agent");
+    expect(resolveKindMeta("prompts").label).toBe("Prompt");
+  });
+
+  it("falls back to skills for unknown kinds", () => {
+    expect(resolveKindMeta("unknown-kind").label).toBe("Skill");
+  });
+});
+
+describe("formatSkillSource", () => {
+  it("labels a missing lock entry as local", () => {
+    expect(formatSkillSource(null)).toBe("Local hub (no lock entry)");
+  });
+
+  it("labels uploads distinctly from their raw source string", () => {
+    expect(formatSkillSource(lockEntry({ sourceType: "path", source: "upload://foo" }))).toBe(
+      "Uploaded via dashboard"
+    );
+  });
+
+  it("includes the subdir for git sources when present", () => {
+    expect(
+      formatSkillSource(lockEntry({ sourceType: "git", source: "https://github.com/a/b", subdir: "skills/foo" }))
+    ).toBe("https://github.com/a/b · skills/foo");
+    expect(formatSkillSource(lockEntry({ sourceType: "git", source: "https://github.com/a/b" }))).toBe(
+      "https://github.com/a/b"
+    );
+  });
+
+  it("returns the raw source for non-git, non-upload entries", () => {
+    expect(formatSkillSource(lockEntry({ sourceType: "path", source: "/local/path" }))).toBe("/local/path");
+  });
+});
+
+describe("formatSkillSourceType", () => {
+  it("returns local for a missing lock entry", () => {
+    expect(formatSkillSourceType(null)).toBe("local");
+  });
+
+  it("returns upload for upload:// sources regardless of sourceType", () => {
+    expect(formatSkillSourceType(lockEntry({ sourceType: "path", source: "upload://foo" }))).toBe("upload");
+  });
+
+  it("otherwise returns the raw sourceType", () => {
+    expect(formatSkillSourceType(lockEntry({ sourceType: "git", source: "https://github.com/a/b" }))).toBe("git");
+  });
+});
+
+describe("stripYamlFrontmatter", () => {
+  it("removes a leading YAML frontmatter block", () => {
+    expect(stripYamlFrontmatter("---\ntitle: Foo\n---\nBody text")).toBe("Body text");
+  });
+
+  it("returns the content unchanged when there is no frontmatter", () => {
+    expect(stripYamlFrontmatter("Body text")).toBe("Body text");
+  });
+
+  it("returns the content unchanged when the frontmatter fence is unterminated", () => {
+    expect(stripYamlFrontmatter("---\ntitle: Foo\nBody text")).toBe("---\ntitle: Foo\nBody text");
+  });
+});
+
+describe("contentForClipboard", () => {
+  it("strips frontmatter for prompts", () => {
+    expect(contentForClipboard("---\ntitle: Foo\n---\nBody text", "prompts")).toBe("Body text");
+  });
+
+  it("leaves other kinds untouched", () => {
+    expect(contentForClipboard("---\ntitle: Foo\n---\nBody text", "skills")).toBe(
+      "---\ntitle: Foo\n---\nBody text"
+    );
   });
 });

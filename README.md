@@ -206,7 +206,7 @@ node packages/cli/dist/index.js --chain-home ./.sandbox-hub hub --port 3456 --no
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node 22 (ESM, native SQLite via `node:sqlite`) |
+| Runtime | Node 22.13.0+ (ESM, native SQLite via `node:sqlite`) |
 | CLI | Commander |
 | API server | Hono + `@hono/node-server` |
 | Frontend | React 19, React Router 7, TanStack Query v5 |

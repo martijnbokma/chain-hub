@@ -40,6 +40,20 @@ export const assetDetailSchema = assetRecordSchema.extend({
   content: z.string()
 });
 
+/** A file or subfolder inside a skill's folder, other than SKILL.md itself. */
+export const skillFileEntrySchema = z.object({
+  path: z.string().min(1),
+  size: z.number().nonnegative(),
+  isDirectory: z.boolean()
+});
+
+export const skillFileContentSchema = z.object({
+  path: z.string().min(1),
+  content: z.string(),
+  size: z.number().nonnegative(),
+  truncated: z.boolean()
+});
+
 export const createAssetInputSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(assetKinds),
@@ -229,6 +243,8 @@ export type AssetCompatIssueCode = z.infer<typeof assetCompatIssueCodeSchema>;
 export type AssetCompatIssue = z.infer<typeof assetCompatIssueSchema>;
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 export type AssetDetail = z.infer<typeof assetDetailSchema>;
+export type SkillFileEntry = z.infer<typeof skillFileEntrySchema>;
+export type SkillFileContent = z.infer<typeof skillFileContentSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetInputSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetInputSchema>;
 export type RenameAssetInput = z.infer<typeof renameAssetInputSchema>;

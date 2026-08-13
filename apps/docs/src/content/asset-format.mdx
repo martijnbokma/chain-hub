@@ -1,0 +1,82 @@
+---
+title: Writing an Asset
+section: Guides
+order: 3
+description: The file format behind skills, agents, workflows, rules, and prompts.
+---
+
+# Writing an Asset
+
+Every asset is a single Markdown file on disk under `~/.chain-hub/`.
+
+## The five kinds
+
+| Kind | File path | Synced to editors |
+| --- | --- | --- |
+| `skills` | `skills/<name>/SKILL.md` | Claude Code, Cursor, Windsurf, Zed |
+| `agents` | `agents/<name>.md` | Claude Code only |
+| `workflows` | `workflows/<name>.md` | Windsurf only |
+| `rules` | `rules/<name>.md` | Claude Code, Cursor, Windsurf, Zed |
+| `prompts` | `prompts/<name>.md` | none — library-only |
+
+Skills are the only kind that live in their own folder (`skills/<name>/SKILL.md`
+instead of `skills/<name>.md`), so a skill can ship supporting files
+alongside it later.
+
+## Skills need a description
+
+Editors like Zed reject skills without a non-empty `description`. Give every
+skill frontmatter with at least a description:
+
+```md
+---
+description: Reviews pull requests for common correctness issues.
+---
+
+# PR Review
+
+Check for unhandled errors, missing tests, and unclear naming before approving.
+```
+
+Writing a skill without a description fails with:
+
+```
+Skill description is missing. Editors like Zed reject skills without a non-empty description.
+```
+
+Agents, workflows, rules, and prompts don't require frontmatter — plain
+Markdown is a valid asset. The seeded welcome skill is a real example with
+no frontmatter at all:
+
+```md
+# Welcome
+
+You are inside Chain Hub v2.
+
+- Keep AI guidance local and portable
+- Prefer clear workflows over hidden magic
+- Validate changes before syncing into editors
+```
+
+## Creating an asset
+
+```bash
+chain asset create --kind skills --name pr-review --content "$(cat pr-review.md)"
+chain asset show --kind skills --name pr-review
+chain asset update --kind skills --name pr-review --content "$(cat pr-review.md)"
+chain asset remove --kind skills --name pr-review
+```
+
+Or use the dashboard's **Library** page — same operations, visual editor.
+
+## Author field
+
+An optional `author` frontmatter field is read and shown wherever the asset
+appears. Skills installed from an upstream source are marked
+upstream-owned; editing one directly fails with:
+
+```
+Skill skills/<name> is upstream-owned. Fork it to customize, or edits will be lost on update.
+```
+
+Fork it first, then edit the fork.

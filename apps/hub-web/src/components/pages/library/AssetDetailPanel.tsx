@@ -4,6 +4,8 @@ import {
   Check,
   ClipboardCopy,
   ExternalLink,
+  File,
+  Folder,
   GitFork,
   Pencil,
   RefreshCw,
@@ -23,7 +25,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { AssetKind, AuditAssetFinding, AuditAssetResult, ClassifyAssetResult, SkillLockEntry } from '@/types';
+import type {
+  AssetKind,
+  AuditAssetFinding,
+  AuditAssetResult,
+  ClassifyAssetResult,
+  SkillFileEntry,
+  SkillLockEntry
+} from '@/types';
 import { contentForClipboard, formatSkillSource, formatSkillSourceType, KIND_META } from './asset-helpers';
 
 const MarkdownSourceEditor = React.lazy(async () => {
@@ -50,6 +59,12 @@ interface AssetDetailPanelProps {
   isUpdating: boolean;
   onRequestDelete: () => void;
   isDeleting: boolean;
+  onFixDescriptionWithAi: () => void;
+  isFixingDescriptionWithAi: boolean;
+  onForkAndFixHeading: () => void;
+  isForkingAndFixingHeading: boolean;
+  onForkAndFixWithAi: () => void;
+  isForkingAndFixingWithAi: boolean;
   kindAssessment: ClassifyAssetResult | null;
   onReassessKind: () => void;
   isReassessing: boolean;
@@ -60,6 +75,14 @@ interface AssetDetailPanelProps {
   isAuditing: boolean;
   onImproveAsset: () => void;
   isImproving: boolean;
+  skillFiles: SkillFileEntry[];
+  onPreviewFile: (path: string) => void;
+}
+
+function formatFileSize(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function severityLabel(severity: AuditAssetFinding['severity']): string {
@@ -96,6 +119,12 @@ export function AssetDetailPanel({
   isUpdating,
   onRequestDelete,
   isDeleting,
+  onFixDescriptionWithAi,
+  isFixingDescriptionWithAi,
+  onForkAndFixHeading,
+  isForkingAndFixingHeading,
+  onForkAndFixWithAi,
+  isForkingAndFixingWithAi,
   kindAssessment,
   onReassessKind,
   isReassessing,
@@ -105,7 +134,9 @@ export function AssetDetailPanel({
   onAuditAsset,
   isAuditing,
   onImproveAsset,
-  isImproving
+  isImproving,
+  skillFiles,
+  onPreviewFile
 }: AssetDetailPanelProps) {
   const [copied, setCopied] = useState(false);
   const [isRenamingUi, setIsRenamingUi] = useState(false);
@@ -263,14 +294,38 @@ export function AssetDetailPanel({
               </div>
               <p className="mt-1 leading-5 text-foreground/80">{blockingCompatIssue.message}</p>
               {isUpstreamSkill ? (
-                <p className="mt-2 leading-5 text-foreground/80">
-                  Fork this skill first if you want to add a description locally.
-                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    disabled={isForkingAndFixingHeading}
+                    onClick={onForkAndFixHeading}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <GitFork className="size-4" />
+                    {isForkingAndFixingHeading ? 'Forking…' : 'Fork & fix from heading'}
+                  </Button>
+                  <Button disabled={isForkingAndFixingWithAi} onClick={onForkAndFixWithAi} size="sm" type="button">
+                    <GitFork className="size-4" />
+                    {isForkingAndFixingWithAi ? 'Forking…' : 'Fork & fix with AI'}
+                  </Button>
+                </div>
               ) : (
-                <Button className="mt-3 w-fit" onClick={handleFixDescription} size="sm" type="button">
-                  <Wrench className="size-4" />
-                  Fix from heading
-                </Button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button onClick={handleFixDescription} size="sm" type="button" variant="secondary">
+                    <Wrench className="size-4" />
+                    Fix from heading
+                  </Button>
+                  <Button
+                    disabled={isFixingDescriptionWithAi}
+                    onClick={onFixDescriptionWithAi}
+                    size="sm"
+                    type="button"
+                  >
+                    <Sparkles className="size-4" />
+                    {isFixingDescriptionWithAi ? 'Drafting…' : 'Fix with AI'}
+                  </Button>
+                </div>
               )}
             </div>
           ) : null}
@@ -300,6 +355,39 @@ export function AssetDetailPanel({
                     : null}
                 </p>
               ) : null}
+            </div>
+          ) : null}
+          {selected.kind === 'skills' && skillFiles.length > 0 ? (
+            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-foreground">Other files</span>
+                <Badge variant="default">{skillFiles.filter((file) => !file.isDirectory).length}</Badge>
+              </div>
+              <p className="mt-1 leading-5 text-foreground/80">
+                Not synced to editors and not covered by Audit — this skill's folder on disk, read-only here.
+              </p>
+              <ul className="mt-3 grid gap-1">
+                {skillFiles.map((file) => (
+                  <li key={file.path}>
+                    {file.isDirectory ? (
+                      <span className="flex items-center gap-2 py-1 pl-1 font-mono text-foreground/70">
+                        <Folder className="size-3.5 shrink-0" />
+                        {file.path}/
+                      </span>
+                    ) : (
+                      <button
+                        className="flex w-full items-center gap-2 rounded-lg py-1 pl-1 text-left font-mono text-foreground/80 hover:bg-card hover:text-foreground"
+                        onClick={() => onPreviewFile(file.path)}
+                        type="button"
+                      >
+                        <File className="size-3.5 shrink-0" />
+                        <span className="truncate">{file.path}</span>
+                        <span className="ml-auto shrink-0 text-muted-foreground">{formatFileSize(file.size)}</span>
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
           {kindAssessment ? (

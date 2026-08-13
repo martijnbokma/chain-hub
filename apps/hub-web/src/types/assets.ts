@@ -8,6 +8,8 @@ export type {
   InstallSkillInput,
   InstallSkillBundleInput,
   InstallSkillResult,
+  SkillFileEntry,
+  SkillFileContent,
   SkillLockEntry,
   SkillBatchItemResult,
   UpdateSkillsResult,

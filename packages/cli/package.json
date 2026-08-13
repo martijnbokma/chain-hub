@@ -1,27 +1,40 @@
 {
-  "name": "@chain-hub/cli",
-  "version": "0.1.0",
-  "private": true,
+  "name": "chain-hub",
+  "version": "1.0.0-beta.1",
+  "description": "Chain Hub CLI — local-first AI workspace control plane for Cursor, Claude Code, Windsurf, and Zed.",
+  "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/martijnbokma/chain-hub.git",
+    "directory": "packages/cli"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "bin": {
     "chain": "dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
-    "dev": "tsup src/index.ts --format esm --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
     "@chain-hub/contracts": "0.1.0",
     "@chain-hub/domain": "0.1.0",
     "@chain-hub/server": "0.1.0",
     "@chain-hub/storage": "0.1.0",
-    "commander": "^12.1.0"
-  },
-  "devDependencies": {
     "tsup": "^8.2.4",
     "tsx": "^4.16.2",
     "vitest": "^2.1.9"

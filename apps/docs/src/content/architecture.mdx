@@ -1,7 +1,7 @@
 ---
 title: Architecture
 section: Reference
-order: 3
+order: 12
 description: How the monorepo is organized and where each responsibility lives.
 ---
 
@@ -13,33 +13,43 @@ description: How the monorepo is organized and where each responsibility lives.
 chain-hub/
 ├── apps/
 │   ├── hub-web/           # React dashboard (Vite + Tailwind v4 + shadcn/ui)
-│   ├── marketing-site/    # Marketing site
-│   └── docs/               # This documentation site (Vite + MDX)
+│   ├── marketing-site/    # Public marketing site
+│   └── docs/              # This documentation site (Vite + MDX)
 ├── packages/
 │   ├── cli/               # chain binary entrypoint (Commander)
 │   ├── server/             # Hono localhost API server
 │   ├── domain/             # Business logic and use-cases
 │   ├── storage/            # SQLite + filesystem adapters
 │   └── contracts/          # Shared Zod schemas and TypeScript types
-└── docs/                   # Specs, intent, research, archived journey docs
+└── docs/                   # Specs, intent, research, archived journey docs (repo root, not the docs app)
 ```
+
+`marketing-site` and `docs` are standalone Vite apps with no dependency on
+the hub's domain/storage/server packages — they don't read or write
+`~/.chain-hub`. Only `hub-web` (via `server`) does. See
+[Getting Started](/getting-started) for `dev:marketing` / `dev:docs` to run
+either in isolation.
 
 ## Domain boundaries
 
-- **domain** — Asset lifecycle, validation rules, editor sync logic, learning workflows
+- **domain** — Asset lifecycle, validation rules, editor sync logic, learning workflows, AI provider calls (see [AI Providers](/ai-providers))
 - **storage** — SQLite metadata, YAML/Markdown file I/O, filesystem operations
 - **server** — Maps domain use-cases to HTTP routes (Hono)
 - **cli** — Maps domain use-cases to terminal commands (Commander)
 - **hub-web** — Consumes contracts and API endpoints only (no direct domain/storage access)
 
 Each package stays on its side of this boundary: the dashboard never touches
-SQLite directly, and the CLI never bypasses the storage package.
+SQLite directly, and the CLI never bypasses the storage package. Both `cli`
+and `hub-web` ultimately call the same `domain` functions — `chain asset
+create` and the dashboard's "Create asset" button run identical code paths,
+just reached from different entrypoints. That's why the CLI and dashboard
+never drift into different behavior for the same operation.
 
 ## Tech stack
 
 **Workspace** — Bun 1.3.11 workspaces, Turborepo for task orchestration,
-TypeScript (5.5.4+ for packages, 6.0.3+ for the Vite apps), Node 22+ with ESM
-modules throughout.
+TypeScript (5.5.4+ for packages, 6.0.3+ for the Vite apps), Node 22.13.0+ with
+ESM modules throughout (`node:sqlite` requires 22.13.0+ to run unflagged).
 
 **Backend** — Commander for the CLI, Hono for the local HTTP server, Zod for
 validation shared across every package, SQLite via `node:sqlite` with raw SQL

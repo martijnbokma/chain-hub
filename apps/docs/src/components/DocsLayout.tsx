@@ -1,11 +1,41 @@
 import React, { useState } from 'react';
 import { MDXProvider } from '@mdx-js/react';
 import { Menu, X } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { docSections } from '../lib/nav';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { docPages, docSections } from '../lib/nav';
+import { CodeBlock } from './CodeBlock';
 import { DocsLink } from './DocsLink';
 
-const mdxComponents = { a: DocsLink };
+const mdxComponents = { a: DocsLink, pre: CodeBlock };
+
+function PageNav() {
+  const location = useLocation();
+  const index = docPages.findIndex((page) => page.path === location.pathname);
+  if (index === -1) return null;
+
+  const prev = docPages[index - 1];
+  const next = docPages[index + 1];
+  if (!prev && !next) return null;
+
+  return (
+    <nav className="mt-12 pt-6 border-t border-border flex items-center justify-between gap-4 text-sm">
+      {prev ? (
+        <DocsLink href={prev.path} className="text-muted-foreground hover:text-foreground transition-colors">
+          ← {prev.title}
+        </DocsLink>
+      ) : (
+        <span />
+      )}
+      {next ? (
+        <DocsLink href={next.path} className="text-muted-foreground hover:text-foreground transition-colors text-right">
+          {next.title} →
+        </DocsLink>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -49,9 +79,7 @@ export function DocsLayout() {
       <header className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-sm border border-primary flex items-center justify-center font-mono text-xs text-primary">
-              CH
-            </div>
+            <img src="/logo.svg" alt="Chain Hub" className="w-8 h-8 rounded-sm" />
             <span className="font-display font-semibold text-xl tracking-wide text-foreground uppercase">
               Chain Hub Docs
             </span>
@@ -86,6 +114,7 @@ export function DocsLayout() {
           <MDXProvider components={mdxComponents}>
             <Outlet />
           </MDXProvider>
+          <PageNav />
         </main>
       </div>
     </div>

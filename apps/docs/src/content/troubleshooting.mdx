@@ -1,0 +1,81 @@
+---
+title: Troubleshooting
+section: Guides
+order: 5
+description: Fixes for common errors from the CLI, dashboard, and editor setup.
+---
+
+# Troubleshooting
+
+## `EADDRINUSE` — port already in use
+
+```
+Error: listen EADDRINUSE: address already in use :::2342
+```
+
+Something else is already bound to the dashboard port (2342 by default).
+Free the port or pick a different one:
+
+```bash
+chain hub --port 3456
+```
+
+## `Asset already exists: <kind>/<name>`
+
+`chain asset create` refuses to overwrite an existing asset. Use
+`chain asset update` instead, or `chain asset remove` first if you meant to
+replace it.
+
+## `Asset not found: <kind>/<name>`
+
+`chain asset show` / `update` / `remove` target a file that doesn't exist.
+Check spelling and kind — run `chain asset list --kind <kind>` to see what's
+actually there.
+
+## `Skill skills/<name> is upstream-owned...`
+
+You're editing a skill installed from an upstream source directly. Fork it,
+then edit the fork — see [Writing an Asset](/asset-format#author-field).
+
+## `file exists and is not Chain Hub managed`
+
+Printed as a warning during `chain setup`, not an error — setup continues
+for every other file. It means an editor integration path
+(e.g. `~/.claude/skills/<name>/SKILL.md`) already has a file that Chain Hub
+didn't create, so it was left alone rather than overwritten. Remove or
+rename the conflicting file, then rerun `chain setup`. See
+[Editor Setup](/editor-setup).
+
+## `chain validate` reports issues
+
+```json
+{ "ok": false, "issues": ["Missing directory: rules", "No assets indexed"] }
+```
+
+- **Missing directory: `<name>`** — one of the hub's core folders
+  (`skills`, `agents`, `workflows`, `rules`, `prompts`, `memory`, `system`,
+  `logs`) was deleted or never created. Rerun `chain init`.
+- **No assets indexed** — the hub has zero assets. Create one with
+  `chain asset create` or the dashboard, or run `chain guide` for the full
+  setup checklist.
+
+`chain validate` exits with status 1 whenever `issues` is non-empty — check
+`$?` in scripts instead of parsing stdout.
+
+## `Invalid event type: <value>. Must be one of: success, failure, correction, note`
+
+`chain capture --event` only accepts those four values. Typo'd values are
+rejected before anything is written.
+
+## `<Provider> rejected the API key` / rate limit / model not found
+
+These come from the AI draft/classify/audit/improve actions in the Library,
+not from the hub itself — see [AI Providers](/ai-providers#errors-you-might-see)
+for the full list of mapped error messages and what triggers each one.
+
+## Hub folder in the wrong place
+
+Chain Hub defaults to `~/.chain-hub`. If you expected a different location,
+you (or a script) set `CHAIN_HOME` or passed `--chain-home` somewhere —
+check your shell environment, then see
+[Getting Started](/getting-started#use-a-different-hub-location).

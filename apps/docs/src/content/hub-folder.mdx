@@ -1,7 +1,7 @@
 ---
 title: Hub Folder Structure
 section: Reference
-order: 1
+order: 10
 description: What lives on disk under ~/.chain-hub, and how to override its location.
 ---
 
@@ -12,36 +12,60 @@ environment variable.
 
 ```
 ~/.chain-hub/
-├── skills/              # SKILL.md files
+├── skills/              # SKILL.md files, one subfolder per skill
 ├── agents/              # Agent persona files
 ├── workflows/           # Workflow .md files
 ├── rules/               # Rule files
+├── prompts/             # Reusable prompt files (library-only, no editor sync)
 ├── memory/              # Markdown notes + learnings
 │   ├── learnings/
 │   │   └── events.jsonl # Append-only capture log
 │   └── reflections/     # Written reflection snapshots
-├── system/              # Metadata
+├── system/              # Metadata, index, and local AI settings
 │   ├── chainhub.sqlite  # SQLite metadata index
-│   └── meta.json        # Initialization metadata
+│   ├── meta.json        # Initialization metadata
+│   ├── ai-config.json   # Active AI provider + model per provider (no secrets)
+│   └── secrets.json     # AI provider API keys, file mode 0600 — only if you've configured one
 └── logs/                # Application logs
 ```
 
+This is exactly `CORE_DIRS` in `packages/storage/src/core.ts` — every kind in
+`@chain-hub/contracts`' `assetKinds` plus `memory`, `system`, and `logs`.
+`chain init` (and the first `chain hub` run) creates all of them up front,
+even the ones you haven't used yet, so `skills/<name>/`,
+`prompts/<name>.md`, etc. always have a folder to land in.
+
 ## Asset kinds
 
-Everything under `skills/`, `agents/`, `workflows/`, and `rules/` is one of
-five asset kinds: `skills` · `agents` · `workflows` · `rules` · `prompts`.
-Each asset is a single Markdown file, editable by hand or through
-[`chain asset`](/cli-reference#asset-management) commands.
+Everything under `skills/`, `agents/`, `workflows/`, `rules/`, and
+`prompts/` is one of five asset kinds: `skills` · `agents` · `workflows` ·
+`rules` · `prompts`. Each asset is a single Markdown file, editable by hand
+or through [`chain asset`](/cli-reference#asset-management) commands. Skills
+are the one kind that gets its own subfolder (`skills/<name>/SKILL.md`)
+instead of a flat file — see [Writing an Asset](/asset-format) for the full
+format and why skills are the exception.
 
 ## Memory and learnings
 
-`memory/learnings/events.jsonl` is an append-only log written by
-[`chain capture`](/cli-reference#learnings) — one JSON line per event
-(`success`, `failure`, `correction`, `note`). `memory/reflections/` holds
-written snapshots produced by `chain reflect --write`.
+**Memory is not an asset kind** — it's a separate notes/learnings system,
+unrelated to the Library. `memory/learnings/events.jsonl` is an append-only
+log written by [`chain capture`](/cli-reference#learnings) — one JSON line
+per event (`success`, `failure`, `correction`, `note`). `memory/reflections/`
+holds written snapshots produced by `chain reflect --write`.
 
 ## System metadata
 
-`system/chainhub.sqlite` is the SQLite index the dashboard and CLI query for
-fast lookups; `system/meta.json` records initialization metadata such as when
-`chain init` first ran.
+- **`system/chainhub.sqlite`** — the SQLite index the dashboard and CLI
+  query for fast asset lookups. It's a derived cache, not a second source of
+  truth: delete it and it's rebuilt from the Markdown files on disk the next
+  time the hub reads the library.
+- **`system/meta.json`** — records initialization metadata, such as when
+  `chain init` first ran (used to decide whether to seed the welcome skill
+  again).
+- **`system/ai-config.json`** — which AI provider is active and which model
+  is configured for each of the four supported providers. Created on first
+  save from Settings → AI, not on `chain init`. No secrets in this file.
+- **`system/secrets.json`** — API keys for cloud AI providers (Anthropic,
+  OpenAI, Mistral), written with file mode `0600` (owner read/write only).
+  Only exists once you've saved at least one API key. See
+  [AI Providers](/ai-providers#where-your-keys-are-stored).

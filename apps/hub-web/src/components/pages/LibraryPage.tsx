@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { ensureExplicitDescription } from '@chain-hub/contracts';
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ import type {
   DiscoveredAsset,
   UpdateSkillsResult
 } from '@/types';
+import { AiEditPreviewDialog, type PendingAiEdit } from './library/AiEditPreviewDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
 import { AssetList } from './library/AssetList';
 import {
@@ -36,6 +38,7 @@ import { DiscoverDialog } from './library/DiscoverDialog';
 import { InstallSkillDialog } from './library/InstallSkillDialog';
 import { LibraryToolbar } from './library/LibraryToolbar';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
+import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
 import { useLibraryCreateFlow } from './library/use-library-create-flow';
 import { useLibraryInstallFlow } from './library/use-library-install-flow';
 
@@ -53,6 +56,22 @@ export function LibraryPage() {
   const [editorContent, setEditorContent] = useState('');
   const [kindAssessment, setKindAssessment] = useState<ClassifyAssetResult | null>(null);
   const [assetAudit, setAssetAudit] = useState<AuditAssetResult | null>(null);
+  const [pendingAiEdit, setPendingAiEdit] = useState<PendingAiEdit | null>(null);
+  const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
+
+  function approveAiEdit() {
+    if (!pendingAiEdit) {
+      return;
+    }
+    setEditorContent(pendingAiEdit.after);
+    setAssetAudit(null);
+    setPendingAiEdit(null);
+    toast.success('Applied — review and save');
+  }
+
+  function discardAiEdit() {
+    setPendingAiEdit(null);
+  }
 
   const createFlow = useLibraryCreateFlow({
     searchParams,
@@ -99,6 +118,12 @@ export function LibraryPage() {
     enabled: selected !== null
   });
 
+  const skillFiles = useQuery({
+    queryKey: ['library', 'skill-files', selected?.name],
+    queryFn: () => libraryApi.getSkillFiles(selected?.name || ''),
+    enabled: selected?.kind === 'skills'
+  });
+
   useEffect(() => {
     if (selectedAsset.data) {
       setEditorContent(selectedAsset.data.content);
@@ -108,6 +133,7 @@ export function LibraryPage() {
   useEffect(() => {
     setKindAssessment(null);
     setAssetAudit(null);
+    setPreviewFilePath(null);
   }, [selected?.kind, selected?.name]);
 
   const saveAsset = useMutation({
@@ -218,16 +244,41 @@ export function LibraryPage() {
       return response.json() as Promise<UpdateSkillsResult>;
     },
     onSuccess: (result) => {
-      const updated = result.results.filter((item) => item.status === 'updated').length;
-      const skipped = result.results.filter((item) => item.status === 'skipped').length;
-      const failed = result.results.filter((item) => item.status === 'failed').length;
+      const updatedNames = result.results
+        .filter((item) => item.status === 'updated' || item.status === 'migrated')
+        .map((item) => item.name);
+      const skippedNames = result.results
+        .filter((item) => item.status === 'skipped')
+        .map((item) => item.name);
+      const failedItems = result.results.filter((item) => item.status === 'failed');
+
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       if (selected) {
         void queryClient.invalidateQueries({
           queryKey: ['library', 'detail', selected.kind, selected.name]
         });
       }
-      toast.success(`Update finished: ${updated} updated, ${skipped} skipped, ${failed} failed`);
+
+      if (updatedNames.length > 0) {
+        toast.success(
+          updatedNames.length === 1 ? `Updated ${updatedNames[0]}` : `Updated ${updatedNames.length} skills`,
+          { description: updatedNames.join(', '), duration: 6000 }
+        );
+      } else if (failedItems.length === 0) {
+        toast.success(
+          skippedNames.length === 1 ? `${skippedNames[0]} is already up to date` : 'All skills already up to date'
+        );
+      }
+
+      if (failedItems.length > 0) {
+        toast.error(
+          failedItems.length === 1 ? `Failed to update ${failedItems[0].name}` : `${failedItems.length} skills failed to update`,
+          {
+            description: failedItems.map((item) => `${item.name}${item.error ? `: ${item.error}` : ''}`).join('\n'),
+            duration: 8000
+          }
+        );
+      }
     },
     onError: () => {
       toast.error('Unable to update skills from upstream');
@@ -369,12 +420,96 @@ export function LibraryPage() {
       return response.json() as Promise<ImproveAssetResult>;
     },
     onSuccess: (result) => {
-      setEditorContent(result.content);
-      setAssetAudit(null);
-      toast.success('Improvements applied — review and save');
+      setPendingAiEdit({ label: 'Apply improvements', before: editorContent, after: result.content });
+      toast.success('Improvements ready — review the diff');
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Unable to improve asset');
+    }
+  });
+
+  const fixDescriptionWithAi = useMutation({
+    mutationFn: async () => {
+      if (!selected) {
+        throw new Error('No asset selected');
+      }
+      const response = await aiSettingsApi.improveAsset({
+        kind: selected.kind,
+        name: selected.name,
+        content: editorContent,
+        summary: 'Asset is missing a frontmatter description required by some editors.',
+        findings: [
+          {
+            severity: 'high',
+            title: 'Missing description',
+            detail: 'Add a concise frontmatter `description` summarizing what this asset does and when to use it.'
+          }
+        ]
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || 'Unable to generate description');
+      }
+      return response.json() as Promise<ImproveAssetResult>;
+    },
+    onSuccess: (result) => {
+      setPendingAiEdit({ label: 'AI-drafted description', before: editorContent, after: result.content });
+      toast.success('Description ready — review the diff');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Unable to generate description');
+    }
+  });
+
+  const forkAndFixDescription = useMutation({
+    mutationFn: async (mode: 'heading' | 'ai') => {
+      if (!selected) {
+        throw new Error('No asset selected');
+      }
+      const forkResponse = await libraryApi.forkSkill({ name: selected.name });
+      if (!forkResponse.ok) {
+        const text = await forkResponse.text();
+        throw new Error(text || 'Unable to fork skill');
+      }
+      const forked = (await forkResponse.json()) as AssetDetail;
+
+      const content =
+        mode === 'heading'
+          ? ensureExplicitDescription(forked.content, forked.name)
+          : await (async () => {
+              const improveResponse = await aiSettingsApi.improveAsset({
+                kind: forked.kind,
+                name: forked.name,
+                content: forked.content,
+                summary: 'Asset is missing a frontmatter description required by some editors.',
+                findings: [
+                  {
+                    severity: 'high',
+                    title: 'Missing description',
+                    detail:
+                      'Add a concise frontmatter `description` summarizing what this asset does and when to use it.'
+                  }
+                ]
+              });
+              if (!improveResponse.ok) {
+                const payload = (await improveResponse.json().catch(() => null)) as { error?: string } | null;
+                throw new Error(payload?.error || 'Unable to generate description');
+              }
+              const result = (await improveResponse.json()) as ImproveAssetResult;
+              return result.content;
+            })();
+
+      return { forked, content };
+    },
+    onSuccess: ({ forked, content }) => {
+      queryClient.setQueryData(['library', 'detail', forked.kind, forked.name], { ...forked, content });
+      setSelected({ kind: forked.kind, name: forked.name });
+      void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['overview'] });
+      toast.success(`Forked to skills/${forked.name} — description drafted, review and save`);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Unable to fork and fix description');
     }
   });
 
@@ -397,6 +532,29 @@ export function LibraryPage() {
   const kindSections = Object.entries(grouped);
   const agentsDrift = overview.data?.agentsSkillsDrift;
   const hasAgentsDrift = (agentsDrift?.missingCount ?? 0) > 0;
+
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  const [listAtTop, setListAtTop] = useState(true);
+  const [listAtBottom, setListAtBottom] = useState(true);
+
+  useEffect(() => {
+    const el = listScrollRef.current;
+    if (!el) {
+      return;
+    }
+    const checkAtBottom = () => {
+      setListAtTop(el.scrollTop < 4);
+      setListAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 4);
+    };
+    checkAtBottom();
+    el.addEventListener('scroll', checkAtBottom, { passive: true });
+    const resizeObserver = new ResizeObserver(checkAtBottom);
+    resizeObserver.observe(el);
+    return () => {
+      el.removeEventListener('scroll', checkAtBottom);
+      resizeObserver.disconnect();
+    };
+  }, [kindSections]);
 
   const isCandidateImporting = (candidate: DiscoveredAsset): boolean =>
     importAsset.isPending &&
@@ -423,7 +581,7 @@ export function LibraryPage() {
 
   if (library.isLoading) {
     return (
-      <div className="flex h-[calc(100vh-108px)] min-w-0 flex-col overflow-hidden">
+      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col overflow-hidden -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
         {listToolbar}
         <PageSkeleton className="min-h-0 flex-1" variant="workspace" />
       </div>
@@ -432,7 +590,7 @@ export function LibraryPage() {
 
   if (library.isError) {
     return (
-      <div className="flex h-[calc(100vh-108px)] min-w-0 flex-col overflow-hidden">
+      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col overflow-hidden -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
         {listToolbar}
         <EmptyState description="The library index is temporarily unavailable." title="Unable to load library" />
       </div>
@@ -440,7 +598,7 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-108px)] min-w-0 flex-col overflow-hidden">
+    <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col overflow-hidden -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
       <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {hasAgentsDrift && agentsDrift ? (
           <div className="min-w-0 shrink-0 pb-3">
@@ -478,7 +636,14 @@ export function LibraryPage() {
         >
           <div className={cn('flex min-h-0 min-w-0 flex-col overflow-hidden', selected && 'hidden xl:flex')}>
             {listToolbar}
-            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+            <div
+              className={cn(
+                'fade-scrollbar-safe-y min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto',
+                !listAtTop && 'fade-top',
+                !listAtBottom && 'fade-bottom'
+              )}
+              ref={listScrollRef}
+            >
               <AssetList
                 filterKind={filterKind}
                 kindSections={kindSections}
@@ -496,6 +661,13 @@ export function LibraryPage() {
               isAuditing={auditAsset.isPending}
               isConverting={convertKind.isPending}
               isDeleting={removeAsset.isPending}
+              isFixingDescriptionWithAi={fixDescriptionWithAi.isPending}
+              isForkingAndFixingHeading={
+                forkAndFixDescription.isPending && forkAndFixDescription.variables === 'heading'
+              }
+              isForkingAndFixingWithAi={
+                forkAndFixDescription.isPending && forkAndFixDescription.variables === 'ai'
+              }
               isForking={forkSkill.isPending}
               isImproving={improveAsset.isPending}
               isReassessing={reassessKind.isPending}
@@ -508,15 +680,20 @@ export function LibraryPage() {
               onBack={() => setSelected(null)}
               onConvertKind={(toKind) => convertKind.mutate(toKind)}
               onEditorChange={setEditorContent}
+              onFixDescriptionWithAi={() => fixDescriptionWithAi.mutate()}
               onFork={() => forkSkill.mutate(selected.name)}
+              onForkAndFixHeading={() => forkAndFixDescription.mutate('heading')}
+              onForkAndFixWithAi={() => forkAndFixDescription.mutate('ai')}
               onImproveAsset={() => improveAsset.mutate()}
               onReassessKind={() => reassessKind.mutate()}
               onRename={(nextName) => renameAsset.mutate(nextName)}
+              onPreviewFile={setPreviewFilePath}
               onRequestDelete={() => setRemoveOpen(true)}
               onSave={() => saveAsset.mutate()}
               onUpdateFromSource={() => updateSkills.mutate(selected.name)}
               provenance={selectedAsset.data?.provenance}
               selected={selected}
+              skillFiles={skillFiles.data?.files ?? []}
               upstreamBrowseUrl={upstreamBrowseUrl}
             />
           ) : null}
@@ -582,6 +759,18 @@ export function LibraryPage() {
           selected={selected}
         />
 
+        <AiEditPreviewDialog
+          onApprove={approveAiEdit}
+          onDiscard={discardAiEdit}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
+              discardAiEdit();
+            }
+          }}
+          open={pendingAiEdit !== null}
+          pendingEdit={pendingAiEdit}
+        />
+
         <DiscoverDialog
           groupedDiscovered={groupedDiscovered}
           isCandidateImporting={isCandidateImporting}
@@ -589,6 +778,16 @@ export function LibraryPage() {
           onImport={(candidate) => importAsset.mutate(candidate)}
           onOpenChange={setDiscoverOpen}
           open={discoverOpen}
+        />
+
+        <SkillFilePreviewDialog
+          onOpenChange={(open) => {
+            if (!open) {
+              setPreviewFilePath(null);
+            }
+          }}
+          path={previewFilePath}
+          skillName={selected?.kind === 'skills' ? selected.name : null}
         />
       </section>
     </div>

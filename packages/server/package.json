@@ -16,6 +16,7 @@
     "dev": "tsx watch src/dev-server.ts",
     "build:watch": "tsup src/index.ts --format esm --dts --watch",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

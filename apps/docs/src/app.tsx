@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { DocsLayout } from './components/DocsLayout';
+import { NotFound } from './components/NotFound';
 import { docPages } from './lib/nav';
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
             const Page = page.Component;
             return <Route key={page.path} path={page.path} element={<Page />} />;
           })}
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,0 +1,117 @@
+---
+title: Getting Started
+section: Guides
+order: 1
+description: Install Chain Hub, initialize the hub folder, and start the dashboard.
+---
+
+# Getting Started
+
+Chain Hub is a monorepo tool today — there's no npm package yet. Everything
+runs from a local clone via [Bun](https://bun.sh) workspaces. The commands
+below are the same on macOS, Linux, and Windows unless noted otherwise.
+
+## Prerequisites
+
+- **Node.js 22.13.0+** — `node:sqlite` (the storage engine) only runs
+  unflagged from this version on.
+- **[Bun](https://bun.sh) 1.3+** — the package manager and task runner.
+  - macOS / Linux: `curl -fsSL https://bun.sh/install | bash`
+  - Windows (PowerShell): `powershell -c "irm bun.sh/install.ps1|iex"`
+
+Windows support in Bun is still experimental. It works, but for anything
+beyond quick testing, install Bun and Node inside
+[WSL2](https://learn.microsoft.com/windows/wsl/install) and run every command
+below from there — it's the more reliable path on Windows today.
+
+## Fastest path
+
+One command builds every package and starts the dashboard:
+
+```bash
+bun install
+bun run hub
+# → http://127.0.0.1:2342
+```
+
+`bun run hub` builds all packages, initializes `~/.chain-hub` on first run,
+starts the API server, and opens your browser. Pass flags after `--`:
+
+```bash
+bun run hub -- --no-open --port 3456
+```
+
+## Step by step
+
+If you want more control over each stage:
+
+```bash
+# 1. Install dependencies
+bun install
+
+# 2. Build all packages
+bun run build
+
+# 3. Start the dashboard (also initializes ~/.chain-hub on first run)
+node packages/cli/dist/index.js hub
+# → http://127.0.0.1:2342
+```
+
+`chain init` — run directly, or implicitly via `chain hub` — creates
+`~/.chain-hub` with `skills/`, `agents/`, `workflows/`, `rules/`,
+`prompts/`, `memory/`, `system/`, and `logs/`. On the very first run it also
+seeds a `skills/welcome/SKILL.md` file and writes `system/meta.json`.
+
+## Use a different hub location
+
+Override the default (`~/.chain-hub`) with `--chain-home` — identical on
+every OS since it's a plain CLI flag:
+
+```bash
+node packages/cli/dist/index.js --chain-home ./.sandbox-hub hub --port 3456
+```
+
+Or the `CHAIN_HOME` environment variable, which is set differently per shell:
+
+```bash
+# macOS / Linux / WSL2 (bash, zsh)
+CHAIN_HOME=~/my-hub node packages/cli/dist/index.js hub
+```
+
+```powershell
+# Windows PowerShell
+$env:CHAIN_HOME = "$HOME\my-hub"
+node packages/cli/dist/index.js hub
+```
+
+```bat
+:: Windows cmd.exe
+set CHAIN_HOME=%USERPROFILE%\my-hub
+node packages/cli/dist/index.js hub
+```
+
+## Install the `chain` binary globally
+
+`bun link` makes `chain` available anywhere on your machine, still backed by
+this checkout:
+
+```bash
+bun run build
+cd packages/cli && bun link
+
+chain init
+chain hub
+chain capture --event success --skill my-skill --summary "It works"
+chain reflect
+```
+
+`chain` calls `dist/index.js` inside `packages/cli/` — rebuild
+(`bun run build`) after every code change while using the linked binary. To
+remove the link: `bun unlink chain-hub` (the CLI package is named
+`chain-hub`, not `@chain-hub/cli`).
+
+## Next
+
+- [Editor Setup](/editor-setup) — connect Cursor, Claude Code, Windsurf, or Zed.
+- [Writing an Asset](/asset-format) — the file format behind skills, agents, workflows, and rules.
+- [CLI Reference](/cli-reference) — every command.
