@@ -56,6 +56,11 @@ function applySettingsToForm(
     setMistralModel: (value: string) => void;
     setOllamaModel: (value: string) => void;
     setOllamaBaseUrl: (value: string) => void;
+    setGeminiModel: (value: string) => void;
+    setGroqModel: (value: string) => void;
+    setOpenrouterModel: (value: string) => void;
+    setDeepseekModel: (value: string) => void;
+    setCerebrasModel: (value: string) => void;
   }
 ) {
   setters.setProvider(data.provider);
@@ -64,6 +69,11 @@ function applySettingsToForm(
   setters.setMistralModel(data.models.mistral);
   setters.setOllamaModel(data.models.ollama);
   setters.setOllamaBaseUrl(data.ollamaBaseUrl);
+  setters.setGeminiModel(data.models.gemini);
+  setters.setGroqModel(data.models.groq);
+  setters.setOpenrouterModel(data.models.openrouter);
+  setters.setDeepseekModel(data.models.deepseek);
+  setters.setCerebrasModel(data.models.cerebras);
 }
 
 interface ProviderModelFieldsProps {
@@ -154,9 +164,20 @@ export function SettingsPage() {
   const [mistralModel, setMistralModel] = useState('');
   const [ollamaModel, setOllamaModel] = useState('');
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState('');
+  const [geminiModel, setGeminiModel] = useState('');
+  const [groqModel, setGroqModel] = useState('');
+  const [openrouterModel, setOpenrouterModel] = useState('');
+  const [deepseekModel, setDeepseekModel] = useState('');
+  const [cerebrasModel, setCerebrasModel] = useState('');
+
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [mistralApiKey, setMistralApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [groqApiKey, setGroqApiKey] = useState('');
+  const [openrouterApiKey, setOpenrouterApiKey] = useState('');
+  const [deepseekApiKey, setDeepseekApiKey] = useState('');
+  const [cerebrasApiKey, setCerebrasApiKey] = useState('');
 
   useEffect(() => {
     if (!settings.data) {
@@ -168,7 +189,12 @@ export function SettingsPage() {
       setOpenaiModel,
       setMistralModel,
       setOllamaModel,
-      setOllamaBaseUrl
+      setOllamaBaseUrl,
+      setGeminiModel,
+      setGroqModel,
+      setOpenrouterModel,
+      setDeepseekModel,
+      setCerebrasModel
     });
   }, [settings.data]);
 
@@ -178,10 +204,25 @@ export function SettingsPage() {
         anthropic: anthropicModel.trim(),
         openai: openaiModel.trim(),
         mistral: mistralModel.trim(),
-        ollama: ollamaModel.trim()
+        ollama: ollamaModel.trim(),
+        gemini: geminiModel.trim(),
+        groq: groqModel.trim(),
+        openrouter: openrouterModel.trim(),
+        deepseek: deepseekModel.trim(),
+        cerebras: cerebrasModel.trim()
       };
 
-      if (!models.anthropic || !models.openai || !models.mistral || !models.ollama) {
+      if (
+        !models.anthropic ||
+        !models.openai ||
+        !models.mistral ||
+        !models.ollama ||
+        !models.gemini ||
+        !models.groq ||
+        !models.openrouter ||
+        !models.deepseek ||
+        !models.cerebras
+      ) {
         throw new Error('Each provider needs a model selected');
       }
 
@@ -191,7 +232,12 @@ export function SettingsPage() {
         ollamaBaseUrl: ollamaBaseUrl.trim() || undefined,
         anthropicApiKey: anthropicApiKey.trim() || undefined,
         openaiApiKey: openaiApiKey.trim() || undefined,
-        mistralApiKey: mistralApiKey.trim() || undefined
+        mistralApiKey: mistralApiKey.trim() || undefined,
+        geminiApiKey: geminiApiKey.trim() || undefined,
+        groqApiKey: groqApiKey.trim() || undefined,
+        openrouterApiKey: openrouterApiKey.trim() || undefined,
+        deepseekApiKey: deepseekApiKey.trim() || undefined,
+        cerebrasApiKey: cerebrasApiKey.trim() || undefined
       });
       if (!response.ok) {
         throw new Error('Unable to save AI settings');
@@ -203,13 +249,23 @@ export function SettingsPage() {
       setAnthropicApiKey('');
       setOpenaiApiKey('');
       setMistralApiKey('');
+      setGeminiApiKey('');
+      setGroqApiKey('');
+      setOpenrouterApiKey('');
+      setDeepseekApiKey('');
+      setCerebrasApiKey('');
       applySettingsToForm(data, {
         setProvider,
         setAnthropicModel,
         setOpenaiModel,
         setMistralModel,
         setOllamaModel,
-        setOllamaBaseUrl
+        setOllamaBaseUrl,
+        setGeminiModel,
+        setGroqModel,
+        setOpenrouterModel,
+        setDeepseekModel,
+        setCerebrasModel
       });
       toast.success('AI settings saved');
     },
@@ -308,6 +364,11 @@ export function SettingsPage() {
           <span className="text-sm text-muted-foreground">Active provider</span>
           <Select onChange={(event) => setProvider(event.target.value as AiProvider)} value={provider}>
             <option value="ollama">Ollama (local)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="groq">Groq</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="cerebras">Cerebras</option>
             <option value="anthropic">Anthropic</option>
             <option value="openai">OpenAI</option>
             <option value="mistral">Mistral</option>
@@ -316,6 +377,126 @@ export function SettingsPage() {
 
         <div className="grid gap-4">
           <p className="text-sm font-medium text-foreground">Models per provider</p>
+
+          <ProviderModelFields
+            isActive={provider === 'gemini'}
+            label="Google Gemini"
+            model={geminiModel}
+            onModelChange={setGeminiModel}
+            provider="gemini"
+          >
+            <label className="grid gap-2">
+              <span className="text-sm text-muted-foreground">
+                API key
+                {settings.data.geminiApiKeyConfigured ? (
+                  <span className="text-foreground"> (configured — leave blank to keep)</span>
+                ) : null}
+              </span>
+              <Input
+                autoComplete="off"
+                onChange={(event) => setGeminiApiKey(event.target.value)}
+                placeholder={settings.data.geminiApiKeyConfigured ? '••••••••' : 'AIzaSy…'}
+                type="password"
+                value={geminiApiKey}
+              />
+            </label>
+          </ProviderModelFields>
+
+          <ProviderModelFields
+            isActive={provider === 'groq'}
+            label="Groq"
+            model={groqModel}
+            onModelChange={setGroqModel}
+            provider="groq"
+          >
+            <label className="grid gap-2">
+              <span className="text-sm text-muted-foreground">
+                API key
+                {settings.data.groqApiKeyConfigured ? (
+                  <span className="text-foreground"> (configured — leave blank to keep)</span>
+                ) : null}
+              </span>
+              <Input
+                autoComplete="off"
+                onChange={(event) => setGroqApiKey(event.target.value)}
+                placeholder={settings.data.groqApiKeyConfigured ? '••••••••' : 'gsk_…'}
+                type="password"
+                value={groqApiKey}
+              />
+            </label>
+          </ProviderModelFields>
+
+          <ProviderModelFields
+            isActive={provider === 'openrouter'}
+            label="OpenRouter"
+            model={openrouterModel}
+            onModelChange={setOpenrouterModel}
+            provider="openrouter"
+          >
+            <label className="grid gap-2">
+              <span className="text-sm text-muted-foreground">
+                API key
+                {settings.data.openrouterApiKeyConfigured ? (
+                  <span className="text-foreground"> (configured — leave blank to keep)</span>
+                ) : null}
+              </span>
+              <Input
+                autoComplete="off"
+                onChange={(event) => setOpenrouterApiKey(event.target.value)}
+                placeholder={settings.data.openrouterApiKeyConfigured ? '••••••••' : 'sk-or-v1-…'}
+                type="password"
+                value={openrouterApiKey}
+              />
+            </label>
+          </ProviderModelFields>
+
+          <ProviderModelFields
+            isActive={provider === 'deepseek'}
+            label="DeepSeek"
+            model={deepseekModel}
+            onModelChange={setDeepseekModel}
+            provider="deepseek"
+          >
+            <label className="grid gap-2">
+              <span className="text-sm text-muted-foreground">
+                API key
+                {settings.data.deepseekApiKeyConfigured ? (
+                  <span className="text-foreground"> (configured — leave blank to keep)</span>
+                ) : null}
+              </span>
+              <Input
+                autoComplete="off"
+                onChange={(event) => setDeepseekApiKey(event.target.value)}
+                placeholder={settings.data.deepseekApiKeyConfigured ? '••••••••' : 'sk-…'}
+                type="password"
+                value={deepseekApiKey}
+              />
+            </label>
+          </ProviderModelFields>
+
+          <ProviderModelFields
+            isActive={provider === 'cerebras'}
+            label="Cerebras"
+            model={cerebrasModel}
+            onModelChange={setCerebrasModel}
+            provider="cerebras"
+          >
+            <label className="grid gap-2">
+              <span className="text-sm text-muted-foreground">
+                API key
+                {settings.data.cerebrasApiKeyConfigured ? (
+                  <span className="text-foreground"> (configured — leave blank to keep)</span>
+                ) : null}
+              </span>
+              <Input
+                autoComplete="off"
+                onChange={(event) => setCerebrasApiKey(event.target.value)}
+                placeholder={settings.data.cerebrasApiKeyConfigured ? '••••••••' : 'csk-…'}
+                type="password"
+                value={cerebrasApiKey}
+              />
+            </label>
+          </ProviderModelFields>
 
           <ProviderModelFields
             isActive={provider === 'anthropic'}

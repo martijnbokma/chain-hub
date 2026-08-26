@@ -439,12 +439,14 @@ async function callOpenAiCompatible(params: {
   model: string;
   system: string;
   userMessage: string;
+  extraHeaders?: Record<string, string>;
 }): Promise<string> {
   const response = await fetch(params.endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${params.apiKey}`
+      Authorization: `Bearer ${params.apiKey}`,
+      ...(params.extraHeaders ?? {})
     },
     body: JSON.stringify({
       model: params.model,
@@ -572,6 +574,80 @@ async function completeChat(params: {
       return callOllama({
         baseUrl: params.config.ollamaBaseUrl,
         model: params.config.models.ollama,
+        system: params.system,
+        userMessage: params.userMessage
+      });
+    }
+    case "gemini": {
+      const apiKey = params.secrets.geminiApiKey?.trim();
+      if (!apiKey) {
+        throw new AiProviderError("Google Gemini API key is not configured. Add it under Settings → AI.", 400);
+      }
+      return callOpenAiCompatible({
+        providerLabel: "Google Gemini",
+        endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        apiKey,
+        model: params.config.models.gemini,
+        system: params.system,
+        userMessage: params.userMessage
+      });
+    }
+    case "groq": {
+      const apiKey = params.secrets.groqApiKey?.trim();
+      if (!apiKey) {
+        throw new AiProviderError("Groq API key is not configured. Add it under Settings → AI.", 400);
+      }
+      return callOpenAiCompatible({
+        providerLabel: "Groq",
+        endpoint: "https://api.groq.com/openai/v1/chat/completions",
+        apiKey,
+        model: params.config.models.groq,
+        system: params.system,
+        userMessage: params.userMessage
+      });
+    }
+    case "openrouter": {
+      const apiKey = params.secrets.openrouterApiKey?.trim();
+      if (!apiKey) {
+        throw new AiProviderError("OpenRouter API key is not configured. Add it under Settings → AI.", 400);
+      }
+      return callOpenAiCompatible({
+        providerLabel: "OpenRouter",
+        endpoint: "https://openrouter.ai/api/v1/chat/completions",
+        apiKey,
+        model: params.config.models.openrouter,
+        system: params.system,
+        userMessage: params.userMessage,
+        extraHeaders: {
+          "HTTP-Referer": "https://chain-hub.dev",
+          "X-Title": "Chain Hub"
+        }
+      });
+    }
+    case "deepseek": {
+      const apiKey = params.secrets.deepseekApiKey?.trim();
+      if (!apiKey) {
+        throw new AiProviderError("DeepSeek API key is not configured. Add it under Settings → AI.", 400);
+      }
+      return callOpenAiCompatible({
+        providerLabel: "DeepSeek",
+        endpoint: "https://api.deepseek.com/chat/completions",
+        apiKey,
+        model: params.config.models.deepseek,
+        system: params.system,
+        userMessage: params.userMessage
+      });
+    }
+    case "cerebras": {
+      const apiKey = params.secrets.cerebrasApiKey?.trim();
+      if (!apiKey) {
+        throw new AiProviderError("Cerebras API key is not configured. Add it under Settings → AI.", 400);
+      }
+      return callOpenAiCompatible({
+        providerLabel: "Cerebras",
+        endpoint: "https://api.cerebras.ai/v1/chat/completions",
+        apiKey,
+        model: params.config.models.cerebras,
         system: params.system,
         userMessage: params.userMessage
       });

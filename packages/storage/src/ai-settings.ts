@@ -86,7 +86,12 @@ export async function getAiSettingsPublic(chainHomeInput?: string): Promise<AiSe
     ollamaBaseUrl: config.ollamaBaseUrl,
     anthropicApiKeyConfigured: Boolean(secrets.anthropicApiKey?.trim()),
     openaiApiKeyConfigured: Boolean(secrets.openaiApiKey?.trim()),
-    mistralApiKeyConfigured: Boolean(secrets.mistralApiKey?.trim())
+    mistralApiKeyConfigured: Boolean(secrets.mistralApiKey?.trim()),
+    geminiApiKeyConfigured: Boolean(secrets.geminiApiKey?.trim()),
+    groqApiKeyConfigured: Boolean(secrets.groqApiKey?.trim()),
+    openrouterApiKeyConfigured: Boolean(secrets.openrouterApiKey?.trim()),
+    deepseekApiKeyConfigured: Boolean(secrets.deepseekApiKey?.trim()),
+    cerebrasApiKeyConfigured: Boolean(secrets.cerebrasApiKey?.trim())
   };
 }
 
@@ -105,7 +110,12 @@ export async function updateAiSettings(
       anthropic: input.models?.anthropic ?? currentConfig.models.anthropic,
       openai: input.models?.openai ?? currentConfig.models.openai,
       mistral: input.models?.mistral ?? currentConfig.models.mistral,
-      ollama: input.models?.ollama ?? currentConfig.models.ollama
+      ollama: input.models?.ollama ?? currentConfig.models.ollama,
+      gemini: input.models?.gemini ?? currentConfig.models.gemini,
+      groq: input.models?.groq ?? currentConfig.models.groq,
+      openrouter: input.models?.openrouter ?? currentConfig.models.openrouter,
+      deepseek: input.models?.deepseek ?? currentConfig.models.deepseek,
+      cerebras: input.models?.cerebras ?? currentConfig.models.cerebras
     },
     ollamaBaseUrl: input.ollamaBaseUrl ?? currentConfig.ollamaBaseUrl
   });
@@ -128,6 +138,36 @@ export async function updateAiSettings(
     delete nextSecrets.mistralApiKey;
   } else if (input.mistralApiKey !== undefined) {
     nextSecrets.mistralApiKey = input.mistralApiKey.trim();
+  }
+
+  if (input.clearGeminiApiKey) {
+    delete nextSecrets.geminiApiKey;
+  } else if (input.geminiApiKey !== undefined) {
+    nextSecrets.geminiApiKey = input.geminiApiKey.trim();
+  }
+
+  if (input.clearGroqApiKey) {
+    delete nextSecrets.groqApiKey;
+  } else if (input.groqApiKey !== undefined) {
+    nextSecrets.groqApiKey = input.groqApiKey.trim();
+  }
+
+  if (input.clearOpenrouterApiKey) {
+    delete nextSecrets.openrouterApiKey;
+  } else if (input.openrouterApiKey !== undefined) {
+    nextSecrets.openrouterApiKey = input.openrouterApiKey.trim();
+  }
+
+  if (input.clearDeepseekApiKey) {
+    delete nextSecrets.deepseekApiKey;
+  } else if (input.deepseekApiKey !== undefined) {
+    nextSecrets.deepseekApiKey = input.deepseekApiKey.trim();
+  }
+
+  if (input.clearCerebrasApiKey) {
+    delete nextSecrets.cerebrasApiKey;
+  } else if (input.cerebrasApiKey !== undefined) {
+    nextSecrets.cerebrasApiKey = input.cerebrasApiKey.trim();
   }
 
   await writeAiConfig(chainHome, nextConfig);

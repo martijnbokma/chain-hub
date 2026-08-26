@@ -2,7 +2,17 @@ import { z } from "zod";
 
 import { assetKinds } from "./asset.js";
 
-export const aiProviders = ["anthropic", "openai", "mistral", "ollama"] as const;
+export const aiProviders = [
+  "anthropic",
+  "openai",
+  "mistral",
+  "ollama",
+  "gemini",
+  "groq",
+  "openrouter",
+  "deepseek",
+  "cerebras"
+] as const;
 
 export const aiProviderSchema = z.enum(aiProviders);
 
@@ -12,7 +22,12 @@ export const DEFAULT_AI_MODELS = {
   anthropic: "claude-sonnet-4-5",
   openai: "gpt-4o-mini",
   mistral: "mistral-small-latest",
-  ollama: "llama3.2"
+  ollama: "llama3.2",
+  gemini: "gemini-2.5-flash",
+  groq: "llama-3.3-70b-versatile",
+  openrouter: "meta-llama/llama-3.3-70b-instruct:free",
+  deepseek: "deepseek-chat",
+  cerebras: "llama-3.3-70b"
 } as const;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
@@ -25,7 +40,12 @@ export const aiConfigSchema = z.object({
       anthropic: z.string().min(1).default(DEFAULT_AI_MODELS.anthropic),
       openai: z.string().min(1).default(DEFAULT_AI_MODELS.openai),
       mistral: z.string().min(1).default(DEFAULT_AI_MODELS.mistral),
-      ollama: z.string().min(1).default(DEFAULT_AI_MODELS.ollama)
+      ollama: z.string().min(1).default(DEFAULT_AI_MODELS.ollama),
+      gemini: z.string().min(1).default(DEFAULT_AI_MODELS.gemini),
+      groq: z.string().min(1).default(DEFAULT_AI_MODELS.groq),
+      openrouter: z.string().min(1).default(DEFAULT_AI_MODELS.openrouter),
+      deepseek: z.string().min(1).default(DEFAULT_AI_MODELS.deepseek),
+      cerebras: z.string().min(1).default(DEFAULT_AI_MODELS.cerebras)
     })
     .default({ ...DEFAULT_AI_MODELS }),
   ollamaBaseUrl: z.string().url().default(DEFAULT_OLLAMA_BASE_URL)
@@ -35,7 +55,12 @@ export const aiSecretsSchema = z.object({
   version: z.literal(1),
   anthropicApiKey: z.string().optional(),
   openaiApiKey: z.string().optional(),
-  mistralApiKey: z.string().optional()
+  mistralApiKey: z.string().optional(),
+  geminiApiKey: z.string().optional(),
+  groqApiKey: z.string().optional(),
+  openrouterApiKey: z.string().optional(),
+  deepseekApiKey: z.string().optional(),
+  cerebrasApiKey: z.string().optional()
 });
 
 /** Public settings returned to the dashboard — never includes raw API keys. */
@@ -45,12 +70,22 @@ export const aiSettingsPublicSchema = z.object({
     anthropic: z.string(),
     openai: z.string(),
     mistral: z.string(),
-    ollama: z.string()
+    ollama: z.string(),
+    gemini: z.string(),
+    groq: z.string(),
+    openrouter: z.string(),
+    deepseek: z.string(),
+    cerebras: z.string()
   }),
   ollamaBaseUrl: z.string(),
   anthropicApiKeyConfigured: z.boolean(),
   openaiApiKeyConfigured: z.boolean(),
-  mistralApiKeyConfigured: z.boolean()
+  mistralApiKeyConfigured: z.boolean(),
+  geminiApiKeyConfigured: z.boolean(),
+  groqApiKeyConfigured: z.boolean(),
+  openrouterApiKeyConfigured: z.boolean(),
+  deepseekApiKeyConfigured: z.boolean(),
+  cerebrasApiKeyConfigured: z.boolean()
 });
 
 export const updateAiSettingsInputSchema = z.object({
@@ -60,16 +95,31 @@ export const updateAiSettingsInputSchema = z.object({
       anthropic: z.string().min(1).optional(),
       openai: z.string().min(1).optional(),
       mistral: z.string().min(1).optional(),
-      ollama: z.string().min(1).optional()
+      ollama: z.string().min(1).optional(),
+      gemini: z.string().min(1).optional(),
+      groq: z.string().min(1).optional(),
+      openrouter: z.string().min(1).optional(),
+      deepseek: z.string().min(1).optional(),
+      cerebras: z.string().min(1).optional()
     })
     .optional(),
   ollamaBaseUrl: z.string().url().optional(),
   anthropicApiKey: z.string().min(1).optional(),
   openaiApiKey: z.string().min(1).optional(),
   mistralApiKey: z.string().min(1).optional(),
+  geminiApiKey: z.string().min(1).optional(),
+  groqApiKey: z.string().min(1).optional(),
+  openrouterApiKey: z.string().min(1).optional(),
+  deepseekApiKey: z.string().min(1).optional(),
+  cerebrasApiKey: z.string().min(1).optional(),
   clearAnthropicApiKey: z.boolean().optional(),
   clearOpenaiApiKey: z.boolean().optional(),
-  clearMistralApiKey: z.boolean().optional()
+  clearMistralApiKey: z.boolean().optional(),
+  clearGeminiApiKey: z.boolean().optional(),
+  clearGroqApiKey: z.boolean().optional(),
+  clearOpenrouterApiKey: z.boolean().optional(),
+  clearDeepseekApiKey: z.boolean().optional(),
+  clearCerebrasApiKey: z.boolean().optional()
 });
 
 export const draftAssetKindSchema = z.union([z.enum(assetKinds), z.literal("auto")]);
