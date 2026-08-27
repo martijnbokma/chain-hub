@@ -1,0 +1,15 @@
+{
+  "name": "Chain Hub",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "hub-dev",
+      "command": "bun run dev:hub",
+      "description": "Hono API on http://127.0.0.1:2342 and the hub-web dashboard (Vite) on http://localhost:4321, with hot reload. The dashboard proxies /api to the server."
+    }
+  ],
+  "ports": [
+    { "name": "hub-web dashboard (Vite dev)", "port": 4321 },
+    { "name": "hub API server (Hono)", "port": 2342 }
+  ]
+}
