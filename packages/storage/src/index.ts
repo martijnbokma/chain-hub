@@ -50,6 +50,7 @@ export { getOverview, getSetupGuide } from "./hub.js";
 export {
   captureEvent,
   getLearningsTimeline,
+  getSkillLearnings,
   buildReflectionReport,
   writeReflectionMarkdown
 } from "./learnings.js";

@@ -1,4 +1,4 @@
-import { assetKinds, type AiConfig, type AiProvider, type AiSecrets, type AssetKind, type AuditAssetFinding, type AuditAssetResult, type ClassifyAssetResult, type DraftAssetInput, type DraftAssetResult, type ImproveAssetResult } from "@chain-hub/contracts";
+import { assetKinds, type AiConfig, type AiProvider, type AiSecrets, type AssetKind, type AuditAssetFinding, type AuditAssetResult, type CaptureEvent, type ClassifyAssetResult, type DraftAssetInput, type DraftAssetResult, type ImproveAssetResult } from "@chain-hub/contracts";
 
 const SHARED_DRAFT_RULES = `Shared requirements:
 - Always write the drafted asset content in English, even if the user's intent is in another language
@@ -80,6 +80,18 @@ Rules:
 
 Respond with ONLY a JSON object (no markdown fences, no extra text):
 {"summary":"one short overall assessment","findings":[{"severity":"high|medium|low","title":"short label","detail":"one or two concrete sentences"}]}`;
+
+const AUDIT_LEARNINGS_RULES = `
+
+Field reports:
+The user message may include field reports: corrections, failures and notes captured while agents used this skill on real tasks. Treat them as evidence of how the skill behaves in practice.
+- For each field report the current content does NOT already address, add a finding with "source":"learning" that states what the skill should say or do instead
+- Ignore field reports the content already covers, and reports about project specifics rather than the skill's guidance
+- Merge reports that point at the same gap into one finding
+- Mark every other finding "source":"best-practice"
+
+Include "source" on every finding in this case:
+{"summary":"...","findings":[{"severity":"high|medium|low","title":"short label","detail":"one or two concrete sentences","source":"learning|best-practice"}]}`;
 
 const IMPROVE_EXISTING_RULES = `You revise an existing Chain Hub asset using audit findings.
 
@@ -739,7 +751,7 @@ export async function classifyExistingAsset(params: {
 
 const SEVERITIES = new Set(["high", "medium", "low"]);
 
-function parseAudit(raw: string): AuditAssetResult {
+function parseAudit(raw: string, options: { allowLearningSource: boolean }): AuditAssetResult {
   const parsed = extractJsonObject(raw) as { summary?: unknown; findings?: unknown };
   const summary =
     typeof parsed.summary === "string" && parsed.summary.trim()
@@ -755,18 +767,22 @@ function parseAudit(raw: string): AuditAssetResult {
     if (!item || typeof item !== "object") {
       continue;
     }
-    const row = item as { severity?: unknown; title?: unknown; detail?: unknown };
+    const row = item as { severity?: unknown; title?: unknown; detail?: unknown; source?: unknown };
     const severity = typeof row.severity === "string" ? row.severity.trim().toLowerCase() : "";
     const title = typeof row.title === "string" ? row.title.trim().slice(0, 120) : "";
     const detail = typeof row.detail === "string" ? row.detail.trim().slice(0, 500) : "";
     if (!SEVERITIES.has(severity) || !title || !detail) {
       continue;
     }
-    findings.push({
+    const finding: AuditAssetFinding = {
       severity: severity as AuditAssetFinding["severity"],
       title,
       detail
-    });
+    };
+    if (options.allowLearningSource) {
+      finding.source = row.source === "learning" ? "learning" : "best-practice";
+    }
+    findings.push(finding);
   }
 
   return { summary, findings };
@@ -778,16 +794,29 @@ export async function auditExistingAsset(params: {
   kind: AssetKind;
   name: string;
   content: string;
+  /** Captured corrections, failures and notes for this asset; enables learning-sourced findings. */
+  learnings?: CaptureEvent[];
 }): Promise<AuditAssetResult> {
-  const { config, secrets, kind, name, content } = params;
+  const { config, secrets, kind, name, content, learnings = [] } = params;
   const truncated = content.trim().slice(0, 12_000);
+  const hasLearnings = learnings.length > 0;
+  const fieldReports = learnings.map(
+    (event, index) => `${index + 1}. [${event.type}, ${event.capturedAt.slice(0, 10)}] ${event.summary}`
+  );
+
   const auditRaw = await completeChat({
     config,
     secrets,
-    system: AUDIT_EXISTING_SYSTEM,
-    userMessage: [`Kind: ${kind}`, `Name: ${name}`, "Content:", truncated].join("\n")
+    system: hasLearnings ? AUDIT_EXISTING_SYSTEM + AUDIT_LEARNINGS_RULES : AUDIT_EXISTING_SYSTEM,
+    userMessage: [
+      `Kind: ${kind}`,
+      `Name: ${name}`,
+      ...(hasLearnings ? ["Field reports from real use:", ...fieldReports] : []),
+      "Content:",
+      truncated
+    ].join("\n")
   });
-  return parseAudit(auditRaw);
+  return parseAudit(auditRaw, { allowLearningSource: hasLearnings });
 }
 
 export async function improveExistingAsset(params: {
@@ -802,7 +831,10 @@ export async function improveExistingAsset(params: {
   const { config, secrets, kind, name, content, summary, findings } = params;
   const truncated = content.trim().slice(0, 12_000);
   const findingsBlock = findings
-    .map((finding, index) => `${index + 1}. [${finding.severity}] ${finding.title} — ${finding.detail}`)
+    .map((finding, index) => {
+      const origin = finding.source === "learning" ? " (from a field report)" : "";
+      return `${index + 1}. [${finding.severity}]${origin} ${finding.title} — ${finding.detail}`;
+    })
     .join("\n");
 
   const improved = await completeChat({

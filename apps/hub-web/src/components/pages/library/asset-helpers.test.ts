@@ -8,6 +8,7 @@ import {
   formatSkillSourceType,
   groupAssetsByKind,
   parseKindParam,
+  parseSelectedAssetParams,
   parseOwnershipParam,
   resolveKindMeta,
   stripYamlFrontmatter,
@@ -203,5 +204,18 @@ describe("contentForClipboard", () => {
     expect(contentForClipboard("---\ntitle: Foo\n---\nBody text", "skills")).toBe(
       "---\ntitle: Foo\n---\nBody text"
     );
+  });
+});
+
+describe("parseSelectedAssetParams", () => {
+  it("returns the linked asset for a valid kind and name", () => {
+    expect(parseSelectedAssetParams("skills", "review-pr")).toEqual({ kind: "skills", name: "review-pr" });
+  });
+
+  it("ignores links without a specific kind or name", () => {
+    expect(parseSelectedAssetParams(null, "review-pr")).toBeNull();
+    expect(parseSelectedAssetParams("unknown", "review-pr")).toBeNull();
+    expect(parseSelectedAssetParams("skills", "  ")).toBeNull();
+    expect(parseSelectedAssetParams("skills", null)).toBeNull();
   });
 });

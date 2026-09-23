@@ -369,6 +369,111 @@ describe("generateAssetDraft", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it("feeds field reports to the auditor and tags learning-sourced findings", async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        system?: string;
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const user = body.messages?.find((message) => message.role === "user")?.content ?? "";
+      expect(body.system).toMatch(/Field reports:/);
+      expect(user).toContain("Field reports from real use:");
+      expect(user).toContain("1. [correction, 2026-09-01] Misses SVG targets in click handlers");
+      return Response.json({
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              summary: "One field-reported gap.",
+              findings: [
+                { severity: "medium", title: "SVG click targets", detail: "Use Element.closest.", source: "learning" },
+                { severity: "low", title: "Triggers", detail: "Add when-to-use phrases." }
+              ]
+            })
+          }
+        ]
+      });
+    }) as typeof fetch;
+
+    const result = await auditExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "frontend-ui-engineering",
+      content: "# Frontend",
+      learnings: [
+        {
+          id: "e1",
+          type: "correction",
+          skill: "frontend-ui-engineering",
+          summary: "Misses SVG targets in click handlers",
+          capturedAt: "2026-09-01T10:00:00.000Z"
+        }
+      ]
+    });
+
+    expect(result.findings.map((finding) => finding.source)).toEqual(["learning", "best-practice"]);
+  });
+
+  it("omits field reports and finding sources when there are no learnings", async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        system?: string;
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const user = body.messages?.find((message) => message.role === "user")?.content ?? "";
+      expect(body.system).not.toMatch(/Field reports:/);
+      expect(user).not.toContain("Field reports");
+      return Response.json({
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              summary: "Gap.",
+              findings: [{ severity: "low", title: "Triggers", detail: "Add triggers.", source: "learning" }]
+            })
+          }
+        ]
+      });
+    }) as typeof fetch;
+
+    const result = await auditExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "review-pr",
+      content: "# Review"
+    });
+
+    expect(result.findings[0]?.source).toBeUndefined();
+  });
+
+  it("marks field-report findings when improving", async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        messages?: Array<{ role: string; content: string }>;
+      };
+      const user = body.messages?.find((message) => message.role === "user")?.content ?? "";
+      expect(user).toContain("1. [medium] (from a field report) SVG click targets");
+      expect(user).toContain("2. [low] Triggers");
+      return Response.json({ content: [{ type: "text", text: "# Frontend\n\nUse Element.closest." }] });
+    }) as typeof fetch;
+
+    await improveExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "frontend-ui-engineering",
+      content: "# Frontend",
+      findings: [
+        { severity: "medium", title: "SVG click targets", detail: "Use Element.closest.", source: "learning" },
+        { severity: "low", title: "Triggers", detail: "Add when-to-use phrases.", source: "best-practice" }
+      ]
+    });
+
+    expect(globalThis.fetch).toHaveBeenCalledOnce();
+  });
+
   it("improves an existing asset from audit findings", async () => {
     globalThis.fetch = vi.fn(async (_url, init) => {
       const body = JSON.parse(String((init as RequestInit).body)) as {

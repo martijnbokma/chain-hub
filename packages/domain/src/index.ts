@@ -24,6 +24,7 @@ import {
   getAsset,
   getIntegrations,
   getLearningsTimeline,
+  getSkillLearnings,
   getOverview,
   getSetupGuide,
   importDiscoveredAsset,
@@ -196,19 +197,27 @@ export async function classifyHubAsset(chainHome: string | undefined, input: Cla
   });
 }
 
+/** Max captured learning events given to one audit, to keep the prompt focused. */
+const AUDIT_LEARNINGS_LIMIT = 10;
+
 export async function auditHubAsset(chainHome: string | undefined, input: AuditAssetInput) {
   const config = await readAiConfig(chainHome);
   const secrets = await readAiSecrets(chainHome);
   const content =
     input.content?.trim() ||
     (await getAsset(chainHome, input.kind, input.name)).content;
-  return auditExistingAsset({
+  // Learning events are captured per skill slug, so only skills receive field reports.
+  const learnings =
+    input.kind === "skills" ? await getSkillLearnings(chainHome, input.name, AUDIT_LEARNINGS_LIMIT) : undefined;
+  const result = await auditExistingAsset({
     config,
     secrets,
     kind: input.kind,
     name: input.name,
-    content
+    content,
+    learnings
   });
+  return learnings ? { ...result, learningsConsidered: learnings.length } : result;
 }
 
 export async function improveHubAsset(chainHome: string | undefined, input: ImproveAssetInput) {

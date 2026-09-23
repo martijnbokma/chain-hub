@@ -162,10 +162,14 @@ export const classifyAssetResultSchema = z.object({
 
 export const auditAssetFindingSeveritySchema = z.enum(["high", "medium", "low"]);
 
+/** Where a finding came from: the kind's best-practice bar, or a captured learning event for this skill. */
+export const auditAssetFindingSourceSchema = z.enum(["best-practice", "learning"]);
+
 export const auditAssetFindingSchema = z.object({
   severity: auditAssetFindingSeveritySchema,
   title: z.string().min(1).max(120),
-  detail: z.string().min(1).max(500)
+  detail: z.string().min(1).max(500),
+  source: auditAssetFindingSourceSchema.optional()
 });
 
 /** Same shape as classify for loading an existing asset. */
@@ -173,7 +177,9 @@ export const auditAssetInputSchema = classifyAssetInputSchema;
 
 export const auditAssetResultSchema = z.object({
   summary: z.string().min(1).max(400),
-  findings: z.array(auditAssetFindingSchema).max(12)
+  findings: z.array(auditAssetFindingSchema).max(12),
+  /** Number of captured learning events (corrections, failures, notes) given to the auditor. */
+  learningsConsidered: z.number().int().nonnegative().optional()
 });
 
 export const improveAssetInputSchema = z.object({
@@ -200,6 +206,7 @@ export type DraftPromptResult = DraftAssetResult;
 export type ClassifyAssetInput = z.input<typeof classifyAssetInputSchema>;
 export type ClassifyAssetResult = z.infer<typeof classifyAssetResultSchema>;
 export type AuditAssetInput = z.input<typeof auditAssetInputSchema>;
+export type AuditAssetFindingSource = z.infer<typeof auditAssetFindingSourceSchema>;
 export type AuditAssetFinding = z.infer<typeof auditAssetFindingSchema>;
 export type AuditAssetResult = z.infer<typeof auditAssetResultSchema>;
 export type ImproveAssetInput = z.input<typeof improveAssetInputSchema>;

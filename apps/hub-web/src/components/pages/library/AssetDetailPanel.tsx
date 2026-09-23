@@ -27,12 +27,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type {
   AssetKind,
-  AuditAssetFinding,
   AuditAssetResult,
   ClassifyAssetResult,
   SkillFileEntry,
   SkillLockEntry
 } from '@/types';
+import { AssetAuditCard } from './AssetAuditCard';
 import { contentForClipboard, formatSkillSource, formatSkillSourceType, KIND_META } from './asset-helpers';
 
 const MarkdownSourceEditor = React.lazy(async () => {
@@ -83,21 +83,6 @@ function formatFileSize(size: number): string {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function severityLabel(severity: AuditAssetFinding['severity']): string {
-  switch (severity) {
-    case 'high':
-      return 'High';
-    case 'medium':
-      return 'Medium';
-    case 'low':
-      return 'Low';
-    default: {
-      const _exhaustive: never = severity;
-      return _exhaustive;
-    }
-  }
 }
 
 export function AssetDetailPanel({
@@ -420,53 +405,13 @@ export function AssetDetailPanel({
             </div>
           ) : null}
           {assetAudit ? (
-            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-foreground">Audit</span>
-                <Badge variant="default">
-                  {assetAudit.findings.length === 0
-                    ? 'No findings'
-                    : `${assetAudit.findings.length} findings`}
-                </Badge>
-              </div>
-              <p className="mt-1 leading-5 text-foreground/80">{assetAudit.summary}</p>
-              {assetAudit.findings.length > 0 ? (
-                <ul className="mt-3 grid gap-2">
-                  {assetAudit.findings.map((finding) => (
-                    <li
-                      className="rounded-lg border border-border bg-card px-3 py-2"
-                      key={`${finding.severity}-${finding.title}`}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={finding.severity === 'high' ? 'accent' : 'default'}>
-                          {severityLabel(finding.severity)}
-                        </Badge>
-                        <span className="font-medium text-foreground">{finding.title}</span>
-                      </div>
-                      <p className="mt-1 leading-5 text-foreground/80">{finding.detail}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {assetAudit.findings.length > 0 ? (
-                isUpstreamSkill ? (
-                  <p className="mt-3 leading-5 text-foreground/80">
-                    Fork this skill first if you want AI to apply improvements to a local copy.
-                  </p>
-                ) : (
-                  <Button
-                    className="mt-3 w-fit"
-                    disabled={isImproving || !editorContent.trim()}
-                    onClick={onImproveAsset}
-                    size="sm"
-                    type="button"
-                  >
-                    <Sparkles className="size-4" />
-                    {isImproving ? 'Improving…' : 'Apply improvements'}
-                  </Button>
-                )
-              ) : null}
-            </div>
+            <AssetAuditCard
+              audit={assetAudit}
+              canImprove={Boolean(editorContent.trim())}
+              isImproving={isImproving}
+              isUpstreamSkill={isUpstreamSkill}
+              onImprove={onImproveAsset}
+            />
           ) : null}
         </div>
         <div className="min-h-0">

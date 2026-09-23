@@ -37,18 +37,18 @@ export async function captureEvent(chainHomeInput: string | undefined, input: Ca
   return event;
 }
 
-export async function getLearningsTimeline(
-  chainHomeInput: string | undefined,
-  limit = 100,
-  offset = 0
-): Promise<LearningsTimeline> {
-  const chainHome = resolveChainHome(chainHomeInput);
-  await initializeHub(chainHome);
+type LearningsLog = {
+  logPath: string;
+  /** Newest first. */
+  events: CaptureEvent[];
+  skippedLines: number;
+};
 
+async function readLearningsLog(chainHome: string): Promise<LearningsLog> {
   const logPath = learningsLogPath(chainHome);
 
   if (!(await pathExists(logPath))) {
-    return { totalEvents: 0, returnedEvents: 0, offset, skippedLines: 0, logPath, events: [], status: "empty" };
+    return { logPath, events: [], skippedLines: 0 };
   }
 
   const raw = await fs.readFile(logPath, "utf8");
@@ -69,8 +69,21 @@ export async function getLearningsTimeline(
     }
   }
 
-  const sorted = [...events].sort((a, b) => b.capturedAt.localeCompare(a.capturedAt));
-  const page = sorted.slice(offset, offset + limit);
+  events.sort((a, b) => b.capturedAt.localeCompare(a.capturedAt));
+
+  return { logPath, events, skippedLines };
+}
+
+export async function getLearningsTimeline(
+  chainHomeInput: string | undefined,
+  limit = 100,
+  offset = 0
+): Promise<LearningsTimeline> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  const { logPath, events, skippedLines } = await readLearningsLog(chainHome);
+  const page = events.slice(offset, offset + limit);
 
   return {
     totalEvents: events.length,
@@ -83,13 +96,31 @@ export async function getLearningsTimeline(
   };
 }
 
+/** Event types that carry something a skill should learn; routine successes are excluded. */
+const SKILL_FEEDBACK_TYPES = new Set<CaptureEvent["type"]>(["correction", "failure", "note"]);
+
+/** Most recent corrections, failures and notes captured for one skill, newest first. */
+export async function getSkillLearnings(
+  chainHomeInput: string | undefined,
+  skill: string,
+  limit = 10
+): Promise<CaptureEvent[]> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  const { events } = await readLearningsLog(chainHome);
+
+  return events
+    .filter((event) => event.skill === skill && SKILL_FEEDBACK_TYPES.has(event.type))
+    .slice(0, limit);
+}
+
 export async function buildReflectionReport(chainHomeInput: string | undefined): Promise<ReflectionReport> {
   const chainHome = resolveChainHome(chainHomeInput);
-  const timeline = await getLearningsTimeline(chainHome);
+  await initializeHub(chainHome);
+  const { logPath, events: allEvents } = await readLearningsLog(chainHome);
 
   const bySkill = new Map<string, CaptureEvent[]>();
 
-  for (const event of timeline.events) {
+  for (const event of allEvents) {
     const list = bySkill.get(event.skill) ?? [];
     list.push(event);
     bySkill.set(event.skill, list);
@@ -137,10 +168,10 @@ export async function buildReflectionReport(chainHomeInput: string | undefined):
 
   return {
     generatedAt: new Date().toISOString(),
-    totalEvents: timeline.totalEvents,
+    totalEvents: allEvents.length,
     totalSkills: skills.length,
     skills,
-    logPath: timeline.logPath
+    logPath
   };
 }
 

@@ -24,6 +24,19 @@ export function parseKindParam(value: string | null): FilterKind {
   return '__all__';
 }
 
+/** Deep link `?kind=<kind>&asset=<name>` opens that asset's detail panel. */
+export function parseSelectedAssetParams(
+  kind: string | null,
+  asset: string | null
+): { kind: AssetKind; name: string } | null {
+  const parsedKind = parseKindParam(kind);
+  const name = asset?.trim();
+  if (parsedKind === '__all__' || !name) {
+    return null;
+  }
+  return { kind: parsedKind, name };
+}
+
 export function parseOwnershipParam(value: string | null): OwnershipFilter {
   if (value === 'editable' || value === 'upstream') {
     return value;

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -11,7 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { learningsApi } from '@/lib/api';
+import { learningsApi, libraryApi } from '@/lib/api';
+import { librarySkillLink, selectSkillsNeedingAttention, type SkillNeedingAttention } from '@/lib/learnings';
+import { cn } from '@/lib/utils';
 import type { CaptureEventType, SkillReflection } from '@/types';
 
 const EVENT_TYPES: CaptureEventType[] = ['success', 'failure', 'correction', 'note'];
@@ -54,6 +57,62 @@ function SkillReflectionCard({ skill }: { skill: SkillReflection }) {
   );
 }
 
+function issueCountLabel(item: SkillNeedingAttention): string {
+  const parts: string[] = [];
+  if (item.correctionCount > 0) {
+    parts.push(`${item.correctionCount} correction${item.correctionCount === 1 ? '' : 's'}`);
+  }
+  if (item.failureCount > 0) {
+    parts.push(`${item.failureCount} failure${item.failureCount === 1 ? '' : 's'}`);
+  }
+  return parts.join(' · ');
+}
+
+function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="grid gap-1">
+          <CardTitle>Needs attention</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Audit includes these field reports and turns open ones into findings you can apply.
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ul className="grid gap-2">
+          {items.map((item) => (
+            <li
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+              key={item.skill}
+            >
+              <div className="grid min-w-0 gap-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{item.skill}</span>
+                  <Badge variant="warning">{issueCountLabel(item)}</Badge>
+                </div>
+                {item.latestIssue ? (
+                  <p className="text-xs leading-5 text-pretty text-muted-foreground">{item.latestIssue.summary}</p>
+                ) : null}
+              </div>
+              {item.inHub ? (
+                <Link
+                  className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }), 'shrink-0')}
+                  to={librarySkillLink(item.skill)}
+                >
+                  Audit skill
+                </Link>
+              ) : (
+                <span className="shrink-0 text-xs text-muted-foreground">Not in your hub</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function LearningsPage() {
   const queryClient = useQueryClient();
   const [eventType, setEventType] = useState<CaptureEventType>('note');
@@ -69,6 +128,18 @@ export function LearningsPage() {
     queryKey: ['learnings-timeline'],
     queryFn: () => learningsApi.getTimeline()
   });
+
+  const library = useQuery({
+    queryKey: ['library'],
+    queryFn: () => libraryApi.getAll()
+  });
+
+  const needsAttention = useMemo(() => {
+    const hubSkills = new Set(
+      (library.data ?? []).filter((asset) => asset.kind === 'skills').map((asset) => asset.name)
+    );
+    return selectSkillsNeedingAttention(reflection.data?.skills ?? [], hubSkills);
+  }, [library.data, reflection.data]);
 
   const capture = useMutation({
     mutationFn: async () => {
@@ -112,6 +183,8 @@ export function LearningsPage() {
           connected editor, or log one manually below.
         </p>
       </header>
+
+      {needsAttention.length > 0 ? <NeedsAttentionCard items={needsAttention} /> : null}
 
       {totalEvents === 0 ? (
         <EmptyState

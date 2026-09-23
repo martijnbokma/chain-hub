@@ -31,7 +31,8 @@ import {
   groupAssetsByKind,
   groupDiscoveredByEditor,
   parseKindParam,
-  parseOwnershipParam
+  parseOwnershipParam,
+  parseSelectedAssetParams
 } from './library/asset-helpers';
 import { CreateAssetDialog } from './library/CreateAssetDialog';
 import { DiscoverDialog } from './library/DiscoverDialog';
@@ -89,7 +90,15 @@ export function LibraryPage() {
     setCreateOpenFromParams(searchParams.get('create') === '1');
     setFilterKind(parseKindParam(searchParams.get('kind')));
     setOwnership(parseOwnershipParam(searchParams.get('ownership')));
-  }, [searchParams, setCreateOpenFromParams]);
+    const linkedAsset = parseSelectedAssetParams(searchParams.get('kind'), searchParams.get('asset'));
+    if (linkedAsset) {
+      setSelected(linkedAsset);
+      // Consume the deep link so closing the panel does not reopen it on the next param change.
+      const next = new URLSearchParams(searchParams);
+      next.delete('asset');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setCreateOpenFromParams, setSearchParams]);
 
   const setOwnershipSynced = (nextOwnership: OwnershipFilter) => {
     setOwnership(nextOwnership);

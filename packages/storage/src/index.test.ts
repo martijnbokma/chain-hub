@@ -12,6 +12,7 @@ import {
   discoverAssets,
   getIntegrations,
   getLearningsTimeline,
+  getSkillLearnings,
   importDiscoveredAsset,
   initializeHub,
   listAssets,
@@ -164,6 +165,16 @@ describe("captureEvent", () => {
   });
 });
 
+async function writeEvents(
+  hub: string,
+  events: Array<{ type: string; skill: string; summary: string; capturedAt: string }>
+): Promise<void> {
+  const logPath = path.join(hub, "memory", "learnings", "events.jsonl");
+  await fs.mkdir(path.dirname(logPath), { recursive: true });
+  const lines = events.map((event, index) => JSON.stringify({ id: `e${index}`, ...event }));
+  await fs.writeFile(logPath, lines.join("\n") + "\n", "utf8");
+}
+
 describe("buildReflectionReport", () => {
   it("returns empty report when no events", async () => {
     const hub = await makeTmpHub();
@@ -195,6 +206,60 @@ describe("buildReflectionReport", () => {
     await captureEvent(hub, { type: "note", skill: "brand-new", summary: "first event" });
     const report = await buildReflectionReport(hub);
     expect(report.skills[0].trend).toBe("new");
+  });
+
+  it("counts every event, not only the first timeline page", async () => {
+    const hub = await makeTmpHub();
+    const events = Array.from({ length: 150 }, (_, index) => ({
+      type: "success",
+      skill: "bulk",
+      summary: `event ${index}`,
+      capturedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString()
+    }));
+    await writeEvents(hub, events);
+
+    const report = await buildReflectionReport(hub);
+
+    expect(report.totalEvents).toBe(150);
+    expect(report.skills[0].totalEvents).toBe(150);
+  });
+});
+
+describe("getSkillLearnings", () => {
+  it("returns only corrections, failures and notes for the requested skill, newest first", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(hub, [
+      { type: "correction", skill: "api", summary: "old correction", capturedAt: "2026-01-01T00:00:00.000Z" },
+      { type: "success", skill: "api", summary: "routine", capturedAt: "2026-01-02T00:00:00.000Z" },
+      { type: "note", skill: "other", summary: "other skill", capturedAt: "2026-01-03T00:00:00.000Z" },
+      { type: "failure", skill: "api", summary: "new failure", capturedAt: "2026-01-04T00:00:00.000Z" }
+    ]);
+
+    const learnings = await getSkillLearnings(hub, "api");
+
+    expect(learnings.map((event) => event.summary)).toEqual(["new failure", "old correction"]);
+  });
+
+  it("caps results at the limit", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(
+      hub,
+      Array.from({ length: 5 }, (_, index) => ({
+        type: "note",
+        skill: "api",
+        summary: `note ${index}`,
+        capturedAt: new Date(Date.UTC(2026, 0, 1 + index)).toISOString()
+      }))
+    );
+
+    const learnings = await getSkillLearnings(hub, "api", 2);
+
+    expect(learnings.map((event) => event.summary)).toEqual(["note 4", "note 3"]);
+  });
+
+  it("returns an empty list when no log exists", async () => {
+    const hub = await makeTmpHub();
+    expect(await getSkillLearnings(hub, "api")).toEqual([]);
   });
 });
 

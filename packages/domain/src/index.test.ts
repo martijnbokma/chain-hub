@@ -3,11 +3,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAsset } from "@chain-hub/storage";
 
 import {
+  auditHubAsset,
   captureHubEvent,
   createLibraryAsset,
   deleteLibraryAsset,
@@ -20,6 +21,7 @@ import {
   initializeChainHub,
   installLibrarySkill,
   syncAgentsSkillsIntoHub,
+  updateHubAiSettings,
   updateLibraryAsset,
   validateChainHub,
   writeHubReflection
@@ -252,5 +254,66 @@ describe("learnings via domain", () => {
     expect(result.content).toContain("# Reflection");
     const stat = await fs.stat(result.filePath);
     expect(stat.isFile()).toBe(true);
+  });
+});
+
+describe("auditHubAsset with learnings", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function mockAudit(onUserMessage: (user: string) => void) {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String((init as RequestInit).body)) as {
+        messages?: Array<{ role: string; content: string }>;
+      };
+      onUserMessage(body.messages?.find((message) => message.role === "user")?.content ?? "");
+      return Response.json({
+        content: [{ type: "text", text: JSON.stringify({ summary: "ok", findings: [] }) }]
+      });
+    }) as typeof fetch;
+  }
+
+  async function hubWithAnthropic(): Promise<string> {
+    const hub = await makeTmpHub();
+    await initializeChainHub(hub);
+    await updateHubAiSettings(hub, { provider: "anthropic", anthropicApiKey: "sk-ant-test" });
+    return hub;
+  }
+
+  it("passes the skill's corrections to the auditor and reports how many", async () => {
+    const hub = await hubWithAnthropic();
+    await captureHubEvent(hub, { type: "correction", skill: "review-pr", summary: "Should check auth first" });
+    await captureHubEvent(hub, { type: "success", skill: "review-pr", summary: "Routine win" });
+    await captureHubEvent(hub, { type: "correction", skill: "other", summary: "Unrelated" });
+
+    let user = "";
+    mockAudit((message) => {
+      user = message;
+    });
+
+    const result = await auditHubAsset(hub, { kind: "skills", name: "review-pr", content: "# Review" });
+
+    expect(user).toContain("Should check auth first");
+    expect(user).not.toContain("Routine win");
+    expect(user).not.toContain("Unrelated");
+    expect(result.learningsConsidered).toBe(1);
+  });
+
+  it("does not attach learnings to non-skill assets", async () => {
+    const hub = await hubWithAnthropic();
+    await captureHubEvent(hub, { type: "correction", skill: "named-exports", summary: "Rule correction" });
+
+    let user = "";
+    mockAudit((message) => {
+      user = message;
+    });
+
+    const result = await auditHubAsset(hub, { kind: "rules", name: "named-exports", content: "# Rule" });
+
+    expect(user).not.toContain("Field reports");
+    expect(result.learningsConsidered).toBeUndefined();
   });
 });
