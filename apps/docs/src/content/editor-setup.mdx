@@ -2,7 +2,7 @@
 title: Editor Setup
 section: Guides
 order: 2
-description: Connect Cursor, Claude Code, Windsurf, or Zed to the hub folder.
+description: Connect Cursor, Claude Code, Windsurf, Zed, or Google Antigravity to the hub folder.
 ---
 
 # Editor Setup
@@ -31,10 +31,13 @@ Remove or rename the conflicting file, then rerun `chain setup`.
 | **Cursor** | skills, rules | `~/.cursor/skills/<name>/SKILL.md` | `~/.cursor/rules/<name>.mdc` (`alwaysApply: true`) |
 | **Windsurf** | skills, rules, workflows | `~/.codeium/windsurf/skills/<name>/SKILL.md` | dual-written to `~/.devin/{rules,workflows}/` **and** `~/.windsurf/{rules,workflows}/` |
 | **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules concatenated into one `~/.config/zed/AGENTS.md` |
+| **Google Antigravity** | skills, agents, rules | `~/.gemini/config/plugins/chain-hub/skills/<name>/SKILL.md` | one Chain Hub plugin: `agents/<name>.md`, `rules/<name>.md` (`trigger: always_on`) |
 
 No adapter syncs `agents` or `workflows` universally — Cursor skips both
 (Custom Modes were removed in Cursor 2.1.0), Zed skips both (no native
-concept in Zed). `prompts` isn't synced to any editor today; it's a
+concept in Zed), Antigravity skips workflows (retired by Google on
+2026-11-01). Antigravity assets live in a single plugin, so
+`agy plugin disable chain-hub` turns them all off at once. `prompts` isn't synced to any editor today; it's a
 library-only asset kind. See [Writing an Asset](/asset-format) for the full
 kind matrix.
 

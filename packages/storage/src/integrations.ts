@@ -16,7 +16,9 @@ const LEGACY_INTEGRATION_TARGETS = [
   { id: "cursor", label: "Cursor", relativeTarget: ".cursor/chain-hub" },
   { id: "claude-code", label: "Claude Code", relativeTarget: ".claude/chain-hub" },
   { id: "windsurf", label: "Windsurf (Devin Desktop)", relativeTarget: ".codeium/windsurf/chain-hub" },
-  { id: "zed", label: "Zed", relativeTarget: ".config/zed/chain-hub" }
+  { id: "zed", label: "Zed", relativeTarget: ".config/zed/chain-hub" },
+  // No legacy symlink ever existed for Antigravity; removeLegacySymlink only unlinks symlinks, so this is inert.
+  { id: "antigravity", label: "Google Antigravity", relativeTarget: ".gemini/config/plugins/chain-hub" }
 ] as const;
 
 function findAdapter(id: string) {

@@ -61,7 +61,7 @@ export async function getSetupGuide(chainHomeInput?: string): Promise<SetupGuide
     {
       id: "connect-editors",
       label: "Connect editors",
-      description: "Link Cursor, Claude Code, Windsurf, and Zed to the hub so they all stay in sync automatically.",
+      description: "Link Cursor, Claude Code, Windsurf, Zed, and Google Antigravity to the hub so they all stay in sync automatically.",
       complete: allConnected,
       action: "connect",
       status: "pending"
