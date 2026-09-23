@@ -1,448 +1,51 @@
 # Chain Hub — Project Map
 
-> **Navigation Guide**: Hierarchical overview of the Chain Hub codebase for efficient context loading.
+Where things live, by feature area. Load only the section you need. Rules and conventions are in [AGENTS.md](./AGENTS.md).
 
-This document provides a **selective index** of the codebase. Use it to quickly locate relevant files for specific tasks without loading unnecessary context.
+## Packages
 
----
-
-## 🗺️ Architecture Overview
-
-```text
-chain-hub/
-├── apps/
-│   ├── hub-web/           # React Dashboard (Vite + Tailwind v4 + shadcn/ui)
-│   └── marketing-site/    # Marketing site (under development)
-├── packages/
-│   ├── cli/               # CLI entrypoint (Commander)
-│   ├── server/            # Hono API server
-│   ├── domain/            # Business logic & use-cases
-│   ├── storage/           # SQLite + filesystem adapters
-│   └── contracts/         # Shared Zod schemas & types
-└── docs/                  # Specs, intent, research, archived journey docs
-```
-
----
-
-## 📁 Package Index
-
-### `@chain-hub/cli` — Command Line Interface
-
-**Purpose**: Primary user interface for hub management via terminal.
-
-**Entry Point**: `packages/cli/src/index.ts` → `chain` binary
-
-**Key Files**:
-- `src/index.ts` — CLI entrypoint, command registration
-- `dist/index.js` — Built binary output
-
-**Commands**:
-- `chain init` — Initialize hub structure
-- `chain status` — Hub state overview
-- `chain validate` — Structural validation
-- `chain setup` — Editor integration setup
-- `chain guide` — Setup checklist
-- `chain hub` — Start dashboard server
-- `chain asset *` — Asset management (list, create, show, update, remove)
-- `chain capture` — Learning event capture
-- `chain reflect` — Reflection generation
-
-**Dependencies**: contracts, domain, server, storage
-
----
-
-### `@chain-hub/server` — HTTP API Server
-
-**Purpose**: Local HTTP API for dashboard and external integrations.
-
-**Entry Point**: `packages/server/src/index.ts` → Hono app
-
-**Key Files**:
-- `src/index.ts` — Hono app factory, static SPA serving, `startServer`
-- `src/routes/` — Route registrars (`hub`, `library`, `memory`, `learnings`, `ai`)
-- `src/http-errors.ts` — Shared Zod/Error → JSON helpers
-- `src/dev-server.ts` — Development server with hot reload
-- `dist/index.js` — Built server output
-
-**API Route Groups**:
-- `/api/overview` — Hub health, counts, storage stats
-- `/api/library` — Asset CRUD operations
-- `/api/memory` — Note management and search (CLI/API; no hub-web page)
-- `/api/learnings` — Timeline and reflection data (CLI/API; no hub-web page)
-- `/api/setup` — Guided setup endpoints
-- `/api/integrations` — Editor connection status
-- `/api/validate` — Validation results
-- `/api/settings/ai` — Local-first AI provider settings
-- `/api/ai/draft-prompt` — Prompt/asset drafting
-
-**Framework**: Hono 4.5.8 + @hono/node-server 1.13.1
-
-**Dependencies**: contracts, domain, storage
-
----
-
-### `@chain-hub/domain` — Business Logic Layer
-
-**Purpose**: Core business rules, use-cases, and workflows.
-
-**Entry Point**: `packages/domain/src/index.ts`
-
-**Responsibilities**:
-- Asset lifecycle management (skills, agents, workflows, rules)
-- Validation rules and logic
-- Editor sync logic and coordination
-- Learning workflows and reflection
-- Hub initialization and management
-
-**Pattern**: Pure business logic, no I/O or framework dependencies.
-
-**Dependencies**: contracts, storage
-
----
-
-### `@chain-hub/storage` — Persistence Layer
-
-**Purpose**: Data access and persistence abstractions.
-
-**Entry Point**: `packages/storage/src/index.ts`
-
-**Responsibilities**:
-- SQLite database operations (via `node:sqlite`, raw SQL)
-- YAML file I/O for assets
-- Markdown file I/O for memory/notes
-- Filesystem operations
-- FTS5 full-text search for notes
-
-**Adapters**:
-- SQLite adapter for metadata
-- Filesystem adapter for assets and notes
-- Search adapter for full-text queries
-
-**Dependencies**: contracts
-
----
-
-### `@chain-hub/contracts` — Shared Types & Schemas
-
-**Purpose**: Single source of truth for all shared types and validation.
-
-**Entry Point**: `packages/contracts/src/index.ts`
-
-**Key Schemas**:
-- `AssetSchema` — Validates all asset kinds (skills, agents, workflows, rules)
-- `LearningEventSchema` — Validates capture events (success, failure, correction, note)
-- `ValidationResultSchema` — Validates hub health checks
-- `IntegrationSchema` — Validates editor connections
-- `SetupStepSchema` — Validates guided setup progress
-
-**Pattern**: Zod schemas with TypeScript type extraction. All packages import from here.
-
-**Dependencies**: None (foundation package)
-
----
-
-### `@chain-hub/hub-web` — Dashboard Application
-
-**Purpose**: Visual control plane for hub management.
-
-**Entry Point**: `apps/hub-web/src/main.tsx`
-
-**Framework**: React 19 + React Router 7 + TanStack Query 5
-
----
-
-## 🏗️ Hub-Web Structure
-
-### `apps/hub-web/`
-
-```text
-hub-web/
-├── src/
-│   ├── main.tsx            # App entrypoint, ReactDOM render
-│   ├── app.tsx             # Router configuration, providers
-│   │
-│   ├── components/
-│   │   ├── ui/             # shadcn/ui primitives (Button, Input, Dialog, etc.)
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── input.tsx
-│   │   │   ├── dialog.tsx
-│   │   │   ├── sheet.tsx
-│   │   │   ├── tooltip.tsx
-│   │   │   ├── command.tsx
-│   │   ├── ui/             # shadcn/ui primitives (in use)
-│   │   │   ├── alert.tsx
-│   │   │   ├── badge.tsx
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── command.tsx
-│   │   │   ├── dialog.tsx
-│   │   │   ├── …
-│   │   │   └── tooltip.tsx
-│   │   │
-│   │   ├── layout/         # Shell + command palette
-│   │   │   ├── Shell.tsx
-│   │   │   ├── ShellToolbar.tsx
-│   │   │   └── useCommandPalette.ts
-│   │   │
-│   │   ├── common/         # Shared reusable components
-│   │   │   ├── EmptyState.tsx
-│   │   │   ├── Eyebrow.tsx
-│   │   │   ├── MarkdownSourceEditor.tsx
-│   │   │   ├── PageSkeleton.tsx
-│   │   │   └── ThemeToggle.tsx
-│   │   │
-│   │   └── pages/          # Page components (route-level)
-│   │       ├── OverviewPage.tsx
-│   │       ├── LibraryPage.tsx
-│   │       ├── IntegrationsPage.tsx
-│   │       ├── SetupPage.tsx
-│   │       ├── SettingsPage.tsx
-│   │       └── library/    # Library master–detail + dialogs
-│   │
-│   ├── types/              # TypeScript type definitions
-│   │   ├── index.ts
-│   │   ├── assets.ts
-│   │   ├── overview.ts
-│   │   ├── ai.ts
-│   │   ├── setup.ts
-│   │   └── integrations.ts
-│   │
-│   ├── hooks/              # React hooks
-│   │   ├── use-mobile.ts
-│   │   └── use-theme.ts
-│   │
-│   └── lib/                # Utilities and configurations
-│       ├── api.ts
-│       ├── constants.ts
-│       ├── theme.ts
-│       └── utils.ts
-│
-├── vite.config.ts
-├── components.json        # shadcn/ui configuration
-├── package.json
-└── tsconfig.json
-```
-
----
-
-## 🎯 Navigation Structure (Dashboard)
-
-### Primary Navigation
-
-1. **Setup** (`/setup`)
-   - Guided checklist
-   - Step-by-step initialization
-   - Progress tracking
-   - Validation feedback
-
-2. **Overview** (`/`)
-   - Hub health
-   - Asset counts / storage
-   - Validation status
-   - Recommended next action
-
-3. **Library** (`/library`)
-   - Asset browser (skills, agents, workflows, rules, prompts)
-   - Search and filtering
-   - Create/edit/delete assets
-   - Asset detail view
-
-4. **Integrations** (`/integrations`)
-   - Connected editors list
-   - Health check status
-   - Sync actions
-
-5. **Settings** (`/settings`)
-   - Theme preference
-   - Local-first AI providers (BYOK / Ollama)
-
-Memory notes and learnings are CLI/API surfaces (`chain capture` / `chain reflect`, `/api/memory`, `/api/learnings`) — not dashboard routes. **Phase 1 decision:** keep them CLI/API-only (no hub-web page, sidebar, or command-palette entry) until an explicit later IA change.
-
----
-
-## 🔗 Cross-Cutting Concerns
-
-### Command Palette (Cmd/Ctrl + K)
-
-**Purpose**: Global navigation and action execution.
-
-**Actions**:
-- Navigate to any page
-- Create new assets (skills, agents, workflows, rules)
-- Capture learning events
-- Connect editors
-- Run validation
-- Search documentation
-
-**Component**: `apps/hub-web/src/components/ui/command.tsx`
-
----
-
-### API Client
-
-**Purpose**: Centralized HTTP communication with server.
-
-**Location**: `apps/hub-web/src/lib/api.ts`
-
-**Pattern**: TanStack Query for caching and mutations; typed helpers wrap `fetch` to the local Hono API.
-
----
-
-### Toast Notifications
-
-**Purpose**: User feedback and notifications.
-
-**Library**: Sonner 2.0.7
-
-**Usage**: Call `toast` from `sonner` directly in page/mutation handlers (no `use-toast` wrapper).
-
----
-
-## 📋 Domain-Specific Index
-
-### Asset Management
-
-**Core Files**:
-- Contracts: `packages/contracts/src/asset.ts` (schemas + `normalizeSkillName` / path policy helpers)
-- Domain: `packages/domain/src/skills.ts` (install/update/migrate/fork + editor sync); `ai-providers.ts` for drafting
-- Storage: `packages/storage/src/skill-install.ts` (filesystem/git I/O, lock file); `core.ts` for asset CRUD
-- Server: Library routes in `packages/server/src/routes/library.ts`
-- CLI: Asset/skill commands in `packages/cli/src/`
-- UI: Library page under `apps/hub-web/src/components/pages/library/`
-
-**Asset Kinds**: skills, agents, workflows, rules, prompts
-
----
-
-### Learning & Reflection System
-
-**Core Files**:
-- Contracts: `packages/contracts/src/learning.ts`
-- Domain: Learning service in `packages/domain/src/`
-- Storage: Learning adapter in `packages/storage/src/`
-- Server: Learnings routes in `packages/server/src/`
-- CLI: capture and reflect commands in `packages/cli/src/`
-- UI: no hub-web Learnings page (CLI/API only)
-
-**Event Types**: success, failure, correction, note
-
----
-
-### Editor Integration
-
-**Core Files**:
-- Contracts: `packages/contracts/src/hub.ts` (integrations live alongside overview schemas)
-- Domain: Integration service in `packages/domain/src/`
-- Storage: Integration adapter in `packages/storage/src/`
-- Server: Integrations routes in `packages/server/src/`
-- CLI: setup command in `packages/cli/src/`
-- UI: Integrations page in `apps/hub-web/src/`
-
-**Supported Editors**: Cursor, Claude Code, Windsurf, Zed
-
----
-
-### Hub Management
-
-**Core Files**:
-- Domain: Hub service in `packages/domain/src/`
-- Storage: Hub adapter in `packages/storage/src/`
-- Server: Overview routes in `packages/server/src/`
-- CLI: init, status, validate commands in `packages/cli/src/`
-- UI: Overview page in `apps/hub-web/src/`
-
----
-
-## 🎨 UI Component Index
-
-### shadcn/ui Primitives (Customized)
-
-All UI components are built on shadcn/ui + Radix UI:
-
-- **Button** — Actions, CTA
-- **Card** — Content grouping
-- **Input** — Text input
-- **Dialog** — Modal overlays
-- **Sheet** — Slide-out panels
-- **Tooltip** — Hover information
-- **Command** — Command palette
-- **Badge** — Status indicators
-- **Avatar** — User/agent avatars
-- **Breadcrumb** — Navigation context
-- **ScrollArea** — Scrollable containers
-- **Tabs** — Tabbed interfaces
-
-**Pattern**: Always use these instead of building custom components.
-
----
-
-## 🔍 Pattern Locations
-
-### Common Patterns by Use Case
-
-| Use Case | Example Location |
-|---|---|
-| **Form validation** | Zod schemas in `@chain-hub/contracts` + form state in page components |
-| **API client usage** | `apps/hub-web/src/lib/api.ts` |
-| **Zod schema definition** | `packages/contracts/src/*.ts` (e.g. `asset.ts`, `ai.ts`) |
-| **Hono route definition** | `packages/server/src/index.ts` |
-| **Commander command** | `packages/cli/src/index.ts` |
-| **Storage adapter** | `packages/storage/src/index.ts` |
-| **Domain service** | `packages/domain/src/index.ts` |
-| **Shell / page chrome** | `apps/hub-web/src/components/layout/Shell.tsx` |
-| **UI component** | `apps/hub-web/src/components/ui/*.tsx` |
-
----
-
-## 🚀 Quick Navigation Commands
-
-### Find Files by Pattern
-
-```bash
-# Find all asset-related files
-rg -l "asset" packages/ apps/
-
-# Find all API routes
-rg -l "api/" packages/server/src/
-
-# Find all Zod schemas
-rg -l "z\." packages/contracts/src/
-
-# Find all React components
-find apps/hub-web/src -name "*.tsx"
-
-# Find all hooks
-find apps/hub-web/src/hooks -name "*.ts"
-
-# Find all types
-find apps/hub-web/src/types -name "*.ts"
-```
-
----
-
-## 📊 Context Size Guide
-
-Use this map to estimate context size for different task types:
-
-| Task Scope | Recommended Files | Estimated Lines |
+| Package | Entry | Key files |
 |---|---|---|
-| **Full feature** | CLAUDE.md + PROJECT_MAP.md + 6-8 source files | 2000-2500 |
-| **Single page** | CLAUDE.md + 3-4 similar components + 1-2 utility files | 1500-2000 |
-| **API endpoint** | CLAUDE.md + contracts + 2-3 route files + test | 1200-1800 |
-| **CLI command** | CLAUDE.md + contracts + domain + storage + 1 route file | 1400-2000 |
-| **UI component** | CLAUDE.md + 2-3 similar components + design tokens | 1000-1500 |
-| **Bug fix** | CLAUDE.md + failing file + test + related dependencies | 800-1500 |
+| `@chain-hub/contracts` | `packages/contracts/src/index.ts` | `asset.ts` (asset kinds, skill name/path policy), `hub.ts` (overview, integrations, drift), `learning.ts`, `setup.ts`, `ai.ts` (providers, draft/classify/audit/improve), `frontmatter.ts` |
+| `@chain-hub/storage` | `packages/storage/src/index.ts` | `core.ts` (hub init, SQLite index, asset CRUD), `assets.ts` + `skill-install.ts` (install/update/fork, skills lock), `integrations.ts` (editor sync, discover/import), `learnings.ts`, `hub.ts` (overview, setup guide), `ai-settings.ts`, `adapters/` (per-editor) |
+| `@chain-hub/domain` | `packages/domain/src/index.ts` | `index.ts` (use-cases wrapping storage), `skills.ts`, `ai-providers.ts` (provider calls, `AiProviderError`) |
+| `@chain-hub/server` | `packages/server/src/index.ts` | `routes/*.ts` (route registrars), `http-errors.ts`, `dev-server.ts`, `dev-port.ts` |
+| `chain-hub` (CLI) | `packages/cli/src/index.ts` | All Commander commands in `index.ts`; `reflect-format.ts` |
 
----
+## API routes (`packages/server/src/routes/`)
 
-## 🔗 Related Documentation
+| File | Endpoints |
+|---|---|
+| `hub.ts` | `/api/overview`, `/api/setup`, `/api/validate`, `/api/integrations`, `/api/integrations/setup` |
+| `library.ts` | `/api/library` (CRUD, `:kind/:name`, rename, convert), `/api/library/discover`, `/api/library/import`, `/api/library/skills/*` (install, install-bundle, update, fork, migrate-agents, files) |
+| `learnings.ts` | `/api/learnings`, `/api/learnings/capture`, `/api/learnings/reflect` |
+| `ai.ts` | `/api/settings/ai`, `/api/ai/draft-prompt`, `/api/ai/classify-asset`, `/api/ai/audit-asset`, `/api/ai/improve-asset` |
 
-- [CLAUDE.md](./CLAUDE.md) — Project rules and constraints
-- [AI_CONTEXT.md](./AI_CONTEXT.md) — Context engineering framework
-- [REBUILD_STRATEGY.md](./REBUILD_STRATEGY.md) — Product architecture and vision
-- [README.md](./README.md) — Quickstart, commands, API reference
+## Editor adapters (`packages/storage/src/adapters/`)
 
----
+`claude-code.ts`, `cursor.ts`, `windsurf.ts` (also Devin targets), `zed.ts`. Shared: `types.ts`, `files.ts`, `frontmatter.ts`, `marker.ts` (Chain-Hub-managed file markers). Each has a colocated test.
 
-> **Usage Tip**: Bookmark this file. When starting a new task, first check PROJECT_MAP.md to locate the relevant files, then load only those files plus the required context levels from AI_CONTEXT.md.
+## hub-web (`apps/hub-web/src/`)
+
+- `main.tsx` → `app.tsx` (routes: `/`, `/library`, `/learnings`, `/integrations`, `/settings`, `/setup`)
+- `components/pages/` — `OverviewPage`, `LibraryPage`, `LearningsPage`, `IntegrationsPage`, `SettingsPage`, `SetupPage`
+- `components/pages/library/` — master–detail: `AssetList`, `AssetCard`, `AssetDetailPanel`, `LibraryToolbar`, dialogs (`CreateAssetDialog`, `DiscoverDialog`, `InstallSkillDialog`, `RemoveAssetDialog`, `AiEditPreviewDialog`, `SkillFilePreviewDialog`), flows (`use-library-create-flow.ts`, `use-library-install-flow.ts`), `asset-helpers.ts`
+- `components/layout/` — `Shell.tsx` (sidebar nav), `ShellToolbar.tsx`, `useCommandPalette.ts` (⌘K)
+- `components/common/` — `EmptyState`, `Eyebrow`, `MarkdownSourceEditor`, `PageSkeleton`, `SheetMarks`, `ThemeToggle`
+- `components/ui/` — shadcn primitives (alert, badge, button, card, collapsible, command, dialog, dropdown-menu, input, select, separator, sheet, sidebar, skeleton, tabs, textarea, tooltip) + prompt-kit (`prompt-input`, `prompt-suggestion`, `loader`)
+- `lib/` — `api.ts` (typed fetch helpers for TanStack Query), `ai-models.ts`, `skill-ownership.ts`, `theme.ts`, `constants.ts`, `utils.ts` (`cn`)
+- `hooks/` — `use-theme.ts`, `use-mobile.ts`
+- `types/` — view types per area (assets, ai, discover, integrations, learnings, overview, setup)
+- `e2e/` — Playwright specs (create, discover, install, rename/delete, setup wizard)
+- Design: `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`
+
+## Feature → files
+
+| Feature | Files |
+|---|---|
+| Asset CRUD | `contracts/src/asset.ts` → `storage/src/core.ts` → `domain/src/index.ts` → `server/src/routes/library.ts` → `hub-web/.../library/` |
+| Skill install/update/fork | `storage/src/skill-install.ts`, `storage/src/assets.ts`, `domain/src/skills.ts`, `routes/library.ts`, `InstallSkillDialog.tsx`; spec: `docs/specs/hub-skill-install.md` |
+| Editor sync / discover | `storage/src/integrations.ts`, `storage/src/adapters/`, `routes/hub.ts`, `routes/library.ts` (discover/import) |
+| Learnings | `contracts/src/learning.ts`, `storage/src/learnings.ts`, `routes/learnings.ts`, `LearningsPage.tsx`, CLI `capture`/`reflect` |
+| AI drafting/audit | `contracts/src/ai.ts`, `storage/src/ai-settings.ts`, `domain/src/ai-providers.ts`, `routes/ai.ts`, `lib/ai-models.ts`, `AiEditPreviewDialog.tsx` |
+| Overview / setup | `storage/src/hub.ts`, `routes/hub.ts`, `OverviewPage.tsx`, `SetupPage.tsx` |

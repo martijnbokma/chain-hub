@@ -1,438 +1,138 @@
-# Chain Hub — Agent Guidelines
+# Chain Hub — Agent Rules
 
-> **For all AI agents working on this project**: Read this first, then CLAUDE.md.
+Single source of truth for all AI agents (Claude Code, Codex, Cursor, Windsurf). `CLAUDE.md` imports this file.
 
-This document provides **agent-specific guidance** for contributing to Chain Hub. It complements [CLAUDE.md](./CLAUDE.md) (project rules) and [AI_CONTEXT.md](./AI_CONTEXT.md) (context engineering framework).
+**Chain Hub** is a local-first AI workspace control plane: one hub folder (`~/.chain-hub`), one CLI (`chain`), one dashboard, synced into Cursor, Claude Code, Windsurf and Zed. Philosophy: local-first, editor-agnostic, minimal surface, grows deliberately.
 
----
+Canonical repo: `martijnbokma/chain-hub` (local folder may be named `chain-hub-v2`).
 
-## Agent Roles & Responsibilities
+## Read on demand (not every session)
 
-### You Are Expected To
+| File | Load when |
+|---|---|
+| `PROJECT_MAP.md` | Locating files for a feature area |
+| `REBUILD_STRATEGY.md` | Product scope or architecture decisions |
+| `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md` | Any hub-web UI work |
+| `docs/intent/`, `docs/specs/` | Skills control plane / skill install work |
+| `docs/archive/` | Historical only — not a source of truth |
 
-1. **Follow the documented workflow** — CLAUDE.md defines all rules, boundaries, and constraints
-2. **Load context appropriately** — Use the hierarchical system from AI_CONTEXT.md
-3. **Surface ambiguity explicitly** — Never guess when requirements are unclear
-4. **Verify before acting** — Read files before editing, check patterns before implementing
-5. **Deliver quality** — Code that passes tests, typecheck, and lint
+## Stack
 
-### You Are NOT Expected To
+- **Workspace**: Bun 1.3 workspaces + Turborepo, Node ≥ 22.13 (`node:sqlite` unflagged), ESM only
+- **TypeScript**: 5.x in `packages/*`, 6.x in `apps/*` — check the package's tsconfig
+- **Backend**: Commander 12 (CLI), Hono 4 + `@hono/node-server` (server), tsup (build), Zod (validation), SQLite via `node:sqlite` with raw SQL (no ORM)
+- **Frontend**: React 19, React Router 7, TanStack Query 5, Tailwind CSS 4 (`@theme` tokens, no `tailwind.config.js`), shadcn/ui, cva, clsx + tailwind-merge, cmdk, lucide-react, sonner, Vite 8
+- **Tests**: Vitest everywhere, Testing Library in hub-web, Playwright e2e in `apps/hub-web/e2e/`
 
-1. **Know project history** — All relevant context is documented
-2. **Invent conventions** — Follow existing patterns, documented in CLAUDE.md
-3. **Remember across sessions** — Each session starts fresh; context must be reloaded
-4. **Make architectural decisions** — Surface options and ask for direction
-5. **Handle external dependencies** — Ask before adding any new dependency
+Exact versions live in each `package.json` — do not trust versions quoted in docs.
 
----
+## Layout and boundaries
 
-## Session Startup Checklist
-
-Before beginning ANY work, ensure you have loaded:
-
-### ✅ Level 1: Persistent Rules (Always)
-- [ ] [CLAUDE.md](./CLAUDE.md) — Full project rules, stack, conventions, boundaries
-- [ ] [AGENTS.md](./AGENTS.md) — This file, your operating guidelines
-
-### ✅ Level 2: Project Context (Per Session)
-- [ ] [REBUILD_STRATEGY.md](./REBUILD_STRATEGY.md) — Product vision and architecture
-- [ ] [PROJECT_MAP.md](./PROJECT_MAP.md) — Codebase navigation guide
-- [ ] Relevant section of [README.md](./README.md) — Commands, quickstart
-
-### ✅ Level 3: Task Context (Per Task)
-- [ ] Task description and requirements
-- [ ] Source files that will be modified
-- [ ] Related test files
-- [ ] Example files showing the pattern to follow
-- [ ] Type definitions involved
-
-### ✅ Level 4: Iteration Context (Per Cycle)
-- [ ] Error output from tests/builds
-- [ ] Type checking results
-- [ ] Lint warnings
-
----
-
-## Task Acceptance Criteria
-
-### Before Starting
-
-**I have**:
-- [ ] Read CLAUDE.md completely
-- [ ] Identified the specific files to modify
-- [ ] Located existing patterns to follow
-- [ ] Noted all constraints and boundaries
-- [ ] Asked for clarification on any ambiguities
-
-**I understand**:
-- [ ] The task requirements
-- [ ] The expected outcome
-- [ ] The files involved
-- [ ] The patterns to follow
-- [ ] The boundaries to respect
-
-### Before Delivering
-
-**My change**:
-- [ ] Follows all rules in CLAUDE.md
-- [ ] Respects architecture boundaries
-- [ ] Matches existing codebase patterns
-- [ ] Passes `bun run typecheck`
-- [ ] Passes `bun run lint`
-- [ ] Has corresponding tests (if new functionality)
-- [ ] Has minimal diff (only necessary changes)
-
----
-
-## Behavior Guidelines
-
-### Communication Style
-
-**Be**:
-- **Direct** — State what you're doing and why
-- **Concise** — Use minimal words to convey maximum information
-- **Structured** — Use clear sections and formatting
-- **Proactive** — Surface issues early, don't wait for problems
-
-**Don't be**:
-- Verbose or wordy
-- Apologetic or uncertain
-- Guessing or assuming
-- Silent about problems
-
-### Response Format
-
-**For simple tasks**:
 ```
-ACTION: [what you're doing]
-REASON: [why, if not obvious]
-RESULT: [outcome]
+apps/hub-web/          React dashboard — consumes contracts + HTTP API only
+apps/docs/             Documentation site (Vite + MDX)
+apps/marketing-site/   Marketing site (under development, inline coming-soon page)
+packages/contracts/    @chain-hub/contracts — Zod schemas + types, no deps
+packages/storage/      @chain-hub/storage — SQLite + filesystem + editor adapters
+packages/domain/       @chain-hub/domain — use-cases, wraps storage, AI providers
+packages/server/       @chain-hub/server — Hono routes mapping domain to HTTP
+packages/cli/          chain-hub (npm name) — `chain` binary, Commander
 ```
 
-**For complex tasks**:
-```
-PLAN:
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
+- Dependency direction: `contracts ← storage ← domain ← server/cli`. hub-web never imports domain or storage.
+- Only `packages/storage` touches SQLite (`src/core.ts`). Never bypass it.
+- Changing an API: update the Zod schema in `packages/contracts/src/` first.
+- Schema naming is camelCase with `Schema` suffix: `captureEventSchema`, `overviewSchema`, `aiProviderSchema`, `integrationSchema`. Types are inferred from them.
 
-EXECUTING: [current step]
-```
+## Commands
 
-**For questions**:
-```
-CONFUSION: [specific ambiguity]
-OPTIONS:
-A) [Option 1]
-B) [Option 2]
-C) [Option 3]
-→ Which approach?
-```
-
----
-
-## Domain-Specific Behavior
-
-### UI Development
-
-**Before coding**:
-1. Provide 2-3 design directions (layout + hierarchy)
-2. Wait for user selection
-3. Only then implement
-
-**While coding**:
-- Use shadcn/ui components exclusively
-- Use Tailwind semantic tokens only
-- Use `cn()` for class combining
-- Use `cva` for variants
-- Never use hex codes or arbitrary values
-
-**After coding**:
-- Verify accessibility (labels, focus states, keyboard nav)
-- Match existing style exactly
-- Test responsive behavior
-
-### Backend Development
-
-**Before coding**:
-1. Identify the correct package (domain, storage, server, cli)
-2. Check existing patterns in that package
-3. Verify contracts (Zod schemas) are current
-
-**While coding**:
-- Use Zod for all validation
-- Use storage abstractions, never direct SQLite
-- Use custom error classes
-- Use ESM imports/exports
-
-**After coding**:
-- Add/update tests
-- Verify type safety
-- Check API contract compatibility
-
-### Bug Fixing
-
-**Process**:
-1. Reproduce the issue
-2. Identify the root cause
-3. Check for similar issues in codebase
-4. Implement minimal fix
-5. Add regression test
-
-**Report**:
-- What the bug was
-- Root cause analysis
-- Fix applied
-- Tests added
-- Files changed
-
----
-
-## Quality Standards
-
-### Code Quality
-
-- **TypeScript**: Strict mode, no `any`, proper types everywhere
-- **Formatting**: Consistent with existing codebase
-- **Naming**: Clear, descriptive, consistent with existing patterns
-- **Comments**: Only when necessary, explaining why not what
-- **Error handling**: Comprehensive, user-friendly messages
-
-### Testing
-
-- **Unit tests**: For all business logic
-- **Component tests**: For React components
-- **Integration tests**: For API endpoints
-- **E2E tests**: For critical user flows
-- **Coverage**: Aim for 80%+ on new code
-
-### Documentation
-
-- **Code comments**: Only for non-obvious logic
-- **TypeScript docs**: For exported functions/classes
-- **README updates**: When adding new features or changing APIs
-- **Changelog**: Maintained for user-facing changes
-
----
-
-## Error Handling Protocol
-
-### Build/Test Failures
-
-When encountering errors:
-
-1. **Stop** — Don't continue with broken code
-2. **Analyze** — Read the error message carefully
-3. **Context** — Load the specific error and surrounding code
-4. **Fix** — Address the root cause, not symptoms
-5. **Verify** — Confirm the fix resolves the issue
-
-**Example error handling**:
-```
-ERROR ENCOUNTERED:
-TypeError: Cannot read property 'id' of undefined at packages/server/src/routes/library.ts:42
-
-ANALYSIS:
-- Line 42 tries to access user.id
-- User object is undefined, likely missing null check
-- Check if user can be null in this context
-
-CONTEXT NEEDED:
-- packages/server/src/routes/library.ts (lines 35-50)
-- packages/contracts/src/hub.ts (type definition)
-- Test that exercises this path
-
-FIX:
-Add null check before accessing user.id, or ensure user is always defined
-```
-
----
-
-## Context Management
-
-### Context Size Limits
-
-| Context Type | Maximum Lines | When to Use |
-|---|---|---|
-| **Rules (Level 1)** | ~500 | Always, every session |
-| **Project (Level 2)** | ~1000 | Per feature/session |
-| **Task (Level 3)** | ~2000 | Per specific task |
-| **Iteration (Level 4)** | ~500 | Per build/test cycle |
-| **Total** | **<2500** | Absolute maximum |
-
-### Context Refresh
-
-**Refresh context when**:
-- Switching between major features
-- Starting a new session
-- After significant code changes
-- When context seems stale or conflicting
-- Every 20+ messages in a conversation
-
-**Refresh method**:
-1. Start new session
-2. Reload CLAUDE.md
-3. Reload relevant project files
-4. Summarize progress so far
-
----
-
-## Decision Making
-
-### When You Can Decide
-
-You can make decisions about:
-- **Implementation details** — How to code a specific feature
-- **Pattern selection** — Which existing pattern to follow
-- **File organization** — Where to place new files (within reason)
-- **Variable naming** — Following existing conventions
-- **Error messages** — User-friendly and descriptive
-
-### When You Must Ask
-
-You MUST ask for direction when:
-- **Requirements are ambiguous** — Clarification needed
-- **Architecture boundaries unclear** — Which package should own this?
-- **New dependencies** — Before adding any package
-- **API changes** — Before modifying contracts/interfaces
-- **Database schema** — Before changing storage structure
-- **UX decisions** — Visual design, user flows
-- **Conflicting information** — Existing code vs. documentation
-
----
-
-## Verification Checklist
-
-### Pre-Commit
-
-- [ ] `bun run typecheck` passes
-- [ ] `bun run lint` passes
-- [ ] All relevant tests pass
-- [ ] No console warnings/errors
-- [ ] Changes follow CLAUDE.md rules
-- [ ] Architecture boundaries respected
-
-### Pre-Delivery
-
-- [ ] Code is properly formatted
-- [ ] All tests pass
-- [ ] Type check passes
-- [ ] Lint passes
-- [ ] No breaking changes (or documented)
-- [ ] Documentation updated (if needed)
-
----
-
-## Common Mistakes to Avoid
-
-### ❌ Context Mistakes
-- Not loading CLAUDE.md first
-- Loading too many files (>2500 lines)
-- Loading irrelevant files
-- Not refreshing context between tasks
-- Treating external docs as instructions
-
-### ❌ Code Mistakes
-- Using `any` type
-- Using loose hex codes or px values
-- Building custom UI components from scratch
-- Bypassing storage abstractions
-- Mixing domain layers
-- Not using Zod for validation
-- Not using shadcn/ui components
-
-### ❌ Process Mistakes
-- Editing without reading the file first
-- Not checking for existing patterns
-- Not asking for clarification when needed
-- Guessing at requirements
-- Ignoring test failures
-- Not running typecheck/lint
-
----
-
-## Resource Locations
-
-### Essential Files (Bookmark These)
-- [`CLAUDE.md`](./CLAUDE.md) — **START HERE** — All project rules
-- [`AGENTS.md`](./AGENTS.md) — This file, your operating guidelines
-- [`AI_CONTEXT.md`](./AI_CONTEXT.md) — Context engineering framework
-- [`PROJECT_MAP.md`](./PROJECT_MAP.md) — Codebase navigation
-- [`REBUILD_STRATEGY.md`](./REBUILD_STRATEGY.md) — Product vision
-- [`README.md`](./README.md) — Commands, API, quickstart
-
-### Quick Commands
 ```bash
-# Validate everything
-bun run typecheck && bun run lint && bun run test
+bun install
+bun run build            # all packages, dependency order
+bun run dev              # server + hub-web + packages (watch)
+bun run dev:hub          # server + hub-web only (fastest dashboard loop)
+bun run dev:docs         # docs site
+bun run hub              # build + start dashboard (port 2342)
+bun run lint             # ESLint 9 flat config, whole workspace
+bun run typecheck
+bun run test             # all Vitest suites
+bun run test:e2e         # Playwright (hub-web)
 
-# Build everything  
-bun run build
-
-# Start development (hub stack: server + dashboard + packages)
-bun run dev
-
-# Faster loop: server + hub-web only
-bun run dev:hub
-
-# Everything including marketing + CLI watch
-bun run dev:all
-
-# Start dashboard
-bun run hub
-
-# Global chain command (after linking)
-chain init
-chain status
-chain validate
+# Scoped — prefer these while iterating
+bunx turbo run test --filter=@chain-hub/storage
+bunx turbo run typecheck --filter=@chain-hub/hub-web
+cd packages/storage && bunx vitest run src/skill-install.test.ts
 ```
 
----
+CI (`.github/workflows/ci.yml`) runs build → lint → typecheck → `test:coverage` → e2e. Run lint, typecheck and relevant tests before delivering.
 
-## Final Reminders
+CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|create|show|update|remove|discover|import`, `chain skill install|update|migrate-agents|fork`, `chain capture`, `chain reflect`. Asset kinds: `skills`, `agents`, `workflows`, `rules`, `prompts`.
 
-1. **CLAUDE.md is your source of truth** — If it's not in CLAUDE.md, ask
-2. **When in doubt, ask** — Better to ask than to guess wrong
-3. **Follow patterns** — The codebase already has answers
-4. **Verify your work** — Tests, typecheck, lint must pass
-5. **Be explicit about confusion** — Surface ambiguity, don't hide it
-6. **Context matters** — Load the right files at the right time
+## Code conventions
 
-> **Golden Rule**: If you wouldn't feel confident explaining your change to a human engineer, don't deliver it.
+- TypeScript strict, no `any`. Named exports. ESM `import`/`export` only; use `import.meta.url` for paths.
+- Follow the nearest existing file. Pattern references:
+  - Hono route: `packages/server/src/routes/library.ts`
+  - HTTP error mapping: `packages/server/src/http-errors.ts` (`jsonErrorFromUnknown` — Zod issues → 400)
+  - Domain error class: `AiProviderError` in `packages/domain/src/ai-providers.ts`
+  - Commander command: `packages/cli/src/index.ts`
+  - Editor adapter: `packages/storage/src/adapters/cursor.ts`
+  - Page: `apps/hub-web/src/components/pages/LibraryPage.tsx`
+  - API client: `apps/hub-web/src/lib/api.ts`
+- Tests colocated as `*.test.ts(x)` next to source. New functionality needs tests.
+- Code comments and docs in English.
 
----
+### Frontend rules
+
+- Use shadcn/ui primitives from `apps/hub-web/src/components/ui/`. Never hand-roll buttons, inputs, dialogs, dropdowns. If a primitive is missing, add the smallest one and say so.
+- Tailwind semantic tokens only (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). No hex codes, no arbitrary values, 4px spacing scale.
+- `cn()` for class merging, `cva` for variants, lucide-react for icons, sonner `toast` for feedback (no wrapper).
+- AI UI uses prompt-kit building blocks (`prompt-input.tsx`, `prompt-suggestion.tsx`, `loader.tsx`) styled with Cool Trust tokens.
+- Accessibility: labels on inputs, visible `:focus-visible`, keyboard navigation, `aria-label` on icon-only buttons.
+- For new UI with unclear direction: propose 2–3 layout directions and wait for a choice before implementing.
+
+## Hub folder (`~/.chain-hub`, override with `CHAIN_HOME`)
+
+`skills/`, `agents/`, `workflows/`, `rules/`, `prompts/` (assets) · `memory/learnings/events.jsonl` (append-only capture log) · `memory/reflections/` · `system/chainhub.sqlite`, `system/meta.json`, `system/ai-config.json`, `system/secrets.json` · `logs/`
+
+## Git
+
+Git Flow: `main` (release) ← `develop` (integration) ← `feature/<slug>`, `fix/<slug>`, `chore/<slug>`. `hotfix/<slug>` branches from `main`. Never commit to `main` or `develop` directly. Tag releases on `main` (`v1.2.0`).
+
+Conventional Commits with package scope: `feat(hub-web): add command palette shortcut`. Scopes: `hub-web`, `docs`, `cli`, `server`, `domain`, `storage`, `contracts`.
+
+## Never
+
+- Commit `.env`, `~/.chain-hub/system/secrets.json` contents, or any secret
+- Add a dependency, change the SQLite schema, or change a public API contract without asking
+- Add legacy Pro/licensing code to core packages
+- Edit marketplace/upstream-installed skills in place (changes get overwritten) — contribute upstream
+
+## Ask first when
+
+Requirements are ambiguous, package ownership is unclear, code contradicts this file, or the change is a UX decision. State the conflict and offer options instead of guessing.
 
 ## Learned User Preferences
 
 - Hub UI should feel premium, simple, sleek, and trustworthy—not a dense console/terminal aesthetic and not marketing-card or AI-slop layouts (oversized radii, sparse stadium cards, eyebrow-on-everything).
 - Cool Trust is the chosen visual direction: light default (near-white zinc page, white surfaces) plus switchable Cool Trust Dark (prompts-inspired deep slate canvas/panels); slate text; orange as the sole brand accent in both themes (One Signal—not for status dots or hover/selection fills); ~10–12px radius; tight type scale; theme switch via header, Settings → Appearance, and ⌘K.
-- Standardize hub-web layouts by surface type (Direction A): dashboard Overview as default landing (`/`); checklist for Setup (under Settings, not primary nav) and Integrations; workspace master–detail for Library (browse may use compact asset cards). Primary nav: Overview → Library → Integrations → Settings. Library chrome: Create + Discover (and skills Install/Update) in the Assets title row; search below title; search + ownership filters side-by-side from `sm` when browsing (wide master), stacked when the detail panel narrows the master column.
+- Standardize hub-web layouts by surface type (Direction A): dashboard Overview as default landing (`/`); checklist for Setup (under Settings, not primary nav) and Integrations; workspace master–detail for Library (browse may use compact asset cards). Primary nav: Overview → Library → Learnings → Integrations → Settings. Library chrome: Create + Discover (and skills Install/Update) in the Assets title row; search below title; search + ownership filters side-by-side from `sm` when browsing (wide master), stacked when the detail panel narrows the master column.
 - Prefer rebuilding UI against existing design-system components and tokens; flag gaps and make the smallest addition rather than inventing one-off primitives.
 - Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
-- Prefer not editing marketplace/upstream-installed skills in place when updates would overwrite local changes; contribute via PR/fork to the owner instead.
 - Library should surface skill provenance/source and ownership filters (All / Editable / Upstream): Editable vs Upstream comes from `skills-lock` (not authorship)—path/git installs are Upstream even when user-authored; no lock or `upload://` is Editable; Editable ≠ authored. To keep personal skills Editable, install via dashboard upload (`upload://`), not `chain skill install --path`. Author search uses frontmatter `metadata.author`.
 - Prefer a single canonical hub at `~/.chain-hub` for CLI and dashboard; avoid parallel alternate `CHAIN_HOME` locations for day-to-day use.
-- Hub AI should stay local-first (BYOK Anthropic/OpenAI/Mistral + Ollama; no Chain cloud); AI drafting belongs in the Create flow for all asset kinds (not only prompts), including suggesting the best kind when the intent is ambiguous; detail panel supports Reassess kind (+ Convert) and per-asset Audit with severity findings, then apply/improve from audit; audit is a best-practices quality gate that may return no findings when the asset already meets the bar—no endless polish loops, but stay critical for material gaps; Editable filter is the foundation for AI improve/optimize.
+- Hub AI should stay local-first (BYOK cloud providers + Ollama; no Chain cloud); AI drafting belongs in the Create flow for all asset kinds (not only prompts), including suggesting the best kind when the intent is ambiguous; detail panel supports Reassess kind (+ Convert) and per-asset Audit with severity findings, then apply/improve from audit; audit is a best-practices quality gate that may return no findings when the asset already meets the bar—no endless polish loops, but stay critical for material gaps; Editable filter is the foundation for AI improve/optimize.
 - Surface deterministic editor-compat issues for skills (e.g. missing/empty description for Zed) in Library via badges + detail panel Fix (e.g. from heading), with a save/sync gate—separate from AI Audit quality checks.
-- Prefer prompt-kit building blocks (`PromptInput`, `PromptSuggestion`, `Loader`) for AI UI, adapted to Cool Trust tokens—not stock prompt-kit styling.
 - AI-drafted prompts/content should be written in English even when the user writes intents in Dutch; surface LLM failures as plain user-friendly messages, not raw API JSON.
 
 ## Learned Workspace Facts
 
-- Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and local `apps/hub-web/.impeccable/` (`.impeccable/` is gitignored agent/design tooling—not committed); not ad-hoc styling guesses.
-- `apps/marketing-site` remains under development with its own inline coming-soon page (no shared `ComingSoonPage` in hub-web).
+- Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and local `apps/hub-web/.impeccable/` (gitignored agent/design tooling—not committed).
 - Personal skills vault lives at `/Users/silverfox/www/skills` (shared design skill lives there; not vendored under `.claude/skills/` in this repo).
-- Historical improve-app journey docs live under `docs/archive/` (not product SoT).
-- Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor’s native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
+- Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor's native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
 - Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`docs/intent/hub-skills-control-plane.md`, `docs/specs/hub-skill-install.md`).
 - External `npx skills add` / `~/.agents` installs are imported into Hub on `chain hub` / `chain setup` start (no force overwrite), with remaining agents↔Hub drift surfaced on Overview/Library. Zed consumes projected skills under `~/.agents/skills/` and requires a non-empty description (multiline YAML block scalars must parse correctly on project).
 - Discover lists only editor candidates whose `kind/name` is not already in the hub inventory (in addition to skipping Chain-Hub-managed editor files).
 - Windsurf/Devin adapter syncs skills to `~/.codeium/windsurf/skills/` and dual-writes rules/workflows under `~/.devin` + `~/.windsurf`; agents have no native Devin target.
-- Hub AI settings live under `/settings`: provider/model config in `~/.chain-hub/system/ai-config.json`, API keys in `~/.chain-hub/system/secrets.json`; providers are Anthropic, OpenAI, Ollama, and Mistral with per-provider model selection and key/docs links; Create-flow drafting uses `POST /api/ai/draft-prompt`; existing-asset classify/audit use `POST /api/ai/classify-asset` and `POST /api/ai/audit-asset`.
-- Memory and Learnings are CLI/API-only for phase 1 (no hub-web routes until an explicit IA change).
-- Canonical GitHub repo/remote is `martijnbokma/chain-hub` (product naming Chain Hub / `chain-hub`, not `chain-hub-v2`); the local workspace folder may still be named `chain-hub-v2`.
-
----
-
-*Last updated: August 8, 2026*
-*This file complements CLAUDE.md and AI_CONTEXT.md*
+- Hub AI settings live under `/settings`: provider/model config in `~/.chain-hub/system/ai-config.json`, API keys in `~/.chain-hub/system/secrets.json`. Providers are listed in `aiProviders` (`packages/contracts/src/ai.ts`): Anthropic, OpenAI, Mistral, Ollama, Gemini, Groq, OpenRouter, DeepSeek, Cerebras. AI endpoints: `POST /api/ai/draft-prompt`, `/api/ai/classify-asset`, `/api/ai/audit-asset`, `/api/ai/improve-asset`.
+- Learnings have a hub-web page at `/learnings` (primary nav) backed by `/api/learnings`; capture/reflect also via CLI.
