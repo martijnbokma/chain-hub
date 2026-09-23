@@ -167,11 +167,16 @@ async function seedLearningsRule(chainHome: string): Promise<void> {
     [
       "# Learning capture",
       "",
-      "After finishing work with a Chain Hub skill, log the outcome:",
+      "Log what a skill should learn, not what you shipped:",
       "",
-      '`chain capture --event <success|failure|correction|note> --skill <slug> --summary "<one line>"`',
+      '`chain capture --event <failure|correction|note|success> --skill <slug> --summary "<one line>"`',
       "",
-      "Use this when a skill clearly worked, clearly failed, needed a correction mid-task, or is worth a note for next time. Skip it for routine work with nothing notable to report."
+      "- `correction`: the skill's guidance was wrong or incomplete and you had to deviate. Say what the skill should say instead.",
+      "- `failure`: following the skill led to a broken or rejected result.",
+      "- `note`: a reusable gotcha the skill does not mention yet.",
+      "- `success`: only when the skill's specific guidance prevented a mistake you would otherwise have made.",
+      "",
+      "Write the summary about the skill, not the project (\"Skill misses SVG targets in click handlers\", not \"Shipped media actions\"). Skip routine work — most tasks need no capture."
     ].join("\n")
   );
 }

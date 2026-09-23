@@ -75,6 +75,26 @@ describe("initializeHub", () => {
     const afterDelete = await listAssets(hub, "skills");
     expect(afterDelete.some((asset) => asset.name === "welcome")).toBe(false);
   });
+
+  it("seeds a learnings rule that prioritises corrections over routine successes", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    const rule = await fs.readFile(path.join(hub, "rules", "chain-hub-learnings.md"), "utf8");
+    expect(rule).toContain("chain capture --event <failure|correction|note|success>");
+    expect(rule).toContain("Skip routine work");
+  });
+
+  it("keeps a user-edited learnings rule on re-init", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    const rulePath = path.join(hub, "rules", "chain-hub-learnings.md");
+    await fs.writeFile(rulePath, "# Custom rule", "utf8");
+
+    await initializeHub(hub);
+
+    expect(await fs.readFile(rulePath, "utf8")).toBe("# Custom rule");
+  });
 });
 
 describe("getLearningsTimeline", () => {
