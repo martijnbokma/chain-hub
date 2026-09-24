@@ -40,6 +40,11 @@ const aiProviders = [
   { icon: Cloud, name: 'Anthropic', description: 'Claude models via your own API key.' },
   { icon: Cloud, name: 'OpenAI', description: 'GPT models via your own API key.' },
   { icon: Cloud, name: 'Mistral', description: 'Mistral models via your own API key.' },
+  { icon: Cloud, name: 'Gemini', description: 'Gemini models via your own API key.' },
+  { icon: Cloud, name: 'Groq', description: 'Fast Llama and Mixtral inference.' },
+  { icon: Cloud, name: 'OpenRouter', description: 'Access any open or proprietary model.' },
+  { icon: Cloud, name: 'DeepSeek', description: 'DeepSeek models via your own API key.' },
+  { icon: Cloud, name: 'Cerebras', description: 'Ultra-fast inference speed.' },
 ];
 
 const surfaces = [
