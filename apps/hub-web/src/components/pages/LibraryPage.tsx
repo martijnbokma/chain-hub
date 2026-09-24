@@ -653,7 +653,7 @@ export function LibraryPage() {
 
   if (library.isLoading) {
     return (
-      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col overflow-hidden -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
+      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
         {listToolbar}
         <PageSkeleton className="min-h-0 flex-1" variant="workspace" />
       </div>
@@ -662,7 +662,7 @@ export function LibraryPage() {
 
   if (library.isError) {
     return (
-      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col overflow-hidden -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
+      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
         {listToolbar}
         <EmptyState description="The library index is temporarily unavailable." title="Unable to load library" />
       </div>
@@ -670,8 +670,8 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col overflow-hidden -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+    <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         {hasAgentsDrift && agentsDrift ? (
           <div className="min-w-0 shrink-0 pb-3">
             <Alert className="items-center" variant="warning">
@@ -702,15 +702,17 @@ export function LibraryPage() {
         ) : null}
         <div
           className={cn(
-            'grid min-h-0 min-w-0 flex-1 gap-4 overflow-hidden',
+            'grid min-h-0 min-w-0 flex-1 gap-4',
             selected ? 'xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]' : 'grid-cols-1'
           )}
         >
-          <div className={cn('flex min-h-0 min-w-0 flex-col overflow-hidden', selected && 'hidden xl:flex')}>
+          <div className={cn('flex min-h-0 min-w-0 flex-col', selected && 'hidden xl:flex')}>
             {listToolbar}
             <div
               className={cn(
-                'fade-scrollbar-safe-y min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto',
+                'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto',
+                // Extend into the shell's inline padding so the scrollbar sits on the pane edge.
+                !selected && '-mr-4 pr-4 sm:-mr-6 sm:pr-6',
                 !listAtTop && 'fade-top',
                 !listAtBottom && 'fade-bottom'
               )}

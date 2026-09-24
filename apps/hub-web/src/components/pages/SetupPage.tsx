@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { setupApi, integrationsApi, validateApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -108,7 +107,6 @@ export function SetupPage() {
   return (
     <section className="mx-auto grid w-full max-w-3xl gap-8">
       <header className="grid gap-3">
-        <Eyebrow>Setup</Eyebrow>
         <div className="grid gap-2">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
             Get your hub ready

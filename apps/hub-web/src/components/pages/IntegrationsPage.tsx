@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { integrationsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -56,7 +55,6 @@ export function IntegrationsPage() {
     <section className="mx-auto grid w-full max-w-3xl gap-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="grid gap-2">
-          <Eyebrow>Integrations</Eyebrow>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl font-semibold tracking-tight text-foreground">Linked editors</h2>
             <Badge variant="default">

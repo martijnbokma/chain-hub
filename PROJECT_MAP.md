@@ -31,7 +31,7 @@ Where things live, by feature area. Load only the section you need. Rules and co
 - `components/pages/` — `OverviewPage`, `LibraryPage`, `LearningsPage`, `IntegrationsPage`, `SettingsPage`, `SetupPage`
 - `components/pages/library/` — master–detail: `AssetList`, `AssetCard`, `AssetDetailPanel`, `LibraryToolbar`, dialogs (`CreateAssetDialog`, `DiscoverDialog`, `InstallSkillDialog`, `RemoveAssetDialog`, `AiEditPreviewDialog`, `SkillFilePreviewDialog`), flows (`use-library-create-flow.ts`, `use-library-install-flow.ts`), `asset-helpers.ts`
 - `components/layout/` — `Shell.tsx` (sidebar nav), `ShellToolbar.tsx`, `useCommandPalette.ts` (⌘K)
-- `components/common/` — `EmptyState`, `Eyebrow`, `MarkdownSourceEditor`, `PageSkeleton`, `SheetMarks`, `ThemeToggle`
+- `components/common/` — `EmptyState`, `MarkdownSourceEditor`, `PageSkeleton`, `SheetMarks`, `ThemeToggle`
 - `components/ui/` — shadcn primitives (alert, badge, button, card, collapsible, command, dialog, dropdown-menu, input, select, separator, sheet, sidebar, skeleton, tabs, textarea, tooltip) + prompt-kit (`prompt-input`, `prompt-suggestion`, `loader`)
 - `lib/` — `api.ts` (typed fetch helpers for TanStack Query), `ai-models.ts`, `skill-ownership.ts`, `theme.ts`, `constants.ts`, `utils.ts` (`cn`)
 - `hooks/` — `use-theme.ts`, `use-mobile.ts`

@@ -8,7 +8,6 @@ import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { libraryApi, overviewApi } from '@/lib/api';
 import { ASSET_KIND_LABELS, ASSET_KINDS } from '@/lib/constants';
@@ -66,7 +65,6 @@ export function OverviewPage() {
   return (
     <section className="mx-auto grid w-full max-w-5xl gap-8">
       <header className="grid gap-2">
-        <Eyebrow>Overview</Eyebrow>
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">Hub status</h2>
           <Badge variant={isHealthy ? 'success' : 'warning'}>

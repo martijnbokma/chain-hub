@@ -9,7 +9,6 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
@@ -277,7 +276,6 @@ export function SettingsPage() {
   return (
     <section className="mx-auto grid w-full max-w-3xl gap-8">
       <header className="grid gap-2">
-        <Eyebrow>Settings</Eyebrow>
         <h2 className="text-xl font-semibold tracking-tight text-foreground">Settings</h2>
         <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
           Appearance, hub setup, and local AI providers for drafting Library assets.

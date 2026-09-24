@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Eyebrow } from '@/components/common/Eyebrow';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { learningsApi, libraryApi } from '@/lib/api';
 import { librarySkillLink, selectSkillsNeedingAttention, type SkillNeedingAttention } from '@/lib/learnings';
@@ -175,7 +174,6 @@ export function LearningsPage() {
   return (
     <section className="mx-auto grid w-full max-w-5xl gap-8">
       <header className="grid gap-2">
-        <Eyebrow>Learnings</Eyebrow>
         <h2 className="text-xl font-semibold tracking-tight text-foreground">Skill reflections</h2>
         <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
           Per-skill trend from captured events. Events populate automatically once the seeded{' '}
