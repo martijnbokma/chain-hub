@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { Command, CommanderError } from "commander";
 
 import {
@@ -387,8 +387,20 @@ export async function runCli(argv: string[] = process.argv): Promise<Command> {
   return program;
 }
 
-const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
-const isDirectRun = entryPath.length > 0 && import.meta.url === pathToFileURL(entryPath).href;
+/** npm installs `chain` as a symlink to dist/index.js, so compare real paths. */
+function resolveEntryPath(argvPath: string | undefined): string {
+  if (!argvPath) {
+    return "";
+  }
+  try {
+    return fs.realpathSync(argvPath);
+  } catch {
+    return path.resolve(argvPath);
+  }
+}
+
+const entryPath = resolveEntryPath(process.argv[1]);
+const isDirectRun = entryPath.length > 0 && fs.realpathSync(fileURLToPath(import.meta.url)) === entryPath;
 
 /** Turns thrown errors into one readable line instead of a stack trace. */
 export function formatCliError(error: unknown): string {
