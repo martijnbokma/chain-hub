@@ -103,6 +103,11 @@ export function assetFilePath(chainHome: string, kind: AssetKind, name: string):
   return target;
 }
 
+/** API paths use forward slashes on every OS (Windows `path.relative` returns backslashes). */
+function toPosixRelative(from: string, to: string): string {
+  return path.relative(from, to).split(path.sep).join("/");
+}
+
 function toAssetId(kind: AssetKind, name: string): string {
   return `${kind}:${name}`;
 }
@@ -210,7 +215,7 @@ export async function scanAssets(chainHome: string): Promise<AssetRecord[]> {
           id: toAssetId(currentKind, entry.name),
           name: entry.name,
           kind: currentKind,
-          relativePath: path.relative(chainHome, filePath),
+          relativePath: toPosixRelative(chainHome, filePath),
           updatedAt: stats.mtime.toISOString()
         });
 
@@ -226,7 +231,7 @@ export async function scanAssets(chainHome: string): Promise<AssetRecord[]> {
           id: toAssetId(currentKind, name),
           name,
           kind: currentKind,
-          relativePath: path.relative(chainHome, filePath),
+          relativePath: toPosixRelative(chainHome, filePath),
           updatedAt: stats.mtime.toISOString()
         });
       }
@@ -336,7 +341,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
     id: toAssetId(kind, name),
     name,
     kind,
-    relativePath: path.relative(chainHome, filePath),
+    relativePath: toPosixRelative(chainHome, filePath),
     updatedAt: stats.mtime.toISOString(),
     content,
     author: extractAssetAuthor(content),
