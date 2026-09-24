@@ -18,9 +18,9 @@ Canonical repo: `martijnbokma/chain-hub` (local folder may be named `chain-hub-v
 
 ## Stack
 
-- **Workspace**: Bun 1.3 workspaces + Turborepo, Node ≥ 22.13 (`node:sqlite` unflagged), ESM only
+- **Workspace**: Bun 1.3 workspaces + Turborepo, Node ≥ 22.13, ESM only
 - **TypeScript**: 5.x in `packages/*`, 6.x in `apps/*` — check the package's tsconfig
-- **Backend**: Commander 12 (CLI), Hono 4 + `@hono/node-server` (server), tsup (build), Zod (validation), SQLite via `node:sqlite` with raw SQL (no ORM)
+- **Backend**: Commander 12 (CLI), Hono 4 + `@hono/node-server` (server), tsup (build), Zod (validation), `yaml` (frontmatter). No database: the hub folder on disk is the only store
 - **Frontend**: React 19, React Router 7, TanStack Query 5, Tailwind CSS 4 (`@theme` tokens, no `tailwind.config.js`), shadcn/ui, cva, clsx + tailwind-merge, cmdk, lucide-react, sonner, Vite 8
 - **Tests**: Vitest everywhere, Testing Library in hub-web, Playwright e2e in `apps/hub-web/e2e/`
 
@@ -33,14 +33,14 @@ apps/hub-web/          React dashboard — consumes contracts + HTTP API only
 apps/docs/             Documentation site (Vite + MDX)
 apps/marketing-site/   Marketing site (under development, inline coming-soon page)
 packages/contracts/    @chain-hub/contracts — Zod schemas + types, no deps
-packages/storage/      @chain-hub/storage — SQLite + filesystem + editor adapters
+packages/storage/      @chain-hub/storage — hub folder I/O + editor adapters
 packages/domain/       @chain-hub/domain — use-cases, wraps storage, AI providers
 packages/server/       @chain-hub/server — Hono routes mapping domain to HTTP
 packages/cli/          chain-hub (npm name) — `chain` binary, Commander
 ```
 
 - Dependency direction: `contracts ← storage ← domain ← server/cli`. hub-web never imports domain or storage.
-- Only `packages/storage` touches SQLite (`src/core.ts`). Never bypass it.
+- Only `packages/storage` reads or writes the hub folder (`src/core.ts`, `src/skill-install.ts`). Never bypass it.
 - Changing an API: update the Zod schema in `packages/contracts/src/` first.
 - Schema naming is camelCase with `Schema` suffix: `captureEventSchema`, `overviewSchema`, `aiProviderSchema`, `integrationSchema`. Types are inferred from them.
 
@@ -93,7 +93,7 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 
 ## Hub folder (`~/.chain-hub`, override with `CHAIN_HOME`)
 
-`skills/`, `agents/`, `workflows/`, `rules/`, `prompts/` (assets) · `memory/learnings/events.jsonl` (append-only capture log) · `memory/reflections/` · `system/chainhub.sqlite`, `system/meta.json`, `system/ai-config.json`, `system/secrets.json` · `logs/`
+`skills/`, `agents/`, `workflows/`, `rules/`, `prompts/` (assets) · `memory/learnings/events.jsonl` (append-only capture log) · `memory/reflections/` · `system/meta.json`, `system/skills-lock.json`, `system/ai-config.json`, `system/secrets.json` (mode 0600) · `backups/<date>/` (hand-written editor files replaced by sync/import) · `logs/`
 
 ## Git
 
@@ -107,7 +107,7 @@ Conventional Commits with package scope: `feat(hub-web): add command palette sho
 ## Never
 
 - Commit `.env`, `~/.chain-hub/system/secrets.json` contents, or any secret
-- Add a dependency, change the SQLite schema, or change a public API contract without asking
+- Add a dependency, add a database or index store, or change a public API contract without asking
 - Add legacy Pro/licensing code to core packages
 - Edit marketplace/upstream-installed skills in place (changes get overwritten) — contribute upstream
 

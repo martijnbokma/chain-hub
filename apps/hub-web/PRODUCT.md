@@ -27,7 +27,7 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 ## Operating Context
 
 - Runs entirely on the user's own machine: a local Hono API server (default port 2342) plus this Vite/React dashboard, started via the `chain hub` CLI command or `bun run dev` / `bun run dev:hub`.
-- The hub folder (default `~/.chain-hub`, overridable via `CHAIN_HOME`) is the on-disk source of truth: SQLite metadata index + Markdown/YAML asset files.
+- The hub folder (default `~/.chain-hub`, overridable via `CHAIN_HOME`) is the on-disk source of truth: Markdown/YAML asset files, read directly (no database).
 - Linked editors today: Claude Code, Cursor, Windsurf (rebranded Devin Desktop), and Zed — each with different native storage conventions the dashboard's Integrations page surfaces per-editor (supported vs. unsupported asset kinds, connection status).
 - Part of a Bun + Turborepo monorepo (`packages/{cli,server,domain,storage,contracts}` + `apps/hub-web`); the dashboard only talks to the local `/api/*` HTTP surface, never directly to storage.
 - A user may already have an existing, separate Chain Hub installation (the current published product) with a large real asset library (skills, agents, workflows, rules) that predates this rebuild and uses a different on-disk format — the Discover/Import flow is one deliberate bridge between the two, not an automatic migration.

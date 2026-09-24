@@ -6,7 +6,7 @@ A local-first AI workspace control plane — one hub folder, one CLI, one dashbo
 
 - **Local first** — everything lives on disk at `~/.chain-hub`. No cloud, no sync service required.
 - **Editor-agnostic** — mount the hub into Cursor, Claude Code, Windsurf, Zed, or any editor that reads from a folder.
-- **Single source of truth** — one folder, one SQLite index, no duplicated config files.
+- **Single source of truth** — one folder, no database, no duplicated config files.
 - **Calm by default** — a minimal surface that grows with deliberate steps.
 
 ## Workspace layout
@@ -18,7 +18,7 @@ packages/
   cli/            chain binary (Commander, Node 22)
   server/         Hono localhost API
   domain/         use-cases and business logic
-  storage/        filesystem + SQLite-backed local storage
+  storage/        hub folder I/O + editor adapters
   contracts/      shared Zod schemas and TypeScript types
 ```
 
@@ -35,8 +35,9 @@ packages/
       events.jsonl  append-only capture log
     reflections/    written reflection snapshots (chain reflect --write)
   system/
-    chainhub.sqlite SQLite metadata index
     meta.json       initialization metadata
+    skills-lock.json  where installed skills came from
+  backups/          hand-written editor files replaced by sync or import
   logs/
 ```
 
@@ -206,7 +207,7 @@ node packages/cli/dist/index.js --chain-home ./.sandbox-hub hub --port 3456 --no
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node 22.13.0+ (ESM, native SQLite via `node:sqlite`) |
+| Runtime | Node 22.13.0+ (ESM) |
 | CLI | Commander |
 | API server | Hono + `@hono/node-server` |
 | Frontend | React 19, React Router 7, TanStack Query v5 |

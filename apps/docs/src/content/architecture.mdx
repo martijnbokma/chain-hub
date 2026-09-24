@@ -19,7 +19,7 @@ chain-hub/
 │   ├── cli/               # chain binary entrypoint (Commander)
 │   ├── server/             # Hono localhost API server
 │   ├── domain/             # Business logic and use-cases
-│   ├── storage/            # SQLite + filesystem adapters
+│   ├── storage/            # hub folder I/O + editor adapters
 │   └── contracts/          # Shared Zod schemas and TypeScript types
 └── docs/                   # Specs, intent, research, archived journey docs (repo root, not the docs app)
 ```
@@ -33,13 +33,13 @@ either in isolation.
 ## Domain boundaries
 
 - **domain** — Asset lifecycle, validation rules, editor sync logic, learning workflows, AI provider calls (see [AI Providers](/ai-providers))
-- **storage** — SQLite metadata, YAML/Markdown file I/O, filesystem operations
+- **storage** — YAML/Markdown file I/O and filesystem operations on the hub folder
 - **server** — Maps domain use-cases to HTTP routes (Hono)
 - **cli** — Maps domain use-cases to terminal commands (Commander)
 - **hub-web** — Consumes contracts and API endpoints only (no direct domain/storage access)
 
 Each package stays on its side of this boundary: the dashboard never touches
-SQLite directly, and the CLI never bypasses the storage package. Both `cli`
+the hub folder directly, and the CLI never bypasses the storage package. Both `cli`
 and `hub-web` ultimately call the same `domain` functions — `chain asset
 create` and the dashboard's "Create asset" button run identical code paths,
 just reached from different entrypoints. That's why the CLI and dashboard
@@ -49,11 +49,11 @@ never drift into different behavior for the same operation.
 
 **Workspace** — Bun 1.3.11 workspaces, Turborepo for task orchestration,
 TypeScript (5.5.4+ for packages, 6.0.3+ for the Vite apps), Node 22.13.0+ with
-ESM modules throughout (`node:sqlite` requires 22.13.0+ to run unflagged).
+ESM modules throughout.
 
 **Backend** — Commander for the CLI, Hono for the local HTTP server, Zod for
-validation shared across every package, SQLite via `node:sqlite` with raw SQL
-(no ORM).
+validation shared across every package, `yaml` for frontmatter. There is no
+database: the hub folder on disk is the only store.
 
 **Frontend (hub-web)** — React 19 + React Router 7, TanStack Query, Tailwind
 CSS v4 with shadcn/ui primitives, cmdk for the command palette, lucide-react

@@ -22,10 +22,11 @@ environment variable.
 │   │   └── events.jsonl # Append-only capture log
 │   └── reflections/     # Written reflection snapshots
 ├── system/              # Metadata, index, and local AI settings
-│   ├── chainhub.sqlite  # SQLite metadata index
+│   ├── skills-lock.json # Where installed skills came from
 │   ├── meta.json        # Initialization metadata
 │   ├── ai-config.json   # Active AI provider + model per provider (no secrets)
 │   └── secrets.json     # AI provider API keys, file mode 0600 — only if you've configured one
+├── backups/             # Hand-written editor files replaced by sync or import
 └── logs/                # Application logs
 ```
 
@@ -55,12 +56,19 @@ one JSON line per event (`success`, `failure`, `correction`, `note`).
 `chain reflect --write`. A seeded `rules/chain-hub-learnings.md` asset
 prompts connected editors to call `chain capture` as they work.
 
+## Backups
+
+When sync or import has to replace a hand-written file in an editor folder
+(one without Chain Hub's marker), the original is copied first to
+`backups/<date>/<path relative to your home folder>`, for example
+`backups/2026-09-24/.claude/agents/reviewer.md`.
+
 ## System metadata
 
-- **`system/chainhub.sqlite`** — the SQLite index the dashboard and CLI
-  query for fast asset lookups. It's a derived cache, not a second source of
-  truth: delete it and it's rebuilt from the Markdown files on disk the next
-  time the hub reads the library.
+- **`system/skills-lock.json`** — where each installed skill came from (git
+  repo, local path or upload). Skills with a git or path source are
+  upstream-owned: `chain skill update` refreshes them, so fork one before
+  editing it.
 - **`system/meta.json`** — records initialization metadata, such as when
   `chain init` first ran (used to decide whether to seed the welcome skill
   again).

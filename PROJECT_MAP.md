@@ -7,7 +7,7 @@ Where things live, by feature area. Load only the section you need. Rules and co
 | Package | Entry | Key files |
 |---|---|---|
 | `@chain-hub/contracts` | `packages/contracts/src/index.ts` | `asset.ts` (asset kinds, skill name/path policy), `hub.ts` (overview, integrations, drift), `learning.ts`, `setup.ts`, `ai.ts` (providers, draft/classify/audit/improve), `frontmatter.ts` |
-| `@chain-hub/storage` | `packages/storage/src/index.ts` | `core.ts` (hub init, SQLite index, asset CRUD), `assets.ts` + `skill-install.ts` (install/update/fork, skills lock), `integrations.ts` (editor sync, discover/import), `learnings.ts`, `hub.ts` (overview, setup guide), `ai-settings.ts`, `adapters/` (per-editor) |
+| `@chain-hub/storage` | `packages/storage/src/index.ts` | `core.ts` (hub init, asset scan, asset CRUD), `assets.ts` + `skill-install.ts` (install/update/fork, skills lock), `integrations.ts` (editor sync, discover/import), `learnings.ts`, `hub.ts` (overview, setup guide), `ai-settings.ts`, `adapters/` (per-editor) |
 | `@chain-hub/domain` | `packages/domain/src/index.ts` | `index.ts` (use-cases wrapping storage), `skills.ts`, `ai-providers.ts` (provider calls, `AiProviderError`) |
 | `@chain-hub/server` | `packages/server/src/index.ts` | `routes/*.ts` (route registrars), `http-errors.ts`, `dev-server.ts`, `dev-port.ts` |
 | `chain-hub` (CLI) | `packages/cli/src/index.ts` | All Commander commands in `index.ts`; `reflect-format.ts` |
