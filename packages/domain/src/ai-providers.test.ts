@@ -561,3 +561,59 @@ describe("generateAssetDraft", () => {
     expect(result.content).toMatch(/when auditing/i);
   });
 });
+
+describe("truncation guards", () => {
+  const anthropicSecrets: AiSecrets = { version: 1, anthropicApiKey: "sk-ant-test" };
+  const finding = { severity: "medium" as const, title: "Tighten", detail: "Make steps concrete." };
+
+  it("refuses to improve an asset longer than the model input limit", async () => {
+    globalThis.fetch = vi.fn() as typeof fetch;
+
+    await expect(
+      improveExistingAsset({
+        config: config("anthropic"),
+        secrets: anthropicSecrets,
+        kind: "skills",
+        name: "long",
+        content: "x".repeat(12_001),
+        findings: [finding]
+      })
+    ).rejects.toMatchObject({ name: "AiProviderError", status: 400, message: expect.stringMatching(/12,001 characters/) });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("says when an audit only saw the start of the asset", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({ content: [{ type: "text", text: '{"summary":"Looks fine","findings":[]}' }], stop_reason: "end_turn" })
+    ) as typeof fetch;
+
+    const result = await auditExistingAsset({
+      config: config("anthropic"),
+      secrets: anthropicSecrets,
+      kind: "rules",
+      name: "long",
+      content: "x".repeat(15_000)
+    });
+
+    expect(result.summary).toBe("Audited the first 12,000 of 15,000 characters. Looks fine");
+  });
+
+  it.each([
+    ["anthropic", { content: [{ type: "text", text: "partial" }], stop_reason: "max_tokens" }],
+    ["openai", { choices: [{ message: { content: "partial" }, finish_reason: "length" }] }],
+    ["ollama", { message: { content: "partial" }, done_reason: "length" }]
+  ] as const)("treats a %s response cut off at the token limit as an error", async (provider, body) => {
+    globalThis.fetch = vi.fn(async () => Response.json(body)) as typeof fetch;
+
+    await expect(
+      improveExistingAsset({
+        config: config(provider),
+        secrets: { version: 1, anthropicApiKey: "sk-ant-test", openaiApiKey: "sk-test" },
+        kind: "rules",
+        name: "short",
+        content: "# Rule",
+        findings: [finding]
+      })
+    ).rejects.toMatchObject({ name: "AiProviderError", status: 502, message: expect.stringMatching(/cut off/) });
+  });
+});

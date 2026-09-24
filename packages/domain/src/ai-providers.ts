@@ -409,6 +409,12 @@ function suggestNameFromIntent(intent: string): string {
 }
 
 const AI_REQUEST_TIMEOUT_MS = 60_000;
+/** Longest asset sent to a model. Classification only needs the start; audits say when they saw less. */
+const MAX_ASSET_CHARS = 12_000;
+/** Room for a full rewrite of a MAX_ASSET_CHARS asset without being cut off. */
+const ANTHROPIC_MAX_TOKENS = 16_000;
+const CUT_OFF_MESSAGE =
+  "The AI response was cut off before it finished. Try a shorter asset or a model with a larger output limit.";
 // Local models on CPU can take minutes to rewrite a whole asset.
 const OLLAMA_REQUEST_TIMEOUT_MS = 300_000;
 
@@ -430,7 +436,7 @@ async function callAnthropic(params: {
       },
       body: JSON.stringify({
         model: params.model,
-        max_tokens: 4096,
+        max_tokens: ANTHROPIC_MAX_TOKENS,
         system: params.system,
         messages: [{ role: "user", content: params.userMessage }]
       })
@@ -449,7 +455,14 @@ async function callAnthropic(params: {
 
   const data = (await response.json()) as {
     content?: Array<{ type?: string; text?: string }>;
+    stop_reason?: string;
   };
+  if (data.stop_reason === "max_tokens") {
+    throw new AiProviderError(CUT_OFF_MESSAGE, 502);
+  }
+  if (data.stop_reason === "refusal") {
+    throw new AiProviderError("Anthropic declined this request. Rephrase it or try another model.", 400);
+  }
   const text = data.content?.find((block) => block.type === "text")?.text?.trim();
   if (!text) {
     throw new AiProviderError("Anthropic returned an empty response", 502);
@@ -503,8 +516,11 @@ async function callOpenAiCompatible(params: {
   }
 
   const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
+    choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
   };
+  if (data.choices?.[0]?.finish_reason === "length") {
+    throw new AiProviderError(CUT_OFF_MESSAGE, 502);
+  }
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) {
     throw new AiProviderError(`${params.providerLabel} returned an empty response`, 502);
@@ -551,7 +567,11 @@ async function callOllama(params: {
 
   const data = (await response.json()) as {
     message?: { content?: string };
+    done_reason?: string;
   };
+  if (data.done_reason === "length") {
+    throw new AiProviderError(CUT_OFF_MESSAGE, 502);
+  }
   const text = data.message?.content?.trim();
   if (!text) {
     throw new AiProviderError("Ollama returned an empty response", 502);
@@ -756,7 +776,7 @@ export async function classifyExistingAsset(params: {
   content: string;
 }): Promise<ClassifyAssetResult> {
   const { config, secrets, currentKind, name, content } = params;
-  const truncated = content.trim().slice(0, 12_000);
+  const truncated = content.trim().slice(0, MAX_ASSET_CHARS);
   const classificationRaw = await completeChat({
     config,
     secrets,
@@ -827,7 +847,8 @@ export async function auditExistingAsset(params: {
   learnings?: CaptureEvent[];
 }): Promise<AuditAssetResult> {
   const { config, secrets, kind, name, content, learnings = [] } = params;
-  const truncated = content.trim().slice(0, 12_000);
+  const fullLength = content.trim().length;
+  const truncated = content.trim().slice(0, MAX_ASSET_CHARS);
   const hasLearnings = learnings.length > 0;
   const fieldReports = learnings.map(
     (event, index) => `${index + 1}. [${event.type}, ${event.capturedAt.slice(0, 10)}] ${event.summary}`
@@ -845,7 +866,12 @@ export async function auditExistingAsset(params: {
       truncated
     ].join("\n")
   });
-  return parseAudit(auditRaw, { allowLearningSource: hasLearnings });
+  const result = parseAudit(auditRaw, { allowLearningSource: hasLearnings });
+  if (fullLength > MAX_ASSET_CHARS) {
+    // Never present a partial audit as a complete one.
+    result.summary = `Audited the first ${MAX_ASSET_CHARS.toLocaleString("en-US")} of ${fullLength.toLocaleString("en-US")} characters. ${result.summary}`;
+  }
+  return result;
 }
 
 export async function improveExistingAsset(params: {
@@ -858,7 +884,14 @@ export async function improveExistingAsset(params: {
   findings: AuditAssetFinding[];
 }): Promise<ImproveAssetResult> {
   const { config, secrets, kind, name, content, summary, findings } = params;
-  const truncated = content.trim().slice(0, 12_000);
+  const trimmed = content.trim();
+  if (trimmed.length > MAX_ASSET_CHARS) {
+    // A rewrite of a truncated asset would silently drop everything past the limit.
+    throw new AiProviderError(
+      `This asset is ${trimmed.length.toLocaleString("en-US")} characters; AI Improve handles up to ${MAX_ASSET_CHARS.toLocaleString("en-US")}. Split it into smaller assets or apply the findings by hand.`,
+      400
+    );
+  }
   const findingsBlock = findings
     .map((finding, index) => {
       const origin = finding.source === "learning" ? " (from a field report)" : "";
@@ -877,7 +910,7 @@ export async function improveExistingAsset(params: {
       "Findings to apply:",
       findingsBlock,
       "Current content:",
-      truncated
+      trimmed
     ]
       .filter((line): line is string => Boolean(line))
       .join("\n")
