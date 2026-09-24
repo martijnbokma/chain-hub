@@ -17,8 +17,9 @@ export const learningsTimelineQuerySchema = z.object({
 
 export const captureInputSchema = z.object({
   type: captureEventTypeSchema,
-  skill: z.string().min(1),
-  summary: z.string().min(1)
+  skill: z.string().trim().min(1).max(120),
+  // Summaries are one line and end up in AI audit prompts; keep them short.
+  summary: z.string().trim().min(1).max(1000)
 });
 
 export const learningsTimelineSchema = z.object({

@@ -455,3 +455,45 @@ describe("Error responses", () => {
     expect((await send(app, "/api/library/skills/welcome/files/missing.md")).status).toBe(404);
   });
 });
+
+describe("Request limits and unknown routes", () => {
+  it("rejects bodies over the limit with a readable 413", async () => {
+    const app = createServer({ chainHome: await makeTmpHub() });
+    const body = JSON.stringify({ files: [{ path: "SKILL.md", contentBase64: "a".repeat(26 * 1024 * 1024) }] });
+    const res = await app.request("/api/library/skills/install-bundle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": String(body.length) },
+      body
+    });
+    expect(res.status).toBe(413);
+    expect(((await res.json()) as { error: string }).error).toMatch(/max 25 MB/);
+  });
+
+  it("answers unknown API routes with JSON 404, even when the dashboard is served", async () => {
+    const staticRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-static-"));
+    await fs.writeFile(path.join(staticRoot, "index.html"), "<!doctype html><div id=\"root\"></div>", "utf8");
+    const app = createServer({ chainHome: await makeTmpHub(), staticRoot });
+
+    const get = await app.request("/api/does-not-exist");
+    expect(get.status).toBe(404);
+    expect(await get.json()).toEqual({ error: "Unknown API route" });
+
+    const post = await app.request("/api/does-not-exist", { method: "POST" });
+    expect(post.status).toBe(404);
+    expect(await post.json()).toEqual({ error: "Unknown API route" });
+
+    const page = await app.request("/library");
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain('id="root"');
+  });
+
+  it("rejects overly long learning summaries", async () => {
+    const app = createServer({ chainHome: await makeTmpHub() });
+    const res = await app.request("/api/learnings/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "note", skill: "pdf", summary: "x".repeat(1001) })
+    });
+    expect(res.status).toBe(400);
+  });
+});

@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
 
 import { handleError } from "./http-errors.js";
@@ -25,6 +26,9 @@ type StartServerOptions = {
 
 export const DEFAULT_HOSTNAME = "127.0.0.1";
 
+/** Largest request body the API accepts; skill folder uploads are the biggest legitimate payload. */
+export const MAX_BODY_BYTES = 25 * 1024 * 1024;
+
 export function createServer(options: StartServerOptions = {}) {
   const app = new Hono();
   const routeOptions = { chainHome: options.chainHome };
@@ -38,12 +42,26 @@ export function createServer(options: StartServerOptions = {}) {
     })
   );
   app.use("*", requestGuard(options.requestGuard));
+  app.use(
+    "/api/*",
+    bodyLimit({
+      maxSize: MAX_BODY_BYTES,
+      onError: (context) =>
+        context.json(
+          { error: "Request is too large (max 25 MB). Leave out build output such as node_modules and try again." },
+          413
+        )
+    })
+  );
   app.onError(handleError);
 
   registerHubRoutes(app, routeOptions);
   registerLibraryRoutes(app, routeOptions);
   registerLearningsRoutes(app, routeOptions);
   registerAiRoutes(app, routeOptions);
+
+  // Before the SPA fallback, so API clients get JSON instead of the dashboard page.
+  app.all("/api/*", (context) => context.json({ error: "Unknown API route" }, 404));
 
   if (options.staticRoot) {
     app.use("*", serveStatic({ root: options.staticRoot }));

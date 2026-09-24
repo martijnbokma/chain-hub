@@ -128,14 +128,14 @@ export const installSkillResultSchema = z.object({
 });
 
 export const installSkillBundleFileSchema = z.object({
-  path: z.string().min(1),
+  path: z.string().min(1).max(512),
   contentBase64: z.string()
 });
 
 export const installSkillBundleInputSchema = z.object({
   name: z.string().min(1).optional(),
   force: z.boolean().optional(),
-  files: z.array(installSkillBundleFileSchema).min(1)
+  files: z.array(installSkillBundleFileSchema).min(1).max(500, "A skill folder can have at most 500 files")
 });
 
 export const updateSkillsInputSchema = z.object({
