@@ -9,8 +9,8 @@ interface ChainHubLogoProps {
 /**
  * Chain Hub Official Brand Logo
  * 
- * Design: Two parallel unlinked 45° stadium capsules ascending from bottom-left to top-right,
- * rendered in radiant amber (#ea580c -> #fb923c -> #ffd29d) with ambient diffusion glow.
+ * Design: Two parallel unlinked 45° stadium capsules ascending from bottom-right to top-left,
+ * rendered in solid amber (#f97316) with ambient diffusion glow.
  */
 export function ChainHubLogo({
   className = "h-8 w-auto",
@@ -27,19 +27,14 @@ export function ChainHubLogo({
         style={size ? { width: size, height: size } : undefined}
       >
         <defs>
-          <linearGradient id="ch-icon-amber" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ea580c" />
-            <stop offset="50%" stopColor="#fb923c" />
-            <stop offset="100%" stopColor="#ffd29d" />
-          </linearGradient>
           <filter id="ch-icon-glow" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#f97316" floodOpacity="0.4" />
           </filter>
         </defs>
 
         <g filter="url(#ch-icon-glow)">
-          {/* Lower Left Stadium Link */}
-          <g transform="translate(22, 38) rotate(-45)">
+          {/* Lower Right Stadium Link */}
+          <g transform="translate(38, 38) rotate(45)">
             <rect
               x="-6"
               y="-16"
@@ -47,12 +42,12 @@ export function ChainHubLogo({
               height="32"
               rx="6"
               fill="none"
-              stroke="url(#ch-icon-amber)"
+              stroke="#f97316"
               strokeWidth="4.5"
             />
           </g>
-          {/* Upper Right Stadium Link */}
-          <g transform="translate(38, 22) rotate(-45)">
+          {/* Upper Left Stadium Link */}
+          <g transform="translate(22, 22) rotate(45)">
             <rect
               x="-6"
               y="-16"
@@ -60,7 +55,7 @@ export function ChainHubLogo({
               height="32"
               rx="6"
               fill="none"
-              stroke="url(#ch-icon-amber)"
+              stroke="#f97316"
               strokeWidth="4.5"
             />
           </g>
@@ -78,11 +73,6 @@ export function ChainHubLogo({
       style={size ? { height: size, width: 'auto' } : undefined}
     >
       <defs>
-        <linearGradient id="ch-logo-amber" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ea580c" />
-          <stop offset="50%" stopColor="#fb923c" />
-          <stop offset="100%" stopColor="#ffd29d" />
-        </linearGradient>
         <filter id="ch-logo-glow" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#f97316" floodOpacity="0.4" />
         </filter>
@@ -90,7 +80,7 @@ export function ChainHubLogo({
 
       {/* Emblem: Two parallel unlinked 45° stadium capsules */}
       <g transform="translate(0, -5)" filter="url(#ch-logo-glow)">
-        <g transform="translate(18, 38) rotate(-45)">
+        <g transform="translate(32, 38) rotate(45)">
           <rect
             x="-5.5"
             y="-14"
@@ -98,11 +88,11 @@ export function ChainHubLogo({
             height="28"
             rx="5.5"
             fill="none"
-            stroke="url(#ch-logo-amber)"
+            stroke="#f97316"
             strokeWidth="4"
           />
         </g>
-        <g transform="translate(32, 24) rotate(-45)">
+        <g transform="translate(18, 24) rotate(45)">
           <rect
             x="-5.5"
             y="-14"
@@ -110,7 +100,7 @@ export function ChainHubLogo({
             height="28"
             rx="5.5"
             fill="none"
-            stroke="url(#ch-logo-amber)"
+            stroke="#f97316"
             strokeWidth="4"
           />
         </g>

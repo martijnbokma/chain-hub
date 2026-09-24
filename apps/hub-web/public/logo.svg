@@ -1,20 +1,15 @@
 <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="ch-amber-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ea580c" />
-      <stop offset="50%" stop-color="#fb923c" />
-      <stop offset="100%" stop-color="#ffd29d" />
-    </linearGradient>
     <filter id="ch-ambient-glow" x="-30%" y="-30%" width="160%" height="160%">
       <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#f97316" flood-opacity="0.5" />
     </filter>
   </defs>
   <g filter="url(#ch-ambient-glow)">
-    <g transform="translate(22, 38) rotate(-45)">
-      <rect x="-6" y="-16" width="12" height="32" rx="6" fill="none" stroke="url(#ch-amber-grad)" stroke-width="4.5" />
+    <g transform="translate(38, 38) rotate(45)">
+      <rect x="-6" y="-16" width="12" height="32" rx="6" fill="none" stroke="#f97316" stroke-width="4.5" />
     </g>
-    <g transform="translate(38, 22) rotate(-45)">
-      <rect x="-6" y="-16" width="12" height="32" rx="6" fill="none" stroke="url(#ch-amber-grad)" stroke-width="4.5" />
+    <g transform="translate(22, 22) rotate(45)">
+      <rect x="-6" y="-16" width="12" height="32" rx="6" fill="none" stroke="#f97316" stroke-width="4.5" />
     </g>
   </g>
 </svg>
