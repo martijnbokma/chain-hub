@@ -2,7 +2,7 @@
 // prefix and checks that the installed `chain` binary starts and serves the dashboard.
 // Unit tests run the source; this catches bundling and packaging mistakes.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, readdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,22 +12,25 @@ const work = mkdtempSync(path.join(tmpdir(), "chain-hub-smoke-"));
 const env = { ...process.env, HOME: path.join(work, "home"), CHAIN_HOME: path.join(work, "hub") };
 const port = Number(process.env.SMOKE_PORT ?? 4391);
 
+// npm and the installed `chain` are .cmd shims on Windows, which need a shell to run.
+const shell = process.platform === "win32";
+
 function run(command, args, options = {}) {
-  return execFileSync(command, args, { encoding: "utf8", env, ...options }).trim();
+  return execFileSync(command, args, { encoding: "utf8", env, shell, ...options }).trim();
 }
 
-execFileSync("mkdir", ["-p", env.HOME]);
+mkdirSync(env.HOME, { recursive: true });
 run("npm", ["pack", "--pack-destination", work], { cwd: packageDir, stdio: ["ignore", "pipe", "inherit"] });
 const tarball = readdirSync(work).find((name) => name.endsWith(".tgz"));
 run("npm", ["install", "--prefix", path.join(work, "prefix"), "--no-audit", "--no-fund", path.join(work, tarball)]);
-const chain = path.join(work, "prefix", "node_modules", ".bin", "chain");
+const chain = path.join(work, "prefix", "node_modules", ".bin", shell ? "chain.cmd" : "chain");
 
 const reportedVersion = run(chain, ["--version"]);
 if (!/^\d+\.\d+\.\d+/.test(reportedVersion)) throw new Error(`chain --version printed "${reportedVersion}"`);
 console.log(`chain --version → ${reportedVersion}`);
 run(chain, ["init"]);
 
-const server = spawn(chain, ["hub", "--no-open", "--port", String(port)], { env, stdio: "inherit" });
+const server = spawn(chain, ["hub", "--no-open", "--port", String(port)], { env, stdio: "inherit", shell });
 
 try {
   const base = `http://127.0.0.1:${port}`;
