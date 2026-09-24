@@ -35,3 +35,6 @@ apps/hub-web/test-results/
 .claude/settings.local.json
 .cursor/hooks/state/
 .impeccable/
+
+# Local agent tooling (skills installed by other agent sessions)
+.agents/
