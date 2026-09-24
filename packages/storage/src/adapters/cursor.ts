@@ -2,8 +2,8 @@ import path from "node:path";
 
 import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
-import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
-import { FRONTMATTER_MARKER_KEY, markerSource } from "./marker.js";
+import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import { projectedFrontmatter } from "./marker.js";
 import {
   dirHasAnyFile,
   listFlatCandidates,
@@ -34,20 +34,17 @@ function targetPath(homeDir: string, kind: "skills" | "rules", name: string): st
 }
 
 function buildContent(asset: AssetDetail): string {
-  const { body, description } = deriveDescription(asset.content, asset.name);
-  const data: FrontmatterData = { [FRONTMATTER_MARKER_KEY]: markerSource(asset.kind, asset.name) };
+  const { data: source, body, description } = deriveDescription(asset.content, asset.name);
 
   if (asset.kind === "skills") {
-    data.name = asset.name;
-    data.description = description;
-  } else {
-    // Rules: default to "Always Apply" so a synced Chain Hub rule behaves like a
-    // persistent instruction, matching how it behaves in Claude Code/other editors.
-    data.description = description;
-    data.alwaysApply = true;
+    return stringifyFrontmatter(projectedFrontmatter(asset, source, { name: true, description }), body);
   }
 
-  return stringifyFrontmatter(data, body);
+  // Rules: default to "Always Apply" so a synced Chain Hub rule behaves like a
+  // persistent instruction, matching how it behaves in Claude Code/other editors.
+  // A rule that scopes itself with `globs` keeps that scope instead.
+  const defaults = "globs" in source ? {} : { alwaysApply: true };
+  return stringifyFrontmatter(projectedFrontmatter(asset, source, { description, defaults }), body);
 }
 
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {

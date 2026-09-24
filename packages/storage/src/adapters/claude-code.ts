@@ -2,8 +2,8 @@ import path from "node:path";
 
 import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
-import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
-import { FRONTMATTER_MARKER_KEY, markerSource } from "./marker.js";
+import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import { projectedFrontmatter } from "./marker.js";
 import {
   dirHasAnyFile,
   listFlatCandidates,
@@ -32,14 +32,13 @@ function targetPath(homeDir: string, kind: AssetKind, name: string): string {
 }
 
 function buildContent(asset: AssetDetail): string {
-  const { body, description } = deriveDescription(asset.content, asset.name);
-  const data: FrontmatterData = { [FRONTMATTER_MARKER_KEY]: markerSource(asset.kind, asset.name) };
+  const { data: source, body, description } = deriveDescription(asset.content, asset.name);
 
   // Skills/agents use description for routing; rules are plain always-on instructions in Claude Code.
-  if (asset.kind === "skills" || asset.kind === "agents") {
-    data.name = asset.name;
-    data.description = description;
-  }
+  const routed = asset.kind === "skills" || asset.kind === "agents";
+  const data = routed
+    ? projectedFrontmatter(asset, source, { name: true, description })
+    : projectedFrontmatter(asset, source, {});
 
   return stringifyFrontmatter(data, body);
 }

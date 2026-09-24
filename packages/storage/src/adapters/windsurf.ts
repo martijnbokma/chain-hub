@@ -2,8 +2,8 @@ import path from "node:path";
 
 import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
-import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
-import { FRONTMATTER_MARKER_KEY, markerSource } from "./marker.js";
+import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import { projectedFrontmatter } from "./marker.js";
 import {
   dirHasAnyFile,
   listFlatCandidates,
@@ -41,25 +41,16 @@ function baseDirs(homeDir: string, kind: "rules" | "workflows"): string[] {
 }
 
 function buildContent(asset: AssetDetail): string {
-  const { body, description } = deriveDescription(asset.content, asset.name);
-  const data: FrontmatterData = {
-    [FRONTMATTER_MARKER_KEY]: markerSource(asset.kind, asset.name)
-  };
+  const { data: source, body, description } = deriveDescription(asset.content, asset.name);
 
   if (asset.kind === "skills") {
-    data.name = asset.name;
-    data.description = description;
-    return stringifyFrontmatter(data, body);
+    return stringifyFrontmatter(projectedFrontmatter(asset, source, { name: true, description }), body);
   }
 
-  data.description = description;
-
-  if (asset.kind === "rules") {
-    // Always-on so a synced rule behaves like a persistent instruction by default.
-    data.trigger = "always_on";
-  }
-
-  return stringifyFrontmatter(data, body);
+  // Rules: always-on so a synced rule behaves like a persistent instruction by default;
+  // a rule that declares `globs` becomes a glob rule instead.
+  const defaults = asset.kind === "rules" ? { trigger: "globs" in source ? "glob" : "always_on" } : {};
+  return stringifyFrontmatter(projectedFrontmatter(asset, source, { description, defaults }), body);
 }
 
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {

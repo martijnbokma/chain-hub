@@ -2,8 +2,8 @@ import path from "node:path";
 
 import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
-import { deriveDescription, stringifyFrontmatter, type FrontmatterData } from "./frontmatter.js";
-import { FRONTMATTER_MARKER_KEY, HEADER_MARKER, markerSource } from "./marker.js";
+import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import { HEADER_MARKER, projectedFrontmatter } from "./marker.js";
 import {
   dirHasAnyFile,
   listSkillCandidates,
@@ -35,14 +35,8 @@ function rulesFilePath(homeDir: string): string {
 }
 
 function buildSkillContent(asset: AssetDetail): string {
-  const { body, description } = deriveDescription(asset.content, asset.name);
-  const data: FrontmatterData = {
-    [FRONTMATTER_MARKER_KEY]: markerSource(asset.kind, asset.name),
-    name: asset.name,
-    description
-  };
-
-  return stringifyFrontmatter(data, body);
+  const { data: source, body, description } = deriveDescription(asset.content, asset.name);
+  return stringifyFrontmatter(projectedFrontmatter(asset, source, { name: true, description }), body);
 }
 
 function buildRulesFileContent(ruleAssets: AssetDetail[]): string {
