@@ -121,7 +121,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
   }
 
   const filePath = targetPath(homeDir, asset.kind, asset.name);
-  await writeManagedFile(filePath, buildContent(asset), "frontmatter", options);
+  await writeManagedFile(filePath, buildContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
 
   if (asset.kind === "skills") {
     await projectSkillSidecars(chainHome, path.dirname(filePath), asset.name);

@@ -173,6 +173,25 @@ async function createSkillCopyFilter(sourceDir: string): Promise<(source: string
   };
 }
 
+/** Copies a skill folder's files other than SKILL.md (scripts/, references/, …) with the same safety filter as installs. */
+export async function copySkillSidecars(sourceDir: string, destinationDir: string): Promise<void> {
+  const filter = await createSkillCopyFilter(sourceDir);
+  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.name === "SKILL.md" || entry.name === "skill.md") {
+      continue;
+    }
+
+    const from = path.join(sourceDir, entry.name);
+    if (!(await filter(from))) {
+      continue;
+    }
+
+    await fs.cp(from, path.join(destinationDir, entry.name), { recursive: true, dereference: true, filter });
+  }
+}
+
 /** Copies into a staging sibling first so a failed copy never destroys the installed skill. */
 async function copySkillTree(sourceDir: string, destinationDir: string): Promise<void> {
   await fs.mkdir(path.dirname(destinationDir), { recursive: true });

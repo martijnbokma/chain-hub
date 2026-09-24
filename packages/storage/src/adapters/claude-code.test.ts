@@ -142,7 +142,7 @@ describe("claudeCodeAdapter.discover", () => {
     expect(discovered[0]).toMatchObject({
       kind: "skills",
       name: "hand-written",
-      content: "# A hand-written skill\n\nBody text."
+      content: "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text."
     });
   });
 

@@ -217,14 +217,15 @@ describe("readUnmanagedCandidates", () => {
     });
   });
 
-  it("prefixes an explicit frontmatter description onto a headingless body", async () => {
+  it("keeps the source frontmatter so nothing is lost on import", async () => {
     const dir = await makeTmpDir();
     const filePath = path.join(dir, "plain.md");
-    await fs.writeFile(filePath, "---\ndescription: A Nicer Title\n---\n\nBody text, no heading.", "utf8");
+    const raw = "---\ndescription: A Nicer Title\nglobs: \"*.ts\"\n---\n\nBody text, no heading.";
+    await fs.writeFile(filePath, raw, "utf8");
 
     const [result] = await readUnmanagedCandidates([{ name: "plain", filePath }], "rules");
 
-    expect(result.content).toBe("# A Nicer Title\n\nBody text, no heading.");
+    expect(result.content).toBe(raw);
   });
 
   it("leaves the body untouched when it already starts with a heading", async () => {

@@ -56,7 +56,7 @@ function buildContent(asset: AssetDetail): string {
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (asset.kind === "skills") {
     const filePath = skillPath(homeDir, asset.name);
-    await writeManagedFile(filePath, buildContent(asset), "frontmatter", options);
+    await writeManagedFile(filePath, buildContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
     await projectSkillSidecars(chainHome, path.dirname(filePath), asset.name);
     return;
   }
@@ -67,7 +67,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
 
   const content = buildContent(asset);
   await Promise.all(
-    targetPaths(homeDir, asset.kind, asset.name).map((filePath) => writeManagedFile(filePath, content, "frontmatter", options))
+    targetPaths(homeDir, asset.kind, asset.name).map((filePath) => writeManagedFile(filePath, content, "frontmatter", { ...options, backup: { chainHome, homeDir } }))
   );
 }
 

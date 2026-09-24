@@ -52,13 +52,21 @@ function buildRulesFileContent(ruleAssets: AssetDetail[]): string {
   return `${HEADER_MARKER}\n\n# Chain Hub Rules\n\n${sections.join("\n\n---\n\n")}\n`;
 }
 
-async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[], options?: { force?: boolean }): Promise<void> {
-  await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header", options);
+async function rebuildRulesFile(
+  chainHome: string,
+  homeDir: string,
+  ruleAssets: AssetDetail[],
+  options?: { force?: boolean }
+): Promise<void> {
+  await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header", {
+    ...options,
+    backup: { chainHome, homeDir }
+  });
 }
 
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (asset.kind === "skills") {
-    await writeManagedFile(skillPath(homeDir, asset.name), buildSkillContent(asset), "frontmatter", options);
+    await writeManagedFile(skillPath(homeDir, asset.name), buildSkillContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
     await projectSkillSidecars(chainHome, path.dirname(skillPath(homeDir, asset.name)), asset.name);
     return;
   }
@@ -67,7 +75,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
   // with the full rule list instead of calling writeAsset directly. This branch
   // only exists so a single rules asset write can't silently drop the file.
   if (asset.kind === "rules") {
-    await rebuildRulesFile(homeDir, [asset], options);
+    await rebuildRulesFile(chainHome, homeDir, [asset], options);
   }
 }
 
@@ -89,7 +97,7 @@ async function resync(chainHome: string, homeDir: string, assets: AssetDetail[])
     await writeAsset(chainHome, homeDir, skill, { force: true });
   }
 
-  await rebuildRulesFile(homeDir, rules, { force: true });
+  await rebuildRulesFile(chainHome, homeDir, rules, { force: true });
 }
 
 async function status(homeDir: string): Promise<Integration> {

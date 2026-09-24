@@ -107,11 +107,17 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "# My own instructions\n", "utf8");
 
-    await zedAdapter.resync("/chain-home", homeDir, [makeAsset({ kind: "rules", name: "a", content: "Generated" })]);
+    const chainHome = await makeTmpHome();
+    await zedAdapter.resync(chainHome, homeDir, [makeAsset({ kind: "rules", name: "a", content: "Generated" })]);
 
     const content = await fs.readFile(filePath, "utf8");
     expect(content.startsWith(HEADER_MARKER)).toBe(true);
     expect(content).toContain("Generated");
+
+    // The hand-written file is kept under the hub's backups folder.
+    const day = new Date().toISOString().slice(0, 10);
+    const backup = path.join(chainHome, "backups", day, ".config", "zed", "AGENTS.md");
+    expect(await fs.readFile(backup, "utf8")).toBe("# My own instructions\n");
   });
 });
 
@@ -128,7 +134,7 @@ describe("zedAdapter.discover", () => {
     expect(discovered[0]).toMatchObject({
       kind: "skills",
       name: "hand-written",
-      content: "# A hand-written skill\n\nBody text."
+      content: "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text."
     });
   });
 

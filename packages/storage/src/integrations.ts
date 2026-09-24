@@ -14,6 +14,8 @@ import {
 
 import { createAsset, getAsset, initializeHub, listAssets, resolveChainHome } from "./core.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
+import { parseFrontmatter } from "./adapters/frontmatter.js";
+import { copySkillSidecars } from "./skill-install.js";
 import { ensureDir, makeExcerpt, pathExists, resolveHomeDir } from "./shared.js";
 
 /**
@@ -184,7 +186,7 @@ export async function discoverAssets(chainHomeInput?: string): Promise<Discovere
         editorLabel: adapter.label,
         kind: candidate.kind,
         name: candidate.name,
-        preview: makeExcerpt(candidate.content),
+        preview: makeExcerpt(parseFrontmatter(candidate.content).body),
         sourcePath: candidate.sourcePath
       });
     }
@@ -211,11 +213,16 @@ export async function importDiscoveredAsset(chainHomeInput: string | undefined, 
 
   const asset = await createAsset(chainHome, { kind: match.kind, name: match.name, content: match.content });
 
+  if (asset.kind === "skills") {
+    // Scripts and references travel with the skill, so every other editor gets a working copy.
+    await copySkillSidecars(path.dirname(match.sourcePath), path.dirname(path.join(chainHome, asset.relativePath)));
+  }
+
   // Adopt the exact source file: force-write the marker into it so it stops being
   // "foreign" from the origin adapter's point of view. Hub sync also force-claims
   // projection slots, but import must claim the source even before a full resync.
   const homeDir = resolveHomeDir();
   await adapter.writeAsset(chainHome, homeDir, asset, { force: true });
 
-  return asset;
+  return asset.kind === "skills" ? getAsset(chainHome, asset.kind, asset.name) : asset;
 }

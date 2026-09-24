@@ -48,7 +48,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
     return;
   }
 
-  await writeManagedFile(targetPath(homeDir, asset.kind, asset.name), buildContent(asset), "frontmatter", options);
+  await writeManagedFile(targetPath(homeDir, asset.kind, asset.name), buildContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
 
   if (asset.kind === "skills") {
     await projectSkillSidecars(chainHome, path.dirname(targetPath(homeDir, "skills", asset.name)), asset.name);

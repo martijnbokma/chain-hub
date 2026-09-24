@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 
 import type { AssetKind } from "@chain-hub/contracts";
 
-import { deriveDescription, parseFrontmatter } from "./frontmatter.js";
+import { parseFrontmatter } from "./frontmatter.js";
 import { hasFrontmatterMarker, hasHeaderMarker } from "./marker.js";
 import type { DiscoveredCandidate } from "./types.js";
 
@@ -22,25 +22,69 @@ async function isManaged(content: string, markerCheck: MarkerCheck): Promise<boo
   return markerCheck === "frontmatter" ? hasFrontmatterMarker(parseFrontmatter(content).data) : hasHeaderMarker(content);
 }
 
+export interface BackupTarget {
+  chainHome: string;
+  homeDir: string;
+}
+
+export interface WriteManagedOptions {
+  force?: boolean;
+  /** Where to keep a copy of a hand-written file before `force` overwrites it. */
+  backup?: BackupTarget;
+}
+
+/**
+ * Copies a file that is about to be overwritten into
+ * `<chainHome>/backups/<YYYY-MM-DD>/<path relative to home>` and returns the backup path.
+ */
+export async function backupForeignFile(filePath: string, target: BackupTarget): Promise<string> {
+  const relative = path.relative(target.homeDir, filePath);
+  const safeRelative =
+    relative.startsWith("..") || path.isAbsolute(relative) ? filePath.replace(/^[/\\]+|:/g, "") : relative;
+  const day = new Date().toISOString().slice(0, 10);
+  let backupPath = path.join(target.chainHome, "backups", day, safeRelative);
+
+  if (await pathExists(backupPath)) {
+    backupPath = `${backupPath}.${Date.now()}`;
+  }
+
+  await fs.mkdir(path.dirname(backupPath), { recursive: true });
+  await fs.copyFile(filePath, backupPath);
+  return backupPath;
+}
+
 /**
  * Writes a Chain-Hub-generated file, refusing to clobber a file that already
  * exists but isn't itself Chain-Hub-managed (a user's own hand-written file).
  *
  * `force: true` skips that guard — used when Hub owns this kind/name and is
  * projecting into the editor slot (sync/setup/import claim), including when an
- * unmarked twin already sits at that path.
+ * unmarked twin already sits at that path. That twin is backed up first when
+ * `backup` is given.
  */
 export async function writeManagedFile(
   filePath: string,
   content: string,
   markerCheck: MarkerCheck = "frontmatter",
-  options?: { force?: boolean }
+  options?: WriteManagedOptions
 ): Promise<void> {
-  if (!options?.force && (await pathExists(filePath))) {
+  if (await pathExists(filePath)) {
     const existing = await fs.readFile(filePath, "utf8");
-    if (!(await isManaged(existing, markerCheck))) {
-      console.warn(`[chain-hub] skipping ${filePath}: file exists and is not Chain Hub managed`);
+
+    if (existing === content) {
       return;
+    }
+
+    if (!(await isManaged(existing, markerCheck))) {
+      if (!options?.force) {
+        console.warn(`[chain-hub] skipping ${filePath}: file exists and is not Chain Hub managed`);
+        return;
+      }
+
+      if (options.backup) {
+        const backupPath = await backupForeignFile(filePath, options.backup);
+        console.warn(`[chain-hub] replacing hand-written ${filePath}; backup saved to ${backupPath}`);
+      }
     }
   }
 
@@ -118,18 +162,14 @@ export async function readUnmanagedCandidates(candidates: CandidateFile[], kind:
 
   for (const { name, filePath } of candidates) {
     const raw = await fs.readFile(filePath, "utf8");
-    const { data, body, description } = deriveDescription(raw, name);
 
-    if (hasFrontmatterMarker(data)) {
+    if (hasFrontmatterMarker(parseFrontmatter(raw).data)) {
       continue;
     }
 
-    // Preserve a human-authored frontmatter `description` that the body itself doesn't
-    // already restate as a heading — otherwise it's silently lost on import.
-    const bodyHasHeading = /^#{1,6}\s+/.test(body.trim());
-    const content = bodyHasHeading || description === name ? body : `# ${description}\n\n${body}`;
-
-    results.push({ kind, name, content, sourcePath: filePath });
+    // Import the file as-is: its frontmatter (description, allowed-tools, agent tools/model,
+    // rule globs, …) is part of the asset, not editor noise.
+    results.push({ kind, name, content: raw, sourcePath: filePath });
   }
 
   return results;

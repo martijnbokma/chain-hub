@@ -450,6 +450,31 @@ describe("discoverAssets + importDiscoveredAsset", () => {
     expect(discoveredAfter.some((candidate) => candidate.name === "hand-written")).toBe(false);
   });
 
+  it("imports a skill without losing frontmatter or sidecar files, and backs up the original", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    const skillDir = path.join(tmpHome, ".claude", "skills", "pdf-tool");
+    const original = "---\nname: pdf-tool\ndescription: Work with PDFs\nallowed-tools:\n  - Bash\nlicense: MIT\n---\n\n# PDF\n";
+    await fs.mkdir(path.join(skillDir, "scripts"), { recursive: true });
+    await fs.writeFile(path.join(skillDir, "SKILL.md"), original, "utf8");
+    await fs.writeFile(path.join(skillDir, "scripts", "run.sh"), "echo hi\n", "utf8");
+
+    const imported = await importDiscoveredAsset(hub, { editorId: "claude-code", kind: "skills", name: "pdf-tool" });
+
+    expect(imported.content).toBe(original);
+    expect(await fs.readFile(path.join(hub, "skills", "pdf-tool", "scripts", "run.sh"), "utf8")).toBe("echo hi\n");
+
+    const rewritten = await fs.readFile(path.join(skillDir, "SKILL.md"), "utf8");
+    expect(rewritten).toContain("chain_hub_source: skills/pdf-tool");
+    expect(rewritten).toContain("description: Work with PDFs");
+    expect(rewritten).toContain("- Bash");
+
+    const day = new Date().toISOString().slice(0, 10);
+    const backup = path.join(hub, "backups", day, ".claude", "skills", "pdf-tool", "SKILL.md");
+    expect(await fs.readFile(backup, "utf8")).toBe(original);
+  });
+
   it("throws when the requested candidate no longer exists", async () => {
     const hub = await makeTmpHub();
     await initializeHub(hub);

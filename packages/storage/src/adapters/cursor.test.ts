@@ -90,7 +90,7 @@ describe("cursorAdapter.discover", () => {
     const discovered = await cursorAdapter.discover(homeDir);
 
     expect(discovered).toHaveLength(1);
-    expect(discovered[0]).toMatchObject({ kind: "rules", name: "hand-written", content: "# Hand written\n\nRule body." });
+    expect(discovered[0]).toMatchObject({ kind: "rules", name: "hand-written", content: "---\ndescription: Hand written\n---\n\nRule body." });
   });
 
   it("excludes chain-hub-managed skills and rules", async () => {
