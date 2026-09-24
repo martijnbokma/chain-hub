@@ -340,6 +340,8 @@ program
 
     const cliDir = path.dirname(fileURLToPath(import.meta.url));
     const candidatePaths = [
+      // Published package: dashboard copied next to the CLI bundle at build time.
+      path.resolve(cliDir, "web"),
       path.resolve(cliDir, "../../apps/hub-web/dist"),
       path.resolve(cliDir, "../apps/hub-web/dist"),
       path.resolve(process.cwd(), "apps", "hub-web", "dist")
