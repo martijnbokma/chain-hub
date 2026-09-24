@@ -14,6 +14,7 @@ import {
   installSkillBundle,
   listAssets,
   migrateAgentsSkills,
+  readSkillFile,
   updateAsset,
   updateSkills
 } from "./index.js";
@@ -94,6 +95,41 @@ describe("installSkill", () => {
     expect(result.lockEntry.subdir).toBe("git-skill");
     const asset = await getAsset(tmpHub, "skills", "git-skill");
     expect(asset.content).toContain("git-skill");
+  });
+
+  it("does not copy .git or symlinks that leave the skill folder", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    const secret = path.join(await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-secret-")), "secret.txt");
+    await fs.writeFile(secret, "top secret\n", "utf8");
+    await fs.writeFile(path.join(repo, "SKILL.md"), "---\nname: root-skill\ndescription: Root\n---\n# Root\n", "utf8");
+    await fs.writeFile(path.join(repo, "notes.md"), "notes\n", "utf8");
+    await fs.symlink(secret, path.join(repo, "leak.txt"));
+    await fs.symlink("notes.md", path.join(repo, "alias.md"));
+    await fs.symlink(os.tmpdir(), path.join(repo, "tmp-dir"));
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+
+    await installSkill(tmpHub, { repo: `file://${repo}`, name: "root-skill" });
+
+    const entries = (await fs.readdir(path.join(tmpHub, "skills", "root-skill"))).sort();
+    expect(entries).toEqual(["SKILL.md", "alias.md", "notes.md"]);
+    const alias = await fs.lstat(path.join(tmpHub, "skills", "root-skill", "alias.md"));
+    expect(alias.isSymbolicLink()).toBe(false);
+  });
+
+  it("rejects a subdir that escapes the cloned repo", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    await writeFixtureSkill(repo, "inner-skill");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+
+    await expect(installSkill(tmpHub, { repo, subdir: "../../etc" })).rejects.toThrow(/Unsafe skill file path/);
   });
 
   it("installs from an uploaded file bundle", async () => {
@@ -213,5 +249,20 @@ describe("installSkill", () => {
     expect(drift.lockPath).toBe(lockPath);
     expect(drift.missingCount).toBe(1);
     expect(drift.missingNames).toEqual(["missing-skill"]);
+  });
+});
+
+describe("readSkillFile", () => {
+  it("refuses symlinks that point outside the skill folder", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "linked-skill") });
+    const secret = path.join(fixtureRoot, "secret.txt");
+    await fs.writeFile(secret, "top secret\n", "utf8");
+    // Simulates a link left behind by an older install.
+    await fs.symlink(secret, path.join(tmpHub, "skills", "linked-skill", "leak.txt"));
+
+    await expect(readSkillFile(tmpHub, "linked-skill", "leak.txt")).rejects.toThrow(/Unsafe skill file path/);
+    await expect(readSkillFile(tmpHub, "linked-skill", "missing.txt")).rejects.toThrow(/not found/);
+    expect((await readSkillFile(tmpHub, "linked-skill", "scripts/hello.sh")).content).toContain("echo hi");
   });
 });

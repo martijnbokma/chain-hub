@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertSafeRelativeSkillPath,
+  installSkillInputSchema,
   isEditableHubAsset,
   isUpstreamOwnedSkill,
   normalizeSkillName,
@@ -99,5 +100,18 @@ describe("assertSafeRelativeSkillPath", () => {
     expect(() => assertSafeRelativeSkillPath("foo/../bar.md")).toThrow(/Unsafe skill file path/);
     expect(() => assertSafeRelativeSkillPath("C:/Windows/system32")).toThrow(/Unsafe skill file path/);
     expect(() => assertSafeRelativeSkillPath("")).toThrow(/Unsafe skill file path/);
+  });
+});
+
+describe("installSkillInputSchema", () => {
+  it("rejects a repo that would be parsed as a git option", () => {
+    expect(installSkillInputSchema.safeParse({ repo: "--upload-pack=touch /tmp/x" }).success).toBe(false);
+    expect(installSkillInputSchema.safeParse({ repo: " -c core.sshCommand=x" }).success).toBe(false);
+  });
+
+  it("accepts URLs and paths", () => {
+    expect(installSkillInputSchema.safeParse({ repo: "https://github.com/acme/skills.git" }).success).toBe(true);
+    expect(installSkillInputSchema.safeParse({ repo: "git@github.com:acme/skills.git" }).success).toBe(true);
+    expect(installSkillInputSchema.safeParse({ repo: "/Users/me/skills" }).success).toBe(true);
   });
 });

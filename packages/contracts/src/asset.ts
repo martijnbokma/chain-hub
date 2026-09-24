@@ -100,7 +100,12 @@ export const importAssetInputSchema = z.object({
 export const installSkillInputSchema = z
   .object({
     path: z.string().min(1).optional(),
-    repo: z.string().min(1).optional(),
+    repo: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((value) => !value.startsWith("-"), { message: "Repository must be a URL or path, not an option" })
+      .optional(),
     subdir: z.string().min(1).optional(),
     name: z.string().min(1).optional(),
     force: z.boolean().optional()

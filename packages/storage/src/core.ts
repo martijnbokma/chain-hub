@@ -450,13 +450,23 @@ export async function readSkillFile(
     throw new Error(`Unsafe skill file path: ${relativePath}`);
   }
 
-  const stats = await fs.stat(resolvedTarget);
+  // Lexical checks don't see symlinks: resolve both sides and refuse anything that lands outside.
+  const realSkillDir = await fs.realpath(resolvedSkillDir);
+  const realTarget = await fs.realpath(resolvedTarget).catch(() => null);
+  if (!realTarget) {
+    throw new Error(`Skill file not found: ${relativePath}`);
+  }
+  if (!realTarget.startsWith(realSkillDir + path.sep)) {
+    throw new Error(`Unsafe skill file path: ${relativePath}`);
+  }
+
+  const stats = await fs.stat(realTarget);
   if (!stats.isFile()) {
     throw new Error(`Not a file: ${relativePath}`);
   }
 
   const truncated = stats.size > MAX_SKILL_FILE_READ_BYTES;
-  const handle = await fs.open(resolvedTarget, "r");
+  const handle = await fs.open(realTarget, "r");
   try {
     const readLength = Math.min(stats.size, MAX_SKILL_FILE_READ_BYTES);
     const buffer = Buffer.alloc(readLength);
