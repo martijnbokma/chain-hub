@@ -73,4 +73,31 @@ describe("AI settings storage", () => {
     await readAiSecrets(hub);
     expect((await fs.stat(secretsPath)).mode & 0o777).toBe(0o600);
   });
+
+  it("sets and clears the key of every provider and merges partial model updates", async () => {
+    const hub = await makeTmpHub();
+    const providers = ["anthropic", "openai", "mistral", "gemini", "groq", "openrouter", "deepseek", "cerebras"] as const;
+    const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
+    const withKeys = await updateAiSettings(
+      hub,
+      Object.fromEntries(providers.map((provider) => [`${provider}ApiKey`, ` key-${provider} `]))
+    );
+    for (const provider of providers) {
+      expect(withKeys[`${provider}ApiKeyConfigured`]).toBe(true);
+    }
+    expect((await readAiSecrets(hub)).groqApiKey).toBe("key-groq");
+
+    const cleared = await updateAiSettings(
+      hub,
+      Object.fromEntries(providers.map((provider) => [`clear${capitalize(provider)}ApiKey`, true]))
+    );
+    for (const provider of providers) {
+      expect(cleared[`${provider}ApiKeyConfigured`]).toBe(false);
+    }
+
+    const models = await updateAiSettings(hub, { models: { groq: "custom-groq" } });
+    expect(models.models.groq).toBe("custom-groq");
+    expect(models.models.anthropic).toBe("claude-sonnet-5");
+  });
 });

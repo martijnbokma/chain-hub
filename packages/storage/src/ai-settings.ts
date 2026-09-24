@@ -3,10 +3,12 @@ import path from "node:path";
 
 import {
   aiConfigSchema,
+  aiProviders,
   aiSecretsSchema,
   DEFAULT_AI_MODELS,
   DEFAULT_OLLAMA_BASE_URL,
   type AiConfig,
+  type AiProvider,
   type AiSecrets,
   type AiSettingsPublic,
   type UpdateAiSettingsInput
@@ -82,15 +84,28 @@ export async function getAiSettingsPublic(chainHomeInput?: string): Promise<AiSe
     provider: config.provider,
     models: config.models,
     ollamaBaseUrl: config.ollamaBaseUrl,
-    anthropicApiKeyConfigured: Boolean(secrets.anthropicApiKey?.trim()),
-    openaiApiKeyConfigured: Boolean(secrets.openaiApiKey?.trim()),
-    mistralApiKeyConfigured: Boolean(secrets.mistralApiKey?.trim()),
-    geminiApiKeyConfigured: Boolean(secrets.geminiApiKey?.trim()),
-    groqApiKeyConfigured: Boolean(secrets.groqApiKey?.trim()),
-    openrouterApiKeyConfigured: Boolean(secrets.openrouterApiKey?.trim()),
-    deepseekApiKeyConfigured: Boolean(secrets.deepseekApiKey?.trim()),
-    cerebrasApiKeyConfigured: Boolean(secrets.cerebrasApiKey?.trim())
+    ...keyFlags(secrets)
   };
+}
+
+type KeyedProvider = Exclude<AiProvider, "ollama">;
+
+/** Every provider except Ollama authenticates with an API key stored in secrets.json. */
+const KEYED_PROVIDERS = aiProviders.filter((provider): provider is KeyedProvider => provider !== "ollama");
+
+function capitalize<T extends string>(value: T): Capitalize<T> {
+  return (value.charAt(0).toUpperCase() + value.slice(1)) as Capitalize<T>;
+}
+
+/** `<provider>ApiKeyConfigured` flags; the keys themselves never leave the server. */
+function keyFlags(secrets: AiSecrets): Record<`${KeyedProvider}ApiKeyConfigured`, boolean> {
+  return Object.fromEntries(
+    KEYED_PROVIDERS.map((provider) => [`${provider}ApiKeyConfigured`, Boolean(secrets[`${provider}ApiKey`]?.trim())])
+  ) as Record<`${KeyedProvider}ApiKeyConfigured`, boolean>;
+}
+
+function definedModels(models: UpdateAiSettingsInput["models"]): Partial<AiConfig["models"]> {
+  return Object.fromEntries(Object.entries(models ?? {}).filter(([, model]) => model !== undefined));
 }
 
 export async function updateAiSettings(
@@ -104,68 +119,22 @@ export async function updateAiSettings(
   const nextConfig = aiConfigSchema.parse({
     version: 1 as const,
     provider: input.provider ?? currentConfig.provider,
-    models: {
-      anthropic: input.models?.anthropic ?? currentConfig.models.anthropic,
-      openai: input.models?.openai ?? currentConfig.models.openai,
-      mistral: input.models?.mistral ?? currentConfig.models.mistral,
-      ollama: input.models?.ollama ?? currentConfig.models.ollama,
-      gemini: input.models?.gemini ?? currentConfig.models.gemini,
-      groq: input.models?.groq ?? currentConfig.models.groq,
-      openrouter: input.models?.openrouter ?? currentConfig.models.openrouter,
-      deepseek: input.models?.deepseek ?? currentConfig.models.deepseek,
-      cerebras: input.models?.cerebras ?? currentConfig.models.cerebras
-    },
+    models: { ...currentConfig.models, ...definedModels(input.models) },
     ollamaBaseUrl: input.ollamaBaseUrl ?? currentConfig.ollamaBaseUrl
   });
 
   const nextSecrets: AiSecrets = { ...currentSecrets, version: 1 };
 
-  if (input.clearAnthropicApiKey) {
-    delete nextSecrets.anthropicApiKey;
-  } else if (input.anthropicApiKey !== undefined) {
-    nextSecrets.anthropicApiKey = input.anthropicApiKey.trim();
-  }
+  for (const provider of KEYED_PROVIDERS) {
+    const keyField = `${provider}ApiKey` as const;
+    const clearField = `clear${capitalize(provider)}ApiKey` as const;
+    const nextKey = input[keyField];
 
-  if (input.clearOpenaiApiKey) {
-    delete nextSecrets.openaiApiKey;
-  } else if (input.openaiApiKey !== undefined) {
-    nextSecrets.openaiApiKey = input.openaiApiKey.trim();
-  }
-
-  if (input.clearMistralApiKey) {
-    delete nextSecrets.mistralApiKey;
-  } else if (input.mistralApiKey !== undefined) {
-    nextSecrets.mistralApiKey = input.mistralApiKey.trim();
-  }
-
-  if (input.clearGeminiApiKey) {
-    delete nextSecrets.geminiApiKey;
-  } else if (input.geminiApiKey !== undefined) {
-    nextSecrets.geminiApiKey = input.geminiApiKey.trim();
-  }
-
-  if (input.clearGroqApiKey) {
-    delete nextSecrets.groqApiKey;
-  } else if (input.groqApiKey !== undefined) {
-    nextSecrets.groqApiKey = input.groqApiKey.trim();
-  }
-
-  if (input.clearOpenrouterApiKey) {
-    delete nextSecrets.openrouterApiKey;
-  } else if (input.openrouterApiKey !== undefined) {
-    nextSecrets.openrouterApiKey = input.openrouterApiKey.trim();
-  }
-
-  if (input.clearDeepseekApiKey) {
-    delete nextSecrets.deepseekApiKey;
-  } else if (input.deepseekApiKey !== undefined) {
-    nextSecrets.deepseekApiKey = input.deepseekApiKey.trim();
-  }
-
-  if (input.clearCerebrasApiKey) {
-    delete nextSecrets.cerebrasApiKey;
-  } else if (input.cerebrasApiKey !== undefined) {
-    nextSecrets.cerebrasApiKey = input.cerebrasApiKey.trim();
+    if (input[clearField]) {
+      delete nextSecrets[keyField];
+    } else if (nextKey !== undefined) {
+      nextSecrets[keyField] = nextKey.trim();
+    }
   }
 
   await writeAiConfig(chainHome, nextConfig);
