@@ -15,6 +15,7 @@ import {
   installSkillBundle,
   listAssets,
   migrateAgentsSkills,
+  projectSkillSidecars,
   readSkillFile,
   updateAsset,
   updateSkills
@@ -321,5 +322,24 @@ describe("readSkillFile", () => {
     await expect(readSkillFile(tmpHub, "linked-skill", "leak.txt")).rejects.toThrow(/Unsafe skill file path/);
     await expect(readSkillFile(tmpHub, "linked-skill", "missing.txt")).rejects.toThrow(/not found/);
     expect((await readSkillFile(tmpHub, "linked-skill", "scripts/hello.sh")).content).toContain("echo hi");
+  });
+});
+
+describe("projectSkillSidecars", () => {
+  it("removes sidecars dropped from the hub skill but keeps files the user added", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "sidecar-sync") });
+    await fs.mkdir(path.join(tmpHub, "skills", "sidecar-sync", "references"), { recursive: true });
+    await fs.writeFile(path.join(tmpHub, "skills", "sidecar-sync", "references", "guide.md"), "guide\n", "utf8");
+
+    const editorDir = path.join(tmpHome, ".claude", "skills", "sidecar-sync");
+    await projectSkillSidecars(tmpHub, editorDir, "sidecar-sync");
+    await fs.writeFile(path.join(editorDir, "my-notes.md"), "mine\n", "utf8");
+    expect((await fs.readdir(editorDir)).sort()).toEqual([".chain-hub-sidecars.json", "my-notes.md", "references", "scripts"]);
+
+    await fs.rm(path.join(tmpHub, "skills", "sidecar-sync", "references"), { recursive: true });
+    await projectSkillSidecars(tmpHub, editorDir, "sidecar-sync");
+
+    expect((await fs.readdir(editorDir)).sort()).toEqual([".chain-hub-sidecars.json", "my-notes.md", "scripts"]);
   });
 });

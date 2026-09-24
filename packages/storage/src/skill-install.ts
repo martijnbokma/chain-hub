@@ -177,7 +177,10 @@ async function assertSkillSource(sourceDir: string): Promise<void> {
 }
 
 /** Version-control folders never belong in an installed skill (or in every editor it is projected to). */
-const SKIPPED_SKILL_ENTRIES = new Set([".git", ".hg", ".svn"]);
+/** Lists the sidecar entries Chain Hub projected into an editor skill folder. */
+const SIDECAR_MANIFEST = ".chain-hub-sidecars.json";
+
+const SKIPPED_SKILL_ENTRIES = new Set([".git", ".hg", ".svn", SIDECAR_MANIFEST]);
 
 function isInside(parent: string, target: string): boolean {
   return target === parent || target.startsWith(parent + path.sep);
@@ -665,6 +668,20 @@ async function copySidecarEntry(from: string, to: string): Promise<void> {
   }
 }
 
+async function readSidecarManifest(editorSkillDir: string): Promise<string[]> {
+  try {
+    const parsed: unknown = JSON.parse(await fs.readFile(path.join(editorSkillDir, SIDECAR_MANIFEST), "utf8"));
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Copies a hub skill's sidecar files into an editor skill folder and removes the ones
+ * Chain Hub projected earlier that the hub skill no longer has. Only entries listed in
+ * the folder's manifest are ever removed, so files a user added there are left alone.
+ */
 export async function projectSkillSidecars(chainHome: string, editorSkillDir: string, name: string): Promise<void> {
   const sourceDir = skillDir(chainHome, name);
 
@@ -675,16 +692,28 @@ export async function projectSkillSidecars(chainHome: string, editorSkillDir: st
   const resolvedEditorSkillDir = await resolveEditorSkillDir(editorSkillDir);
   await fs.mkdir(resolvedEditorSkillDir, { recursive: true });
 
-  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    if (entry.name === "SKILL.md" || entry.name === "skill.md") {
+  const projected: string[] = [];
+  for (const entry of await fs.readdir(sourceDir, { withFileTypes: true })) {
+    if (entry.name === "SKILL.md" || entry.name === "skill.md" || SKIPPED_SKILL_ENTRIES.has(entry.name)) {
       continue;
     }
 
-    const from = path.join(sourceDir, entry.name);
-    const to = path.join(resolvedEditorSkillDir, entry.name);
-    await copySidecarEntry(from, to);
+    await copySidecarEntry(path.join(sourceDir, entry.name), path.join(resolvedEditorSkillDir, entry.name));
+    projected.push(entry.name);
+  }
+
+  for (const stale of await readSidecarManifest(resolvedEditorSkillDir)) {
+    const isPlainName = stale.length > 0 && stale !== "." && stale !== ".." && !/[\\/]/.test(stale);
+    if (isPlainName && !projected.includes(stale)) {
+      await fs.rm(path.join(resolvedEditorSkillDir, stale), { recursive: true, force: true });
+    }
+  }
+
+  const manifestPath = path.join(resolvedEditorSkillDir, SIDECAR_MANIFEST);
+  if (projected.length > 0) {
+    await fs.writeFile(manifestPath, `${JSON.stringify(projected.sort(), null, 2)}\n`, "utf8");
+  } else {
+    await fs.rm(manifestPath, { force: true });
   }
 }
 
