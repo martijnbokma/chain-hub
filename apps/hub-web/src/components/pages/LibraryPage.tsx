@@ -4,23 +4,20 @@ import { useBlocker, useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ensureExplicitDescription } from '@chain-hub/contracts';
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill-ownership';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { libraryApi, overviewApi, aiSettingsApi } from '@/lib/api';
+import { libraryApi, overviewApi } from '@/lib/api';
 import type {
   AssetKind,
   FilterKind,
   OwnershipFilter,
-  ClassifyAssetResult,
-  AuditAssetResult,
   DiscoveredAsset
 } from '@/types';
-import { AiEditPreviewDialog, type PendingAiEdit } from './library/AiEditPreviewDialog';
+import { AiEditPreviewDialog } from './library/AiEditPreviewDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
 import { AssetList } from './library/AssetList';
 import {
@@ -38,6 +35,7 @@ import { LibraryToolbar } from './library/LibraryToolbar';
 import { DiscardChangesDialog } from './library/DiscardChangesDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
 import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
+import { useLibraryAiActions } from './library/use-library-ai-actions';
 import { useLibraryCreateFlow } from './library/use-library-create-flow';
 import { useLibraryInstallFlow } from './library/use-library-install-flow';
 
@@ -54,24 +52,7 @@ export function LibraryPage() {
     parseOwnershipParam(searchParams.get('ownership'))
   );
   const [editorContent, setEditorContent] = useState('');
-  const [kindAssessment, setKindAssessment] = useState<ClassifyAssetResult | null>(null);
-  const [assetAudit, setAssetAudit] = useState<AuditAssetResult | null>(null);
-  const [pendingAiEdit, setPendingAiEdit] = useState<PendingAiEdit | null>(null);
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
-
-  function approveAiEdit() {
-    if (!pendingAiEdit) {
-      return;
-    }
-    setEditorContent(pendingAiEdit.after);
-    setAssetAudit(null);
-    setPendingAiEdit(null);
-    toast.success('Applied — review and save');
-  }
-
-  function discardAiEdit() {
-    setPendingAiEdit(null);
-  }
 
   const createFlow = useLibraryCreateFlow({
     searchParams,
@@ -139,10 +120,22 @@ export function LibraryPage() {
   }, [selectedAsset.data]);
 
   useEffect(() => {
-    setKindAssessment(null);
-    setAssetAudit(null);
     setPreviewFilePath(null);
   }, [selected?.kind, selected?.name]);
+
+  const {
+    kindAssessment,
+    assetAudit,
+    pendingAiEdit,
+    resetAiResults,
+    approveAiEdit,
+    discardAiEdit,
+    reassessKind,
+    auditAsset,
+    improveAsset,
+    fixDescriptionWithAi,
+    forkAndFixDescription
+  } = useLibraryAiActions({ selected, editorContent, setEditorContent, setSelected });
 
   const isDirty = selectedAsset.data !== undefined && editorContent !== selectedAsset.data.content;
   // `undefined` = no switch pending; `null` = user asked to close the detail panel.
@@ -375,30 +368,6 @@ export function LibraryPage() {
     }
   });
 
-  const reassessKind = useMutation({
-    mutationFn: async () => {
-      if (!selected) {
-        throw new Error('No asset selected');
-      }
-      return aiSettingsApi.classifyAsset({
-        kind: selected.kind,
-        name: selected.name,
-        content: editorContent
-      });
-    },
-    onSuccess: (result) => {
-      setKindAssessment(result);
-      toast.success(
-        result.matchesCurrent
-          ? `Kind looks right (${result.recommendedKind})`
-          : `Suggested kind: ${result.recommendedKind}`
-      );
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Unable to reassess kind');
-    }
-  });
-
   const convertKind = useMutation({
     mutationFn: async (toKind: AssetKind) => {
       if (!selected) {
@@ -412,8 +381,7 @@ export function LibraryPage() {
       return libraryApi.convert(selected.kind, selected.name, { toKind });
     },
     onSuccess: (asset) => {
-      setKindAssessment(null);
-      setAssetAudit(null);
+      resetAiResults();
       setSelected({ kind: asset.kind as AssetKind, name: asset.name });
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['library', 'detail'] });
@@ -422,125 +390,6 @@ export function LibraryPage() {
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Unable to convert asset');
-    }
-  });
-
-  const auditAsset = useMutation({
-    mutationFn: async () => {
-      if (!selected) {
-        throw new Error('No asset selected');
-      }
-      return aiSettingsApi.auditAsset({
-        kind: selected.kind,
-        name: selected.name,
-        content: editorContent
-      });
-    },
-    onSuccess: (result) => {
-      setAssetAudit(result);
-      toast.success(
-        result.findings.length === 0
-          ? 'Audit passed · no material findings'
-          : `Audit ready · ${result.findings.length} findings`
-      );
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Unable to audit asset');
-    }
-  });
-
-  const improveAsset = useMutation({
-    mutationFn: async () => {
-      if (!selected) {
-        throw new Error('No asset selected');
-      }
-      if (!assetAudit || assetAudit.findings.length === 0) {
-        throw new Error('Run an audit before applying improvements');
-      }
-      return aiSettingsApi.improveAsset({
-        kind: selected.kind,
-        name: selected.name,
-        content: editorContent,
-        summary: assetAudit.summary,
-        findings: assetAudit.findings
-      });
-    },
-    onSuccess: (result) => {
-      setPendingAiEdit({ label: 'Apply improvements', before: editorContent, after: result.content });
-      toast.success('Improvements ready — review the diff');
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Unable to improve asset');
-    }
-  });
-
-  const fixDescriptionWithAi = useMutation({
-    mutationFn: async () => {
-      if (!selected) {
-        throw new Error('No asset selected');
-      }
-      return aiSettingsApi.improveAsset({
-        kind: selected.kind,
-        name: selected.name,
-        content: editorContent,
-        summary: 'Asset is missing a frontmatter description required by some editors.',
-        findings: [
-          {
-            severity: 'high',
-            title: 'Missing description',
-            detail: 'Add a concise frontmatter `description` summarizing what this asset does and when to use it.'
-          }
-        ]
-      });
-    },
-    onSuccess: (result) => {
-      setPendingAiEdit({ label: 'AI-drafted description', before: editorContent, after: result.content });
-      toast.success('Description ready — review the diff');
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Unable to generate description');
-    }
-  });
-
-  const forkAndFixDescription = useMutation({
-    mutationFn: async (mode: 'heading' | 'ai') => {
-      if (!selected) {
-        throw new Error('No asset selected');
-      }
-      const forked = await libraryApi.forkSkill({ name: selected.name });
-
-      const content =
-        mode === 'heading'
-          ? ensureExplicitDescription(forked.content, forked.name)
-          : await (async () => {
-              const result = await aiSettingsApi.improveAsset({
-                kind: forked.kind,
-                name: forked.name,
-                content: forked.content,
-                summary: 'Asset is missing a frontmatter description required by some editors.',
-                findings: [
-                  {
-                    severity: 'high',
-                    title: 'Missing description',
-                    detail:
-                      'Add a concise frontmatter `description` summarizing what this asset does and when to use it.'
-                  }
-                ]
-              });
-              return result.content;
-            })();
-
-      return { forked, content };
-    },
-    onSuccess: ({ forked, content }) => {
-      queryClient.setQueryData(['library', 'detail', forked.kind, forked.name], { ...forked, content });
-      setSelected({ kind: forked.kind, name: forked.name });
-      void queryClient.invalidateQueries({ queryKey: ['library'] });
-      void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success(`Forked to skills/${forked.name} — description drafted, review and save`);
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Unable to fork and fix description');
     }
   });
 
