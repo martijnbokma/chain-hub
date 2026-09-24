@@ -61,6 +61,29 @@ describe("renameAsset with a non-normalized current name", () => {
   });
 });
 
+describe("learning skill slugs", () => {
+  it("normalizes slugs so differently typed names reach the same skill", async () => {
+    const hub = await makeTmpHub();
+    await captureEvent(hub, { type: "correction", skill: "PDF-Tool", summary: "Misses encrypted files" });
+    await captureEvent(hub, { type: "failure", skill: "pdf tool", summary: "Crashed on scans" });
+    // Written by an older version, before slugs were normalized.
+    await fs.appendFile(
+      path.join(hub, "memory", "learnings", "events.jsonl"),
+      JSON.stringify({ id: "old", type: "note", skill: "Pdf_Tool", summary: "Old note", capturedAt: "2026-01-01T00:00:00.000Z" }) + "\n",
+      "utf8"
+    );
+
+    expect((await getSkillLearnings(hub, "pdf-tool")).map((event) => event.summary).sort()).toEqual([
+      "Crashed on scans",
+      "Misses encrypted files",
+      "Old note"
+    ]);
+    const report = await buildReflectionReport(hub);
+    expect(report.skills.map((skill) => skill.skill)).toEqual(["pdf-tool"]);
+    expect(report.skills[0]?.totalEvents).toBe(3);
+  });
+});
+
 describe("initializeHub", () => {
   it("seeds a welcome skill that passes the editor compat checks", async () => {
     const hub = await makeTmpHub();

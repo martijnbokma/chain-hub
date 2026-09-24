@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 
 import {
   captureEventSchema,
+  normalizeSkillName,
   type CaptureEvent,
   type CaptureInput,
   type LearningsTimeline,
@@ -12,6 +13,14 @@ import {
 
 import { initializeHub, resolveChainHome } from "./core.js";
 import { ensureDir, pathExists } from "./shared.js";
+
+/**
+ * Events are keyed by skill slug, typed by hand or by an agent ("PDF-Tool", "pdf tool").
+ * Compare normalized slugs so they all reach the audit and reflection of skills/pdf-tool.
+ */
+function skillKey(skill: string): string {
+  return normalizeSkillName(skill) || skill.trim();
+}
 
 function learningsLogPath(chainHome: string): string {
   return path.join(chainHome, "memory", "learnings", "events.jsonl");
@@ -27,7 +36,7 @@ export async function captureEvent(chainHomeInput: string | undefined, input: Ca
   const event: CaptureEvent = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     type: input.type,
-    skill: input.skill,
+    skill: skillKey(input.skill),
     summary: input.summary,
     capturedAt: new Date().toISOString()
   };
@@ -109,7 +118,7 @@ export async function getSkillLearnings(
   const { events } = await readLearningsLog(chainHome);
 
   return events
-    .filter((event) => event.skill === skill && SKILL_FEEDBACK_TYPES.has(event.type))
+    .filter((event) => skillKey(event.skill) === skillKey(skill) && SKILL_FEEDBACK_TYPES.has(event.type))
     .slice(0, limit);
 }
 
@@ -121,9 +130,10 @@ export async function buildReflectionReport(chainHomeInput: string | undefined):
   const bySkill = new Map<string, CaptureEvent[]>();
 
   for (const event of allEvents) {
-    const list = bySkill.get(event.skill) ?? [];
+    const key = skillKey(event.skill);
+    const list = bySkill.get(key) ?? [];
     list.push(event);
-    bySkill.set(event.skill, list);
+    bySkill.set(key, list);
   }
 
   const skills: SkillReflection[] = [];
