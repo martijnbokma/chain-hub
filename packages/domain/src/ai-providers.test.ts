@@ -139,6 +139,20 @@ describe("generateAssetDraft", () => {
     });
   });
 
+  it("maps cloud provider network failures to a readable 502", async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new TypeError("fetch failed");
+    }) as typeof fetch;
+
+    await expect(
+      generateAssetDraft({
+        config: config("openai"),
+        secrets: { version: 1, openaiApiKey: "sk-test" },
+        input: { intent: "Anything", kind: "prompts" }
+      })
+    ).rejects.toMatchObject({ name: "AiProviderError", status: 502, message: expect.stringMatching(/Could not reach OpenAI/) });
+  });
+
   it("maps provider timeouts to a 504 AiProviderError", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new DOMException("The operation was aborted due to timeout", "TimeoutError");

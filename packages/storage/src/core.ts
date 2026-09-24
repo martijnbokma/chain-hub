@@ -5,16 +5,19 @@ import { promises as fs } from "node:fs";
 
 import {
   assertSafeRelativeSkillPath,
-  assetKinds,
   assertWritableAssetContent,
-  ensureExplicitDescription,
-  extractAssetAuthor,
-  isUpstreamOwnedSkill,
-  listAssetCompatIssues,
   type AssetDetail,
   type AssetKind,
+  assetKinds,
   type AssetRecord,
+  ConflictError,
   type CreateAssetInput,
+  ensureExplicitDescription,
+  extractAssetAuthor,
+  InvalidInputError,
+  isUpstreamOwnedSkill,
+  listAssetCompatIssues,
+  NotFoundError,
   type SkillFileContent,
   type SkillFileEntry,
   type ValidationResult
@@ -67,7 +70,7 @@ function normalizeAssetName(name: string): string {
 
 export function assertSafeAssetName(name: string): string {
   if (!name || typeof name !== "string") {
-    throw new Error("Asset name cannot be empty");
+    throw new InvalidInputError("Asset name cannot be empty");
   }
   const trimmed = name.trim();
   if (
@@ -77,7 +80,7 @@ export function assertSafeAssetName(name: string): string {
     trimmed.includes("\\") ||
     trimmed.includes("\0")
   ) {
-    throw new Error(`Invalid asset name: "${name}". Path traversal characters are not allowed.`);
+    throw new InvalidInputError(`Invalid asset name: "${name}". Path traversal characters are not allowed.`);
   }
   return trimmed;
 }
@@ -85,7 +88,7 @@ export function assertSafeAssetName(name: string): string {
 export function assertSafeAssetKind(kind: string): AssetKind {
   // Route params and CLI flags arrive as plain strings; an unknown kind like ".." would escape the hub.
   if (!(assetKinds as readonly string[]).includes(kind)) {
-    throw new Error(`Invalid asset kind: "${kind}". Expected one of: ${assetKinds.join(", ")}.`);
+    throw new InvalidInputError(`Invalid asset kind: "${kind}". Expected one of: ${assetKinds.join(", ")}.`);
   }
   return kind as AssetKind;
 }
@@ -100,7 +103,7 @@ export function assetFilePath(chainHome: string, kind: AssetKind, name: string):
       : path.resolve(resolvedKindDir, `${safeName}.md`);
 
   if (!target.startsWith(resolvedKindDir + path.sep)) {
-    throw new Error(`Unsafe asset path for ${kind}/${name}`);
+    throw new InvalidInputError(`Unsafe asset path for ${kind}/${name}`);
   }
 
   return target;
@@ -381,7 +384,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
 
   const filePath = assetFilePath(chainHome, kind, name);
   if (!(await pathExists(filePath))) {
-    throw new Error(`Asset not found: ${kind}/${name}`);
+    throw new NotFoundError(`Asset not found: ${kind}/${name}`);
   }
   const content = await fs.readFile(filePath, "utf8");
   const stats = await fs.stat(filePath);
@@ -425,7 +428,7 @@ export async function listSkillFiles(chainHomeInput: string | undefined, name: s
   const skillDir = path.dirname(assetFilePath(chainHome, "skills", name));
 
   if (!(await pathExists(skillDir))) {
-    throw new Error(`Asset not found: skills/${name}`);
+    throw new NotFoundError(`Asset not found: skills/${name}`);
   }
 
   const results: SkillFileEntry[] = [];
@@ -447,22 +450,22 @@ export async function readSkillFile(
   const resolvedTarget = path.resolve(skillDir, safeRelative);
 
   if (resolvedTarget !== resolvedSkillDir && !resolvedTarget.startsWith(resolvedSkillDir + path.sep)) {
-    throw new Error(`Unsafe skill file path: ${relativePath}`);
+    throw new InvalidInputError(`Unsafe skill file path: ${relativePath}`);
   }
 
   // Lexical checks don't see symlinks: resolve both sides and refuse anything that lands outside.
   const realSkillDir = await fs.realpath(resolvedSkillDir);
   const realTarget = await fs.realpath(resolvedTarget).catch(() => null);
   if (!realTarget) {
-    throw new Error(`Skill file not found: ${relativePath}`);
+    throw new NotFoundError(`Skill file not found: ${relativePath}`);
   }
   if (!realTarget.startsWith(realSkillDir + path.sep)) {
-    throw new Error(`Unsafe skill file path: ${relativePath}`);
+    throw new InvalidInputError(`Unsafe skill file path: ${relativePath}`);
   }
 
   const stats = await fs.stat(realTarget);
   if (!stats.isFile()) {
-    throw new Error(`Not a file: ${relativePath}`);
+    throw new InvalidInputError(`Not a file: ${relativePath}`);
   }
 
   const truncated = stats.size > MAX_SKILL_FILE_READ_BYTES;
@@ -484,7 +487,7 @@ export async function createAsset(chainHomeInput: string | undefined, input: Cre
   const name = normalizeAssetName(input.name);
 
   if (!name) {
-    throw new Error("Asset name cannot be empty");
+    throw new InvalidInputError("Asset name cannot be empty");
   }
 
   const content = prepareAssetContent(input.kind, name, input.content);
@@ -492,7 +495,7 @@ export async function createAsset(chainHomeInput: string | undefined, input: Cre
   await ensureDir(path.dirname(filePath));
 
   if (await pathExists(filePath)) {
-    throw new Error(`Asset already exists: ${input.kind}/${name}`);
+    throw new ConflictError(`Asset already exists: ${input.kind}/${name}`);
   }
 
   await fs.writeFile(filePath, content, "utf8");
@@ -513,13 +516,13 @@ export async function updateAsset(
   const filePath = assetFilePath(chainHome, kind, name);
 
   if (!(await pathExists(filePath))) {
-    throw new Error(`Asset not found: ${kind}/${name}`);
+    throw new NotFoundError(`Asset not found: ${kind}/${name}`);
   }
 
   if (kind === "skills") {
     const provenance = (await readSkillsLock(chainHome)).skills[name] ?? null;
     if (isUpstreamOwnedSkill(provenance)) {
-      throw new Error(
+      throw new ConflictError(
         `Skill skills/${name} is upstream-owned. Fork it to customize, or edits will be lost on update.`
       );
     }
@@ -568,15 +571,15 @@ export async function renameAsset(
   const toName = normalizeAssetName(nextNameInput);
 
   if (!fromName) {
-    throw new Error("Asset name cannot be empty");
+    throw new InvalidInputError("Asset name cannot be empty");
   }
   if (!toName) {
-    throw new Error("New asset name cannot be empty");
+    throw new InvalidInputError("New asset name cannot be empty");
   }
 
   const fromPath = assetFilePath(chainHome, kind, fromName);
   if (!(await pathExists(fromPath))) {
-    throw new Error(`Asset not found: ${kind}/${fromName}`);
+    throw new NotFoundError(`Asset not found: ${kind}/${fromName}`);
   }
 
   if (fromName === toName) {
@@ -585,13 +588,13 @@ export async function renameAsset(
 
   const toPath = assetFilePath(chainHome, kind, toName);
   if (await pathExists(toPath)) {
-    throw new Error(`Asset already exists: ${kind}/${toName}`);
+    throw new ConflictError(`Asset already exists: ${kind}/${toName}`);
   }
 
   if (kind === "skills") {
     const provenance = (await readSkillsLock(chainHome)).skills[fromName] ?? null;
     if (isUpstreamOwnedSkill(provenance)) {
-      throw new Error(
+      throw new ConflictError(
         `Skill skills/${fromName} is upstream-owned. Fork it to customize, or edits will be lost on update.`
       );
     }
@@ -624,10 +627,10 @@ export async function convertAssetKind(
   const toName = normalizeAssetName(toNameInput ?? fromNameInput);
 
   if (!fromName) {
-    throw new Error("Asset name cannot be empty");
+    throw new InvalidInputError("Asset name cannot be empty");
   }
   if (!toName) {
-    throw new Error("New asset name cannot be empty");
+    throw new InvalidInputError("New asset name cannot be empty");
   }
   if (fromKind === toKind && fromName === toName) {
     return getAsset(chainHome, fromKind, fromName);
@@ -638,13 +641,13 @@ export async function convertAssetKind(
 
   const fromPath = assetFilePath(chainHome, fromKind, fromName);
   if (!(await pathExists(fromPath))) {
-    throw new Error(`Asset not found: ${fromKind}/${fromName}`);
+    throw new NotFoundError(`Asset not found: ${fromKind}/${fromName}`);
   }
 
   if (fromKind === "skills") {
     const provenance = (await readSkillsLock(chainHome)).skills[fromName] ?? null;
     if (isUpstreamOwnedSkill(provenance)) {
-      throw new Error(
+      throw new ConflictError(
         `Skill skills/${fromName} is upstream-owned. Fork it to customize, then convert the fork.`
       );
     }
@@ -652,7 +655,7 @@ export async function convertAssetKind(
 
   const toPath = assetFilePath(chainHome, toKind, toName);
   if (await pathExists(toPath)) {
-    throw new Error(`Asset already exists: ${toKind}/${toName}`);
+    throw new ConflictError(`Asset already exists: ${toKind}/${toName}`);
   }
 
   const content = await fs.readFile(fromPath, "utf8");

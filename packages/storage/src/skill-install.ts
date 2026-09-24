@@ -6,21 +6,24 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import {
-  assertSafeRelativeSkillPath,
-  isUpstreamOwnedSkill,
-  normalizeSkillName,
-  subdirFromSkillPath,
   type AgentsSkillsDrift,
+  assertSafeRelativeSkillPath,
   type AssetDetail,
+  ConflictError,
   type ForkSkillInput,
   type InstallSkillBundleInput,
   type InstallSkillInput,
   type InstallSkillResult,
+  InvalidInputError,
+  isUpstreamOwnedSkill,
   type MigrateAgentsSkillsInput,
   type MigrateAgentsSkillsResult,
+  normalizeSkillName,
+  NotFoundError,
   type SkillBatchItemResult,
   type SkillLockEntry,
   type SkillsLockFile,
+  subdirFromSkillPath,
   type UpdateSkillsInput,
   type UpdateSkillsResult
 } from "@chain-hub/contracts";
@@ -97,7 +100,7 @@ export async function renameSkillLockEntry(
     return;
   }
   if (lockFile.skills[toName]) {
-    throw new Error(`Skill lock already has an entry for ${toName}`);
+    throw new ConflictError(`Skill lock already has an entry for ${toName}`);
   }
   delete lockFile.skills[fromName];
   lockFile.skills[toName] = entry;
@@ -122,12 +125,12 @@ async function hashSkillMarkdown(filePath: string): Promise<string> {
 async function assertSkillSource(sourceDir: string): Promise<void> {
   const skillMd = path.join(sourceDir, "SKILL.md");
   if (!(await pathExists(skillMd))) {
-    throw new Error(`No SKILL.md found in ${sourceDir}`);
+    throw new InvalidInputError(`No SKILL.md found in ${sourceDir}`);
   }
 
   const stats = await fs.stat(sourceDir);
   if (!stats.isDirectory()) {
-    throw new Error(`Skill source must be a directory: ${sourceDir}`);
+    throw new InvalidInputError(`Skill source must be a directory: ${sourceDir}`);
   }
 }
 
@@ -204,7 +207,7 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
   } catch (error) {
     await fs.rm(cleanupDir, { recursive: true, force: true });
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to clone skill repo ${repo}: ${message}`);
+    throw new InvalidInputError(`Failed to clone skill repo ${repo}: ${message}`);
   }
 
   const candidates: string[] = [];
@@ -228,7 +231,7 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
   }
 
   await fs.rm(cleanupDir, { recursive: true, force: true });
-  throw new Error(
+  throw new InvalidInputError(
     `No SKILL.md found in cloned repo${subdir ? ` at subdir ${subdir}` : ""}. Pass --subdir to the skill folder.`
   );
 }
@@ -245,7 +248,7 @@ export async function installSkillFromBundle(
   });
 
   if (!hasSkillMd) {
-    throw new Error("Uploaded skill folder must include SKILL.md");
+    throw new InvalidInputError("Uploaded skill folder must include SKILL.md");
   }
 
   const skillMdEntry = input.files.find((file) => {
@@ -261,13 +264,13 @@ export async function installSkillFromBundle(
   const name = normalizeSkillName(input.name ?? inferredName ?? "uploaded-skill");
 
   if (!name) {
-    throw new Error("Skill name cannot be empty");
+    throw new InvalidInputError("Skill name cannot be empty");
   }
 
   const destination = skillDir(chainHome, name);
 
   if ((await pathExists(skillFile(chainHome, name))) && !input.force) {
-    throw new Error(`Skill already exists: skills/${name} (pass force to replace)`);
+    throw new ConflictError(`Skill already exists: skills/${name} (pass force to replace)`);
   }
 
   const stagingDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-upload-"));
@@ -287,7 +290,7 @@ export async function installSkillFromBundle(
       if (onlyDir && (await pathExists(path.join(stagingDir, onlyDir, "SKILL.md")))) {
         sourceDir = path.join(stagingDir, onlyDir);
       } else {
-        throw new Error("Uploaded skill folder must include SKILL.md at the skill root");
+        throw new InvalidInputError("Uploaded skill folder must include SKILL.md at the skill root");
       }
     }
 
@@ -342,20 +345,20 @@ export async function installSkillFromSource(
       source = input.repo;
       await assertSkillSource(sourceDir);
     } else {
-      throw new Error("Provide exactly one of path or repo");
+      throw new InvalidInputError("Provide exactly one of path or repo");
     }
 
     const folderName = path.basename(sourceDir);
     const name = normalizeSkillName(input.name ?? folderName);
 
     if (!name) {
-      throw new Error("Skill name cannot be empty");
+      throw new InvalidInputError("Skill name cannot be empty");
     }
 
     const destination = skillDir(chainHome, name);
 
     if ((await pathExists(skillFile(chainHome, name))) && !input.force) {
-      throw new Error(`Skill already exists: skills/${name} (pass force to replace)`);
+      throw new ConflictError(`Skill already exists: skills/${name} (pass force to replace)`);
     }
 
     await copySkillTree(sourceDir, destination);
@@ -393,31 +396,31 @@ export async function forkSkillFromHub(
 ): Promise<AssetDetail> {
   const sourceName = normalizeSkillName(input.name);
   if (!sourceName) {
-    throw new Error("Skill name cannot be empty");
+    throw new InvalidInputError("Skill name cannot be empty");
   }
 
   if (!(await pathExists(skillFile(chainHome, sourceName)))) {
-    throw new Error(`Skill not found: skills/${sourceName}`);
+    throw new NotFoundError(`Skill not found: skills/${sourceName}`);
   }
 
   const lockFile = await readSkillsLock(chainHome);
   const entry = lockFile.skills[sourceName] ?? null;
 
   if (!isUpstreamOwnedSkill(entry)) {
-    throw new Error(`Skill is not upstream-owned (nothing to fork): ${sourceName}`);
+    throw new ConflictError(`Skill is not upstream-owned (nothing to fork): ${sourceName}`);
   }
 
   const targetName = normalizeSkillName(input.as ?? `${sourceName}-local`);
   if (!targetName) {
-    throw new Error("Fork name cannot be empty");
+    throw new InvalidInputError("Fork name cannot be empty");
   }
 
   if (targetName === sourceName) {
-    throw new Error("Fork name must differ from the upstream skill name");
+    throw new ConflictError("Fork name must differ from the upstream skill name");
   }
 
   if (await pathExists(skillFile(chainHome, targetName))) {
-    throw new Error(`Skill already exists: skills/${targetName}`);
+    throw new ConflictError(`Skill already exists: skills/${targetName}`);
   }
 
   await copySkillTree(skillDir(chainHome, sourceName), skillDir(chainHome, targetName));
@@ -453,7 +456,7 @@ export async function updateSkillsFromLock(
       if (entry.sourceType === "path") {
         const sourceSkillMd = path.join(entry.source, "SKILL.md");
         if (!(await pathExists(sourceSkillMd))) {
-          throw new Error(`Source path missing SKILL.md: ${entry.source}`);
+          throw new NotFoundError(`Source path missing SKILL.md: ${entry.source}`);
         }
 
         const upstreamHash = await hashSkillMarkdown(sourceSkillMd);
@@ -525,7 +528,7 @@ export async function migrateAgentsSkillLock(
   const lockPath = path.resolve(input.lockPath ?? path.join(os.homedir(), ".agents", ".skill-lock.json"));
 
   if (!(await pathExists(lockPath))) {
-    throw new Error(`Agents skill lock not found: ${lockPath}`);
+    throw new NotFoundError(`Agents skill lock not found: ${lockPath}`);
   }
 
   const raw = await fs.readFile(lockPath, "utf8");

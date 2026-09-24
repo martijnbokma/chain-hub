@@ -4,3 +4,4 @@ export * from "./hub.js";
 export * from "./setup.js";
 export * from "./learning.js";
 export * from "./ai.js";
+export * from "./errors.js";

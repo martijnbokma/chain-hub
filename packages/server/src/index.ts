@@ -6,6 +6,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { secureHeaders } from "hono/secure-headers";
 
+import { handleError } from "./http-errors.js";
 import { requestGuard, type RequestGuardOptions } from "./request-guard.js";
 
 import { registerAiRoutes } from "./routes/ai.js";
@@ -37,6 +38,7 @@ export function createServer(options: StartServerOptions = {}) {
     })
   );
   app.use("*", requestGuard(options.requestGuard));
+  app.onError(handleError);
 
   registerHubRoutes(app, routeOptions);
   registerLibraryRoutes(app, routeOptions);

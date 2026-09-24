@@ -439,7 +439,7 @@ async function callAnthropic(params: {
     if (error instanceof Error && error.name === "TimeoutError") {
       throw new AiProviderError("Anthropic request timed out after 60 seconds", 504);
     }
-    throw error;
+    throw new AiProviderError("Could not reach Anthropic. Check your internet connection and try again.", 502);
   }
 
   if (!response.ok) {
@@ -488,7 +488,10 @@ async function callOpenAiCompatible(params: {
     if (error instanceof Error && error.name === "TimeoutError") {
       throw new AiProviderError(`${params.providerLabel} request timed out after 60 seconds`, 504);
     }
-    throw error;
+    throw new AiProviderError(
+      `Could not reach ${params.providerLabel}. Check your internet connection and try again.`,
+      502
+    );
   }
 
   if (!response.ok) {

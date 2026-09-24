@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 
-import { captureInputSchema } from "@chain-hub/contracts";
+import { captureInputSchema, learningsTimelineQuerySchema } from "@chain-hub/contracts";
 import {
   captureHubEvent,
   getHubLearningsTimeline,
@@ -11,8 +11,10 @@ import type { RouteOptions } from "./options.js";
 
 export function registerLearningsRoutes(app: Hono, options: RouteOptions): void {
   app.get("/api/learnings", async (context) => {
-    const limit = context.req.query("limit") ? Number(context.req.query("limit")) : 100;
-    const offset = context.req.query("offset") ? Number(context.req.query("offset")) : 0;
+    const { limit, offset } = learningsTimelineQuerySchema.parse({
+      limit: context.req.query("limit"),
+      offset: context.req.query("offset")
+    });
     const timeline = await getHubLearningsTimeline(options.chainHome, limit, offset);
     return context.json(timeline);
   });

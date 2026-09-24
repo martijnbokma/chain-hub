@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { InvalidInputError } from "./errors.js";
 
 export const assetKinds = ["skills", "agents", "workflows", "rules", "prompts"] as const;
 
 export type AssetKind = (typeof assetKinds)[number];
+
+export const assetKindSchema = z.enum(assetKinds);
 
 export const skillLockSourceTypeSchema = z.enum(["path", "git"]);
 
@@ -194,7 +197,7 @@ export function subdirFromSkillPath(skillPath: string | undefined): string | und
 export function assertSafeRelativeSkillPath(relativePath: string): string {
   const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
   if (!normalized || normalized.includes("..") || normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) {
-    throw new Error(`Unsafe skill file path: ${relativePath}`);
+    throw new InvalidInputError(`Unsafe skill file path: ${relativePath}`);
   }
   return normalized;
 }

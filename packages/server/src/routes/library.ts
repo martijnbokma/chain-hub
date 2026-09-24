@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 
 import {
+  assetKindSchema,
   convertAssetInputSchema,
   createAssetInputSchema,
   forkSkillInputSchema,
@@ -32,13 +33,12 @@ import {
   updateLibrarySkills
 } from "@chain-hub/domain";
 
-import { respondWithMappedError } from "../http-errors.js";
 import type { RouteOptions } from "./options.js";
 
 export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
   app.get("/api/library", async (context) => {
     const kind = context.req.query("kind");
-    const library = await getLibrary(options.chainHome, kind as never);
+    const library = await getLibrary(options.chainHome, kind === undefined ? undefined : assetKindSchema.parse(kind));
     return context.json(library);
   });
 
@@ -75,32 +75,16 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
   });
 
   app.get("/api/library/skills/:name/files", async (context) => {
-    try {
-      const name = context.req.param("name");
-      const files = await getSkillFiles(options.chainHome, name);
-      return context.json({ files });
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid request",
-        unknownFallback: "Unable to list skill files",
-        clientMessagePattern: /not found/i
-      });
-    }
+    const name = context.req.param("name");
+    const files = await getSkillFiles(options.chainHome, name);
+    return context.json({ files });
   });
 
   app.get("/api/library/skills/:name/files/:path{.+}", async (context) => {
-    try {
-      const name = context.req.param("name");
-      const relativePath = context.req.param("path");
-      const file = await getSkillFile(options.chainHome, name, relativePath);
-      return context.json(file);
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid request",
-        unknownFallback: "Unable to read skill file",
-        clientMessagePattern: /not found|unsafe skill file path|not a file/i
-      });
-    }
+    const name = context.req.param("name");
+    const relativePath = context.req.param("path");
+    const file = await getSkillFile(options.chainHome, name, relativePath);
+    return context.json(file);
   });
 
   app.get("/api/library/discover", async (context) => {
@@ -115,97 +99,46 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
   });
 
   app.get("/api/library/:kind/:name", async (context) => {
-    try {
-      const kind = context.req.param("kind") as AssetKind;
-      const name = context.req.param("name");
-      const asset = await getLibraryAsset(options.chainHome, kind, name);
-      return context.json(asset);
-    } catch (error) {
-      if (error instanceof Error && /not found/i.test(error.message)) {
-        return context.json({ error: error.message }, 404);
-      }
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid asset request",
-        unknownFallback: "Asset not found",
-        clientMessagePattern: /invalid asset (name|kind)|unsafe asset path/i
-      });
-    }
+    const kind = context.req.param("kind") as AssetKind;
+    const name = context.req.param("name");
+    const asset = await getLibraryAsset(options.chainHome, kind, name);
+    return context.json(asset);
   });
 
   app.post("/api/library", async (context) => {
-    try {
-      const payload = createAssetInputSchema.parse(await context.req.json());
-      const asset = await createLibraryAsset(options.chainHome, payload);
-      return context.json(asset, 201);
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid asset input",
-        unknownFallback: "Unable to create asset",
-        clientMessagePattern: /already exists|cannot be empty|description is missing|invalid asset (name|kind)|unsafe asset path/i
-      });
-    }
+    const payload = createAssetInputSchema.parse(await context.req.json());
+    const asset = await createLibraryAsset(options.chainHome, payload);
+    return context.json(asset, 201);
   });
 
   app.put("/api/library/:kind/:name", async (context) => {
-    try {
-      const kind = context.req.param("kind") as AssetKind;
-      const name = context.req.param("name");
-      const payload = updateAssetInputSchema.parse(await context.req.json());
-      const asset = await updateLibraryAsset(options.chainHome, kind, name, payload.content);
-      return context.json(asset);
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid asset update",
-        unknownFallback: "Unable to update asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing|invalid asset (name|kind)|unsafe asset path/i
-      });
-    }
+    const kind = context.req.param("kind") as AssetKind;
+    const name = context.req.param("name");
+    const payload = updateAssetInputSchema.parse(await context.req.json());
+    const asset = await updateLibraryAsset(options.chainHome, kind, name, payload.content);
+    return context.json(asset);
   });
 
   app.post("/api/library/:kind/:name/rename", async (context) => {
-    try {
-      const kind = context.req.param("kind") as AssetKind;
-      const name = context.req.param("name");
-      const payload = renameAssetInputSchema.parse(await context.req.json());
-      const asset = await renameLibraryAsset(options.chainHome, kind, name, payload);
-      return context.json(asset);
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid rename input",
-        unknownFallback: "Unable to rename asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing|invalid asset (name|kind)|unsafe asset path/i
-      });
-    }
+    const kind = context.req.param("kind") as AssetKind;
+    const name = context.req.param("name");
+    const payload = renameAssetInputSchema.parse(await context.req.json());
+    const asset = await renameLibraryAsset(options.chainHome, kind, name, payload);
+    return context.json(asset);
   });
 
   app.post("/api/library/:kind/:name/convert", async (context) => {
-    try {
-      const kind = context.req.param("kind") as AssetKind;
-      const name = context.req.param("name");
-      const payload = convertAssetInputSchema.parse(await context.req.json());
-      const asset = await convertLibraryAssetKind(options.chainHome, kind, name, payload);
-      return context.json(asset);
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid convert input",
-        unknownFallback: "Unable to convert asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing|invalid asset (name|kind)|unsafe asset path/i
-      });
-    }
+    const kind = context.req.param("kind") as AssetKind;
+    const name = context.req.param("name");
+    const payload = convertAssetInputSchema.parse(await context.req.json());
+    const asset = await convertLibraryAssetKind(options.chainHome, kind, name, payload);
+    return context.json(asset);
   });
 
   app.delete("/api/library/:kind/:name", async (context) => {
-    try {
-      const kind = context.req.param("kind") as AssetKind;
-      const name = context.req.param("name");
-      await deleteLibraryAsset(options.chainHome, kind, name);
-      return context.json({ ok: true });
-    } catch (error) {
-      return respondWithMappedError(context, error, {
-        zodFallback: "Invalid asset deletion",
-        unknownFallback: "Unable to delete asset",
-        clientMessagePattern: /not found|invalid asset (name|kind)|unsafe asset path/i
-      });
-    }
+    const kind = context.req.param("kind") as AssetKind;
+    const name = context.req.param("name");
+    await deleteLibraryAsset(options.chainHome, kind, name);
+    return context.json({ ok: true });
   });
 }

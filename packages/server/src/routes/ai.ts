@@ -8,7 +8,6 @@ import {
   updateAiSettingsInputSchema
 } from "@chain-hub/contracts";
 import {
-  AiProviderError,
   auditHubAsset,
   classifyHubAsset,
   draftHubAsset,
@@ -18,14 +17,6 @@ import {
 } from "@chain-hub/domain";
 
 import type { RouteOptions } from "./options.js";
-
-function handleAiError(error: unknown): { error: string; status: 400 | 502 | 504 } | null {
-  if (error instanceof AiProviderError) {
-    const status = error.status === 502 || error.status === 504 ? error.status : 400;
-    return { error: error.message, status };
-  }
-  return null;
-}
 
 export function registerAiRoutes(app: Hono, options: RouteOptions): void {
   app.get("/api/settings/ai", async (context) => {
@@ -41,57 +32,25 @@ export function registerAiRoutes(app: Hono, options: RouteOptions): void {
 
   app.post("/api/ai/draft-prompt", async (context) => {
     const payload = draftAssetInputSchema.parse(await context.req.json());
-    try {
-      const result = await draftHubAsset(options.chainHome, payload);
-      return context.json(result);
-    } catch (error) {
-      const mapped = handleAiError(error);
-      if (mapped) {
-        return context.json({ error: mapped.error }, mapped.status);
-      }
-      throw error;
-    }
+    const result = await draftHubAsset(options.chainHome, payload);
+    return context.json(result);
   });
 
   app.post("/api/ai/classify-asset", async (context) => {
     const payload = classifyAssetInputSchema.parse(await context.req.json());
-    try {
-      const result = await classifyHubAsset(options.chainHome, payload);
-      return context.json(result);
-    } catch (error) {
-      const mapped = handleAiError(error);
-      if (mapped) {
-        return context.json({ error: mapped.error }, mapped.status);
-      }
-      throw error;
-    }
+    const result = await classifyHubAsset(options.chainHome, payload);
+    return context.json(result);
   });
 
   app.post("/api/ai/audit-asset", async (context) => {
     const payload = auditAssetInputSchema.parse(await context.req.json());
-    try {
-      const result = await auditHubAsset(options.chainHome, payload);
-      return context.json(result);
-    } catch (error) {
-      const mapped = handleAiError(error);
-      if (mapped) {
-        return context.json({ error: mapped.error }, mapped.status);
-      }
-      throw error;
-    }
+    const result = await auditHubAsset(options.chainHome, payload);
+    return context.json(result);
   });
 
   app.post("/api/ai/improve-asset", async (context) => {
     const payload = improveAssetInputSchema.parse(await context.req.json());
-    try {
-      const result = await improveHubAsset(options.chainHome, payload);
-      return context.json(result);
-    } catch (error) {
-      const mapped = handleAiError(error);
-      if (mapped) {
-        return context.json({ error: mapped.error }, mapped.status);
-      }
-      throw error;
-    }
+    const result = await improveHubAsset(options.chainHome, payload);
+    return context.json(result);
   });
 }

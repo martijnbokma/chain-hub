@@ -1,4 +1,5 @@
 import type { AssetCompatIssue, AssetKind } from "./asset.js";
+import { InvalidInputError } from "./errors.js";
 
 export type FrontmatterValue = string | boolean | string[];
 export type FrontmatterData = Record<string, FrontmatterValue>;
@@ -269,6 +270,6 @@ export function listAssetCompatIssues(kind: AssetKind, content: string): AssetCo
 export function assertWritableAssetContent(kind: AssetKind, content: string): void {
   const blocking = listAssetCompatIssues(kind, content).find((issue) => issue.severity === "error");
   if (blocking) {
-    throw new Error(blocking.message);
+    throw new InvalidInputError(blocking.message);
   }
 }

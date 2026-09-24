@@ -401,3 +401,55 @@ describe("AI settings and draft-prompt", () => {
     expect(data.error).toMatch(/Anthropic API key/i);
   });
 });
+
+describe("Error responses", () => {
+  async function send(app: ReturnType<typeof createServer>, url: string, init?: RequestInit) {
+    const res = await app.request(url, init);
+    return { status: res.status, body: (await res.json()) as { error?: string } };
+  }
+
+  it("maps schema errors to 400 JSON instead of a plain-text 500", async () => {
+    const app = createServer({ chainHome: await makeTmpHub() });
+    const result = await send(app, "/api/library/skills/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toMatch(/exactly one of path or repo/);
+  });
+
+  it("maps malformed JSON to 400", async () => {
+    const app = createServer({ chainHome: await makeTmpHub() });
+    const result = await send(app, "/api/library", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json"
+    });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toMatch(/valid JSON/);
+  });
+
+  it("rejects unknown kinds and invalid paging in query strings", async () => {
+    const app = createServer({ chainHome: await makeTmpHub() });
+    expect((await send(app, "/api/library?kind=bogus")).status).toBe(400);
+    expect((await send(app, "/api/learnings?limit=abc")).status).toBe(400);
+    expect((await send(app, "/api/learnings?limit=5")).status).toBe(200);
+  });
+
+  it("maps name clashes to 409 and missing skill files to 404", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const create = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "rules", name: "twice", content: "# Twice" })
+    };
+    expect((await send(app, "/api/library", create)).status).toBe(201);
+    const clash = await send(app, "/api/library", create);
+    expect(clash.status).toBe(409);
+    expect(clash.body.error).toMatch(/already exists/);
+
+    expect((await send(app, "/api/library/skills/welcome/files/missing.md")).status).toBe(404);
+  });
+});

@@ -73,8 +73,8 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 - TypeScript strict, no `any`. Named exports. ESM `import`/`export` only; use `import.meta.url` for paths.
 - Follow the nearest existing file. Pattern references:
   - Hono route: `packages/server/src/routes/library.ts`
-  - HTTP error mapping: `packages/server/src/http-errors.ts` (`jsonErrorFromUnknown` — Zod issues → 400)
-  - Domain error class: `AiProviderError` in `packages/domain/src/ai-providers.ts`
+  - HTTP error mapping: `packages/server/src/http-errors.ts` (`app.onError` — Zod → 400, `HubError` → its status). Routes just `parse` and throw; no per-route try/catch
+  - Domain errors: throw `InvalidInputError` / `NotFoundError` / `ConflictError` from `packages/contracts/src/errors.ts`; `AiProviderError` in `packages/domain/src/ai-providers.ts`
   - Commander command: `packages/cli/src/index.ts`
   - Editor adapter: `packages/storage/src/adapters/cursor.ts`
   - Page: `apps/hub-web/src/components/pages/LibraryPage.tsx`

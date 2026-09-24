@@ -1,7 +1,16 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 
-import { assetKinds, type AssetDetail, type AssetKind, type DiscoveredAsset, type ImportAssetInput, type Integration } from "@chain-hub/contracts";
+import {
+  type AssetDetail,
+  type AssetKind,
+  assetKinds,
+  type DiscoveredAsset,
+  type ImportAssetInput,
+  type Integration,
+  InvalidInputError,
+  NotFoundError
+} from "@chain-hub/contracts";
 
 import { createAsset, getAsset, initializeHub, listAssets, resolveChainHome } from "./core.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
@@ -190,14 +199,14 @@ export async function importDiscoveredAsset(chainHomeInput: string | undefined, 
   const adapter = EDITOR_ADAPTERS.find((candidate) => candidate.id === input.editorId);
 
   if (!adapter) {
-    throw new Error(`Unknown editor: ${input.editorId}`);
+    throw new InvalidInputError(`Unknown editor: ${input.editorId}`);
   }
 
   const candidates = await adapter.discover(resolveHomeDir());
   const match = candidates.find((candidate) => candidate.kind === input.kind && candidate.name === input.name);
 
   if (!match) {
-    throw new Error(`No importable ${input.kind}/${input.name} found for ${input.editorId}`);
+    throw new NotFoundError(`No importable ${input.kind}/${input.name} found for ${input.editorId}`);
   }
 
   const asset = await createAsset(chainHome, { kind: match.kind, name: match.name, content: match.content });

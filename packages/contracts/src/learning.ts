@@ -10,6 +10,11 @@ export const captureEventSchema = z.object({
   capturedAt: z.string()
 });
 
+export const learningsTimelineQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(1000).default(100),
+  offset: z.coerce.number().int().min(0).default(0)
+});
+
 export const captureInputSchema = z.object({
   type: captureEventTypeSchema,
   skill: z.string().min(1),

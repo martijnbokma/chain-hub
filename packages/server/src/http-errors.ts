@@ -1,7 +1,11 @@
 import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
+
+import { HubError } from "@chain-hub/contracts";
+import { AiProviderError } from "@chain-hub/domain";
 
 type IssueCarrier = {
-  issues: Array<{ message: string }>;
+  issues: Array<{ message: string; path?: Array<string | number> }>;
 };
 
 function hasZodIssues(error: unknown): error is IssueCarrier {
@@ -13,54 +17,52 @@ function hasZodIssues(error: unknown): error is IssueCarrier {
   );
 }
 
-/** Map Zod-like issue bags to a single user-facing message, or null if not applicable. */
-export function messageFromZodIssues(error: unknown, fallback: string): string | null {
-  if (!hasZodIssues(error)) {
-    return null;
-  }
-
-  return error.issues.map((issue) => issue.message).join("; ") || fallback;
+function messageFromZodIssues(error: IssueCarrier): string {
+  const messages = error.issues.map((issue) =>
+    issue.path && issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message
+  );
+  return messages.join("; ") || "Invalid request";
 }
 
-export type JsonErrorResult = {
+export type ErrorResponse = {
   error: string;
-  status: 400 | 500;
+  status: 400 | 404 | 409 | 500 | 502 | 504;
 };
 
 /**
- * Shared create/rename-style error mapping: Zod issues → 400, known Error messages → 400/500.
+ * Single mapping from thrown errors to JSON responses:
+ * Zod issues and malformed JSON → 400, typed hub errors → their status,
+ * AI provider errors → their status, anything else → a generic 500.
  */
-export function jsonErrorFromUnknown(
-  error: unknown,
-  options: {
-    zodFallback: string;
-    unknownFallback: string;
-    clientMessagePattern?: RegExp;
-  }
-): JsonErrorResult {
-  const zodMessage = messageFromZodIssues(error, options.zodFallback);
-  if (zodMessage !== null) {
-    return { error: zodMessage, status: 400 };
+export function toErrorResponse(error: unknown): ErrorResponse {
+  if (hasZodIssues(error)) {
+    return { error: messageFromZodIssues(error), status: 400 };
   }
 
-  if (error instanceof Error) {
-    const pattern = options.clientMessagePattern ?? /already exists|cannot be empty/i;
-    const status = pattern.test(error.message) ? 400 : 500;
+  if (error instanceof SyntaxError) {
+    return { error: "Request body must be valid JSON", status: 400 };
+  }
+
+  if (error instanceof HubError) {
+    return { error: error.message, status: error.status };
+  }
+
+  if (error instanceof AiProviderError) {
+    const status = error.status === 502 || error.status === 504 ? error.status : 400;
     return { error: error.message, status };
   }
 
-  return { error: options.unknownFallback, status: 500 };
+  return { error: "Something went wrong in the hub. Check the server log for details.", status: 500 };
 }
 
-export function respondWithMappedError(
-  context: Context,
-  error: unknown,
-  options: {
-    zodFallback: string;
-    unknownFallback: string;
-    clientMessagePattern?: RegExp;
+export function handleError(error: unknown, context: Context) {
+  if (error instanceof HTTPException) {
+    return error.getResponse();
   }
-) {
-  const mapped = jsonErrorFromUnknown(error, options);
+
+  const mapped = toErrorResponse(error);
+  if (mapped.status === 500) {
+    console.error("[chain-hub] unhandled error:", error);
+  }
   return context.json({ error: mapped.error }, mapped.status);
 }
