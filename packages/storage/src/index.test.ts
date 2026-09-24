@@ -4,6 +4,8 @@ import path from "node:path";
 import type { AssetKind } from "@chain-hub/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { zedConfigDir } from "./adapters/zed.js";
+
 import {
   buildReflectionReport,
   captureEvent,
@@ -519,7 +521,7 @@ describe("discoverAssets + importDiscoveredAsset", () => {
     const asset = await createAsset(hub, { kind: "skills", name: "twin", content: "# Twin\n\nHub body." });
 
     const twinPath = path.join(tmpHome, ".agents", "skills", "twin", "SKILL.md");
-    await fs.mkdir(path.join(tmpHome, ".config", "zed"), { recursive: true });
+    await fs.mkdir(zedConfigDir(tmpHome), { recursive: true });
     await fs.mkdir(path.dirname(twinPath), { recursive: true });
     await fs.writeFile(twinPath, "unmanaged editor copy", "utf8");
 

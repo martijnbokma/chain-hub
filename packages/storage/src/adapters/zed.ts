@@ -20,7 +20,7 @@ import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 // Agents/workflows have no native concept in Zed — intentionally skipped.
 // Rules are a MERGE kind: Zed reads exactly one instruction file per scope
 // (first match of .rules/AGENTS.md/etc.), so all Chain Hub rule assets get
-// concatenated into one marked section of ~/.config/zed/AGENTS.md. Anything the
+// concatenated into one marked section of <Zed config>/AGENTS.md (see zedConfigDir). Anything the
 // user wrote outside that section is left alone.
 const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules"];
 
@@ -32,8 +32,18 @@ function skillPath(homeDir: string, name: string): string {
   return path.join(skillsDir(homeDir), name, "SKILL.md");
 }
 
+/**
+ * Zed's config folder: %APPDATA%\Zed on Windows, ~/.config/zed on macOS and Linux.
+ * Always derived from `homeDir` (never XDG_CONFIG_HOME) so a redirected HOME can't reach the real config.
+ */
+export function zedConfigDir(homeDir: string, platform: NodeJS.Platform = process.platform): string {
+  return platform === "win32"
+    ? path.join(homeDir, "AppData", "Roaming", "Zed")
+    : path.join(homeDir, ".config", "zed");
+}
+
 function rulesFilePath(homeDir: string): string {
-  return path.join(homeDir, ".config", "zed", "AGENTS.md");
+  return path.join(zedConfigDir(homeDir), "AGENTS.md");
 }
 
 function buildSkillContent(asset: AssetDetail): string {

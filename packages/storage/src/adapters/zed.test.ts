@@ -7,7 +7,7 @@ import type { AssetDetail } from "@chain-hub/contracts";
 
 import { parseFrontmatter } from "./frontmatter.js";
 import { HEADER_MARKER } from "./marker.js";
-import { zedAdapter } from "./zed.js";
+import { zedAdapter, zedConfigDir } from "./zed.js";
 
 async function makeTmpHome(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-zed-test-"));
@@ -79,7 +79,7 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 
     await zedAdapter.resync("/chain-home", homeDir, rules);
 
-    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    const filePath = path.join(zedConfigDir(homeDir), "AGENTS.md");
     const content = await fs.readFile(filePath, "utf8");
     expect(content.startsWith("<!-- chain-hub:rules:start -->")).toBe(true);
     expect(content).toContain("## Rule A");
@@ -95,7 +95,7 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 
     await zedAdapter.resync("/chain-home", homeDir, []);
 
-    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    const filePath = path.join(zedConfigDir(homeDir), "AGENTS.md");
     const content = await fs.readFile(filePath, "utf8");
     expect(content).not.toContain("Rule A");
     expect(content).toContain("No rules yet.");
@@ -103,7 +103,7 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 
   it("keeps hand-written text in AGENTS.md and only rewrites the Chain Hub section", async () => {
     const homeDir = await makeTmpHome();
-    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    const filePath = path.join(zedConfigDir(homeDir), "AGENTS.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "# My own instructions\n", "utf8");
 
@@ -123,7 +123,7 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 
   it("replaces a fully generated file from older versions", async () => {
     const homeDir = await makeTmpHome();
-    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    const filePath = path.join(zedConfigDir(homeDir), "AGENTS.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, `${HEADER_MARKER}\n\n# Chain Hub Rules\n\nOld rule\n`, "utf8");
 
@@ -134,7 +134,6 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
     expect(content).not.toContain(HEADER_MARKER);
     expect(content).toContain("New rule");
   });
-
 });
 
 describe("zedAdapter.discover", () => {
@@ -156,7 +155,7 @@ describe("zedAdapter.discover", () => {
 
   it("never returns rules, even a foreign hand-written AGENTS.md", async () => {
     const homeDir = await makeTmpHome();
-    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    const filePath = path.join(zedConfigDir(homeDir), "AGENTS.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "# My own instructions\n\nDo X, then Y.", "utf8");
 
@@ -181,5 +180,13 @@ describe("zedAdapter.status", () => {
     const result = await zedAdapter.status(homeDir);
     expect(result.supportedKinds).toEqual(["skills", "rules"]);
     expect(result.unsupportedKinds).toEqual(["agents", "workflows", "prompts"]);
+  });
+});
+
+describe("zedConfigDir", () => {
+  it("uses the platform's Zed config folder", () => {
+    expect(zedConfigDir("/home/me", "darwin")).toBe(path.join("/home/me", ".config", "zed"));
+    expect(zedConfigDir("C:/Users/me", "win32")).toBe(path.join("C:/Users/me", "AppData", "Roaming", "Zed"));
+    expect(zedConfigDir("/home/me", "linux")).toBe(path.join("/home/me", ".config", "zed"));
   });
 });

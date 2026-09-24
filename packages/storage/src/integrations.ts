@@ -14,6 +14,7 @@ import {
 
 import { createAsset, getAsset, listAssets, loadAllAssetDetails, resolveChainHome } from "./core.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
+import { zedConfigDir } from "./adapters/zed.js";
 import { parseFrontmatter } from "./adapters/frontmatter.js";
 import { copySkillSidecars } from "./skill-install.js";
 import { ensureDir, makeExcerpt, pathExists, resolveHomeDir } from "./shared.js";
@@ -41,11 +42,15 @@ const EDITOR_CONFIG_ROOTS: Record<string, string[]> = {
   cursor: [".cursor"],
   "claude-code": [".claude"],
   windsurf: [".codeium/windsurf", ".windsurf", ".devin"],
-  zed: [".config/zed"],
   antigravity: [".gemini"]
 };
 
 export async function isEditorInstalled(id: string, homeDir: string): Promise<boolean> {
+  if (id === "zed") {
+    // Zed's config folder is platform specific (%APPDATA%\Zed on Windows).
+    return pathExists(zedConfigDir(homeDir));
+  }
+
   for (const root of EDITOR_CONFIG_ROOTS[id] ?? []) {
     if (await pathExists(path.join(homeDir, root))) {
       return true;

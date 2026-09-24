@@ -30,12 +30,12 @@ Remove or rename the conflicting file, then rerun `chain setup`.
 | **Claude Code** | skills, agents, rules | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md`, `~/.claude/rules/<name>.md` |
 | **Cursor** | skills, rules | `~/.cursor/skills/<name>/SKILL.md` | `~/.cursor/rules/<name>.mdc` (`alwaysApply: true`) |
 | **Windsurf** | skills, rules, workflows | `~/.codeium/windsurf/skills/<name>/SKILL.md` | written to `~/.devin/{rules,workflows}/` and/or `~/.windsurf/{rules,workflows}/`, whichever exist (`~/.devin` when neither does) |
-| **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules in one marked section of `~/.config/zed/AGENTS.md`; your own text in that file is kept |
+| **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules in one marked section of `~/.config/zed/AGENTS.md` (`%APPDATA%\Zed\AGENTS.md` on Windows); your own text in that file is kept |
 | **Google Antigravity** | skills, agents, rules | `~/.gemini/config/plugins/chain-hub/skills/<name>/SKILL.md` | one Chain Hub plugin: `agents/<name>.md`, `rules/<name>.md` (`trigger: always_on`) |
 
 Chain Hub only syncs into editors it finds on this machine (their config
 folder exists: `~/.cursor`, `~/.claude`, `~/.codeium/windsurf` / `~/.windsurf`
-/ `~/.devin`, `~/.config/zed`, `~/.gemini`), so it never creates folders for
+/ `~/.devin`, `~/.config/zed` or `%APPDATA%\Zed`, `~/.gemini`), so it never creates folders for
 editors you don't use. Setup counts only those editors.
 
 Projected files keep all of the asset's frontmatter (`allowed-tools`, agent
