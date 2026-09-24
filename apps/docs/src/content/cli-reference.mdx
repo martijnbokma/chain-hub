@@ -14,9 +14,10 @@ description: Every chain command, plus the bun workspace scripts around it.
 | `chain init` | Initialize hub structure |
 | `chain status` | JSON overview of hub state |
 | `chain validate` | Check structural integrity |
-| `chain setup` | Create editor symlinks |
+| `chain setup` | Sync the hub into every installed editor and import new `~/.agents` skills |
 | `chain guide` | Show setup checklist |
-| `chain hub [--port N] [--no-open]` | Start local dashboard (port 2342 default) |
+| `chain hub [--port N] [--no-open]` | Start local dashboard on 127.0.0.1 (port 2342 default) |
+| `chain --version` | Print the installed version |
 
 Every command accepts a global `--chain-home <path>` flag (before the
 subcommand) to target a hub other than `~/.chain-hub` for that one
