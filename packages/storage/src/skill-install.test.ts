@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  deleteAsset,
   forkSkill,
   getAgentsSkillsDrift,
   getAsset,
@@ -130,6 +131,21 @@ describe("installSkill", () => {
     await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
 
     await expect(installSkill(tmpHub, { repo, subdir: "../../etc" })).rejects.toThrow(/Unsafe skill file path/);
+  });
+
+  it("forgets the lock entry when a skill is deleted, so update does not bring it back", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "gone-skill") });
+
+    await deleteAsset(tmpHub, "skills", "gone-skill");
+
+    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "skills-lock.json"), "utf8")) as {
+      skills: Record<string, unknown>;
+    };
+    expect(lock.skills["gone-skill"]).toBeUndefined();
+    const updated = await updateSkills(tmpHub, { force: true });
+    expect(updated.results.find((item) => item.name === "gone-skill")).toBeUndefined();
+    await expect(fs.access(path.join(tmpHub, "skills", "gone-skill"))).rejects.toThrow();
   });
 
   it("installs from an uploaded file bundle", async () => {

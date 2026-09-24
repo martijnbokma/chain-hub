@@ -545,6 +545,9 @@ export async function deleteAsset(chainHomeInput: string | undefined, kind: Asse
 
   if (kind === "skills") {
     await fs.rm(path.dirname(filePath), { recursive: true, force: true });
+    // A leftover lock entry would make `skill update` reinstall the skill and mark a
+    // future skill with the same name as upstream-owned.
+    await removeSkillLockEntry(chainHome, name);
   } else {
     await fs.unlink(filePath);
   }
