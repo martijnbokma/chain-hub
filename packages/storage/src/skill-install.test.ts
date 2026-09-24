@@ -148,6 +148,47 @@ describe("installSkill", () => {
     await expect(fs.access(path.join(tmpHub, "skills", "gone-skill"))).rejects.toThrow();
   });
 
+  it("updates a path skill when only a sidecar file changed", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const source = await writeFixtureSkill(fixtureRoot, "sidecar-skill");
+    await installSkill(tmpHub, { path: source });
+
+    expect((await updateSkills(tmpHub, { name: "sidecar-skill" })).results[0]?.status).toBe("skipped");
+
+    await fs.writeFile(path.join(source, "scripts", "hello.sh"), "#!/bin/sh\necho changed\n", "utf8");
+    expect((await updateSkills(tmpHub, { name: "sidecar-skill" })).results[0]?.status).toBe("updated");
+    expect(await fs.readFile(path.join(tmpHub, "skills", "sidecar-skill", "scripts", "hello.sh"), "utf8")).toContain(
+      "echo changed"
+    );
+  });
+
+  it("skips a git skill whose repo did not change", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    await writeFixtureSkill(repo, "stable-git");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+    await installSkill(tmpHub, { repo, subdir: "stable-git" });
+
+    expect((await updateSkills(tmpHub, { name: "stable-git" })).results[0]?.status).toBe("skipped");
+    expect((await updateSkills(tmpHub, { name: "stable-git", force: true })).results[0]?.status).toBe("updated");
+  });
+
+  it("keeps every lock entry when skills are installed in parallel", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const names = ["par-a", "par-b", "par-c", "par-d", "par-e"];
+    const sources = await Promise.all(names.map((name) => writeFixtureSkill(fixtureRoot, name)));
+
+    await Promise.all(sources.map((source) => installSkill(tmpHub, { path: source })));
+
+    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "skills-lock.json"), "utf8")) as {
+      skills: Record<string, unknown>;
+    };
+    expect(Object.keys(lock.skills).sort()).toEqual(expect.arrayContaining(names));
+  });
+
   it("installs from an uploaded file bundle", async () => {
     const skillMd = "---\nname: browsed-skill\n---\n\n# Browsed\n";
     const result = await installSkillBundle(tmpHub, {

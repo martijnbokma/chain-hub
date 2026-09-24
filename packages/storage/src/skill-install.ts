@@ -87,38 +87,81 @@ async function writeSkillsLock(chainHome: string, lockFile: SkillsLockFile): Pro
   await writeFileAtomic(skillsLockPath(chainHome), `${JSON.stringify(lockFile, null, 2)}\n`);
 }
 
+let lockQueue: Promise<unknown> = Promise.resolve();
+
+/**
+ * Read-modify-write of skills-lock.json, one at a time within this process, so
+ * parallel installs (bulk import, dashboard + CLI server) never drop each other's entries.
+ */
+function mutateSkillsLock<T>(chainHome: string, mutate: (lockFile: SkillsLockFile) => T | Promise<T>): Promise<T> {
+  const run = lockQueue.then(async () => {
+    const lockFile = await readSkillsLock(chainHome);
+    const result = await mutate(lockFile);
+    await writeSkillsLock(chainHome, lockFile);
+    return result;
+  });
+  lockQueue = run.catch(() => undefined);
+  return run;
+}
+
 /** Move a skills.lock entry when a hub skill directory is renamed. */
 export async function renameSkillLockEntry(
   chainHome: string,
   fromName: string,
   toName: string
 ): Promise<void> {
-  const lockFile = await readSkillsLock(chainHome);
-  const entry = lockFile.skills[fromName];
-  if (!entry) {
-    return;
-  }
-  if (lockFile.skills[toName]) {
-    throw new ConflictError(`Skill lock already has an entry for ${toName}`);
-  }
-  delete lockFile.skills[fromName];
-  lockFile.skills[toName] = entry;
-  await writeSkillsLock(chainHome, lockFile);
+  await mutateSkillsLock(chainHome, (lockFile) => {
+    const entry = lockFile.skills[fromName];
+    if (!entry) {
+      return;
+    }
+    if (lockFile.skills[toName]) {
+      throw new ConflictError(`Skill lock already has an entry for ${toName}`);
+    }
+    delete lockFile.skills[fromName];
+    lockFile.skills[toName] = entry;
+  });
 }
 
 /** Drop a skills.lock entry when a skill leaves the skills kind (convert/delete). */
 export async function removeSkillLockEntry(chainHome: string, name: string): Promise<void> {
-  const lockFile = await readSkillsLock(chainHome);
-  if (!lockFile.skills[name]) {
+  if (!(await readSkillsLock(chainHome)).skills[name]) {
     return;
   }
-  delete lockFile.skills[name];
-  await writeSkillsLock(chainHome, lockFile);
+  await mutateSkillsLock(chainHome, (lockFile) => {
+    delete lockFile.skills[name];
+  });
 }
 
-async function hashSkillMarkdown(filePath: string): Promise<string> {
-  const content = await fs.readFile(filePath, "utf8");
-  return createHash("sha1").update(content).digest("hex");
+/**
+ * Hash of every file a skill install would copy (SKILL.md plus scripts/, references/, …),
+ * so an update notices changes outside SKILL.md and skips sources that did not change.
+ */
+async function hashSkillTree(rootDir: string): Promise<string> {
+  const filter = await createSkillCopyFilter(rootDir);
+  const hash = createHash("sha1");
+
+  async function walk(dir: string): Promise<void> {
+    const entries = (await fs.readdir(dir)).sort();
+    for (const name of entries) {
+      const entryPath = path.join(dir, name);
+      if (!(await filter(entryPath))) {
+        continue;
+      }
+      const stats = await fs.stat(entryPath);
+      if (stats.isDirectory()) {
+        await walk(entryPath);
+      } else if (stats.isFile()) {
+        hash.update(path.relative(rootDir, entryPath).split(path.sep).join("/"));
+        hash.update("\0");
+        hash.update(await fs.readFile(entryPath));
+        hash.update("\0");
+      }
+    }
+  }
+
+  await walk(rootDir);
+  return hash.digest("hex");
 }
 
 async function assertSkillSource(sourceDir: string): Promise<void> {
@@ -314,19 +357,19 @@ export async function installSkillFromBundle(
     await copySkillTree(sourceDir, destination);
 
     const now = new Date().toISOString();
-    const lockFile = await readSkillsLock(chainHome);
-    const previous = lockFile.skills[name];
-    const contentHash = await hashSkillMarkdown(skillFile(chainHome, name));
-    const lockEntry: SkillLockEntry = {
-      sourceType: "path",
-      source: `upload://${name}`,
-      subdir: null,
-      contentHash,
-      installedAt: previous?.installedAt ?? now,
-      updatedAt: now
-    };
-    lockFile.skills[name] = lockEntry;
-    await writeSkillsLock(chainHome, lockFile);
+    const contentHash = await hashSkillTree(destination);
+    const lockEntry = await mutateSkillsLock(chainHome, (lockFile) => {
+      const entry: SkillLockEntry = {
+        sourceType: "path",
+        source: `upload://${name}`,
+        subdir: null,
+        contentHash,
+        installedAt: lockFile.skills[name]?.installedAt ?? now,
+        updatedAt: now
+      };
+      lockFile.skills[name] = entry;
+      return entry;
+    });
 
     const asset = await readAsset(chainHome, "skills", name);
     return { asset, lockEntry };
@@ -340,6 +383,17 @@ export async function installSkillFromSource(
   input: InstallSkillInput,
   readAsset: ReadAsset
 ): Promise<InstallSkillResult> {
+  const { unchanged: _unchanged, ...result } = await installSkillFromSourceUnlessUnchanged(chainHome, input, readAsset, null);
+  return result;
+}
+
+/** Installs from a path or git source; with `knownHash`, leaves the hub copy alone when the source still matches it. */
+async function installSkillFromSourceUnlessUnchanged(
+  chainHome: string,
+  input: InstallSkillInput,
+  readAsset: ReadAsset,
+  knownHash: string | null
+): Promise<InstallSkillResult & { unchanged: boolean }> {
   let cleanupDir: string | null = null;
   let sourceDir: string;
   let sourceType: SkillLockEntry["sourceType"];
@@ -376,25 +430,30 @@ export async function installSkillFromSource(
       throw new ConflictError(`Skill already exists: skills/${name} (pass force to replace)`);
     }
 
+    const contentHash = await hashSkillTree(sourceDir);
+    const previousEntry = (await readSkillsLock(chainHome)).skills[name];
+    if (knownHash && contentHash === knownHash && previousEntry) {
+      return { asset: await readAsset(chainHome, "skills", name), lockEntry: previousEntry, unchanged: true };
+    }
+
     await copySkillTree(sourceDir, destination);
 
     const now = new Date().toISOString();
-    const lockFile = await readSkillsLock(chainHome);
-    const previous = lockFile.skills[name];
-    const contentHash = await hashSkillMarkdown(skillFile(chainHome, name));
-    const lockEntry: SkillLockEntry = {
-      sourceType,
-      source,
-      subdir,
-      contentHash,
-      installedAt: previous?.installedAt ?? now,
-      updatedAt: now
-    };
-    lockFile.skills[name] = lockEntry;
-    await writeSkillsLock(chainHome, lockFile);
+    const lockEntry = await mutateSkillsLock(chainHome, (lockFile) => {
+      const entry: SkillLockEntry = {
+        sourceType,
+        source,
+        subdir,
+        contentHash,
+        installedAt: lockFile.skills[name]?.installedAt ?? now,
+        updatedAt: now
+      };
+      lockFile.skills[name] = entry;
+      return entry;
+    });
 
     const asset = await readAsset(chainHome, "skills", name);
-    return { asset, lockEntry };
+    return { asset, lockEntry, unchanged: false };
   } finally {
     if (cleanupDir) {
       await fs.rm(cleanupDir, { recursive: true, force: true });
@@ -439,8 +498,9 @@ export async function forkSkillFromHub(
   await copySkillTree(skillDir(chainHome, sourceName), skillDir(chainHome, targetName));
 
   if (lockFile.skills[targetName]) {
-    delete lockFile.skills[targetName];
-    await writeSkillsLock(chainHome, lockFile);
+    await mutateSkillsLock(chainHome, (current) => {
+      delete current.skills[targetName];
+    });
   }
 
   return readAsset(chainHome, "skills", targetName);
@@ -464,20 +524,11 @@ export async function updateSkillsFromLock(
     }
 
     try {
-      if (entry.sourceType === "path") {
-        const sourceSkillMd = path.join(entry.source, "SKILL.md");
-        if (!(await pathExists(sourceSkillMd))) {
-          throw new NotFoundError(`Source path missing SKILL.md: ${entry.source}`);
-        }
-
-        const upstreamHash = await hashSkillMarkdown(sourceSkillMd);
-        if (!input.force && entry.contentHash && entry.contentHash === upstreamHash) {
-          results.push({ name, status: "skipped", lockEntry: entry });
-          continue;
-        }
+      if (entry.sourceType === "path" && !(await pathExists(path.join(entry.source, "SKILL.md")))) {
+        throw new NotFoundError(`Source path missing SKILL.md: ${entry.source}`);
       }
 
-      const installed = await installSkillFromSource(
+      const installed = await installSkillFromSourceUnlessUnchanged(
         chainHome,
         {
           path: entry.sourceType === "path" ? entry.source : undefined,
@@ -486,10 +537,11 @@ export async function updateSkillsFromLock(
           name,
           force: true
         },
-        readAsset
+        readAsset,
+        input.force ? null : (entry.contentHash ?? null)
       );
 
-      results.push({ name, status: "updated", lockEntry: installed.lockEntry });
+      results.push({ name, status: installed.unchanged ? "skipped" : "updated", lockEntry: installed.lockEntry });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       results.push({ name, status: "failed", error: message });
