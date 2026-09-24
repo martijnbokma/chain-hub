@@ -81,7 +81,7 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 
     const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
     const content = await fs.readFile(filePath, "utf8");
-    expect(content.startsWith(HEADER_MARKER)).toBe(true);
+    expect(content.startsWith("<!-- chain-hub:rules:start -->")).toBe(true);
     expect(content).toContain("## Rule A");
     expect(content).toContain("Body A.");
     expect(content).toContain("## Rule B");
@@ -101,24 +101,40 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
     expect(content).toContain("No rules yet.");
   });
 
-  it("claims a pre-existing AGENTS.md without the chain-hub header marker on resync", async () => {
+  it("keeps hand-written text in AGENTS.md and only rewrites the Chain Hub section", async () => {
     const homeDir = await makeTmpHome();
     const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "# My own instructions\n", "utf8");
 
-    const chainHome = await makeTmpHome();
-    await zedAdapter.resync(chainHome, homeDir, [makeAsset({ kind: "rules", name: "a", content: "Generated" })]);
+    await zedAdapter.resync("/chain-home", homeDir, [makeAsset({ kind: "rules", name: "a", content: "Generated" })]);
+    await zedAdapter.resync("/chain-home", homeDir, [makeAsset({ kind: "rules", name: "a", content: "Regenerated" })]);
 
     const content = await fs.readFile(filePath, "utf8");
-    expect(content.startsWith(HEADER_MARKER)).toBe(true);
-    expect(content).toContain("Generated");
+    expect(content.startsWith("# My own instructions")).toBe(true);
+    expect(content).toContain("Regenerated");
+    expect(content).not.toContain("Generated\n");
+    expect(content.match(/chain-hub:rules:start/g)).toHaveLength(1);
 
-    // The hand-written file is kept under the hub's backups folder.
-    const day = new Date().toISOString().slice(0, 10);
-    const backup = path.join(chainHome, "backups", day, ".config", "zed", "AGENTS.md");
-    expect(await fs.readFile(backup, "utf8")).toBe("# My own instructions\n");
+    // Removing every hub rule drops the section and leaves the user's text as it was.
+    await zedAdapter.resync("/chain-home", homeDir, []);
+    expect(await fs.readFile(filePath, "utf8")).toBe("# My own instructions\n");
   });
+
+  it("replaces a fully generated file from older versions", async () => {
+    const homeDir = await makeTmpHome();
+    const filePath = path.join(homeDir, ".config", "zed", "AGENTS.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, `${HEADER_MARKER}\n\n# Chain Hub Rules\n\nOld rule\n`, "utf8");
+
+    await zedAdapter.resync("/chain-home", homeDir, [makeAsset({ kind: "rules", name: "a", content: "New rule" })]);
+
+    const content = await fs.readFile(filePath, "utf8");
+    expect(content).not.toContain("Old rule");
+    expect(content).not.toContain(HEADER_MARKER);
+    expect(content).toContain("New rule");
+  });
+
 });
 
 describe("zedAdapter.discover", () => {

@@ -1,9 +1,10 @@
+import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
 import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
-import { HEADER_MARKER, projectedFrontmatter } from "./marker.js";
+import { hasHeaderMarker, projectedFrontmatter } from "./marker.js";
 import {
   dirHasAnyFile,
   listSkillCandidates,
@@ -19,7 +20,8 @@ import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 // Agents/workflows have no native concept in Zed — intentionally skipped.
 // Rules are a MERGE kind: Zed reads exactly one instruction file per scope
 // (first match of .rules/AGENTS.md/etc.), so all Chain Hub rule assets get
-// concatenated into a single generated ~/.config/zed/AGENTS.md.
+// concatenated into one marked section of ~/.config/zed/AGENTS.md. Anything the
+// user wrote outside that section is left alone.
 const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules"];
 
 function skillsDir(homeDir: string): string {
@@ -39,29 +41,55 @@ function buildSkillContent(asset: AssetDetail): string {
   return stringifyFrontmatter(projectedFrontmatter(asset, source, { name: true, description }), body);
 }
 
-function buildRulesFileContent(ruleAssets: AssetDetail[]): string {
-  if (ruleAssets.length === 0) {
-    return `${HEADER_MARKER}\n\n# Chain Hub Rules\n\nNo rules yet.\n`;
-  }
+const SECTION_START = "<!-- chain-hub:rules:start -->";
+const SECTION_END = "<!-- chain-hub:rules:end -->";
 
+function buildRulesSection(ruleAssets: AssetDetail[]): string {
   const sections = ruleAssets.map((asset) => {
     const { body, description } = deriveDescription(asset.content, asset.name);
-    return `## ${description}\n\n${body}`;
+    return `## ${description}\n\n${body.trim()}`;
   });
+  const body = sections.length > 0 ? sections.join("\n\n---\n\n") : "No rules yet.";
 
-  return `${HEADER_MARKER}\n\n# Chain Hub Rules\n\n${sections.join("\n\n---\n\n")}\n`;
+  return `${SECTION_START}\n# Chain Hub Rules\n\n${body}\n${SECTION_END}`;
 }
 
-async function rebuildRulesFile(
-  chainHome: string,
-  homeDir: string,
-  ruleAssets: AssetDetail[],
-  options?: { force?: boolean }
-): Promise<void> {
-  await writeManagedFile(rulesFilePath(homeDir), buildRulesFileContent(ruleAssets), "header", {
-    ...options,
-    backup: { chainHome, homeDir }
-  });
+/** Hand-written text around Chain Hub's section, or "" when the whole file is ours. */
+function userContent(existing: string): string {
+  if (hasHeaderMarker(existing)) {
+    // Files from before sections existed were entirely generated.
+    return "";
+  }
+
+  const start = existing.indexOf(SECTION_START);
+  const end = existing.indexOf(SECTION_END);
+  if (start === -1 || end === -1 || end < start) {
+    return existing.trim();
+  }
+
+  const before = existing.slice(0, start).trim();
+  const after = existing.slice(end + SECTION_END.length).trim();
+  return [before, after].filter(Boolean).join("\n\n");
+}
+
+async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[]): Promise<void> {
+  const filePath = rulesFilePath(homeDir);
+  const existing = (await pathExists(filePath)) ? await fs.readFile(filePath, "utf8") : "";
+  const kept = userContent(existing);
+
+  // Don't add an empty Chain Hub section to someone's own instructions.
+  const section = ruleAssets.length === 0 && kept ? "" : buildRulesSection(ruleAssets);
+  const next = [kept, section].filter(Boolean).join("\n\n");
+
+  if (!next) {
+    return;
+  }
+
+  const content = `${next}\n`;
+  if (content !== existing) {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, content, "utf8");
+  }
 }
 
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
@@ -75,7 +103,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
   // with the full rule list instead of calling writeAsset directly. This branch
   // only exists so a single rules asset write can't silently drop the file.
   if (asset.kind === "rules") {
-    await rebuildRulesFile(chainHome, homeDir, [asset], options);
+    await rebuildRulesFile(homeDir, [asset]);
   }
 }
 
@@ -97,13 +125,14 @@ async function resync(chainHome: string, homeDir: string, assets: AssetDetail[])
     await writeAsset(chainHome, homeDir, skill, { force: true });
   }
 
-  await rebuildRulesFile(chainHome, homeDir, rules, { force: true });
+  await rebuildRulesFile(homeDir, rules);
 }
 
 async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
   const rulesFile = rulesFilePath(homeDir);
   const hasSkills = await dirHasAnyFile(skillsDir(homeDir));
-  const hasRules = await pathExists(rulesFile);
+  const rulesContent = (await pathExists(rulesFile)) ? await fs.readFile(rulesFile, "utf8") : "";
+  const hasRules = rulesContent.includes(SECTION_START) || hasHeaderMarker(rulesContent);
   const connected = hasSkills || hasRules;
 
   return {

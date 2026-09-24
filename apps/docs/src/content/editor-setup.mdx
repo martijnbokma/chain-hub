@@ -30,7 +30,7 @@ Remove or rename the conflicting file, then rerun `chain setup`.
 | **Claude Code** | skills, agents, rules | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md`, `~/.claude/rules/<name>.md` |
 | **Cursor** | skills, rules | `~/.cursor/skills/<name>/SKILL.md` | `~/.cursor/rules/<name>.mdc` (`alwaysApply: true`) |
 | **Windsurf** | skills, rules, workflows | `~/.codeium/windsurf/skills/<name>/SKILL.md` | dual-written to `~/.devin/{rules,workflows}/` **and** `~/.windsurf/{rules,workflows}/` |
-| **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules concatenated into one `~/.config/zed/AGENTS.md` |
+| **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules in one marked section of `~/.config/zed/AGENTS.md`; your own text in that file is kept |
 | **Google Antigravity** | skills, agents, rules | `~/.gemini/config/plugins/chain-hub/skills/<name>/SKILL.md` | one Chain Hub plugin: `agents/<name>.md`, `rules/<name>.md` (`trigger: always_on`) |
 
 Chain Hub only syncs into editors it finds on this machine (their config
