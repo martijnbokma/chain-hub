@@ -19,7 +19,7 @@ export const aiProviderSchema = z.enum(aiProviders);
 export type AiProvider = z.infer<typeof aiProviderSchema>;
 
 export const DEFAULT_AI_MODELS = {
-  anthropic: "claude-sonnet-4-5",
+  anthropic: "claude-sonnet-5",
   openai: "gpt-4o-mini",
   mistral: "mistral-small-latest",
   ollama: "llama3.2",

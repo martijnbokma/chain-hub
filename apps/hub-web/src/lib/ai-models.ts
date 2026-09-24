@@ -140,12 +140,13 @@ export const AI_PROVIDER_LINKS: Record<AiProvider, AiProviderLinks> = {
 /** Curated model lists for Settings dropdowns. Values are API model IDs. */
 export const AI_MODEL_OPTIONS: Record<AiProvider, readonly AiModelOption[]> = {
   anthropic: [
-    { id: 'claude-opus-4-5', label: 'Claude Opus 4.5' },
-    { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+    { id: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+    { id: 'claude-opus-5', label: 'Claude Opus 5' },
     { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
-    { id: 'claude-opus-4-1', label: 'Claude Opus 4.1' },
-    { id: 'claude-sonnet-4-0', label: 'Claude Sonnet 4' },
-    { id: 'claude-3-5-haiku-latest', label: 'Claude 3.5 Haiku' }
+    { id: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
+    { id: 'claude-opus-4-8', label: 'Claude Opus 4.8' },
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+    { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' }
   ],
   openai: [
     { id: 'gpt-4.1', label: 'GPT-4.1' },
