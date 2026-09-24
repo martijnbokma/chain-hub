@@ -12,7 +12,7 @@ import {
   NotFoundError
 } from "@chain-hub/contracts";
 
-import { createAsset, getAsset, initializeHub, listAssets, resolveChainHome } from "./core.js";
+import { createAsset, getAsset, listAssets, loadAllAssetDetails, resolveChainHome } from "./core.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
 import { parseFrontmatter } from "./adapters/frontmatter.js";
 import { copySkillSidecars } from "./skill-install.js";
@@ -89,10 +89,7 @@ export async function setupIntegrations(chainHomeInput?: string): Promise<Integr
   const chainHome = resolveChainHome(chainHomeInput);
   const homeDir = resolveHomeDir();
 
-  await initializeHub(chainHome);
-  const assets = await Promise.all(
-    (await listAssets(chainHome)).map((record) => getAsset(chainHome, record.kind, record.name))
-  );
+  const assets = await loadAllAssetDetails(chainHome);
 
   // Run adapters sequentially — parallel resync races when editor paths alias the same
   // directory (e.g. ~/.claude/skills/foo symlinked to ~/.agents/skills/foo).
@@ -134,6 +131,9 @@ export async function syncAssetToEditors(
   const chainHome = resolveChainHome(chainHomeInput);
   const homeDir = resolveHomeDir();
 
+  // Loaded at most once per change and shared by every adapter that merges this kind.
+  let allAssets: Promise<AssetDetail[]> | null = null;
+
   for (const adapter of EDITOR_ADAPTERS) {
     if (!adapter.supportedKinds.includes(kind)) {
       continue;
@@ -143,10 +143,8 @@ export async function syncAssetToEditors(
       if (adapter.mergeKinds.includes(kind)) {
         // Merge kinds rebuild a single generated file from ALL assets, not just the changed kind —
         // fetch the full list so other supported kinds aren't dropped from the rebuild.
-        const assets = await Promise.all(
-          (await listAssets(chainHome)).map((record) => getAsset(chainHome, record.kind, record.name))
-        );
-        await adapter.resync(chainHome, homeDir, assets);
+        allAssets ??= loadAllAssetDetails(chainHome);
+        await adapter.resync(chainHome, homeDir, await allAssets);
         continue;
       }
 

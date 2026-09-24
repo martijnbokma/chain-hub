@@ -46,6 +46,33 @@ afterEach(() => {
 });
 
 describe("initializeHub", () => {
+  it("removes the index files left by versions that used SQLite", async () => {
+    const hub = await makeTmpHub();
+    await fs.mkdir(path.join(hub, "system"), { recursive: true });
+    for (const name of ["chainhub.sqlite", "chainhub.sqlite-wal", "chainhub.sqlite-shm"]) {
+      await fs.writeFile(path.join(hub, "system", name), "legacy", "utf8");
+    }
+
+    await initializeHub(hub);
+
+    expect((await fs.readdir(path.join(hub, "system"))).filter((name) => name.startsWith("chainhub.sqlite"))).toEqual([]);
+  });
+
+  it("lists assets straight from disk and ignores hidden and staging folders", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    for (const dir of ["real-skill", ".hidden", "real-skill.staging-1-2"]) {
+      await fs.mkdir(path.join(hub, "skills", dir), { recursive: true });
+      await fs.writeFile(path.join(hub, "skills", dir, "SKILL.md"), "---\ndescription: X\n---\n# X\n", "utf8");
+    }
+
+    const names = (await listAssets(hub, "skills")).map((asset) => asset.name);
+
+    expect(names).toContain("real-skill");
+    expect(names).not.toContain(".hidden");
+    expect(names).not.toContain("real-skill.staging-1-2");
+  });
+
   it("returns isFirstRun=true on first call", async () => {
     const hub = await makeTmpHub();
     const result = await initializeHub(hub);

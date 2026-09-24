@@ -170,10 +170,9 @@ export function OverviewPage() {
           <h3 className="shrink-0 text-sm font-semibold tracking-tight text-foreground sm:w-28">Storage</h3>
           <div className="grid min-w-0 flex-1 gap-2">
             <p className="text-sm leading-5 text-muted-foreground">
-              Indexed assets{' '}
+              Assets{' '}
               <span className="font-medium tabular-nums text-foreground">{data.storage.indexedAssets}</span>
             </p>
-            <code className="break-all font-mono text-xs text-muted-foreground">{data.storage.databasePath}</code>
           </div>
         </div>
       </div>

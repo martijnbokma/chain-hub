@@ -11,7 +11,7 @@ import type {
   UpdateSkillsResult
 } from "@chain-hub/contracts";
 
-import { getAsset, initializeHub, resolveChainHome, syncAssetIndex } from "./core.js";
+import { getAsset, initializeHub, resolveChainHome } from "./core.js";
 import {
   detectAgentsSkillsDrift,
   forkSkillFromHub,
@@ -28,7 +28,7 @@ export async function installSkill(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  return installSkillFromSource(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+  return installSkillFromSource(chainHome, input, async (home, kind, name) => getAsset(home, kind, name));
 }
 
 export async function installSkillBundle(
@@ -38,7 +38,7 @@ export async function installSkillBundle(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  return installSkillFromBundle(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+  return installSkillFromBundle(chainHome, input, async (home, kind, name) => getAsset(home, kind, name));
 }
 
 export async function updateSkills(
@@ -48,7 +48,7 @@ export async function updateSkills(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  return updateSkillsFromLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+  return updateSkillsFromLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name));
 }
 
 export async function migrateAgentsSkills(
@@ -58,7 +58,7 @@ export async function migrateAgentsSkills(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  return migrateAgentsSkillLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+  return migrateAgentsSkillLock(chainHome, input, async (home, kind, name) => getAsset(home, kind, name));
 }
 
 export async function getAgentsSkillsDrift(
@@ -77,5 +77,5 @@ export async function forkSkill(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  return forkSkillFromHub(chainHome, input, async (home, kind, name) => getAsset(home, kind, name), syncAssetIndex);
+  return forkSkillFromHub(chainHome, input, async (home, kind, name) => getAsset(home, kind, name));
 }

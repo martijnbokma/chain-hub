@@ -1,13 +1,12 @@
 import { assetKinds, type AssetKind, type Overview, type SetupGuide, type SetupStep } from "@chain-hub/contracts";
 
-import { databaseFilePath, initializeHub, listAssets, readMeta, resolveChainHome, syncAssetIndex, validateHub } from "./core.js";
+import { initializeHub, listAssets, readMeta, resolveChainHome, validateHub } from "./core.js";
 import { getIntegrations } from "./integrations.js";
 import { detectAgentsSkillsDrift } from "./skill-install.js";
 
 export async function getOverview(chainHomeInput?: string): Promise<Overview> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
-  await syncAssetIndex(chainHome);
   const meta = await readMeta(chainHome);
   const validation = await validateHub(chainHome);
   const assets = await listAssets(chainHome);
@@ -27,7 +26,6 @@ export async function getOverview(chainHomeInput?: string): Promise<Overview> {
       issues: validation.issues
     },
     storage: {
-      databasePath: databaseFilePath(chainHome),
       indexedAssets: assets.length
     },
     agentsSkillsDrift

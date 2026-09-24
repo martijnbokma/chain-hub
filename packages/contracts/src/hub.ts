@@ -17,7 +17,7 @@ export const overviewSchema = z.object({
     issues: z.array(z.string())
   }),
   storage: z.object({
-    databasePath: z.string(),
+    /** Assets found in the hub folder. */
     indexedAssets: z.number()
   }),
   agentsSkillsDrift: agentsSkillsDriftSchema

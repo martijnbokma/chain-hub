@@ -20,8 +20,7 @@ import {
   migrateAgentsSkillLock,
   resolveChainHome,
   syncAssetToEditors,
-  updateSkillsFromLock,
-  syncAssetIndex
+  updateSkillsFromLock
 } from "@chain-hub/storage";
 
 /**
@@ -43,7 +42,7 @@ export async function installLibrarySkill(
   input: InstallSkillInput
 ): Promise<InstallSkillResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await installSkillFromSource(chainHome, input, readSkillAsset, syncAssetIndex);
+  const result = await installSkillFromSource(chainHome, input, readSkillAsset);
   await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
   return result;
 }
@@ -53,7 +52,7 @@ export async function installLibrarySkillBundle(
   input: InstallSkillBundleInput
 ): Promise<InstallSkillResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await installSkillFromBundle(chainHome, input, readSkillAsset, syncAssetIndex);
+  const result = await installSkillFromBundle(chainHome, input, readSkillAsset);
   await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
   return result;
 }
@@ -63,7 +62,7 @@ export async function updateLibrarySkills(
   input: UpdateSkillsInput = {}
 ): Promise<UpdateSkillsResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await updateSkillsFromLock(chainHome, input, readSkillAsset, syncAssetIndex);
+  const result = await updateSkillsFromLock(chainHome, input, readSkillAsset);
 
   for (const item of result.results) {
     if (item.status !== "updated" && item.status !== "migrated") {
@@ -81,7 +80,7 @@ export async function migrateAgentsLibrarySkills(
   input: MigrateAgentsSkillsInput = {}
 ): Promise<MigrateAgentsSkillsResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await migrateAgentsSkillLock(chainHome, input, readSkillAsset, syncAssetIndex);
+  const result = await migrateAgentsSkillLock(chainHome, input, readSkillAsset);
 
   for (const item of result.results) {
     if (item.status !== "migrated" && item.status !== "updated") {
@@ -125,7 +124,7 @@ export async function forkLibrarySkill(
   input: ForkSkillInput
 ): Promise<AssetDetail> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const asset = await forkSkillFromHub(chainHome, input, readSkillAsset, syncAssetIndex);
+  const asset = await forkSkillFromHub(chainHome, input, readSkillAsset);
   await syncAssetToEditors(chainHome, "skills", asset.name, asset);
   return asset;
 }

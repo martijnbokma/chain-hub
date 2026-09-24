@@ -47,7 +47,6 @@ interface AgentsLockFile {
 }
 
 type ReadAsset = (chainHome: string, kind: "skills", name: string) => Promise<AssetDetail>;
-type SyncIndex = (chainHome: string) => Promise<void>;
 
 function skillsLockPath(chainHome: string): string {
   return path.join(chainHome, "system", "skills-lock.json");
@@ -258,8 +257,7 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
 export async function installSkillFromBundle(
   chainHome: string,
   input: InstallSkillBundleInput,
-  readAsset: ReadAsset,
-  syncIndex: SyncIndex
+  readAsset: ReadAsset
 ): Promise<InstallSkillResult> {
   const hasSkillMd = input.files.some((file) => {
     const normalized = file.path.replace(/\\/g, "/");
@@ -314,7 +312,6 @@ export async function installSkillFromBundle(
     }
 
     await copySkillTree(sourceDir, destination);
-    await syncIndex(chainHome);
 
     const now = new Date().toISOString();
     const lockFile = await readSkillsLock(chainHome);
@@ -341,8 +338,7 @@ export async function installSkillFromBundle(
 export async function installSkillFromSource(
   chainHome: string,
   input: InstallSkillInput,
-  readAsset: ReadAsset,
-  syncIndex: SyncIndex
+  readAsset: ReadAsset
 ): Promise<InstallSkillResult> {
   let cleanupDir: string | null = null;
   let sourceDir: string;
@@ -381,7 +377,6 @@ export async function installSkillFromSource(
     }
 
     await copySkillTree(sourceDir, destination);
-    await syncIndex(chainHome);
 
     const now = new Date().toISOString();
     const lockFile = await readSkillsLock(chainHome);
@@ -410,8 +405,7 @@ export async function installSkillFromSource(
 export async function forkSkillFromHub(
   chainHome: string,
   input: ForkSkillInput,
-  readAsset: ReadAsset,
-  syncIndex: SyncIndex
+  readAsset: ReadAsset
 ): Promise<AssetDetail> {
   const sourceName = normalizeSkillName(input.name);
   if (!sourceName) {
@@ -449,15 +443,13 @@ export async function forkSkillFromHub(
     await writeSkillsLock(chainHome, lockFile);
   }
 
-  await syncIndex(chainHome);
   return readAsset(chainHome, "skills", targetName);
 }
 
 export async function updateSkillsFromLock(
   chainHome: string,
   input: UpdateSkillsInput,
-  readAsset: ReadAsset,
-  syncIndex: SyncIndex
+  readAsset: ReadAsset
 ): Promise<UpdateSkillsResult> {
   const lockFile = await readSkillsLock(chainHome);
   const names = input.name ? [normalizeSkillName(input.name)] : Object.keys(lockFile.skills).sort();
@@ -494,8 +486,7 @@ export async function updateSkillsFromLock(
           name,
           force: true
         },
-        readAsset,
-        syncIndex
+        readAsset
       );
 
       results.push({ name, status: "updated", lockEntry: installed.lockEntry });
@@ -541,8 +532,7 @@ export async function detectAgentsSkillsDrift(
 export async function migrateAgentsSkillLock(
   chainHome: string,
   input: MigrateAgentsSkillsInput,
-  readAsset: ReadAsset,
-  syncIndex: SyncIndex
+  readAsset: ReadAsset
 ): Promise<MigrateAgentsSkillsResult> {
   const lockPath = path.resolve(input.lockPath ?? path.join(os.homedir(), ".agents", ".skill-lock.json"));
 
@@ -583,8 +573,7 @@ export async function migrateAgentsSkillLock(
           name,
           force: Boolean(input.force) || hubSkillExists
         },
-        readAsset,
-        syncIndex
+        readAsset
       );
       results.push({ name, status: "migrated", lockEntry: installed.lockEntry });
     } catch (error) {

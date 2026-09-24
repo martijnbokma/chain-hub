@@ -154,7 +154,7 @@ describe("Contracts schemas", () => {
         initializedAt: "2026-09-23T10:00:00Z",
         assetCounts: { skills: 5, agents: 2, workflows: 1, rules: 3, prompts: 4 },
         health: { initialized: true, issues: [] },
-        storage: { databasePath: "/test/chainhub.sqlite", indexedAssets: 15 },
+        storage: { indexedAssets: 15 },
         agentsSkillsDrift: drift
       });
       expect(overview.health.initialized).toBe(true);

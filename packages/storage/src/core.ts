@@ -1,6 +1,5 @@
 import os from "node:os";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { promises as fs } from "node:fs";
 
 import {
@@ -25,10 +24,6 @@ import {
 
 import { readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
 import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
-
-const require = createRequire(import.meta.url);
-const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
-type DatabaseSyncInstance = import("node:sqlite").DatabaseSync;
 
 function prepareAssetContent(kind: AssetKind, name: string, content: string): string {
   const prepared = kind === "skills" ? ensureExplicitDescription(content, name) : content;
@@ -56,9 +51,8 @@ export function metaFilePath(chainHome: string): string {
   return path.join(chainHome, "system", "meta.json");
 }
 
-export function databaseFilePath(chainHome: string): string {
-  return path.join(chainHome, "system", "chainhub.sqlite");
-}
+/** Index files written by versions that kept a SQLite copy of the asset list. */
+const LEGACY_INDEX_FILES = ["chainhub.sqlite", "chainhub.sqlite-wal", "chainhub.sqlite-shm"];
 
 function normalizeAssetName(name: string): string {
   return name
@@ -111,46 +105,6 @@ export function assetFilePath(chainHome: string, kind: AssetKind, name: string):
 
 function toAssetId(kind: AssetKind, name: string): string {
   return `${kind}:${name}`;
-}
-
-function openDatabase(chainHome: string): DatabaseSyncInstance {
-  const database = new DatabaseSync(databaseFilePath(chainHome));
-
-  database.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA busy_timeout = 2000;
-  `);
-
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS assets (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      relative_path TEXT NOT NULL,
-      file_path TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS assets_kind_name_idx ON assets(kind, name);
-  `);
-
-  return database;
-}
-
-function mapAssetRow(row: {
-  id: string;
-  name: string;
-  kind: AssetKind;
-  relative_path: string;
-  updated_at: string;
-}): AssetRecord {
-  return {
-    id: row.id,
-    name: row.name,
-    kind: row.kind,
-    relativePath: row.relative_path,
-    updatedAt: row.updated_at
-  };
 }
 
 export async function readMeta(chainHome: string): Promise<AppMeta> {
@@ -217,7 +171,11 @@ async function seedLearningsRule(chainHome: string): Promise<void> {
   );
 }
 
-export async function syncAssetIndex(chainHome: string): Promise<void> {
+/**
+ * The hub folder is the source of truth: list assets straight from disk, sorted by kind then name.
+ * One pass over at most a few hundred directory entries — cheaper than keeping an index in sync.
+ */
+export async function scanAssets(chainHome: string): Promise<AssetRecord[]> {
   const discoveredAssets: AssetRecord[] = [];
 
   for (const currentKind of assetKinds) {
@@ -230,6 +188,11 @@ export async function syncAssetIndex(chainHome: string): Promise<void> {
     const entries = await fs.readdir(baseDir, { withFileTypes: true });
 
     for (const entry of entries) {
+      // Hidden entries and in-flight install staging folders are not assets.
+      if (entry.name.startsWith(".") || entry.name.includes(".staging-") || entry.name.includes("..")) {
+        continue;
+      }
+
       if (currentKind === "skills" && entry.isDirectory()) {
         const filePath = assetFilePath(chainHome, currentKind, entry.name);
 
@@ -265,38 +228,9 @@ export async function syncAssetIndex(chainHome: string): Promise<void> {
     }
   }
 
-  const database = openDatabase(chainHome);
-
-  try {
-    const upsert = database.prepare(`
-      INSERT INTO assets (id, name, kind, relative_path, file_path, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        name = excluded.name,
-        kind = excluded.kind,
-        relative_path = excluded.relative_path,
-        file_path = excluded.file_path,
-        updated_at = excluded.updated_at
-    `);
-
-    const seenIds = new Set<string>();
-
-    for (const asset of discoveredAssets) {
-      const filePath = path.join(chainHome, asset.relativePath);
-      upsert.run(asset.id, asset.name, asset.kind, asset.relativePath, filePath, asset.updatedAt);
-      seenIds.add(asset.id);
-    }
-
-    const rows = database.prepare("SELECT id FROM assets").all() as Array<{ id: string }>;
-
-    for (const row of rows) {
-      if (!seenIds.has(row.id)) {
-        database.prepare("DELETE FROM assets WHERE id = ?").run(row.id);
-      }
-    }
-  } finally {
-    database.close();
-  }
+  return discoveredAssets.sort((a, b) =>
+    a.kind === b.kind ? (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) : a.kind < b.kind ? -1 : 1
+  );
 }
 
 export async function initializeHub(chainHomeInput?: string): Promise<{ chainHome: string; isFirstRun: boolean }> {
@@ -318,9 +252,9 @@ export async function initializeHub(chainHomeInput?: string): Promise<{ chainHom
     await writeMeta(chainHome, { initializedAt: new Date().toISOString() });
   }
 
-  const database = openDatabase(chainHome);
-  database.close();
-  await syncAssetIndex(chainHome);
+  for (const fileName of LEGACY_INDEX_FILES) {
+    await fs.rm(path.join(chainHome, "system", fileName), { force: true });
+  }
 
   return { chainHome, isFirstRun };
 }
@@ -328,59 +262,62 @@ export async function initializeHub(chainHomeInput?: string): Promise<{ chainHom
 export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Promise<AssetRecord[]> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
-  await syncAssetIndex(chainHome);
 
-  const database = openDatabase(chainHome);
+  const records = (await scanAssets(chainHome)).filter((record) => !kind || record.kind === kind);
+  const skillsLock = await readSkillsLock(chainHome);
 
-  try {
-    const rows = kind
-      ? (database
-          .prepare(
-            "SELECT id, name, kind, relative_path, updated_at FROM assets WHERE kind = ? ORDER BY kind ASC, name ASC"
-          )
-          .all(kind) as Array<{ id: string; name: string; kind: AssetKind; relative_path: string; updated_at: string }>)
-      : (database
-          .prepare("SELECT id, name, kind, relative_path, updated_at FROM assets ORDER BY kind ASC, name ASC")
-          .all() as Array<{ id: string; name: string; kind: AssetKind; relative_path: string; updated_at: string }>);
+  return await Promise.all(
+    records.map(async (asset) => {
+      const filePath = path.join(chainHome, asset.relativePath);
+      let author: string | null = null;
+      let compatIssues: ReturnType<typeof listAssetCompatIssues> = [];
 
-    const skillsLock = await readSkillsLock(chainHome);
+      try {
+        const content = await fs.readFile(filePath, "utf8");
+        author = extractAssetAuthor(content);
+        compatIssues = listAssetCompatIssues(asset.kind, content);
+      } catch {
+        author = null;
+      }
 
-    return await Promise.all(
-      rows.map(async (row) => {
-        const asset = mapAssetRow(row);
-        const filePath = path.join(chainHome, asset.relativePath);
-        let author: string | null = null;
-        let compatIssues: ReturnType<typeof listAssetCompatIssues> = [];
+      if (asset.kind !== "skills") {
+        return { ...asset, author, compatIssues };
+      }
 
-        try {
-          const content = await fs.readFile(filePath, "utf8");
-          author = extractAssetAuthor(content);
-          compatIssues = listAssetCompatIssues(asset.kind, content);
-        } catch {
-          author = null;
-        }
+      return {
+        ...asset,
+        author,
+        compatIssues,
+        provenance: skillsLock.skills[asset.name] ?? null
+      };
+    })
+  );
+}
 
-        if (asset.kind !== "skills") {
-          return { ...asset, author, compatIssues };
-        }
+/** Every asset with its content, read in one pass — for editor resyncs that need the full set. */
+export async function loadAllAssetDetails(chainHomeInput?: string): Promise<AssetDetail[]> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
 
-        return {
-          ...asset,
-          author,
-          compatIssues,
-          provenance: skillsLock.skills[asset.name] ?? null
-        };
-      })
-    );
-  } finally {
-    database.close();
-  }
+  const skillsLock = await readSkillsLock(chainHome);
+
+  return Promise.all(
+    (await scanAssets(chainHome)).map(async (record) => {
+      const content = await fs.readFile(path.join(chainHome, record.relativePath), "utf8");
+      return {
+        ...record,
+        content,
+        author: extractAssetAuthor(content),
+        compatIssues: listAssetCompatIssues(record.kind, content),
+        provenance: record.kind === "skills" ? (skillsLock.skills[record.name] ?? null) : null
+      };
+    })
+  );
 }
 
 export async function getAsset(chainHomeInput: string | undefined, kind: AssetKind, name: string): Promise<AssetDetail> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
-  await syncAssetIndex(chainHome);
 
   const filePath = assetFilePath(chainHome, kind, name);
   if (!(await pathExists(filePath))) {
@@ -499,7 +436,6 @@ export async function createAsset(chainHomeInput: string | undefined, input: Cre
   }
 
   await fs.writeFile(filePath, content, "utf8");
-  await syncAssetIndex(chainHome);
 
   return getAsset(chainHome, input.kind, name);
 }
@@ -531,7 +467,6 @@ export async function updateAsset(
   const nextContent = prepareAssetContent(kind, name, content);
 
   await fs.writeFile(filePath, nextContent, "utf8");
-  await syncAssetIndex(chainHome);
 
   return getAsset(chainHome, kind, name);
 }
@@ -555,7 +490,6 @@ export async function deleteAsset(chainHomeInput: string | undefined, kind: Asse
     await fs.unlink(filePath);
   }
 
-  await syncAssetIndex(chainHome);
 }
 
 export async function renameAsset(
@@ -605,7 +539,6 @@ export async function renameAsset(
     await fs.rename(fromPath, toPath);
   }
 
-  await syncAssetIndex(chainHome);
   return getAsset(chainHome, kind, toName);
 }
 
@@ -670,14 +603,12 @@ export async function convertAssetKind(
     await fs.unlink(fromPath);
   }
 
-  await syncAssetIndex(chainHome);
   return getAsset(chainHome, toKind, toName);
 }
 
 export async function validateHub(chainHomeInput?: string): Promise<ValidationResult> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
-  await syncAssetIndex(chainHome);
   const issues: string[] = [];
   const checks: ValidationResult["checks"] = [];
 
