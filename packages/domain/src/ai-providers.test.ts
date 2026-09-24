@@ -617,3 +617,45 @@ describe("truncation guards", () => {
     ).rejects.toMatchObject({ name: "AiProviderError", status: 502, message: expect.stringMatching(/cut off/) });
   });
 });
+
+describe("provider routing", () => {
+  it.each([
+    ["openai", "https://api.openai.com/v1/chat/completions", "gpt-4o-mini"],
+    ["mistral", "https://api.mistral.ai/v1/chat/completions", "mistral-small-latest"],
+    ["gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "gemini-2.5-flash"],
+    ["groq", "https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile"],
+    ["openrouter", "https://openrouter.ai/api/v1/chat/completions", "meta-llama/llama-3.3-70b-instruct:free"],
+    ["deepseek", "https://api.deepseek.com/chat/completions", "deepseek-chat"],
+    ["cerebras", "https://api.cerebras.ai/v1/chat/completions", "llama-3.3-70b"]
+  ] as const)("sends %s requests to its endpoint with its key and model", async (provider, endpoint, model) => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      Response.json({ choices: [{ message: { content: "Draft" }, finish_reason: "stop" }] })
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await generateAssetDraft({
+      config: aiConfigSchema.parse({ version: 1, provider }),
+      secrets: { version: 1, [`${provider}ApiKey`]: `key-${provider}` },
+      input: { intent: "Anything", kind: "prompts" }
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    const headers = init?.headers as Record<string, string>;
+    expect(url).toBe(endpoint);
+    expect(headers.Authorization).toBe(`Bearer key-${provider}`);
+    expect(JSON.parse(String(init?.body)).model).toBe(model);
+    if (provider === "openrouter") {
+      expect(headers["X-Title"]).toBe("Chain Hub");
+    }
+  });
+
+  it("names the provider when its key is missing", async () => {
+    await expect(
+      generateAssetDraft({
+        config: aiConfigSchema.parse({ version: 1, provider: "deepseek" }),
+        secrets: { version: 1 },
+        input: { intent: "Anything", kind: "prompts" }
+      })
+    ).rejects.toThrow("DeepSeek API key is not configured. Add it under Settings → AI.");
+  });
+});

@@ -579,6 +579,33 @@ async function callOllama(params: {
   return text;
 }
 
+type CloudProvider = Exclude<AiProvider, "ollama">;
+
+const PROVIDER_LABELS: Record<CloudProvider, string> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  mistral: "Mistral",
+  gemini: "Google Gemini",
+  groq: "Groq",
+  openrouter: "OpenRouter",
+  deepseek: "DeepSeek",
+  cerebras: "Cerebras"
+};
+
+/** Providers that speak the OpenAI chat-completions format. */
+const OPENAI_COMPATIBLE: Record<Exclude<CloudProvider, "anthropic">, { endpoint: string; extraHeaders?: Record<string, string> }> = {
+  openai: { endpoint: "https://api.openai.com/v1/chat/completions" },
+  mistral: { endpoint: "https://api.mistral.ai/v1/chat/completions" },
+  gemini: { endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" },
+  groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions" },
+  openrouter: {
+    endpoint: "https://openrouter.ai/api/v1/chat/completions",
+    extraHeaders: { "HTTP-Referer": "https://chain-hub.dev", "X-Title": "Chain Hub" }
+  },
+  deepseek: { endpoint: "https://api.deepseek.com/chat/completions" },
+  cerebras: { endpoint: "https://api.cerebras.ai/v1/chat/completions" }
+};
+
 async function completeChat(params: {
   config: AiConfig;
   secrets: AiSecrets;
@@ -586,138 +613,25 @@ async function completeChat(params: {
   userMessage: string;
 }): Promise<string> {
   const provider: AiProvider = params.config.provider;
+  const request = { system: params.system, userMessage: params.userMessage };
 
-  switch (provider) {
-    case "anthropic": {
-      const apiKey = params.secrets.anthropicApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError(
-          "Anthropic API key is not configured. Add it under Settings → AI.",
-          400
-        );
-      }
-      return callAnthropic({
-        apiKey,
-        model: params.config.models.anthropic,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "openai": {
-      const apiKey = params.secrets.openaiApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("OpenAI API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "OpenAI",
-        endpoint: "https://api.openai.com/v1/chat/completions",
-        apiKey,
-        model: params.config.models.openai,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "mistral": {
-      const apiKey = params.secrets.mistralApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("Mistral API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "Mistral",
-        endpoint: "https://api.mistral.ai/v1/chat/completions",
-        apiKey,
-        model: params.config.models.mistral,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "ollama": {
-      return callOllama({
-        baseUrl: params.config.ollamaBaseUrl,
-        model: params.config.models.ollama,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "gemini": {
-      const apiKey = params.secrets.geminiApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("Google Gemini API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "Google Gemini",
-        endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        apiKey,
-        model: params.config.models.gemini,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "groq": {
-      const apiKey = params.secrets.groqApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("Groq API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "Groq",
-        endpoint: "https://api.groq.com/openai/v1/chat/completions",
-        apiKey,
-        model: params.config.models.groq,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "openrouter": {
-      const apiKey = params.secrets.openrouterApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("OpenRouter API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "OpenRouter",
-        endpoint: "https://openrouter.ai/api/v1/chat/completions",
-        apiKey,
-        model: params.config.models.openrouter,
-        system: params.system,
-        userMessage: params.userMessage,
-        extraHeaders: {
-          "HTTP-Referer": "https://chain-hub.dev",
-          "X-Title": "Chain Hub"
-        }
-      });
-    }
-    case "deepseek": {
-      const apiKey = params.secrets.deepseekApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("DeepSeek API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "DeepSeek",
-        endpoint: "https://api.deepseek.com/chat/completions",
-        apiKey,
-        model: params.config.models.deepseek,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    case "cerebras": {
-      const apiKey = params.secrets.cerebrasApiKey?.trim();
-      if (!apiKey) {
-        throw new AiProviderError("Cerebras API key is not configured. Add it under Settings → AI.", 400);
-      }
-      return callOpenAiCompatible({
-        providerLabel: "Cerebras",
-        endpoint: "https://api.cerebras.ai/v1/chat/completions",
-        apiKey,
-        model: params.config.models.cerebras,
-        system: params.system,
-        userMessage: params.userMessage
-      });
-    }
-    default: {
-      const _exhaustive: never = provider;
-      throw new AiProviderError(`Unsupported AI provider: ${String(_exhaustive)}`, 400);
-    }
+  if (provider === "ollama") {
+    return callOllama({ baseUrl: params.config.ollamaBaseUrl, model: params.config.models.ollama, ...request });
   }
+
+  const label = PROVIDER_LABELS[provider];
+  const apiKey = params.secrets[`${provider}ApiKey`]?.trim();
+  if (!apiKey) {
+    throw new AiProviderError(`${label} API key is not configured. Add it under Settings → AI.`, 400);
+  }
+
+  const model = params.config.models[provider];
+  if (provider === "anthropic") {
+    return callAnthropic({ apiKey, model, ...request });
+  }
+
+  const { endpoint, extraHeaders } = OPENAI_COMPATIBLE[provider];
+  return callOpenAiCompatible({ providerLabel: label, endpoint, apiKey, model, extraHeaders, ...request });
 }
 
 export async function generateAssetDraft(params: {
