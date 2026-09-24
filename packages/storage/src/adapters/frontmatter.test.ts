@@ -58,7 +58,7 @@ describe("parseFrontmatter", () => {
     expect(result.data.description).toBe(
       "Audits code splitting and lazy-loading. Use when the user asks about bundle size."
     );
-    expect(result.data.author).toBe("Martijn Bokma");
+    expect(result.data.metadata).toEqual({ author: "Martijn Bokma" });
     expect(result.body).toBe("# Bundle Strategy Audit");
   });
 

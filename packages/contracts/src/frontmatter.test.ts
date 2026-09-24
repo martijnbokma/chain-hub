@@ -60,7 +60,7 @@ describe("parseFrontmatter", () => {
     expect(result.data.description).toBe(
       "Audits code splitting and lazy-loading. Use when the user asks about bundle size."
     );
-    expect(result.data.author).toBe("Martijn Bokma");
+    expect(result.data.metadata).toEqual({ author: "Martijn Bokma" });
     expect(result.body).toBe("# Bundle Strategy Audit");
   });
 
@@ -181,5 +181,56 @@ describe("listAssetCompatIssues / assertWritableAssetContent", () => {
 
   it("throws from assertWritableAssetContent for skills missing description", () => {
     expect(() => assertWritableAssetContent("skills", "# Title\n\nBody")).toThrow(/description is missing/i);
+  });
+});
+
+describe("frontmatter round-trip", () => {
+  it.each([
+    ["colons", "Use when: X happens"],
+    ["quotes and hashes", 'Say "hi" and #tag'],
+    ["leading dash", "- starts with dash"],
+    ["yaml keywords", "yes"],
+    ["multi-line", "first line\nsecond line"]
+  ])("keeps %s intact", (_label, description) => {
+    const text = stringifyFrontmatter({ name: "demo", description }, "# Demo\n");
+    expect(parseFrontmatter(text).data.description).toBe(description);
+  });
+
+  it("keeps nested maps and lists", () => {
+    const raw = [
+      "---",
+      "name: demo",
+      "description: Demo",
+      "allowed-tools:",
+      "  - Bash",
+      "  - Read",
+      "metadata:",
+      "  author: someone",
+      "  version: 2",
+      "---",
+      "",
+      "# Demo"
+    ].join("\n");
+
+    const { data, body } = parseFrontmatter(raw);
+    expect(data["allowed-tools"]).toEqual(["Bash", "Read"]);
+    expect(data.metadata).toEqual({ author: "someone", version: 2 });
+
+    const again = parseFrontmatter(stringifyFrontmatter(data, body));
+    expect(again.data).toEqual(data);
+    expect(again.body).toBe("# Demo");
+  });
+
+  it("leaves invalid YAML untouched as body", () => {
+    const raw = "---\nname: [unclosed\n---\n\n# Demo";
+    expect(parseFrontmatter(raw)).toEqual({ data: {}, body: raw });
+  });
+});
+
+describe("extractAssetAuthor", () => {
+  it("reads metadata.author and falls back to a top-level author", () => {
+    expect(extractAssetAuthor("---\nmetadata:\n  author: Nested\n---\n# A")).toBe("Nested");
+    expect(extractAssetAuthor("---\nauthor: Flat\n---\n# A")).toBe("Flat");
+    expect(extractAssetAuthor("# No frontmatter")).toBeNull();
   });
 });

@@ -1,102 +1,22 @@
 import type { AssetCompatIssue, AssetKind } from "./asset.js";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+
 import { InvalidInputError } from "./errors.js";
 
-export type FrontmatterValue = string | boolean | string[];
+export type FrontmatterValue = unknown;
 export type FrontmatterData = Record<string, FrontmatterValue>;
 
 const FENCE = "---";
-/** YAML block scalar indicators we support in skill/rule frontmatter. */
-const BLOCK_SCALAR_RE = /^[|>][+-]?$/;
 
-function stripQuotes(value: string): string {
-  const trimmed = value.trim();
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
-}
-
-function parseScalar(raw: string): FrontmatterValue {
-  const trimmed = raw.trim();
-
-  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-    const inner = trimmed.slice(1, -1).trim();
-    if (!inner) {
-      return [];
-    }
-    return inner.split(",").map((item) => stripQuotes(item.trim()));
-  }
-
-  if (trimmed === "true") return true;
-  if (trimmed === "false") return false;
-
-  return stripQuotes(trimmed);
-}
-
-function isBlockScalarIndicator(raw: string): boolean {
-  return BLOCK_SCALAR_RE.test(raw.trim());
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /**
- * Collect a YAML block scalar (`>`, `>-`, `|`, `|-`, …) from lines after the indicator.
- * Content lines must be indented; a non-indented non-empty line ends the block.
- */
-function readBlockScalar(
-  lines: string[],
-  startIndex: number,
-  indicator: string
-): { value: string; nextIndex: number } {
-  const folded = indicator.trim().startsWith(">");
-  const stripFinalNewline = indicator.trim().endsWith("-");
-  const contentLines: string[] = [];
-  let index = startIndex;
-
-  while (index < lines.length) {
-    const line = lines[index] ?? "";
-
-    if (line.length === 0) {
-      contentLines.push("");
-      index += 1;
-      continue;
-    }
-
-    if (/^\s/.test(line)) {
-      contentLines.push(line.replace(/^\s+/, ""));
-      index += 1;
-      continue;
-    }
-
-    break;
-  }
-
-  while (contentLines.length > 0 && contentLines[contentLines.length - 1] === "") {
-    contentLines.pop();
-  }
-
-  let value: string;
-  if (folded) {
-    value = contentLines
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
-  } else {
-    value = contentLines.join("\n").trimEnd();
-    if (!stripFinalNewline && value.length > 0) {
-      value = `${value}\n`;
-    }
-  }
-
-  return { value, nextIndex: index };
-}
-
-/**
- * Minimal parser for the flat subset of YAML frontmatter that editor rule/skill
- * files actually use (string, boolean, single-level string-array fields, and
- * common block scalars for long `description` values).
- * Intentionally not a general YAML parser — no new dependency for this.
+ * Splits `---` fenced YAML frontmatter from the markdown body and parses it with a
+ * real YAML parser, so nested maps (`metadata.author`), lists (`allowed-tools`),
+ * quoted strings and block scalars survive a round-trip. Content whose fence does
+ * not hold a valid YAML mapping is returned untouched as body.
  */
 export function parseFrontmatter(raw: string): { data: FrontmatterData; body: string } {
   const lines = raw.split("\n");
@@ -111,38 +31,15 @@ export function parseFrontmatter(raw: string): { data: FrontmatterData; body: st
     return { data: {}, body: raw };
   }
 
-  const data: FrontmatterData = {};
-  const frontmatterLines = lines.slice(1, closingIndex);
-  let index = 0;
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(lines.slice(1, closingIndex).join("\n"));
+  } catch {
+    return { data: {}, body: raw };
+  }
 
-  while (index < frontmatterLines.length) {
-    const line = frontmatterLines[index] ?? "";
-    index += 1;
-
-    if (!line.trim() || line.trim().startsWith("#")) {
-      continue;
-    }
-
-    const separatorIndex = line.indexOf(":");
-    if (separatorIndex === -1) {
-      continue;
-    }
-
-    const key = line.slice(0, separatorIndex).trim();
-    const rawValue = line.slice(separatorIndex + 1);
-
-    if (!key) {
-      continue;
-    }
-
-    if (isBlockScalarIndicator(rawValue)) {
-      const block = readBlockScalar(frontmatterLines, index, rawValue.trim());
-      data[key] = block.value;
-      index = block.nextIndex;
-      continue;
-    }
-
-    data[key] = parseScalar(rawValue);
+  if (parsed !== null && parsed !== undefined && !isPlainObject(parsed)) {
+    return { data: {}, body: raw };
   }
 
   const body = lines
@@ -150,39 +47,17 @@ export function parseFrontmatter(raw: string): { data: FrontmatterData; body: st
     .join("\n")
     .replace(/^\n+/, "");
 
-  return { data, body };
-}
-
-function needsQuoting(value: string): boolean {
-  return value.includes(":") || value.includes("#") || value.trim() !== value || value === "";
-}
-
-function formatScalar(value: string): string {
-  return needsQuoting(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+  return { data: parsed ?? {}, body };
 }
 
 export function stringifyFrontmatter(data: FrontmatterData, body: string): string {
-  const keys = Object.keys(data);
-
-  if (keys.length === 0) {
+  if (Object.keys(data).length === 0) {
     return body;
   }
 
-  const lines = keys.map((key) => {
-    const value = data[key];
-
-    if (typeof value === "boolean") {
-      return `${key}: ${value}`;
-    }
-
-    if (Array.isArray(value)) {
-      return `${key}: [${value.map(formatScalar).join(", ")}]`;
-    }
-
-    return `${key}: ${formatScalar(value)}`;
-  });
-
-  return `${FENCE}\n${lines.join("\n")}\n${FENCE}\n\n${body}`;
+  // lineWidth 0: never fold long descriptions onto continuation lines.
+  const yaml = stringifyYaml(data, { lineWidth: 0 }).trimEnd();
+  return `${FENCE}\n${yaml}\n${FENCE}\n\n${body}`;
 }
 
 function extractHeading(body: string, fallback: string): string {
@@ -232,17 +107,16 @@ export function ensureExplicitDescription(content: string, fallbackName: string)
   return stringifyFrontmatter({ ...data, description }, body);
 }
 
-/**
- * Best-effort author from flat frontmatter (`author:`) including nested forms
- * like `metadata:` / `  author:` that the flat parser still surfaces as `author`.
- */
+/** Author from `metadata.author` (Agent Skills spec) or a top-level `author` field. */
 export function extractAssetAuthor(content: string): string | null {
   const { data } = parseFrontmatter(content);
-  if (typeof data.author !== "string") {
+  const metadata = isPlainObject(data.metadata) ? data.metadata : {};
+  const candidate = typeof metadata.author === "string" ? metadata.author : data.author;
+  if (typeof candidate !== "string") {
     return null;
   }
 
-  const author = data.author.trim();
+  const author = candidate.trim();
   return author.length > 0 ? author : null;
 }
 
