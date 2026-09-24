@@ -9,7 +9,8 @@ async function startDevServer(): Promise<void> {
 
   for (let attempt = 1; attempt <= MAX_BIND_ATTEMPTS; attempt += 1) {
     try {
-      await startServer({ port: PORT });
+      // The Vite dev server proxies /api from a loopback origin whose port may float.
+      await startServer({ port: PORT, requestGuard: { allowLoopbackOrigins: true } });
       console.log(`Chain Hub dev server running at http://127.0.0.1:${PORT}`);
       return;
     } catch (error) {

@@ -17,7 +17,6 @@ export default defineConfig({
   server: {
     port: 4320,
     strictPort: false,
-    allowedHosts: ["dev.jewebsite.online"],
     proxy: {
       "/api": {
         target: "http://127.0.0.1:2342",

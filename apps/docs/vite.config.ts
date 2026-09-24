@@ -30,7 +30,6 @@ export default defineConfig({
   },
   server: {
     port: 4323,
-    strictPort: false,
-    allowedHosts: ["dev.jewebsite.online"]
+    strictPort: false
   }
 });
