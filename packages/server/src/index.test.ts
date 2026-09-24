@@ -107,6 +107,56 @@ describe("Library CRUD", () => {
     const list = await getJson<{ name: string }[]>(app, "/api/library?kind=rules");
     expect(list.some((a) => a.name === "del-rule")).toBe(false);
   });
+
+  it("POST /api/library returns 400 for invalid payload", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const res = await app.request("/api/library", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "invalid-kind" })
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /api/library/:kind/:name returns 404 for missing asset", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const res = await app.request("/api/library/skills/non-existent-skill");
+    expect(res.status).toBe(404);
+  });
+
+  it("DELETE /api/library/:kind/:name returns 400 for path traversal", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    const res = await app.request("/api/library/skills/..%2F..%2Fescaped", { method: "DELETE" });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("Cross-origin access", () => {
+  // hub-web reaches the API same-origin (served by this server, or via the Vite /api proxy in dev),
+  // so no origin — not even another localhost port — gets CORS read access.
+  it("sends no CORS headers to other origins, including other localhost ports", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+
+    for (const origin of ["http://localhost:5173", "http://127.0.0.1:3000", "https://evil-site.com"]) {
+      const res = await app.request("/api/overview", { headers: { Origin: origin } });
+      expect(res.headers.get("access-control-allow-origin")).toBeNull();
+    }
+  });
+});
+
+describe("Asset kind validation", () => {
+  it("returns 400 for an unknown asset kind instead of resolving a path", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+
+    const res = await app.request("/api/library/secrets/anything", { method: "DELETE" });
+
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("Learnings", () => {

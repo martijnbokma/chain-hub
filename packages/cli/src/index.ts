@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
+import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Command } from "commander";
 
 import {
@@ -325,21 +326,35 @@ program
       console.log("First run complete — hub structure created.\n");
     }
 
-    const staticRoot = path.resolve(process.cwd(), "apps", "hub-web", "dist");
+    const port = Number(commandOptions.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      console.error(`Invalid port: ${commandOptions.port}. Must be an integer between 1 and 65535.`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const cliDir = path.dirname(fileURLToPath(import.meta.url));
+    const candidatePaths = [
+      path.resolve(cliDir, "../../apps/hub-web/dist"),
+      path.resolve(cliDir, "../apps/hub-web/dist"),
+      path.resolve(process.cwd(), "apps", "hub-web", "dist")
+    ];
+    const staticRoot = candidatePaths.find((candidate) => fs.existsSync(candidate)) ?? candidatePaths[0];
+
     await startServer({
       chainHome,
-      port: Number(commandOptions.port),
+      port,
       staticRoot
     });
 
-    const url = `http://127.0.0.1:${commandOptions.port}`;
+    const url = `http://127.0.0.1:${port}`;
     console.log(`Chain Hub running at ${url}`);
     console.log(`Chain home: ${chainHome}`);
 
     if (commandOptions.open !== false) {
-      const { exec } = await import("node:child_process");
+      const { execFile } = await import("node:child_process");
       const opener = process.platform === "win32" ? "start" : process.platform === "darwin" ? "open" : "xdg-open";
-      exec(`${opener} ${url}`);
+      execFile(opener, [url]);
     }
   });
 

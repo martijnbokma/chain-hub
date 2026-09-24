@@ -12,7 +12,9 @@ export {
   validateHub,
   syncAssetIndex,
   listSkillFiles,
-  readSkillFile
+  readSkillFile,
+  assertSafeAssetKind,
+  assertSafeAssetName
 } from "./core.js";
 
 export {

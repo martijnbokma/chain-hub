@@ -65,12 +65,45 @@ function normalizeAssetName(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function assertSafeAssetName(name: string): string {
+  if (!name || typeof name !== "string") {
+    throw new Error("Asset name cannot be empty");
+  }
+  const trimmed = name.trim();
+  if (
+    trimmed.length === 0 ||
+    trimmed.includes("..") ||
+    trimmed.includes("/") ||
+    trimmed.includes("\\") ||
+    trimmed.includes("\0")
+  ) {
+    throw new Error(`Invalid asset name: "${name}". Path traversal characters are not allowed.`);
+  }
+  return trimmed;
+}
+
+export function assertSafeAssetKind(kind: string): AssetKind {
+  // Route params and CLI flags arrive as plain strings; an unknown kind like ".." would escape the hub.
+  if (!(assetKinds as readonly string[]).includes(kind)) {
+    throw new Error(`Invalid asset kind: "${kind}". Expected one of: ${assetKinds.join(", ")}.`);
+  }
+  return kind as AssetKind;
+}
+
 export function assetFilePath(chainHome: string, kind: AssetKind, name: string): string {
-  if (kind === "skills") {
-    return path.join(chainHome, kind, name, "SKILL.md");
+  assertSafeAssetKind(kind);
+  const safeName = assertSafeAssetName(name);
+  const resolvedKindDir = path.resolve(chainHome, kind);
+  const target =
+    kind === "skills"
+      ? path.resolve(resolvedKindDir, safeName, "SKILL.md")
+      : path.resolve(resolvedKindDir, `${safeName}.md`);
+
+  if (!target.startsWith(resolvedKindDir + path.sep)) {
+    throw new Error(`Unsafe asset path for ${kind}/${name}`);
   }
 
-  return path.join(chainHome, kind, `${name}.md`);
+  return target;
 }
 
 function toAssetId(kind: AssetKind, name: string): string {
@@ -347,6 +380,9 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
   await syncAssetIndex(chainHome);
 
   const filePath = assetFilePath(chainHome, kind, name);
+  if (!(await pathExists(filePath))) {
+    throw new Error(`Asset not found: ${kind}/${name}`);
+  }
   const content = await fs.readFile(filePath, "utf8");
   const stats = await fs.stat(filePath);
   const provenance = kind === "skills" ? ((await readSkillsLock(chainHome)).skills[name] ?? null) : null;

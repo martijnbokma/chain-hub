@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { AssetKind } from "@chain-hub/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +11,7 @@ import {
   convertAssetKind,
   deleteAsset,
   discoverAssets,
+  getAsset,
   getIntegrations,
   getLearningsTimeline,
   getSkillLearnings,
@@ -18,7 +20,9 @@ import {
   listAssets,
   renameAsset,
   setupIntegrations,
-  syncAssetToEditors
+  syncAssetToEditors,
+  assertSafeAssetKind,
+  assertSafeAssetName
 } from "./index.js";
 
 async function makeTmpHub(): Promise<string> {
@@ -455,4 +459,33 @@ describe("discoverAssets + importDiscoveredAsset", () => {
     );
   });
 });
+
+describe("Path containment and assertSafeAssetName", () => {
+  it("rejects path traversal attempts and invalid names", async () => {
+    expect(() => assertSafeAssetName("../escaped")).toThrow(/traversal/i);
+    expect(() => assertSafeAssetName("foo/bar")).toThrow(/traversal/i);
+    expect(() => assertSafeAssetName("foo\\bar")).toThrow(/traversal/i);
+    expect(() => assertSafeAssetName("")).toThrow(/empty/i);
+    expect(assertSafeAssetName("valid-name_123")).toBe("valid-name_123");
+
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    await expect(getAsset(hub, "skills", "../../etc/passwd")).rejects.toThrow(/traversal/i);
+    await expect(deleteAsset(hub, "skills", "../escaped")).rejects.toThrow(/traversal/i);
+  });
+
+  it("rejects unknown asset kinds before resolving a path", async () => {
+    expect(() => assertSafeAssetKind("..")).toThrow(/invalid asset kind/i);
+    expect(() => assertSafeAssetKind("secrets")).toThrow(/invalid asset kind/i);
+    expect(assertSafeAssetKind("rules")).toBe("rules");
+
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    // Cast mimics an unvalidated route param reaching storage.
+    await expect(getAsset(hub, ".." as AssetKind, "passwd")).rejects.toThrow(/invalid asset kind/i);
+  });
+});
+
 

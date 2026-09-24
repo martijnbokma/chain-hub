@@ -115,10 +115,21 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
   });
 
   app.get("/api/library/:kind/:name", async (context) => {
-    const kind = context.req.param("kind") as AssetKind;
-    const name = context.req.param("name");
-    const asset = await getLibraryAsset(options.chainHome, kind, name);
-    return context.json(asset);
+    try {
+      const kind = context.req.param("kind") as AssetKind;
+      const name = context.req.param("name");
+      const asset = await getLibraryAsset(options.chainHome, kind, name);
+      return context.json(asset);
+    } catch (error) {
+      if (error instanceof Error && /not found/i.test(error.message)) {
+        return context.json({ error: error.message }, 404);
+      }
+      return respondWithMappedError(context, error, {
+        zodFallback: "Invalid asset request",
+        unknownFallback: "Asset not found",
+        clientMessagePattern: /invalid asset (name|kind)|unsafe asset path/i
+      });
+    }
   });
 
   app.post("/api/library", async (context) => {
@@ -130,7 +141,7 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid asset input",
         unknownFallback: "Unable to create asset",
-        clientMessagePattern: /already exists|cannot be empty|description is missing/i
+        clientMessagePattern: /already exists|cannot be empty|description is missing|invalid asset (name|kind)|unsafe asset path/i
       });
     }
   });
@@ -146,7 +157,7 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid asset update",
         unknownFallback: "Unable to update asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing/i
+        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing|invalid asset (name|kind)|unsafe asset path/i
       });
     }
   });
@@ -162,7 +173,7 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid rename input",
         unknownFallback: "Unable to rename asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing/i
+        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing|invalid asset (name|kind)|unsafe asset path/i
       });
     }
   });
@@ -178,15 +189,23 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
       return respondWithMappedError(context, error, {
         zodFallback: "Invalid convert input",
         unknownFallback: "Unable to convert asset",
-        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing/i
+        clientMessagePattern: /already exists|cannot be empty|not found|upstream-owned|description is missing|invalid asset (name|kind)|unsafe asset path/i
       });
     }
   });
 
   app.delete("/api/library/:kind/:name", async (context) => {
-    const kind = context.req.param("kind") as AssetKind;
-    const name = context.req.param("name");
-    await deleteLibraryAsset(options.chainHome, kind, name);
-    return context.json({ ok: true });
+    try {
+      const kind = context.req.param("kind") as AssetKind;
+      const name = context.req.param("name");
+      await deleteLibraryAsset(options.chainHome, kind, name);
+      return context.json({ ok: true });
+    } catch (error) {
+      return respondWithMappedError(context, error, {
+        zodFallback: "Invalid asset deletion",
+        unknownFallback: "Unable to delete asset",
+        clientMessagePattern: /not found|invalid asset (name|kind)|unsafe asset path/i
+      });
+    }
   });
 }

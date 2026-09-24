@@ -54,8 +54,16 @@ export const skillFileContentSchema = z.object({
   truncated: z.boolean()
 });
 
+export const assetNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[a-zA-Z0-9_-]+$/, "Asset name may only contain alphanumeric characters, hyphens, and underscores")
+  .refine((name) => !name.includes(".."), "Asset name cannot contain relative path navigation");
+
 export const createAssetInputSchema = z.object({
-  name: z.string().min(1),
+  name: assetNameSchema,
   kind: z.enum(assetKinds),
   content: z.string().min(1)
 });
@@ -65,13 +73,13 @@ export const updateAssetInputSchema = z.object({
 });
 
 export const renameAssetInputSchema = z.object({
-  name: z.string().min(1)
+  name: assetNameSchema
 });
 
 export const convertAssetInputSchema = z.object({
   toKind: z.enum(assetKinds),
   /** Keep current name when omitted. */
-  name: z.string().min(1).optional()
+  name: assetNameSchema.optional()
 });
 
 export const discoveredAssetSchema = z.object({
@@ -86,7 +94,7 @@ export const discoveredAssetSchema = z.object({
 export const importAssetInputSchema = z.object({
   editorId: z.string(),
   kind: z.enum(assetKinds),
-  name: z.string()
+  name: assetNameSchema
 });
 
 export const installSkillInputSchema = z
