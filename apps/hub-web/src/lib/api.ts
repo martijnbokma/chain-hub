@@ -39,10 +39,17 @@ export async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    // The hub answers errors as { error }; show that instead of a bare status code.
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(payload?.error || `Request failed: ${response.status}`);
   }
 
   return response.json() as Promise<T>;
+}
+
+/** Asset names come from files on disk (imports keep spaces, `#`, …), so encode them. */
+function assetUrl(kind: string, name: string): string {
+  return `/api/library/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`;
 }
 
 // Overview API
@@ -59,7 +66,7 @@ export const validateApi = {
 export const libraryApi = {
   getAll: () => getJson<AssetRecord[]>('/api/library'),
   getByKindAndName: (kind: string, name: string) => 
-    getJson<AssetDetail>(`/api/library/${kind}/${name}`),
+    getJson<AssetDetail>(assetUrl(kind, name)),
   create: (data: { kind: string; name: string; content: string }) => 
     fetch('/api/library', {
       method: 'POST',
@@ -67,25 +74,25 @@ export const libraryApi = {
       body: JSON.stringify(data)
     }),
   update: (kind: string, name: string, data: { content: string }) => 
-    fetch(`/api/library/${kind}/${name}`, {
+    fetch(assetUrl(kind, name), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
   rename: (kind: string, name: string, data: { name: string }) =>
-    fetch(`/api/library/${kind}/${name}/rename`, {
+    fetch(`${assetUrl(kind, name)}/rename`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
   convert: (kind: string, name: string, data: { toKind: string; name?: string }) =>
-    fetch(`/api/library/${kind}/${name}/convert`, {
+    fetch(`${assetUrl(kind, name)}/convert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }),
   delete: (kind: string, name: string) =>
-    fetch(`/api/library/${kind}/${name}`, {
+    fetch(assetUrl(kind, name), {
       method: 'DELETE'
     }),
   discover: () => getJson<DiscoveredAsset[]>('/api/library/discover'),

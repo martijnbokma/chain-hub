@@ -9,7 +9,10 @@ import { useTheme } from "./hooks/use-theme";
 import "@fontsource-variable/big-shoulders-display";
 import "./styles.css";
 
-const queryClient = new QueryClient();
+// Every hub read scans the hub folder; don't repeat that on each window focus.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000 } }
+});
 
 function Root() {
   const { resolved } = useTheme();
