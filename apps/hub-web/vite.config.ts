@@ -30,9 +30,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("@codemirror") || id.includes("@uiw/react-codemirror") || id.includes("@lezer")) {
-              return "vendor-codemirror";
-            }
+            // CodeMirror is left out on purpose: the editor is lazy-loaded, and a named chunk
+            // pulled shared helpers into it, which made the entry preload all of it.
             if (id.includes("lucide-react") || id.includes("@radix-ui") || id.includes("cmdk")) {
               return "vendor-ui";
             }
