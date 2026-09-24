@@ -69,15 +69,31 @@ async function pathExists(target: string): Promise<boolean> {
   }
 }
 
+/** Prefix of lock files set aside because they could not be read; `chain validate` reports them. */
+export const CORRUPT_LOCK_PREFIX = "skills-lock.json.corrupt-";
+
 export async function readSkillsLock(chainHome: string): Promise<SkillsLockFile> {
+  const lockPath = skillsLockPath(chainHome);
+  let raw: string;
   try {
-    const raw = await fs.readFile(skillsLockPath(chainHome), "utf8");
+    raw = await fs.readFile(lockPath, "utf8");
+  } catch {
+    // No lock yet: every skill is local.
+    return { version: 1, skills: {} };
+  }
+
+  try {
     const parsed = JSON.parse(raw) as SkillsLockFile;
-    if (parsed.version !== 1 || typeof parsed.skills !== "object" || parsed.skills === null) {
-      return { version: 1, skills: {} };
+    // Only the file's shape is checked; one odd entry must not cost every skill its provenance.
+    if (parsed.version !== 1 || typeof parsed.skills !== "object" || parsed.skills === null || Array.isArray(parsed.skills)) {
+      throw new Error("Unexpected skills lock shape");
     }
     return parsed;
   } catch {
+    // Keep the unreadable file instead of letting the next write replace it with an empty lock.
+    const corruptPath = path.join(path.dirname(lockPath), `${CORRUPT_LOCK_PREFIX}${Date.now()}`);
+    await fs.rename(lockPath, corruptPath).catch(() => undefined);
+    console.warn(`[chain-hub] ${lockPath} could not be read; moved it to ${corruptPath}`);
     return { version: 1, skills: {} };
   }
 }

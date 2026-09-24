@@ -22,7 +22,7 @@ import {
   type ValidationResult
 } from "@chain-hub/contracts";
 
-import { readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
+import { CORRUPT_LOCK_PREFIX, readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
 import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
 
 function prepareAssetContent(kind: AssetKind, name: string, content: string): string {
@@ -639,6 +639,15 @@ export async function validateHub(chainHomeInput?: string): Promise<ValidationRe
         detail
       });
     }
+  }
+
+  const corruptLocks = (await fs.readdir(path.join(chainHome, "system")).catch(() => [] as string[])).filter((name) =>
+    name.startsWith(CORRUPT_LOCK_PREFIX)
+  );
+  if (corruptLocks.length > 0) {
+    const detail = `system/skills-lock.json could not be read and was moved to system/${corruptLocks.sort().at(-1)}; installed skills now show as local. Restore or delete that file.`;
+    issues.push(detail);
+    checks.push({ id: "skills-lock", label: "Skills lock is readable", status: "fail", detail });
   }
 
   const indexedAssets = await listAssets(chainHome);

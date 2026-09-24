@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   deleteAsset,
@@ -17,8 +17,10 @@ import {
   migrateAgentsSkills,
   projectSkillSidecars,
   readSkillFile,
+  readSkillsLock,
   updateAsset,
-  updateSkills
+  updateSkills,
+  validateHub
 } from "./index.js";
 
 const execFileAsync = promisify(execFile);
@@ -341,5 +343,36 @@ describe("projectSkillSidecars", () => {
     await projectSkillSidecars(tmpHub, editorDir, "sidecar-sync");
 
     expect((await fs.readdir(editorDir)).sort()).toEqual([".chain-hub-sidecars.json", "my-notes.md", "scripts"]);
+  });
+});
+
+describe("readSkillsLock", () => {
+  it("sets an unreadable lock aside instead of overwriting it, and validate reports it", async () => {
+    const lockPath = path.join(tmpHub, "system", "skills-lock.json");
+    await fs.writeFile(lockPath, "{ not json", "utf8");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "after-corrupt") });
+
+    const systemFiles = await fs.readdir(path.join(tmpHub, "system"));
+    const corrupt = systemFiles.find((name) => name.startsWith("skills-lock.json.corrupt-"));
+    expect(corrupt).toBeDefined();
+    expect(await fs.readFile(path.join(tmpHub, "system", corrupt!), "utf8")).toBe("{ not json");
+    expect(warn).toHaveBeenCalled();
+
+    const validation = await validateHub(tmpHub);
+    expect(validation.ok).toBe(false);
+    expect(validation.checks.find((check) => check.id === "skills-lock")?.status).toBe("fail");
+    warn.mockRestore();
+  });
+
+  it("keeps a lock whose entries have extra or missing optional fields", async () => {
+    const lockPath = path.join(tmpHub, "system", "skills-lock.json");
+    const lock = { version: 1, skills: { old: { sourceType: "git", source: "https://example.com/x.git", subdir: null, installedAt: "2025-01-01", updatedAt: "2025-01-01", extra: true } } };
+    await fs.writeFile(lockPath, JSON.stringify(lock), "utf8");
+
+    expect((await readSkillsLock(tmpHub)).skills.old?.source).toBe("https://example.com/x.git");
+    expect((await fs.readdir(path.join(tmpHub, "system"))).some((name) => name.includes("corrupt"))).toBe(false);
   });
 });
