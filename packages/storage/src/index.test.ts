@@ -46,6 +46,14 @@ afterEach(() => {
 });
 
 describe("initializeHub", () => {
+  it("seeds a welcome skill that passes the editor compat checks", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+
+    const welcome = (await listAssets(hub, "skills")).find((asset) => asset.name === "welcome");
+    expect(welcome?.compatIssues).toEqual([]);
+  });
+
   it("removes the index files left by versions that used SQLite", async () => {
     const hub = await makeTmpHub();
     await fs.mkdir(path.join(hub, "system"), { recursive: true });

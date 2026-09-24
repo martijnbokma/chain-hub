@@ -133,6 +133,11 @@ async function seedWelcomeSkill(chainHome: string): Promise<void> {
   await fs.writeFile(
     skillFile,
     [
+      "---",
+      "name: welcome",
+      "description: Introduces Chain Hub. Use when the user asks what Chain Hub is or how its hub folder works.",
+      "---",
+      "",
       "# Welcome",
       "",
       "You are inside Chain Hub.",
