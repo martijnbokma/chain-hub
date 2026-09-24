@@ -9,6 +9,8 @@ import {
   type AgentsSkillsDrift,
   assertSafeRelativeSkillPath,
   type AssetDetail,
+  type CheckSkillUpdatesInput,
+  type CheckSkillUpdatesResult,
   ConflictError,
   type ForkSkillInput,
   type InstallSkillBundleInput,
@@ -21,6 +23,7 @@ import {
   normalizeSkillName,
   NotFoundError,
   type SkillBatchItemResult,
+  type SkillCheckItemResult,
   type SkillLockEntry,
   type SkillsLockFile,
   subdirFromSkillPath,
@@ -274,6 +277,7 @@ async function copySkillTree(sourceDir: string, destinationDir: string): Promise
 async function resolveGitSkillDir(repo: string, subdir: string | undefined, nameHint: string | undefined): Promise<{
   cleanupDir: string;
   sourceDir: string;
+  commitSha: string | null;
 }> {
   const cleanupDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-clone-"));
 
@@ -288,6 +292,17 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
     await fs.rm(cleanupDir, { recursive: true, force: true });
     const message = error instanceof Error ? error.message : String(error);
     throw new InvalidInputError(`Failed to clone skill repo ${repo}: ${message}`);
+  }
+
+  let commitSha: string | null = null;
+  try {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], {
+      cwd: cleanupDir,
+      timeout: 5000
+    });
+    commitSha = stdout.trim() || null;
+  } catch {
+    commitSha = null;
   }
 
   const candidates: string[] = [];
@@ -306,7 +321,7 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
 
   for (const candidate of candidates) {
     if (await pathExists(path.join(candidate, "SKILL.md"))) {
-      return { cleanupDir, sourceDir: candidate };
+      return { cleanupDir, sourceDir: candidate, commitSha };
     }
   }
 
@@ -417,6 +432,7 @@ async function installSkillFromSourceUnlessUnchanged(
   let sourceDir: string;
   let sourceType: SkillLockEntry["sourceType"];
   let source: string;
+  let commitSha: string | null = null;
   const subdir: string | null = input.subdir ?? null;
 
   try {
@@ -429,6 +445,7 @@ async function installSkillFromSourceUnlessUnchanged(
       const resolved = await resolveGitSkillDir(input.repo, input.subdir, input.name);
       cleanupDir = resolved.cleanupDir;
       sourceDir = resolved.sourceDir;
+      commitSha = resolved.commitSha;
       sourceType = "git";
       source = input.repo;
       await assertSkillSource(sourceDir);
@@ -452,6 +469,17 @@ async function installSkillFromSourceUnlessUnchanged(
     const contentHash = await hashSkillTree(sourceDir);
     const previousEntry = (await readSkillsLock(chainHome)).skills[name];
     if (knownHash && contentHash === knownHash && previousEntry) {
+      if (commitSha && previousEntry.commitSha !== commitSha) {
+        const updatedEntry = await mutateSkillsLock(chainHome, (lockFile) => {
+          const entry = lockFile.skills[name];
+          if (entry) {
+            entry.commitSha = commitSha;
+            entry.lastCheckedAt = new Date().toISOString();
+          }
+          return entry ?? previousEntry;
+        });
+        return { asset: await readAsset(chainHome, "skills", name), lockEntry: updatedEntry, unchanged: true };
+      }
       return { asset: await readAsset(chainHome, "skills", name), lockEntry: previousEntry, unchanged: true };
     }
 
@@ -464,8 +492,10 @@ async function installSkillFromSourceUnlessUnchanged(
         source,
         subdir,
         contentHash,
+        commitSha: commitSha ?? lockFile.skills[name]?.commitSha ?? null,
         installedAt: lockFile.skills[name]?.installedAt ?? now,
-        updatedAt: now
+        updatedAt: now,
+        lastCheckedAt: now
       };
       lockFile.skills[name] = entry;
       return entry;
@@ -568,6 +598,132 @@ export async function updateSkillsFromLock(
   }
 
   return { results };
+}
+
+export async function checkSkillUpdatesFromLock(
+  chainHome: string,
+  _input: CheckSkillUpdatesInput = {}
+): Promise<CheckSkillUpdatesResult> {
+  const lockFile = await readSkillsLock(chainHome);
+  const now = new Date().toISOString();
+  const results: SkillCheckItemResult[] = [];
+
+  const gitReposToSkills = new Map<string, Array<{ name: string; entry: SkillLockEntry }>>();
+
+  for (const [name, entry] of Object.entries(lockFile.skills)) {
+    if (entry.sourceType !== "git") {
+      results.push({
+        name,
+        status: "not_applicable",
+        source: entry.source
+      });
+      continue;
+    }
+
+    const list = gitReposToSkills.get(entry.source) ?? [];
+    list.push({ name, entry });
+    gitReposToSkills.set(entry.source, list);
+  }
+
+  const repoRemoteShaMap = new Map<string, { sha?: string; error?: string }>();
+
+  await Promise.all(
+    Array.from(gitReposToSkills.keys()).map(async (repo) => {
+      try {
+        const { stdout } = await execFileAsync("git", ["ls-remote", "--", repo, "HEAD"], {
+          env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+          timeout: 15_000
+        });
+        const lines = stdout.trim().split("\n");
+        let headSha: string | null = null;
+        for (const line of lines) {
+          const [sha, ref] = line.trim().split(/\s+/);
+          if (ref === "HEAD" && sha && /^[0-9a-f]{40}$/i.test(sha)) {
+            headSha = sha;
+            break;
+          }
+        }
+        if (!headSha && lines.length > 0) {
+          const [firstSha] = lines[0]!.trim().split(/\s+/);
+          if (firstSha && /^[0-9a-f]{40}$/i.test(firstSha)) {
+            headSha = firstSha;
+          }
+        }
+        repoRemoteShaMap.set(repo, { sha: headSha ?? undefined });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        repoRemoteShaMap.set(repo, { error: message });
+      }
+    })
+  );
+
+  const skillsToUpdateInLock: Array<{ name: string; lastCheckedAt: string }> = [];
+
+  for (const [repo, skillList] of gitReposToSkills.entries()) {
+    const probe = repoRemoteShaMap.get(repo);
+
+    for (const { name, entry } of skillList) {
+      if (probe?.error) {
+        results.push({
+          name,
+          status: "failed",
+          source: repo,
+          currentSha: entry.commitSha ?? null,
+          error: probe.error
+        });
+        continue;
+      }
+
+      const latestSha = probe?.sha;
+      if (!latestSha) {
+        results.push({
+          name,
+          status: "failed",
+          source: repo,
+          currentSha: entry.commitSha ?? null,
+          error: "Could not resolve remote HEAD commit"
+        });
+        continue;
+      }
+
+      skillsToUpdateInLock.push({ name, lastCheckedAt: now });
+
+      if (entry.commitSha && entry.commitSha === latestSha) {
+        results.push({
+          name,
+          status: "up_to_date",
+          source: repo,
+          currentSha: entry.commitSha,
+          latestSha
+        });
+      } else {
+        results.push({
+          name,
+          status: "update_available",
+          source: repo,
+          currentSha: entry.commitSha ?? null,
+          latestSha
+        });
+      }
+    }
+  }
+
+  if (skillsToUpdateInLock.length > 0) {
+    await mutateSkillsLock(chainHome, (currentLock) => {
+      for (const item of skillsToUpdateInLock) {
+        if (currentLock.skills[item.name]) {
+          currentLock.skills[item.name]!.lastCheckedAt = item.lastCheckedAt;
+        }
+      }
+    }).catch(() => undefined);
+  }
+
+  results.sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    results,
+    checkedAt: now
+  };
 }
 
 export async function detectAgentsSkillsDrift(

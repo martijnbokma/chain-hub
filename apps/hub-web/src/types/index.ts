@@ -16,7 +16,10 @@ export type {
   SkillFileEntry,
   SkillFileContent,
   SkillLockEntry,
-  UpdateSkillsResult
+  UpdateSkillsResult,
+  CheckSkillUpdatesResult,
+  SkillCheckItemResult,
+  SkillUpdateStatus
 } from './assets';
 
 // Integration types

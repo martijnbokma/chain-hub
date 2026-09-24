@@ -15,6 +15,7 @@ import {
   updateSkillsInputSchema
 } from "@chain-hub/contracts";
 import {
+  checkLibrarySkillUpdates,
   convertLibraryAssetKind,
   createLibraryAsset,
   deleteLibraryAsset,
@@ -52,6 +53,19 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     const payload = installSkillBundleInputSchema.parse(await context.req.json());
     const result = await installLibrarySkillBundle(options.chainHome, payload);
     return context.json(result, 201);
+  });
+
+  app.get("/api/library/skills/check-updates", async (context) => {
+    const force = context.req.query("force") === "true";
+    const result = await checkLibrarySkillUpdates(options.chainHome, { force });
+    return context.json(result);
+  });
+
+  app.post("/api/library/skills/check-updates", async (context) => {
+    const body = await context.req.json().catch(() => ({}));
+    const force = Boolean(body?.force);
+    const result = await checkLibrarySkillUpdates(options.chainHome, { force });
+    return context.json(result);
   });
 
   app.post("/api/library/skills/update", async (context) => {

@@ -46,6 +46,7 @@ import { auditExistingAsset, classifyExistingAsset, generateAssetDraft, improveE
 
 export { AiProviderError } from "./ai-providers.js";
 export {
+  checkLibrarySkillUpdates,
   forkLibrarySkill,
   getHubAgentsSkillsDrift,
   installLibrarySkill,

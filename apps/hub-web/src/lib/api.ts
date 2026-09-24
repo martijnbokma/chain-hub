@@ -14,6 +14,8 @@ import type {
   ValidationResult,
   AiSettingsPublic,
   UpdateAiSettingsInput,
+  CheckSkillUpdatesResult,
+  SkillCheckItemResult,
   DraftAssetInput,
   DraftAssetResult,
   DraftPromptInput,
@@ -106,6 +108,8 @@ export const libraryApi = {
     sendJson<InstallSkillResult>('/api/library/skills/install-bundle', 'POST', data),
   updateSkills: (data: { name?: string; force?: boolean } = {}) =>
     sendJson<UpdateSkillsResult>('/api/library/skills/update', 'POST', data),
+  checkSkillUpdates: (options: { force?: boolean } = {}) =>
+    getJson<CheckSkillUpdatesResult>(`/api/library/skills/check-updates${options.force ? '?force=true' : ''}`),
   forkSkill: (data: { name: string; as?: string }) =>
     sendJson<AssetDetail>('/api/library/skills/fork', 'POST', data),
   getSkillFiles: (name: string) =>
@@ -118,7 +122,7 @@ export const libraryApi = {
     sendJson<MigrateAgentsSkillsResult>('/api/library/skills/migrate-agents', 'POST', data)
 };
 
-export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult };
+export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult, CheckSkillUpdatesResult, SkillCheckItemResult };
 
 // Integrations API
 export const integrationsApi = {

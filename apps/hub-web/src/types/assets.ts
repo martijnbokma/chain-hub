@@ -13,7 +13,10 @@ export type {
   SkillLockEntry,
   SkillBatchItemResult,
   UpdateSkillsResult,
-  MigrateAgentsSkillsResult
+  MigrateAgentsSkillsResult,
+  CheckSkillUpdatesResult,
+  SkillCheckItemResult,
+  SkillUpdateStatus
 } from "@chain-hub/contracts";
 
 /** Library filter chip: all kinds or one specific kind. */

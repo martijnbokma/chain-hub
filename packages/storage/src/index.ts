@@ -22,6 +22,7 @@ export {
   installSkill,
   installSkillBundle,
   updateSkills,
+  checkSkillUpdates,
   migrateAgentsSkills,
   getAgentsSkillsDrift,
   forkSkill
@@ -31,6 +32,7 @@ export {
   installSkillFromSource,
   installSkillFromBundle,
   updateSkillsFromLock,
+  checkSkillUpdatesFromLock,
   migrateAgentsSkillLock,
   detectAgentsSkillsDrift,
   forkSkillFromHub,

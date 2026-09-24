@@ -1,6 +1,8 @@
 import type {
   AgentsSkillsDrift,
   AssetDetail,
+  CheckSkillUpdatesInput,
+  CheckSkillUpdatesResult,
   ForkSkillInput,
   InstallSkillBundleInput,
   InstallSkillInput,
@@ -11,6 +13,7 @@ import type {
   UpdateSkillsResult
 } from "@chain-hub/contracts";
 import {
+  checkSkillUpdatesFromLock,
   detectAgentsSkillsDrift,
   forkSkillFromHub,
   getAsset,
@@ -73,6 +76,14 @@ export async function updateLibrarySkills(
   }
 
   return result;
+}
+
+export async function checkLibrarySkillUpdates(
+  chainHomeInput: string | undefined,
+  input: CheckSkillUpdatesInput = {}
+): Promise<CheckSkillUpdatesResult> {
+  const chainHome = await withInitializedHub(chainHomeInput);
+  return checkSkillUpdatesFromLock(chainHome, input);
 }
 
 export async function migrateAgentsLibrarySkills(

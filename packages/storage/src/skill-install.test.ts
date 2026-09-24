@@ -20,6 +20,7 @@ import {
   readSkillsLock,
   updateAsset,
   updateSkills,
+  checkSkillUpdates,
   validateHub
 } from "./index.js";
 
@@ -177,6 +178,41 @@ describe("installSkill", () => {
 
     expect((await updateSkills(tmpHub, { name: "stable-git" })).results[0]?.status).toBe("skipped");
     expect((await updateSkills(tmpHub, { name: "stable-git", force: true })).results[0]?.status).toBe("updated");
+  });
+
+  it("checks for updates against git remote without cloning full repository", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    await writeFixtureSkill(repo, "git-check-skill");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+    await installSkill(tmpHub, { repo, subdir: "git-check-skill" });
+
+    // Initial check should be up_to_date
+    const check1 = await checkSkillUpdates(tmpHub);
+    const item1 = check1.results.find((r) => r.name === "git-check-skill");
+    expect(item1?.status).toBe("up_to_date");
+    expect(item1?.currentSha).toBeTruthy();
+    expect(item1?.latestSha).toBe(item1?.currentSha);
+
+    // Commit a change to the upstream repo
+    await fs.writeFile(path.join(repo, "git-check-skill", "extra.txt"), "new content\n", "utf8");
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "upstream update"], { cwd: repo });
+
+    // Check should now detect update_available with the new SHA
+    const check2 = await checkSkillUpdates(tmpHub);
+    const item2 = check2.results.find((r) => r.name === "git-check-skill");
+    expect(item2?.status).toBe("update_available");
+    expect(item2?.latestSha).not.toBe(item2?.currentSha);
+
+    // After updating, check is back to up_to_date
+    await updateSkills(tmpHub, { name: "git-check-skill" });
+    const check3 = await checkSkillUpdates(tmpHub);
+    const item3 = check3.results.find((r) => r.name === "git-check-skill");
+    expect(item3?.status).toBe("up_to_date");
   });
 
   it("keeps every lock entry when skills are installed in parallel", async () => {

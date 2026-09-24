@@ -14,8 +14,10 @@ export const skillLockEntrySchema = z.object({
   source: z.string().min(1),
   subdir: z.string().nullable(),
   contentHash: z.string().nullable().optional(),
+  commitSha: z.string().nullable().optional(),
   installedAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  lastCheckedAt: z.string().nullable().optional()
 });
 
 export const assetCompatIssueCodeSchema = z.enum(["missing_description"]);
@@ -278,5 +280,29 @@ export type UpdateSkillsInput = z.infer<typeof updateSkillsInputSchema>;
 export type ForkSkillInput = z.infer<typeof forkSkillInputSchema>;
 export type SkillBatchItemResult = z.infer<typeof skillBatchItemResultSchema>;
 export type UpdateSkillsResult = z.infer<typeof updateSkillsResultSchema>;
+export const skillUpdateStatusSchema = z.enum(["up_to_date", "update_available", "not_applicable", "failed"]);
+
+export const skillCheckItemResultSchema = z.object({
+  name: z.string(),
+  status: skillUpdateStatusSchema,
+  source: z.string(),
+  currentSha: z.string().nullable().optional(),
+  latestSha: z.string().nullable().optional(),
+  error: z.string().optional()
+});
+
+export const checkSkillUpdatesResultSchema = z.object({
+  results: z.array(skillCheckItemResultSchema),
+  checkedAt: z.string()
+});
+
+export const checkSkillUpdatesInputSchema = z.object({
+  force: z.boolean().optional()
+});
+
+export type SkillUpdateStatus = z.infer<typeof skillUpdateStatusSchema>;
+export type SkillCheckItemResult = z.infer<typeof skillCheckItemResultSchema>;
+export type CheckSkillUpdatesResult = z.infer<typeof checkSkillUpdatesResultSchema>;
+export type CheckSkillUpdatesInput = z.infer<typeof checkSkillUpdatesInputSchema>;
 export type MigrateAgentsSkillsInput = z.infer<typeof migrateAgentsSkillsInputSchema>;
 export type MigrateAgentsSkillsResult = z.infer<typeof migrateAgentsSkillsResultSchema>;

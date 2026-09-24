@@ -22,6 +22,7 @@ import {
   forkLibrarySkill,
   installLibrarySkill,
   migrateAgentsLibrarySkills,
+  checkLibrarySkillUpdates,
   summarizeAgentsSkillSync,
   syncAgentsSkillsIntoHub,
   updateLibraryAsset,
@@ -32,6 +33,7 @@ import {
 import {
   assetKindSchema,
   captureInputSchema,
+  checkSkillUpdatesInputSchema,
   forkSkillInputSchema,
   installSkillInputSchema,
   migrateAgentsSkillsInputSchema,
@@ -221,6 +223,19 @@ skillCommand
       force: commandOptions.force
     });
     const result = await updateLibrarySkills(options.chainHome, input);
+    console.log(JSON.stringify(result, null, 2));
+  });
+
+skillCommand
+  .command("check-updates")
+  .description("Check for updates of installed git skills via git ls-remote")
+  .option("--force", "Force refresh", false)
+  .action(async (commandOptions: { force?: boolean }) => {
+    const options = program.opts<{ chainHome?: string }>();
+    const input = checkSkillUpdatesInputSchema.parse({
+      force: commandOptions.force
+    });
+    const result = await checkLibrarySkillUpdates(options.chainHome, input);
     console.log(JSON.stringify(result, null, 2));
   });
 
