@@ -38,6 +38,7 @@ import { CreateAssetDialog } from './library/CreateAssetDialog';
 import { DiscoverDialog } from './library/DiscoverDialog';
 import { InstallSkillDialog } from './library/InstallSkillDialog';
 import { LibraryToolbar } from './library/LibraryToolbar';
+import { DiscardChangesDialog } from './library/DiscardChangesDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
 import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
 import { useLibraryCreateFlow } from './library/use-library-create-flow';
@@ -145,6 +146,31 @@ export function LibraryPage() {
     setAssetAudit(null);
     setPreviewFilePath(null);
   }, [selected?.kind, selected?.name]);
+
+  const isDirty = selectedAsset.data !== undefined && editorContent !== selectedAsset.data.content;
+  // `undefined` = no switch pending; `null` = user asked to close the detail panel.
+  const [pendingSelection, setPendingSelection] = useState<{ kind: AssetKind; name: string } | null | undefined>(
+    undefined
+  );
+
+  function requestSelection(next: { kind: AssetKind; name: string } | null) {
+    const sameAsset = next !== null && selected !== null && next.kind === selected.kind && next.name === selected.name;
+    if (isDirty && !sameAsset) {
+      setPendingSelection(next);
+      return;
+    }
+    setSelected(next);
+  }
+
+  useEffect(() => {
+    if (!isDirty) {
+      return;
+    }
+    // Closing or reloading the tab would drop the edits; let the browser ask first.
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isDirty]);
 
   const saveAsset = useMutation({
     mutationFn: async () => {
@@ -721,7 +747,7 @@ export function LibraryPage() {
               <AssetList
                 filterKind={filterKind}
                 kindSections={kindSections}
-                onSelect={(asset) => setSelected({ kind: asset.kind as AssetKind, name: asset.name })}
+                onSelect={(asset) => requestSelection({ kind: asset.kind as AssetKind, name: asset.name })}
                 selected={selected}
               />
             </div>
@@ -751,7 +777,7 @@ export function LibraryPage() {
               isUpstreamSkill={isUpstreamSkill}
               kindAssessment={kindAssessment}
               onAuditAsset={() => auditAsset.mutate()}
-              onBack={() => setSelected(null)}
+              onBack={() => requestSelection(null)}
               onConvertKind={(toKind) => convertKind.mutate(toKind)}
               onEditorChange={setEditorContent}
               onFixDescriptionWithAi={() => fixDescriptionWithAi.mutate()}
@@ -825,6 +851,15 @@ export function LibraryPage() {
           submitDisabled={installFlow.installSubmitDisabled}
         />
 
+        <DiscardChangesDialog
+          assetLabel={selected ? `${selected.kind}/${selected.name}` : 'this asset'}
+          onDiscard={() => {
+            setSelected(pendingSelection ?? null);
+            setPendingSelection(undefined);
+          }}
+          onKeepEditing={() => setPendingSelection(undefined)}
+          open={pendingSelection !== undefined}
+        />
         <RemoveAssetDialog
           isDeleting={removeAsset.isPending}
           onConfirm={() => removeAsset.mutate()}
