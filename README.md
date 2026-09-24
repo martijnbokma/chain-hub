@@ -5,7 +5,7 @@ A local-first AI workspace control plane — one hub folder, one CLI, one dashbo
 ## Philosophy
 
 - **Local first** — everything lives on disk at `~/.chain-hub`. No cloud, no sync service required.
-- **Editor-agnostic** — mount the hub into Cursor, Claude Code, Windsurf, Zed, or any editor that reads from a folder.
+- **Editor-agnostic** — sync the hub into Cursor, Claude Code, Windsurf, Zed and Google Antigravity.
 - **Single source of truth** — one folder, no database, no duplicated config files.
 - **Calm by default** — a minimal surface that grows with deliberate steps.
 
@@ -83,7 +83,7 @@ node packages/cli/dist/index.js --chain-home ./.sandbox-hub hub --port 3456
 | `chain init` | Initialize hub structure and seed a welcome skill |
 | `chain status` | Print a JSON overview of the hub |
 | `chain validate` | Check structural integrity; exits 1 if issues found |
-| `chain setup` | Create editor symlinks for all supported integrations |
+| `chain setup` | Sync the hub into every installed editor and import new `~/.agents` skills |
 | `chain guide` | Show the guided setup checklist |
 | `chain hub [--port N] [--no-open]` | Start the local dashboard (default port 2342, auto-opens browser) |
 
@@ -123,16 +123,17 @@ chain reflect --json
 | **Setup** | Guided checklist: init → assets → connect → validate |
 | **Overview** | Health, asset counts, storage stats |
 | **Library** | Browse, create, edit, and delete skills/agents/workflows/rules/prompts |
-| **Integrations** | Editor mount status for Cursor, Claude Code, Windsurf, Zed |
+| **Learnings** | Captured events and per-skill reflection |
+| **Integrations** | Sync status for Cursor, Claude Code, Windsurf, Zed, Google Antigravity |
 | **Settings** | Theme + local-first AI providers (BYOK / Ollama) |
 
 Command palette: **Cmd/Ctrl + K** — navigate, create assets, connect editors, theme/AI shortcuts.
 
-Memory notes and learnings remain available via CLI (`chain capture` / `chain reflect`) and `/api/memory` + `/api/learnings`; there is no Memory/Learnings dashboard page today.
+Learnings are also available via the CLI (`chain capture` / `chain reflect`).
 
 ## API routes
 
-The dashboard API runs on the same port as the hub server.
+The dashboard API runs on the same port as the hub server. It only listens on `127.0.0.1` and rejects requests from other websites (foreign `Origin`, cross-site fetches, non-JSON bodies) and from non-loopback `Host` headers.
 
 | Method | Path | Description |
 |---|---|---|
@@ -142,13 +143,6 @@ The dashboard API runs on the same port as the hub server.
 | GET | `/api/library/:kind/:name` | Get asset detail |
 | PUT | `/api/library/:kind/:name` | Update asset |
 | DELETE | `/api/library/:kind/:name` | Delete asset |
-| GET | `/api/memory` | Memory folder summary |
-| GET | `/api/memory/notes` | List all memory notes |
-| POST | `/api/memory/notes` | Create a note |
-| GET | `/api/memory/note?path=` | Get note content |
-| PUT | `/api/memory/note?path=` | Save note content |
-| DELETE | `/api/memory/note?path=` | Delete note |
-| GET | `/api/memory/search?q=` | Full-text search notes |
 | GET | `/api/learnings` | Timeline (supports `?limit=` `?offset=`) |
 | POST | `/api/learnings/capture` | Append an event |
 | GET | `/api/learnings/reflect` | Per-skill reflection report |

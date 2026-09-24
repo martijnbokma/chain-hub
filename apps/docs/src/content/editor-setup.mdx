@@ -33,6 +33,18 @@ Remove or rename the conflicting file, then rerun `chain setup`.
 | **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules concatenated into one `~/.config/zed/AGENTS.md` |
 | **Google Antigravity** | skills, agents, rules | `~/.gemini/config/plugins/chain-hub/skills/<name>/SKILL.md` | one Chain Hub plugin: `agents/<name>.md`, `rules/<name>.md` (`trigger: always_on`) |
 
+Chain Hub only syncs into editors it finds on this machine (their config
+folder exists: `~/.cursor`, `~/.claude`, `~/.codeium/windsurf` / `~/.windsurf`
+/ `~/.devin`, `~/.config/zed`, `~/.gemini`), so it never creates folders for
+editors you don't use. Setup counts only those editors.
+
+Projected files keep all of the asset's frontmatter (`allowed-tools`, agent
+`tools`/`model`, rule `globs`, `metadata`, …). Editor defaults such as Cursor's
+`alwaysApply: true` or Windsurf's `trigger: always_on` only fill fields the
+asset leaves unset; a rule with `globs` becomes a glob rule. Antigravity agents
+drop the Claude-specific `tools` and `model`. When sync or import replaces a
+hand-written file, the original is saved under `~/.chain-hub/backups/`.
+
 No adapter syncs `agents` or `workflows` universally — Cursor skips both
 (Custom Modes were removed in Cursor 2.1.0), Zed skips both (no native
 concept in Zed), Antigravity skips workflows (retired by Google on

@@ -2,7 +2,7 @@
 
 Single source of truth for all AI agents (Claude Code, Codex, Cursor, Windsurf). `CLAUDE.md` imports this file.
 
-**Chain Hub** is a local-first AI workspace control plane: one hub folder (`~/.chain-hub`), one CLI (`chain`), one dashboard, synced into Cursor, Claude Code, Windsurf and Zed. Philosophy: local-first, editor-agnostic, minimal surface, grows deliberately.
+**Chain Hub** is a local-first AI workspace control plane: one hub folder (`~/.chain-hub`), one CLI (`chain`), one dashboard, synced into Cursor, Claude Code, Windsurf, Zed and Google Antigravity. Philosophy: local-first, editor-agnostic, minimal surface, grows deliberately.
 
 Canonical repo: `martijnbokma/chain-hub` (local folder may be named `chain-hub-v2`).
 
