@@ -16,6 +16,20 @@ export async function ensureDir(dirPath: string): Promise<void> {
   await fs.mkdir(dirPath, { recursive: true });
 }
 
+/**
+ * Writes via a temp file + rename so a crash never leaves a truncated file behind.
+ * `mode` applies from the first byte, so secrets are never briefly world-readable.
+ */
+export async function writeFileAtomic(filePath: string, content: string, mode = 0o644): Promise<void> {
+  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    await fs.writeFile(tempPath, content, { encoding: "utf8", mode });
+    await fs.rename(tempPath, filePath);
+  } finally {
+    await fs.rm(tempPath, { force: true });
+  }
+}
+
 export async function pathExists(target: string): Promise<boolean> {
   try {
     await fs.lstat(target);

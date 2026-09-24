@@ -21,7 +21,7 @@ import {
 } from "@chain-hub/contracts";
 
 import { readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
-import { ensureDir, pathExists } from "./shared.js";
+import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
 
 const require = createRequire(import.meta.url);
 const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
@@ -161,7 +161,7 @@ export async function readMeta(chainHome: string): Promise<AppMeta> {
 
 async function writeMeta(chainHome: string, meta: AppMeta): Promise<void> {
   await fs.mkdir(path.dirname(metaFilePath(chainHome)), { recursive: true });
-  await fs.writeFile(metaFilePath(chainHome), JSON.stringify(meta, null, 2));
+  await writeFileAtomic(metaFilePath(chainHome), JSON.stringify(meta, null, 2));
 }
 
 async function seedWelcomeSkill(chainHome: string): Promise<void> {

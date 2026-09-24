@@ -13,7 +13,7 @@ import {
 } from "@chain-hub/contracts";
 
 import { resolveChainHome } from "./core.js";
-import { ensureDir } from "./shared.js";
+import { ensureDir, writeFileAtomic } from "./shared.js";
 
 function aiConfigPath(chainHome: string): string {
   return path.join(chainHome, "system", "ai-config.json");
@@ -52,8 +52,11 @@ export async function readAiConfig(chainHomeInput?: string): Promise<AiConfig> {
 
 export async function readAiSecrets(chainHomeInput?: string): Promise<AiSecrets> {
   const chainHome = resolveChainHome(chainHomeInput);
+  const filePath = aiSecretsPath(chainHome);
   try {
-    const raw = await fs.readFile(aiSecretsPath(chainHome), "utf8");
+    const raw = await fs.readFile(filePath, "utf8");
+    // Tighten files written by older versions (created with the default umask).
+    await fs.chmod(filePath, 0o600).catch(() => undefined);
     return aiSecretsSchema.parse(JSON.parse(raw));
   } catch {
     return defaultAiSecrets();
@@ -62,18 +65,13 @@ export async function readAiSecrets(chainHomeInput?: string): Promise<AiSecrets>
 
 async function writeAiConfig(chainHome: string, config: AiConfig): Promise<void> {
   await ensureDir(path.join(chainHome, "system"));
-  await fs.writeFile(aiConfigPath(chainHome), `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await writeFileAtomic(aiConfigPath(chainHome), `${JSON.stringify(config, null, 2)}\n`);
 }
 
 async function writeAiSecrets(chainHome: string, secrets: AiSecrets): Promise<void> {
   const filePath = aiSecretsPath(chainHome);
   await ensureDir(path.join(chainHome, "system"));
-  await fs.writeFile(filePath, `${JSON.stringify(secrets, null, 2)}\n`, "utf8");
-  try {
-    await fs.chmod(filePath, 0o600);
-  } catch {
-    // Best-effort on platforms that don't support chmod the same way.
-  }
+  await writeFileAtomic(filePath, `${JSON.stringify(secrets, null, 2)}\n`, 0o600);
 }
 
 export async function getAiSettingsPublic(chainHomeInput?: string): Promise<AiSettingsPublic> {

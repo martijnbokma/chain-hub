@@ -25,6 +25,8 @@ import {
   type UpdateSkillsResult
 } from "@chain-hub/contracts";
 
+import { writeFileAtomic } from "./shared.js";
+
 const execFileAsync = promisify(execFile);
 
 const GIT_CLONE_TIMEOUT_MS = 120_000;
@@ -80,7 +82,7 @@ export async function readSkillsLock(chainHome: string): Promise<SkillsLockFile>
 
 async function writeSkillsLock(chainHome: string, lockFile: SkillsLockFile): Promise<void> {
   await fs.mkdir(path.dirname(skillsLockPath(chainHome)), { recursive: true });
-  await fs.writeFile(skillsLockPath(chainHome), `${JSON.stringify(lockFile, null, 2)}\n`, "utf8");
+  await writeFileAtomic(skillsLockPath(chainHome), `${JSON.stringify(lockFile, null, 2)}\n`);
 }
 
 /** Move a skills.lock entry when a hub skill directory is renamed. */

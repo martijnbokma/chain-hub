@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { getAiSettingsPublic, updateAiSettings } from "./ai-settings.js";
+import { getAiSettingsPublic, readAiSecrets, updateAiSettings } from "./ai-settings.js";
 
 async function makeTmpHub(): Promise<string> {
   const hub = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-ai-settings-"));
@@ -60,5 +60,17 @@ describe("AI settings storage", () => {
     await updateAiSettings(hub, { anthropicApiKey: "sk-temp" });
     const cleared = await updateAiSettings(hub, { clearAnthropicApiKey: true });
     expect(cleared.anthropicApiKeyConfigured).toBe(false);
+  });
+
+  it.skipIf(process.platform === "win32")("keeps secrets.json readable by the owner only", async () => {
+    const hub = await makeTmpHub();
+    const secretsPath = path.join(hub, "system", "secrets.json");
+    await updateAiSettings(hub, { provider: "anthropic", anthropicApiKey: "sk-ant-secret-value" });
+    expect((await fs.stat(secretsPath)).mode & 0o777).toBe(0o600);
+
+    // Files written by older versions get tightened on the next read.
+    await fs.chmod(secretsPath, 0o644);
+    await readAiSecrets(hub);
+    expect((await fs.stat(secretsPath)).mode & 0o777).toBe(0o600);
   });
 });
