@@ -79,8 +79,6 @@ jobs:
     name: Unit tests + package smoke (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
-    # Windows support is new; report its results without blocking develop until it is green.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
