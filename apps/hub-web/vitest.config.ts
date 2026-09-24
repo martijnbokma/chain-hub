@@ -23,12 +23,12 @@ export default defineConfig({
       ...baseCoverage,
       include: ["src/**/*.{ts,tsx}"],
       // Pure type re-exports and app bootstrap have no executable logic to cover.
-      exclude: ["src/types/**", "src/main.tsx", "src/app.tsx"],
+      exclude: ["src/types/**", "src/main.tsx", "src/app.tsx", "src/**/*.test.{ts,tsx}", "src/test/**"],
       thresholds: {
-        statements: 20,
-        branches: 68,
-        functions: 39,
-        lines: 20
+        statements: 50,
+        branches: 70,
+        functions: 40,
+        lines: 50
       }
     }
   }
