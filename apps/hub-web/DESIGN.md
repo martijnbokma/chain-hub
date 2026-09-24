@@ -88,7 +88,7 @@ Chain Hub is a light, premium product surface: zinc neutrals, white panels, and 
 - **Border** (`#E4E4E7`): hairlines
 
 ### Named Rules
-**The One Signal Rule.** Orange appears only on the primary action, active nav, and focus rings.
+**The One Signal Rule.** Orange appears only on the primary action, active nav, focus rings, and tinted badges (kind and status chips).
 
 **The Tinted-Opacity Badge Rule.** Status badges use low-opacity fills (`border-{hue}-500/20`, `bg-{hue}-500/10`, `text-{hue}-700`).
 
@@ -119,8 +119,6 @@ Chain Hub is a light, premium product surface: zinc neutrals, white panels, and 
 - **Resting**: soft dual shadow (`shadow-card`)
 - **Popover**: medium lift
 - **Overlay**: dialogs / sheets
-- **Sheet marks**: four hairline L-ticks at the corners of the main content inset (Shell only) — a quiet crop/registration cue shared with marketing; never orange, never repeated on cards or panels
-- **Shell seam mark**: one orange registration tick (`shell-seam`) at the exact point where the sidebar's right border meets the header's bottom border — the one place in hub-web orange marks the shell's structural lines, not the content sheet
 
 ## Shapes
 
@@ -143,12 +141,10 @@ Page-level loading uses `PageSkeleton` variants (`checklist` | `dashboard` | `wo
 - Keep orange rare (One Signal Rule)
 - Prefer divided lists / stacks over stacks of soft cards for sequential content
 - Keep primary buttons `w-fit` unless a form footer truly needs full width
-- Keep sheet registration marks on the Shell main inset only (`SheetMarks`) — not on individual cards
-- Keep the orange `shell-seam` tick at the sidebar/header junction only — spending it elsewhere breaks the One Signal Rule
 
 ### Don't
+- Don't add corner ticks or registration marks to the content area or cards
 - Don't use 40px / pill stadium cards on wide layouts
 - Don't use parchment/cream neutrals or a second saturated accent
 - Don't put marketing-length headlines on utility screens
 - Don't full-bleed primary CTAs inside list rows
-- Don't sprinkle crop/registration marks on every panel — one content-sheet frame is enough

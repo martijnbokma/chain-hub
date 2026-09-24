@@ -16,7 +16,6 @@ import { cn } from '../../lib/utils';
 import type { AssetKind } from '../../types';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { ChainHubLogo } from '../ui/ChainHubLogo';
-import { SheetMarks } from '../common/SheetMarks';
 import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
@@ -328,8 +327,7 @@ export function Shell({ children }: ShellProps) {
             <ShellToolbarHost className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" />
             <ThemeToggle />
           </header>
-          <main className="relative min-w-0 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
-            <SheetMarks />
+          <main className="min-w-0 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
             {children}
           </main>
         </SidebarInset>
