@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { Command } from "commander";
+import { Command, CommanderError } from "commander";
 
 import {
   captureHubEvent,
@@ -29,6 +30,8 @@ import {
   writeHubReflection
 } from "@chain-hub/domain";
 import {
+  assetKindSchema,
+  captureInputSchema,
   forkSkillInputSchema,
   installSkillInputSchema,
   migrateAgentsSkillsInputSchema,
@@ -39,6 +42,9 @@ import { resolveChainHome } from "@chain-hub/storage";
 import { startServer } from "@chain-hub/server";
 import { formatReflectionReport } from "./reflect-format.js";
 
+// Resolves to packages/cli/package.json from both src/ and the published dist/.
+const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
+
 export function createProgram(): Command {
   const program = new Command();
   program.exitOverride();
@@ -46,6 +52,7 @@ export function createProgram(): Command {
   program
   .name("chain")
   .description("Chain Hub local-first CLI")
+  .version(version)
   .option("--chain-home <path>", "Override the default chain home");
 
 program
@@ -95,7 +102,8 @@ assetCommand
   .option("--kind <kind>", "Filter by kind")
   .action(async (commandOptions: { kind?: AssetKind }) => {
     const options = program.opts<{ chainHome?: string }>();
-    const assets = await getLibrary(options.chainHome, commandOptions.kind);
+    const kind = commandOptions.kind === undefined ? undefined : assetKindSchema.parse(commandOptions.kind);
+    const assets = await getLibrary(options.chainHome, kind);
     console.log(JSON.stringify(assets, null, 2));
   });
 
@@ -270,17 +278,14 @@ program
   .requiredOption("--summary <text>", "One-line summary of what happened")
   .action(async (commandOptions: { event: string; skill: string; summary: string }) => {
     const options = program.opts<{ chainHome?: string }>();
-    const validTypes = ["success", "failure", "correction", "note"];
-    if (!validTypes.includes(commandOptions.event)) {
-      console.error(`Invalid event type: ${commandOptions.event}. Must be one of: ${validTypes.join(", ")}`);
-      process.exitCode = 1;
-      return;
-    }
-    const event = await captureHubEvent(options.chainHome, {
-      type: commandOptions.event as "success" | "failure" | "correction" | "note",
-      skill: commandOptions.skill,
-      summary: commandOptions.summary
-    });
+    const event = await captureHubEvent(
+      options.chainHome,
+      captureInputSchema.parse({
+        type: commandOptions.event,
+        skill: commandOptions.skill,
+        summary: commandOptions.summary
+      })
+    );
     console.log(JSON.stringify(event, null, 2));
   });
 
@@ -353,9 +358,24 @@ program
 
     if (commandOptions.open !== false) {
       const { execFile } = await import("node:child_process");
-      const opener = process.platform === "win32" ? "start" : process.platform === "darwin" ? "open" : "xdg-open";
-      execFile(opener, [url]);
+      // `start` is a cmd.exe built-in, not an executable; the empty string is its window title.
+      const [command, args] =
+        process.platform === "win32"
+          ? ["cmd", ["/c", "start", "", url]]
+          : [process.platform === "darwin" ? "open" : "xdg-open", [url]];
+      execFile(command, args as string[], () => undefined);
     }
+
+    // Pick up skills installed with `npx skills add` since the last start (existing hub skills are kept).
+    void syncAgentsSkillsIntoHub(chainHome)
+      .then((result) => {
+        if (result.results.some((item) => item.status !== "skipped")) {
+          console.log(summarizeAgentsSkillSync(result));
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn(`Agents skill sync skipped: ${error instanceof Error ? error.message : String(error)}`);
+      });
   });
 
   return program;
@@ -370,6 +390,26 @@ export async function runCli(argv: string[] = process.argv): Promise<Command> {
 const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
 const isDirectRun = entryPath.length > 0 && import.meta.url === pathToFileURL(entryPath).href;
 
+/** Turns thrown errors into one readable line instead of a stack trace. */
+export function formatCliError(error: unknown): string {
+  if (typeof error === "object" && error !== null && "issues" in error && Array.isArray(error.issues)) {
+    return (error.issues as Array<{ message: string; path?: Array<string | number> }>)
+      .map((issue) => (issue.path && issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message))
+      .join("; ");
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
 if (isDirectRun) {
-  await runCli(process.argv);
+  try {
+    await runCli(process.argv);
+  } catch (error) {
+    // Commander already printed its own message (unknown option, --help, --version).
+    if (error instanceof CommanderError) {
+      process.exitCode = error.exitCode;
+    } else {
+      console.error(`Error: ${formatCliError(error)}`);
+      process.exitCode = 1;
+    }
+  }
 }

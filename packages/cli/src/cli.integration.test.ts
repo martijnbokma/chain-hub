@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { runCli } from "./index.js";
+import { formatCliError, runCli } from "./index.js";
 
 const originalHome = process.env.HOME;
 let tmpHome: string;
@@ -119,9 +119,29 @@ describe("CLI integration", () => {
     await runCli(cliArgv("reflect"));
     expect(logs.length).toBeGreaterThan(0);
 
-    await runCli(cliArgv("capture", "--event", "invalid-type", "--skill", "foo", "--summary", "bar"));
-    expect(process.exitCode).toBe(1);
-    process.exitCode = 0;
+    await expect(runCli(cliArgv("capture", "--event", "invalid-type", "--skill", "foo", "--summary", "bar"))).rejects.toThrow();
+  });
+
+  it("rejects invalid input with a readable message instead of doing nothing", async () => {
+    const emptySummary = runCli(cliArgv("capture", "--event", "note", "--skill", "foo", "--summary", ""));
+    await expect(emptySummary).rejects.toSatisfy((error: unknown) => /summary/.test(formatCliError(error)));
+
+    const bogusKind = runCli(cliArgv("asset", "list", "--kind", "bogus"));
+    await expect(bogusKind).rejects.toSatisfy((error: unknown) => /Invalid enum value/.test(formatCliError(error)));
+
+    await expect(runCli(cliArgv("asset", "show", "--kind", "skills", "--name", "missing"))).rejects.toThrow(
+      "Asset not found: skills/missing"
+    );
+  });
+
+  it("prints the package version", async () => {
+    const writes: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
+      writes.push(String(chunk));
+      return true;
+    });
+    await expect(runCli(cliArgv("--version"))).rejects.toMatchObject({ code: "commander.version", exitCode: 0 });
+    expect(writes.join("")).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it("rejects invalid port on hub command", async () => {
