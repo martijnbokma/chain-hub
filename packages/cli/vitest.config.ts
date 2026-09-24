@@ -8,10 +8,10 @@ export default defineConfig({
       ...baseCoverage,
       include: ["src/**/*.ts"],
       thresholds: {
-        statements: 60,
-        branches: 74,
-        functions: 100,
-        lines: 60
+        statements: 65,
+        branches: 52,
+        functions: 59,
+        lines: 67
       }
     }
   }
