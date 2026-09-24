@@ -27,6 +27,8 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
 describe("windsurfAdapter.writeAsset", () => {
   it("dual-writes a rule to both .devin/rules and .windsurf/rules with trigger: always_on", async () => {
     const homeDir = await makeTmpHome();
+    await fs.mkdir(path.join(homeDir, ".devin"));
+    await fs.mkdir(path.join(homeDir, ".windsurf"));
     await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
 
     for (const root of [".devin", ".windsurf"]) {
@@ -38,8 +40,29 @@ describe("windsurfAdapter.writeAsset", () => {
     }
   });
 
+  it("writes only to the Windsurf root that exists", async () => {
+    const homeDir = await makeTmpHome();
+    await fs.mkdir(path.join(homeDir, ".windsurf"));
+
+    await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
+
+    await expect(fs.access(path.join(homeDir, ".windsurf", "rules", "style.md"))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir, ".devin"))).rejects.toThrow();
+  });
+
+  it("falls back to .devin when neither root exists", async () => {
+    const homeDir = await makeTmpHome();
+
+    await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
+
+    await expect(fs.access(path.join(homeDir, ".devin", "rules", "style.md"))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(homeDir, ".windsurf"))).rejects.toThrow();
+  });
+
   it("dual-writes a workflow without a trigger field", async () => {
     const homeDir = await makeTmpHome();
+    await fs.mkdir(path.join(homeDir, ".devin"));
+    await fs.mkdir(path.join(homeDir, ".windsurf"));
     const asset = makeAsset({ id: "workflows:deploy", kind: "workflows", name: "deploy", content: "# Deploy\n\n1. Build\n2. Ship" });
 
     await windsurfAdapter.writeAsset("/chain-home", homeDir, asset);

@@ -36,6 +36,21 @@ function targetPaths(homeDir: string, kind: "rules" | "workflows", name: string)
   return [NEW_ROOT, LEGACY_ROOT].map((root) => path.join(homeDir, root, kind, `${name}.md`));
 }
 
+/**
+ * Where to write a rule or workflow: every root (~/.devin, ~/.windsurf) that already exists,
+ * or ~/.devin when neither does — never create the other editor generation's folder.
+ */
+async function writeTargets(homeDir: string, kind: "rules" | "workflows", name: string): Promise<string[]> {
+  const existingRoots: string[] = [];
+  for (const root of [NEW_ROOT, LEGACY_ROOT]) {
+    if (await pathExists(path.join(homeDir, root))) {
+      existingRoots.push(root);
+    }
+  }
+  const roots = existingRoots.length > 0 ? existingRoots : [NEW_ROOT];
+  return roots.map((root) => path.join(homeDir, root, kind, `${name}.md`));
+}
+
 function baseDirs(homeDir: string, kind: "rules" | "workflows"): string[] {
   return [NEW_ROOT, LEGACY_ROOT].map((root) => path.join(homeDir, root, kind));
 }
@@ -67,7 +82,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
 
   const content = buildContent(asset);
   await Promise.all(
-    targetPaths(homeDir, asset.kind, asset.name).map((filePath) => writeManagedFile(filePath, content, "frontmatter", { ...options, backup: { chainHome, homeDir } }))
+    (await writeTargets(homeDir, asset.kind, asset.name)).map((filePath) => writeManagedFile(filePath, content, "frontmatter", { ...options, backup: { chainHome, homeDir } }))
   );
 }
 
