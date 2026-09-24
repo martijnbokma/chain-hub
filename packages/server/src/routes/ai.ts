@@ -19,9 +19,10 @@ import {
 
 import type { RouteOptions } from "./options.js";
 
-function handleAiError(error: unknown): { error: string; status: 400 | 502 } | null {
+function handleAiError(error: unknown): { error: string; status: 400 | 502 | 504 } | null {
   if (error instanceof AiProviderError) {
-    return { error: error.message, status: error.status === 502 ? 502 : 400 };
+    const status = error.status === 502 || error.status === 504 ? error.status : 400;
+    return { error: error.message, status };
   }
   return null;
 }

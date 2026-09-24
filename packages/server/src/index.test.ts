@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createServer } from "./index.js";
 
@@ -343,6 +343,34 @@ describe("AI settings and draft-prompt", () => {
     expect(res.status).toBe(400);
     const data = (await res.json()) as { error: string };
     expect(data.error).toMatch(/Anthropic API key/i);
+  });
+
+  it("POST /api/ai/audit-asset returns 504 when the provider times out", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    await postJson(app, "/api/library", { kind: "skills", name: "demo-skill", content: "# Demo\n\nBody." });
+    await app.request("/api/settings/ai", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "anthropic", anthropicApiKey: "sk-ant-test" })
+    });
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () => {
+      throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    }) as typeof fetch;
+    try {
+      const res = await app.request("/api/ai/audit-asset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "skills", name: "demo-skill" })
+      });
+      expect(res.status).toBe(504);
+      const data = (await res.json()) as { error: string };
+      expect(data.error).toMatch(/timed out/i);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("POST /api/ai/improve-asset returns 400 when Anthropic key is missing", async () => {

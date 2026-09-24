@@ -408,26 +408,39 @@ function suggestNameFromIntent(intent: string): string {
   return slug.slice(0, 48).replace(/-+$/g, "");
 }
 
+const AI_REQUEST_TIMEOUT_MS = 60_000;
+// Local models on CPU can take minutes to rewrite a whole asset.
+const OLLAMA_REQUEST_TIMEOUT_MS = 300_000;
+
 async function callAnthropic(params: {
   apiKey: string;
   model: string;
   system: string;
   userMessage: string;
 }): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": params.apiKey,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: params.model,
-      max_tokens: 4096,
-      system: params.system,
-      messages: [{ role: "user", content: params.userMessage }]
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": params.apiKey,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: params.model,
+        max_tokens: 4096,
+        system: params.system,
+        messages: [{ role: "user", content: params.userMessage }]
+      })
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new AiProviderError("Anthropic request timed out after 60 seconds", 504);
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const detail = await response.text();
@@ -453,21 +466,30 @@ async function callOpenAiCompatible(params: {
   userMessage: string;
   extraHeaders?: Record<string, string>;
 }): Promise<string> {
-  const response = await fetch(params.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${params.apiKey}`,
-      ...(params.extraHeaders ?? {})
-    },
-    body: JSON.stringify({
-      model: params.model,
-      messages: [
-        { role: "system", content: params.system },
-        { role: "user", content: params.userMessage }
-      ]
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch(params.endpoint, {
+      method: "POST",
+      signal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${params.apiKey}`,
+        ...(params.extraHeaders ?? {})
+      },
+      body: JSON.stringify({
+        model: params.model,
+        messages: [
+          { role: "system", content: params.system },
+          { role: "user", content: params.userMessage }
+        ]
+      })
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new AiProviderError(`${params.providerLabel} request timed out after 60 seconds`, 504);
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const detail = await response.text();
@@ -498,6 +520,7 @@ async function callOllama(params: {
   try {
     response = await fetch(`${baseUrl}/api/chat`, {
       method: "POST",
+      signal: AbortSignal.timeout(OLLAMA_REQUEST_TIMEOUT_MS),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: params.model,
@@ -508,7 +531,10 @@ async function callOllama(params: {
         ]
       })
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new AiProviderError("Ollama request timed out after 5 minutes", 504);
+    }
     throw new AiProviderError(
       `Ollama is unreachable at ${baseUrl}. Start Ollama locally, or update the base URL under Settings → AI.`,
       502

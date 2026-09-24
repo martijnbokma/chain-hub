@@ -139,6 +139,39 @@ describe("generateAssetDraft", () => {
     });
   });
 
+  it("maps provider timeouts to a 504 AiProviderError", async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    }) as typeof fetch;
+
+    await expect(
+      generateAssetDraft({
+        config: config("anthropic"),
+        secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+        input: { intent: "Anything", kind: "prompts" }
+      })
+    ).rejects.toMatchObject({ name: "AiProviderError", status: 504, message: expect.stringMatching(/timed out/) });
+  });
+
+  it("gives Ollama a longer timeout than cloud providers", async () => {
+    const timeouts: number[] = [];
+    const realTimeout = AbortSignal.timeout.bind(AbortSignal);
+    vi.spyOn(AbortSignal, "timeout").mockImplementation((ms: number) => {
+      timeouts.push(ms);
+      return realTimeout(ms);
+    });
+    globalThis.fetch = vi.fn(async () => Response.json({ message: { content: "Draft body" } })) as typeof fetch;
+
+    await generateAssetDraft({
+      config: config("ollama"),
+      secrets: { version: 1 },
+      input: { intent: "Anything", kind: "prompts" }
+    }).catch(() => undefined);
+
+    expect(timeouts.length).toBeGreaterThan(0);
+    expect(Math.min(...timeouts)).toBeGreaterThan(60_000);
+  });
+
   it("turns Anthropic billing errors into a friendly message", async () => {
     globalThis.fetch = vi.fn(async () =>
       new Response(
