@@ -27,6 +27,7 @@ apps/hub-web/test-results/
 
 # Ad-hoc UI verification screenshots dumped at repo root
 /*.png
+*--full-page*
 
 # Local agent / editor tooling (not product source)
 .specstory/
