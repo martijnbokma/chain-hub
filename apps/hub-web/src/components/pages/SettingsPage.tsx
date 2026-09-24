@@ -387,6 +387,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="Google Gemini API key"
                 autoComplete="off"
                 onChange={(event) => setGeminiApiKey(event.target.value)}
                 placeholder={settings.data.geminiApiKeyConfigured ? '••••••••' : 'AIzaSy…'}
@@ -411,6 +412,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="Groq API key"
                 autoComplete="off"
                 onChange={(event) => setGroqApiKey(event.target.value)}
                 placeholder={settings.data.groqApiKeyConfigured ? '••••••••' : 'gsk_…'}
@@ -435,6 +437,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="OpenRouter API key"
                 autoComplete="off"
                 onChange={(event) => setOpenrouterApiKey(event.target.value)}
                 placeholder={settings.data.openrouterApiKeyConfigured ? '••••••••' : 'sk-or-v1-…'}
@@ -459,6 +462,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="DeepSeek API key"
                 autoComplete="off"
                 onChange={(event) => setDeepseekApiKey(event.target.value)}
                 placeholder={settings.data.deepseekApiKeyConfigured ? '••••••••' : 'sk-…'}
@@ -483,6 +487,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="Cerebras API key"
                 autoComplete="off"
                 onChange={(event) => setCerebrasApiKey(event.target.value)}
                 placeholder={settings.data.cerebrasApiKeyConfigured ? '••••••••' : 'csk-…'}
@@ -507,6 +512,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="Anthropic API key"
                 autoComplete="off"
                 onChange={(event) => setAnthropicApiKey(event.target.value)}
                 placeholder={settings.data.anthropicApiKeyConfigured ? '••••••••' : 'sk-ant-…'}
@@ -531,6 +537,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="OpenAI API key"
                 autoComplete="off"
                 onChange={(event) => setOpenaiApiKey(event.target.value)}
                 placeholder={settings.data.openaiApiKeyConfigured ? '••••••••' : 'sk-…'}
@@ -555,6 +562,7 @@ export function SettingsPage() {
                 ) : null}
               </span>
               <Input
+                aria-label="Mistral API key"
                 autoComplete="off"
                 onChange={(event) => setMistralApiKey(event.target.value)}
                 placeholder={settings.data.mistralApiKeyConfigured ? '••••••••' : '…'}
