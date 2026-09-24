@@ -24,5 +24,30 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("@codemirror") || id.includes("@uiw/react-codemirror") || id.includes("@lezer")) {
+              return "vendor-codemirror";
+            }
+            if (id.includes("lucide-react") || id.includes("@radix-ui") || id.includes("cmdk")) {
+              return "vendor-ui";
+            }
+            if (
+              id.includes("/react/") ||
+              id.includes("/react-dom/") ||
+              id.includes("/react-router/") ||
+              id.includes("/@tanstack/")
+            ) {
+              return "vendor-react";
+            }
+          }
+        }
+      }
+    }
   }
 });
