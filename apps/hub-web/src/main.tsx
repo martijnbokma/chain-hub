@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { App } from "./app";
@@ -17,15 +17,17 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000 } }
 });
 
+// A data router (one splat route; <App> keeps its own <Routes>) so pages can block
+// navigation with useBlocker, e.g. the Library editor's unsaved-changes guard.
+const router = createBrowserRouter([{ path: "*", element: <App /> }]);
+
 function Root() {
   const { resolved } = useTheme();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-        <Toaster position="top-right" richColors theme={resolved} />
-      </BrowserRouter>
+      <RouterProvider router={router} />
+      <Toaster position="top-right" richColors theme={resolved} />
     </QueryClientProvider>
   );
 }

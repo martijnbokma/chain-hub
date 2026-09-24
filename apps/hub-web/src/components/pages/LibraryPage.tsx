@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useBlocker, useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -161,6 +161,11 @@ export function LibraryPage() {
     }
     setSelected(next);
   }
+
+  // Leaving the Library (sidebar, command palette, back button) would drop the edits too.
+  const navigationBlocker = useBlocker(
+    ({ currentLocation, nextLocation }) => isDirty && currentLocation.pathname !== nextLocation.pathname
+  );
 
   useEffect(() => {
     if (!isDirty) {
@@ -854,11 +859,20 @@ export function LibraryPage() {
         <DiscardChangesDialog
           assetLabel={selected ? `${selected.kind}/${selected.name}` : 'this asset'}
           onDiscard={() => {
+            if (navigationBlocker.state === 'blocked') {
+              navigationBlocker.proceed();
+              return;
+            }
             setSelected(pendingSelection ?? null);
             setPendingSelection(undefined);
           }}
-          onKeepEditing={() => setPendingSelection(undefined)}
-          open={pendingSelection !== undefined}
+          onKeepEditing={() => {
+            if (navigationBlocker.state === 'blocked') {
+              navigationBlocker.reset();
+            }
+            setPendingSelection(undefined);
+          }}
+          open={pendingSelection !== undefined || navigationBlocker.state === 'blocked'}
         />
         <RemoveAssetDialog
           isDeleting={removeAsset.isPending}
