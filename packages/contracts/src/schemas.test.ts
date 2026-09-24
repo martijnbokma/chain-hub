@@ -165,6 +165,7 @@ describe("Contracts schemas", () => {
         id: "cursor",
         label: "Cursor",
         targetPaths: ["/test/.cursor/skills"],
+        installed: true,
         connected: true,
         mode: "managed",
         supportedKinds: ["skills", "rules"],

@@ -100,7 +100,7 @@ async function resync(chainHome: string, homeDir: string, assets: AssetDetail[])
   await rebuildRulesFile(chainHome, homeDir, rules, { force: true });
 }
 
-async function status(homeDir: string): Promise<Integration> {
+async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
   const rulesFile = rulesFilePath(homeDir);
   const hasSkills = await dirHasAnyFile(skillsDir(homeDir));
   const hasRules = await pathExists(rulesFile);

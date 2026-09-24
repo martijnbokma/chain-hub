@@ -49,7 +49,8 @@ export function IntegrationsPage() {
     return <EmptyState description="There is no integration data to show yet." title="Integrations unavailable" />;
   }
 
-  const connectedCount = integrations.data.filter((integration) => integration.connected).length;
+  const installed = integrations.data.filter((integration) => integration.installed);
+  const connectedCount = installed.filter((integration) => integration.connected).length;
 
   return (
     <section className="mx-auto grid w-full max-w-3xl gap-8">
@@ -58,7 +59,7 @@ export function IntegrationsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl font-semibold tracking-tight text-foreground">Linked editors</h2>
             <Badge variant="default">
-              {connectedCount}/{integrations.data.length}
+              {connectedCount}/{installed.length}
             </Badge>
           </div>
           <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
@@ -82,9 +83,13 @@ export function IntegrationsPage() {
             <div className="grid min-w-0 gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-medium text-foreground">{integration.label}</h3>
-                <Badge variant={integration.connected ? 'success' : 'warning'}>
-                  {integration.connected ? 'Connected' : 'Not connected'}
-                </Badge>
+                {integration.installed ? (
+                  <Badge variant={integration.connected ? 'success' : 'warning'}>
+                    {integration.connected ? 'Connected' : 'Not connected'}
+                  </Badge>
+                ) : (
+                  <Badge variant="default">Not installed</Badge>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">Mode: {integration.mode}</p>
               <div className="grid gap-1">

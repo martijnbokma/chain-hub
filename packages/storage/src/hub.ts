@@ -36,7 +36,10 @@ export async function getSetupGuide(chainHomeInput?: string): Promise<SetupGuide
   const chainHome = resolveChainHome(chainHomeInput);
   const overview = await getOverview(chainHome);
   const integrations = await getIntegrations(chainHome);
-  const allConnected = integrations.every((integration) => integration.connected);
+  // Only editors installed on this machine count; nobody should need all five to finish setup.
+  const installedEditors = integrations.filter((integration) => integration.installed);
+  const editorsConnected =
+    installedEditors.length > 0 && installedEditors.every((integration) => integration.connected);
   const validation = await validateHub(chainHome);
 
   const steps: SetupStep[] = [
@@ -59,8 +62,11 @@ export async function getSetupGuide(chainHomeInput?: string): Promise<SetupGuide
     {
       id: "connect-editors",
       label: "Connect editors",
-      description: "Link Cursor, Claude Code, Windsurf, Zed, and Google Antigravity to the hub so they all stay in sync automatically.",
-      complete: allConnected,
+      description:
+        installedEditors.length > 0
+          ? `Sync the hub into ${installedEditors.map((integration) => integration.label).join(", ")} so they all stay up to date.`
+          : "No supported editor found yet. Install Cursor, Claude Code, Windsurf, Zed or Google Antigravity, then connect it here.",
+      complete: editorsConnected,
       action: "connect",
       status: "pending"
     },

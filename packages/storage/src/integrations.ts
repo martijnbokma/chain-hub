@@ -32,6 +32,28 @@ const LEGACY_INTEGRATION_TARGETS = [
   { id: "antigravity", label: "Google Antigravity", relativeTarget: ".gemini/config/plugins/chain-hub" }
 ] as const;
 
+/**
+ * Config folders that show an editor is installed. Chain Hub only projects into
+ * editors found here, so it never creates ~/.gemini or ~/.config/zed for editors
+ * the user doesn't have.
+ */
+const EDITOR_CONFIG_ROOTS: Record<string, string[]> = {
+  cursor: [".cursor"],
+  "claude-code": [".claude"],
+  windsurf: [".codeium/windsurf", ".windsurf", ".devin"],
+  zed: [".config/zed"],
+  antigravity: [".gemini"]
+};
+
+export async function isEditorInstalled(id: string, homeDir: string): Promise<boolean> {
+  for (const root of EDITOR_CONFIG_ROOTS[id] ?? []) {
+    if (await pathExists(path.join(homeDir, root))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function findAdapter(id: string) {
   return EDITOR_ADAPTERS.find((adapter) => adapter.id === id);
 }
@@ -47,6 +69,7 @@ async function legacyIntegrationStatus(
     id: target.id,
     label: target.label,
     targetPaths: [targetPath],
+    installed: await isEditorInstalled(target.id, homeDir),
     connected,
     mode: connected ? "symlink" : "missing",
     supportedKinds: [],
@@ -80,7 +103,10 @@ export async function getIntegrations(_chainHomeInput?: string): Promise<Integra
   return Promise.all(
     LEGACY_INTEGRATION_TARGETS.map(async (target) => {
       const adapter = findAdapter(target.id);
-      return adapter ? adapter.status(homeDir) : legacyIntegrationStatus(target, homeDir);
+      if (!adapter) {
+        return legacyIntegrationStatus(target, homeDir);
+      }
+      return { ...(await adapter.status(homeDir)), installed: await isEditorInstalled(target.id, homeDir) };
     })
   );
 }
@@ -94,6 +120,10 @@ export async function setupIntegrations(chainHomeInput?: string): Promise<Integr
   // Run adapters sequentially — parallel resync races when editor paths alias the same
   // directory (e.g. ~/.claude/skills/foo symlinked to ~/.agents/skills/foo).
   for (const target of LEGACY_INTEGRATION_TARGETS) {
+    if (!(await isEditorInstalled(target.id, homeDir))) {
+      continue;
+    }
+
     try {
       const adapter = findAdapter(target.id);
 
@@ -135,7 +165,7 @@ export async function syncAssetToEditors(
   let allAssets: Promise<AssetDetail[]> | null = null;
 
   for (const adapter of EDITOR_ADAPTERS) {
-    if (!adapter.supportedKinds.includes(kind)) {
+    if (!adapter.supportedKinds.includes(kind) || !(await isEditorInstalled(adapter.id, homeDir))) {
       continue;
     }
 

@@ -29,6 +29,8 @@ export const integrationSchema = z.object({
   id: z.string(),
   label: z.string(),
   targetPaths: z.array(z.string()),
+  /** The editor's config folder exists on this machine. */
+  installed: z.boolean(),
   connected: z.boolean(),
   mode: integrationModeSchema,
   supportedKinds: z.array(z.enum(assetKinds)),

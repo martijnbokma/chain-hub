@@ -96,7 +96,7 @@ async function resync(chainHome: string, homeDir: string, assets: AssetDetail[])
   }
 }
 
-async function status(homeDir: string): Promise<Integration> {
+async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
   const allTargetDirs = [globalSkillsDir(homeDir), ...baseDirs(homeDir, "rules"), ...baseDirs(homeDir, "workflows")];
   const connectedFlags = await Promise.all(allTargetDirs.map((dir) => dirHasAnyFile(dir)));
   const connected = connectedFlags.some(Boolean);

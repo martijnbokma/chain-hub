@@ -47,6 +47,10 @@ let tmpHome: string;
 
 beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-domain-home-"));
+  // Chain Hub only syncs into editors it finds; pretend Claude Code and Cursor are installed.
+  for (const editorRoot of [".claude", ".cursor"]) {
+    await fs.mkdir(path.join(tmpHome, editorRoot), { recursive: true });
+  }
   process.env.HOME = tmpHome;
 });
 

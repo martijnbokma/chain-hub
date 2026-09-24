@@ -360,8 +360,26 @@ describe("setupIntegrations", () => {
     expect(managedSkill).toContain("chain_hub_source: skills/demo");
   });
 
+  it("only projects into editors that are installed", async () => {
+    const hub = await makeTmpHub();
+    await fs.mkdir(path.join(tmpHome, ".claude"), { recursive: true });
+
+    const integrations = await setupIntegrations(hub);
+
+    expect(integrations.find((integration) => integration.id === "claude-code")).toMatchObject({
+      installed: true,
+      connected: true
+    });
+    expect(integrations.find((integration) => integration.id === "zed")).toMatchObject({
+      installed: false,
+      connected: false
+    });
+    expect((await fs.readdir(tmpHome)).sort()).toEqual([".claude"]);
+  });
+
   it("reports managed mode with correct supported/unsupported kinds via getIntegrations", async () => {
     const hub = await makeTmpHub();
+    await fs.mkdir(path.join(tmpHome, ".claude"), { recursive: true });
     await setupIntegrations(hub);
 
     const integrations = await getIntegrations(hub);
@@ -450,6 +468,7 @@ describe("discoverAssets + importDiscoveredAsset", () => {
     const asset = await createAsset(hub, { kind: "skills", name: "twin", content: "# Twin\n\nHub body." });
 
     const twinPath = path.join(tmpHome, ".agents", "skills", "twin", "SKILL.md");
+    await fs.mkdir(path.join(tmpHome, ".config", "zed"), { recursive: true });
     await fs.mkdir(path.dirname(twinPath), { recursive: true });
     await fs.writeFile(twinPath, "unmanaged editor copy", "utf8");
 

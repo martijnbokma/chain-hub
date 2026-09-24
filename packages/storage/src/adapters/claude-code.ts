@@ -80,7 +80,7 @@ async function resync(chainHome: string, homeDir: string, assets: AssetDetail[])
   }
 }
 
-async function status(homeDir: string): Promise<Integration> {
+async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
   const targetPaths = SUPPORTED_KINDS.map((kind) => baseDir(homeDir, kind));
   const connectedFlags = await Promise.all(targetPaths.map((dir) => dirHasAnyFile(dir)));
   const connected = connectedFlags.some(Boolean);

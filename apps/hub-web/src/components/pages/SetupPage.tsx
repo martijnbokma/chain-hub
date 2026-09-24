@@ -80,16 +80,21 @@ export function SetupPage() {
       void queryClient.invalidateQueries({ queryKey: ['integrations'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
 
-      const failed = integrations.filter((integration) => !integration.connected);
+      const installed = integrations.filter((integration) => integration.installed);
+      if (installed.length === 0) {
+        toast.warning('No supported editor found on this machine');
+        return;
+      }
+      const failed = installed.filter((integration) => !integration.connected);
       if (failed.length > 0) {
         toast.warning(
-          `Connected ${integrations.length - failed.length}/${integrations.length} editors — ${failed
+          `Connected ${installed.length - failed.length}/${installed.length} editors — ${failed
             .map((integration) => integration.label)
             .join(', ')} failed`
         );
         return;
       }
-      toast.success(`Connected ${integrations.length} editor${integrations.length === 1 ? '' : 's'}`);
+      toast.success(`Connected ${installed.length} editor${installed.length === 1 ? '' : 's'}`);
     },
     onError: () => {
       toast.error('Unable to connect editors');
@@ -170,7 +175,7 @@ export function SetupPage() {
                     </Button>
                     {setupEditors.data ? (
                       <ul className="grid gap-1.5 rounded-lg border border-border bg-muted/30 p-3">
-                        {setupEditors.data.map((integration) => (
+                        {setupEditors.data.filter((integration) => integration.installed).map((integration) => (
                           <li
                             className="flex items-center gap-2 text-xs text-foreground"
                             key={integration.id}
