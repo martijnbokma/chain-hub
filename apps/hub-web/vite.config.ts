@@ -15,7 +15,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 4321,
+    port: 4320,
     strictPort: false,
     allowedHosts: ["dev.jewebsite.online"],
     proxy: {
