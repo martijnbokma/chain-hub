@@ -45,6 +45,21 @@ afterEach(() => {
   process.env.HOME = originalHome;
 });
 
+describe("renameAsset with a non-normalized current name", () => {
+  it("renames and converts assets whose file name is not lowercase-dashed", async () => {
+    const hub = await makeTmpHub();
+    await initializeHub(hub);
+    await fs.writeFile(path.join(hub, "rules", "My_Rule.md"), "# My rule\n", "utf8");
+
+    const renamed = await renameAsset(hub, "rules", "My_Rule", "tidy rule");
+    expect(renamed.name).toBe("tidy-rule");
+
+    await fs.writeFile(path.join(hub, "prompts", "Draft_Prompt.md"), "# Draft\n", "utf8");
+    const converted = await convertAssetKind(hub, "prompts", "Draft_Prompt", "rules");
+    expect(converted).toMatchObject({ kind: "rules", name: "draft-prompt" });
+  });
+});
+
 describe("initializeHub", () => {
   it("seeds a welcome skill that passes the editor compat checks", async () => {
     const hub = await makeTmpHub();

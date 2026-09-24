@@ -506,7 +506,9 @@ export async function renameAsset(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  const fromName = normalizeAssetName(currentName);
+  // The current name is the existing folder or file name as-is (imports can keep any case);
+  // only the new name is normalized.
+  const fromName = assertSafeAssetName(currentName);
   const toName = normalizeAssetName(nextNameInput);
 
   if (!fromName) {
@@ -561,7 +563,7 @@ export async function convertAssetKind(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  const fromName = normalizeAssetName(fromNameInput);
+  const fromName = assertSafeAssetName(fromNameInput);
   const toName = normalizeAssetName(toNameInput ?? fromNameInput);
 
   if (!fromName) {
