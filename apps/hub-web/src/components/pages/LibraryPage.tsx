@@ -49,6 +49,7 @@ export function LibraryPage() {
   const [selected, setSelected] = useState<{ kind: AssetKind; name: string } | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKind, setFilterKind] = useState<FilterKind>(() => parseKindParam(searchParams.get('kind')));
   const [ownership, setOwnership] = useState<OwnershipFilter>(() =>
@@ -211,12 +212,73 @@ export function LibraryPage() {
     },
     onSuccess: (asset) => {
       void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['library', 'discover'] });
       void queryClient.invalidateQueries({ queryKey: ['setup'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
       toast.success(`Imported ${asset.kind}/${asset.name}`);
     },
     onError: () => {
       toast.error('Unable to import asset — it may already exist in the hub');
+    }
+  });
+
+  const importMultipleAssets = useMutation({
+    mutationFn: async (candidates: DiscoveredAsset[]) => {
+      const unique: DiscoveredAsset[] = [];
+      const seen = new Set<string>();
+      for (const candidate of candidates) {
+        const key = `${candidate.kind}/${candidate.name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(candidate);
+        }
+      }
+
+      let importedCount = 0;
+      let skippedCount = 0;
+      setImportProgress({ current: 0, total: unique.length });
+
+      for (let i = 0; i < unique.length; i++) {
+        const candidate = unique[i];
+        setImportProgress({ current: i + 1, total: unique.length });
+        try {
+          const response = await libraryApi.import({
+            editorId: candidate.editorId,
+            kind: candidate.kind,
+            name: candidate.name
+          });
+          if (response.ok) {
+            importedCount++;
+          } else {
+            skippedCount++;
+          }
+        } catch {
+          skippedCount++;
+        }
+      }
+
+      return { importedCount, skippedCount, total: unique.length };
+    },
+    onSuccess: ({ importedCount, skippedCount }) => {
+      setImportProgress(null);
+      void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['library', 'discover'] });
+      void queryClient.invalidateQueries({ queryKey: ['setup'] });
+      void queryClient.invalidateQueries({ queryKey: ['overview'] });
+
+      if (importedCount > 0) {
+        toast.success(
+          skippedCount > 0
+            ? `Imported ${importedCount} asset${importedCount === 1 ? '' : 's'} (${skippedCount} skipped)`
+            : `Imported ${importedCount} asset${importedCount === 1 ? '' : 's'}`
+        );
+      } else {
+        toast.error('No assets could be imported — they may already exist in the hub');
+      }
+    },
+    onError: () => {
+      setImportProgress(null);
+      toast.error('Failed to import assets');
     }
   });
 
@@ -566,10 +628,11 @@ export function LibraryPage() {
   }, [kindSections]);
 
   const isCandidateImporting = (candidate: DiscoveredAsset): boolean =>
-    importAsset.isPending &&
-    importAsset.variables?.editorId === candidate.editorId &&
-    importAsset.variables?.kind === candidate.kind &&
-    importAsset.variables?.name === candidate.name;
+    importMultipleAssets.isPending ||
+    (importAsset.isPending &&
+      importAsset.variables?.editorId === candidate.editorId &&
+      importAsset.variables?.kind === candidate.kind &&
+      importAsset.variables?.name === candidate.name);
 
   const listToolbar = (
     <LibraryToolbar
@@ -782,9 +845,12 @@ export function LibraryPage() {
 
         <DiscoverDialog
           groupedDiscovered={groupedDiscovered}
+          importProgress={importProgress}
           isCandidateImporting={isCandidateImporting}
+          isImportingAll={importMultipleAssets.isPending}
           isLoading={discoverQuery.isLoading}
           onImport={(candidate) => importAsset.mutate(candidate)}
+          onImportAll={(candidates) => importMultipleAssets.mutate(candidates)}
           onOpenChange={setDiscoverOpen}
           open={discoverOpen}
         />

@@ -18,7 +18,10 @@ interface DiscoverDialogProps {
   isLoading: boolean;
   groupedDiscovered: Record<string, DiscoveredAsset[]>;
   onImport: (candidate: DiscoveredAsset) => void;
+  onImportAll: (candidates: DiscoveredAsset[]) => void;
   isCandidateImporting: (candidate: DiscoveredAsset) => boolean;
+  isImportingAll?: boolean;
+  importProgress?: { current: number; total: number } | null;
 }
 
 export function DiscoverDialog({
@@ -27,9 +30,19 @@ export function DiscoverDialog({
   isLoading,
   groupedDiscovered,
   onImport,
-  isCandidateImporting
+  onImportAll,
+  isCandidateImporting,
+  isImportingAll = false,
+  importProgress = null
 }: DiscoverDialogProps) {
   const groups = Object.entries(groupedDiscovered);
+  const allCandidates = groups.flatMap(([, candidates]) => candidates);
+
+  const importAllLabel = isImportingAll
+    ? importProgress
+      ? `Importing (${importProgress.current}/${importProgress.total})…`
+      : 'Importing…'
+    : `Import all (${allCandidates.length})`;
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -51,11 +64,44 @@ export function DiscoverDialog({
             </div>
           ) : groups.length > 0 ? (
             <div className="grid gap-5">
+              <div className="flex flex-col gap-2 rounded-xl border border-border bg-card/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {allCandidates.length} unmanaged asset{allCandidates.length === 1 ? '' : 's'} found
+                  </span>
+                  {groups.length > 1 ? (
+                    <span className="text-xs text-muted-foreground">
+                      across {groups.length} editors
+                    </span>
+                  ) : null}
+                </div>
+                <Button
+                  className="w-full shrink-0 sm:w-auto"
+                  disabled={isImportingAll}
+                  onClick={() => onImportAll(allCandidates)}
+                  size="sm"
+                >
+                  {importAllLabel}
+                </Button>
+              </div>
+
               {groups.map(([editorLabel, candidates]) => (
                 <div className="grid gap-2" key={editorLabel}>
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-foreground">{editorLabel}</h3>
-                    <Badge>{candidates.length}</Badge>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground">{editorLabel}</h3>
+                      <Badge>{candidates.length}</Badge>
+                    </div>
+                    {groups.length > 1 && candidates.length > 1 ? (
+                      <Button
+                        disabled={isImportingAll}
+                        onClick={() => onImportAll(candidates)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Import from {editorLabel}
+                      </Button>
+                    ) : null}
                   </div>
                   <ul className="overflow-hidden rounded-2xl border border-border">
                     {candidates.map((candidate) => {
@@ -78,7 +124,7 @@ export function DiscoverDialog({
                             onClick={() => onImport(candidate)}
                             size="sm"
                           >
-                            {isImportingThis ? 'Importing…' : 'Import'}
+                            {isImportingThis && !isImportingAll ? 'Importing…' : 'Import'}
                           </Button>
                         </li>
                       );
@@ -94,6 +140,14 @@ export function DiscoverDialog({
           )}
         </DialogBody>
         <DialogFooter>
+          {allCandidates.length > 0 ? (
+            <Button
+              disabled={isImportingAll}
+              onClick={() => onImportAll(allCandidates)}
+            >
+              {importAllLabel}
+            </Button>
+          ) : null}
           <Button onClick={() => onOpenChange(false)} variant="secondary">
             Close
           </Button>
