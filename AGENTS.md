@@ -100,7 +100,7 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 - Work directly on `develop`. Do not create feature/fix/chore branches or PRs unless the user asks for one.
 - One topic per commit: split unrelated changes into separate commits so `develop` history stays readable.
 - Keep `develop` CI green (lint, typecheck, `test:coverage`, e2e) — without PRs it is the only safety net.
-- `main` is release-only: never commit to it directly. Release by merging `develop` into `main` and tagging (`v1.2.0`).
+- `main` is release-only and protected (CI must pass, no force-push): never commit to it directly. Release with a fast-forward so `main` gets the exact commit CI already checked on `develop`: `git switch main && git merge --ff-only develop && git push`, then tag (`v1.2.0`).
 
 Conventional Commits with package scope: `feat(hub-web): add command palette shortcut`. Scopes: `hub-web`, `docs`, `cli`, `server`, `domain`, `storage`, `contracts`.
 
