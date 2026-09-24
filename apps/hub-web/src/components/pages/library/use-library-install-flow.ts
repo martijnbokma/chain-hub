@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { libraryApi } from '@/lib/api';
-import type { AssetKind, InstallSkillResult, MigrateAgentsSkillsResult } from '@/types';
+import type { AssetKind } from '@/types';
 
 import { type BrowsedSkillFolder, readBrowsedSkillFolder } from './asset-helpers';
 
@@ -37,25 +37,19 @@ export function useLibraryInstallFlow(options: {
 
   const installSkill = useMutation({
     mutationFn: async () => {
-      const response =
-        installMode === 'path' && browsedFolder
-          ? await libraryApi.installSkillBundle({
+      return installMode === 'path' && browsedFolder
+          ? libraryApi.installSkillBundle({
               files: browsedFolder.files,
               name: installName.trim() || browsedFolder.label || undefined,
               force: installForce
             })
-          : await libraryApi.installSkill({
+          : libraryApi.installSkill({
               path: installMode === 'path' ? installPath.trim() || undefined : undefined,
               repo: installMode === 'repo' ? installRepo.trim() || undefined : undefined,
               subdir: installSubdir.trim() || undefined,
               name: installName.trim() || undefined,
               force: installForce
             });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Unable to install skill');
-      }
-      return response.json() as Promise<InstallSkillResult>;
     },
     onSuccess: (result) => {
       setInstallOpen(false);
@@ -73,11 +67,7 @@ export function useLibraryInstallFlow(options: {
 
   const migrateAgentsSkills = useMutation({
     mutationFn: async () => {
-      const response = await libraryApi.migrateAgentsSkills({});
-      if (!response.ok) {
-        throw new Error('Unable to migrate agents skills');
-      }
-      return response.json() as Promise<MigrateAgentsSkillsResult>;
+      return libraryApi.migrateAgentsSkills({});
     },
     onSuccess: (result) => {
       const migrated = result.results.filter((item) => item.status === 'migrated').length;

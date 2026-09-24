@@ -47,6 +47,26 @@ export async function getJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/**
+ * Sends a JSON request and returns the parsed response. Failed requests throw an
+ * Error carrying the hub's { error } message, so callers need no response checks.
+ */
+export async function sendJson<T>(url: string, method: 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method,
+    ...(body === undefined
+      ? {}
+      : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(payload?.error || `Request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
 /** Asset names come from files on disk (imports keep spaces, `#`, …), so encode them. */
 function assetUrl(kind: string, name: string): string {
   return `/api/library/${encodeURIComponent(kind)}/${encodeURIComponent(name)}`;
@@ -68,64 +88,26 @@ export const libraryApi = {
   getByKindAndName: (kind: string, name: string) => 
     getJson<AssetDetail>(assetUrl(kind, name)),
   create: (data: { kind: string; name: string; content: string }) => 
-    fetch('/api/library', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AssetDetail>('/api/library', 'POST', data),
   update: (kind: string, name: string, data: { content: string }) => 
-    fetch(assetUrl(kind, name), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AssetDetail>(assetUrl(kind, name), 'PUT', data),
   rename: (kind: string, name: string, data: { name: string }) =>
-    fetch(`${assetUrl(kind, name)}/rename`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AssetDetail>(`${assetUrl(kind, name)}/rename`, 'POST', data),
   convert: (kind: string, name: string, data: { toKind: string; name?: string }) =>
-    fetch(`${assetUrl(kind, name)}/convert`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AssetDetail>(`${assetUrl(kind, name)}/convert`, 'POST', data),
   delete: (kind: string, name: string) =>
-    fetch(assetUrl(kind, name), {
-      method: 'DELETE'
-    }),
+    sendJson<{ ok: true }>(assetUrl(kind, name), 'DELETE'),
   discover: () => getJson<DiscoveredAsset[]>('/api/library/discover'),
   import: (data: ImportAssetInput) =>
-    fetch('/api/library/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AssetDetail>('/api/library/import', 'POST', data),
   installSkill: (data: InstallSkillInput) =>
-    fetch('/api/library/skills/install', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<InstallSkillResult>('/api/library/skills/install', 'POST', data),
   installSkillBundle: (data: InstallSkillBundleInput) =>
-    fetch('/api/library/skills/install-bundle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<InstallSkillResult>('/api/library/skills/install-bundle', 'POST', data),
   updateSkills: (data: { name?: string; force?: boolean } = {}) =>
-    fetch('/api/library/skills/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<UpdateSkillsResult>('/api/library/skills/update', 'POST', data),
   forkSkill: (data: { name: string; as?: string }) =>
-    fetch('/api/library/skills/fork', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AssetDetail>('/api/library/skills/fork', 'POST', data),
   getSkillFiles: (name: string) =>
     getJson<{ files: SkillFileEntry[] }>(`/api/library/skills/${encodeURIComponent(name)}/files`),
   getSkillFile: (name: string, path: string) =>
@@ -133,11 +115,7 @@ export const libraryApi = {
       `/api/library/skills/${encodeURIComponent(name)}/files/${path.split('/').map(encodeURIComponent).join('/')}`
     ),
   migrateAgentsSkills: (data: { lockPath?: string; force?: boolean } = {}) =>
-    fetch('/api/library/skills/migrate-agents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
+    sendJson<MigrateAgentsSkillsResult>('/api/library/skills/migrate-agents', 'POST', data)
 };
 
 export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult };
@@ -145,7 +123,7 @@ export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult 
 // Integrations API
 export const integrationsApi = {
   getAll: () => getJson<Integration[]>('/api/integrations'),
-  setup: () => fetch('/api/integrations/setup', { method: 'POST' })
+  setup: () => sendJson<Integration[]>('/api/integrations/setup', 'POST')
 };
 
 // Setup API
@@ -158,11 +136,7 @@ export const learningsApi = {
   getTimeline: () => getJson<LearningsTimeline>('/api/learnings'),
   getReflection: () => getJson<ReflectionReport>('/api/learnings/reflect'),
   capture: (data: CaptureInput) =>
-    fetch('/api/learnings/capture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
+    sendJson<CaptureEvent>('/api/learnings/capture', 'POST', data)
 };
 
 export type { CaptureEvent };
@@ -171,35 +145,15 @@ export type { CaptureEvent };
 export const aiSettingsApi = {
   get: () => getJson<AiSettingsPublic>('/api/settings/ai'),
   update: (data: UpdateAiSettingsInput) =>
-    fetch('/api/settings/ai', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AiSettingsPublic>('/api/settings/ai', 'PUT', data),
   draftPrompt: (data: DraftAssetInput) =>
-    fetch('/api/ai/draft-prompt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<DraftAssetResult>('/api/ai/draft-prompt', 'POST', data),
   classifyAsset: (data: ClassifyAssetInput) =>
-    fetch('/api/ai/classify-asset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<ClassifyAssetResult>('/api/ai/classify-asset', 'POST', data),
   auditAsset: (data: AuditAssetInput) =>
-    fetch('/api/ai/audit-asset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }),
+    sendJson<AuditAssetResult>('/api/ai/audit-asset', 'POST', data),
   improveAsset: (data: ImproveAssetInput) =>
-    fetch('/api/ai/improve-asset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
+    sendJson<ImproveAssetResult>('/api/ai/improve-asset', 'POST', data)
 };
 
 export type {

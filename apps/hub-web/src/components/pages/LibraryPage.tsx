@@ -16,12 +16,9 @@ import type {
   AssetKind,
   FilterKind,
   OwnershipFilter,
-  AssetDetail,
   ClassifyAssetResult,
   AuditAssetResult,
-  ImproveAssetResult,
-  DiscoveredAsset,
-  UpdateSkillsResult
+  DiscoveredAsset
 } from '@/types';
 import { AiEditPreviewDialog, type PendingAiEdit } from './library/AiEditPreviewDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
@@ -182,12 +179,7 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const response = await libraryApi.update(selected.kind, selected.name, { content: editorContent });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to update asset');
-      }
-      return response.json() as Promise<AssetDetail>;
+      return libraryApi.update(selected.kind, selected.name, { content: editorContent });
     },
     onSuccess: (asset) => {
       void queryClient.invalidateQueries({ queryKey: ['library'] });
@@ -204,12 +196,7 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const response = await libraryApi.rename(selected.kind, selected.name, { name: nextName });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to rename asset');
-      }
-      return response.json() as Promise<AssetDetail>;
+      return libraryApi.rename(selected.kind, selected.name, { name: nextName });
     },
     onSuccess: (asset) => {
       setSelected({ kind: asset.kind as AssetKind, name: asset.name });
@@ -231,15 +218,11 @@ export function LibraryPage() {
 
   const importAsset = useMutation({
     mutationFn: async (candidate: DiscoveredAsset) => {
-      const response = await libraryApi.import({
+      return libraryApi.import({
         editorId: candidate.editorId,
         kind: candidate.kind,
         name: candidate.name
       });
-      if (!response.ok) {
-        throw new Error('Unable to import asset');
-      }
-      return response.json() as Promise<AssetDetail>;
     },
     onSuccess: (asset) => {
       void queryClient.invalidateQueries({ queryKey: ['library'] });
@@ -273,16 +256,12 @@ export function LibraryPage() {
         const candidate = unique[i];
         setImportProgress({ current: i + 1, total: unique.length });
         try {
-          const response = await libraryApi.import({
+          await libraryApi.import({
             editorId: candidate.editorId,
             kind: candidate.kind,
             name: candidate.name
           });
-          if (response.ok) {
-            importedCount++;
-          } else {
-            skippedCount++;
-          }
+          importedCount++;
         } catch {
           skippedCount++;
         }
@@ -318,10 +297,7 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const response = await libraryApi.delete(selected.kind, selected.name);
-      if (!response.ok) {
-        throw new Error('Unable to delete asset');
-      }
+      await libraryApi.delete(selected.kind, selected.name);
     },
     onSuccess: () => {
       setSelected(null);
@@ -339,11 +315,7 @@ export function LibraryPage() {
 
   const updateSkills = useMutation({
     mutationFn: async (name?: string) => {
-      const response = await libraryApi.updateSkills(name ? { name } : {});
-      if (!response.ok) {
-        throw new Error('Unable to update skills');
-      }
-      return response.json() as Promise<UpdateSkillsResult>;
+      return libraryApi.updateSkills(name ? { name } : {});
     },
     onSuccess: (result) => {
       const updatedNames = result.results
@@ -389,12 +361,7 @@ export function LibraryPage() {
 
   const forkSkill = useMutation({
     mutationFn: async (name: string) => {
-      const response = await libraryApi.forkSkill({ name });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Unable to fork skill');
-      }
-      return response.json() as Promise<AssetDetail>;
+      return libraryApi.forkSkill({ name });
     },
     onSuccess: (asset) => {
       setSelected({ kind: 'skills', name: asset.name });
@@ -413,16 +380,11 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const response = await aiSettingsApi.classifyAsset({
+      return aiSettingsApi.classifyAsset({
         kind: selected.kind,
         name: selected.name,
         content: editorContent
       });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to reassess kind');
-      }
-      return response.json() as Promise<ClassifyAssetResult>;
     },
     onSuccess: (result) => {
       setKindAssessment(result);
@@ -443,19 +405,11 @@ export function LibraryPage() {
         throw new Error('No asset selected');
       }
       if (editorContent !== selectedAsset.data?.content) {
-        const saveResponse = await libraryApi.update(selected.kind, selected.name, {
+        await libraryApi.update(selected.kind, selected.name, {
           content: editorContent
         });
-        if (!saveResponse.ok) {
-          throw new Error('Save changes before converting, or retry');
-        }
       }
-      const response = await libraryApi.convert(selected.kind, selected.name, { toKind });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to convert asset');
-      }
-      return response.json() as Promise<AssetDetail>;
+      return libraryApi.convert(selected.kind, selected.name, { toKind });
     },
     onSuccess: (asset) => {
       setKindAssessment(null);
@@ -476,16 +430,11 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const response = await aiSettingsApi.auditAsset({
+      return aiSettingsApi.auditAsset({
         kind: selected.kind,
         name: selected.name,
         content: editorContent
       });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to audit asset');
-      }
-      return response.json() as Promise<AuditAssetResult>;
     },
     onSuccess: (result) => {
       setAssetAudit(result);
@@ -508,18 +457,13 @@ export function LibraryPage() {
       if (!assetAudit || assetAudit.findings.length === 0) {
         throw new Error('Run an audit before applying improvements');
       }
-      const response = await aiSettingsApi.improveAsset({
+      return aiSettingsApi.improveAsset({
         kind: selected.kind,
         name: selected.name,
         content: editorContent,
         summary: assetAudit.summary,
         findings: assetAudit.findings
       });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to improve asset');
-      }
-      return response.json() as Promise<ImproveAssetResult>;
     },
     onSuccess: (result) => {
       setPendingAiEdit({ label: 'Apply improvements', before: editorContent, after: result.content });
@@ -535,7 +479,7 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const response = await aiSettingsApi.improveAsset({
+      return aiSettingsApi.improveAsset({
         kind: selected.kind,
         name: selected.name,
         content: editorContent,
@@ -548,11 +492,6 @@ export function LibraryPage() {
           }
         ]
       });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to generate description');
-      }
-      return response.json() as Promise<ImproveAssetResult>;
     },
     onSuccess: (result) => {
       setPendingAiEdit({ label: 'AI-drafted description', before: editorContent, after: result.content });
@@ -568,18 +507,13 @@ export function LibraryPage() {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const forkResponse = await libraryApi.forkSkill({ name: selected.name });
-      if (!forkResponse.ok) {
-        const text = await forkResponse.text();
-        throw new Error(text || 'Unable to fork skill');
-      }
-      const forked = (await forkResponse.json()) as AssetDetail;
+      const forked = await libraryApi.forkSkill({ name: selected.name });
 
       const content =
         mode === 'heading'
           ? ensureExplicitDescription(forked.content, forked.name)
           : await (async () => {
-              const improveResponse = await aiSettingsApi.improveAsset({
+              const result = await aiSettingsApi.improveAsset({
                 kind: forked.kind,
                 name: forked.name,
                 content: forked.content,
@@ -593,11 +527,6 @@ export function LibraryPage() {
                   }
                 ]
               });
-              if (!improveResponse.ok) {
-                const payload = (await improveResponse.json().catch(() => null)) as { error?: string } | null;
-                throw new Error(payload?.error || 'Unable to generate description');
-              }
-              const result = (await improveResponse.json()) as ImproveAssetResult;
               return result.content;
             })();
 

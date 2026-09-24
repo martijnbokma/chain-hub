@@ -8,7 +8,6 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { integrationsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import type { Integration } from '@/types';
 
 export function IntegrationsPage() {
   const queryClient = useQueryClient();
@@ -19,11 +18,7 @@ export function IntegrationsPage() {
 
   const setup = useMutation({
     mutationFn: async () => {
-      const response = await integrationsApi.setup();
-      if (!response.ok) {
-        throw new Error('Unable to setup integrations');
-      }
-      return response.json() as Promise<Integration[]>;
+      return integrationsApi.setup();
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['integrations'] });

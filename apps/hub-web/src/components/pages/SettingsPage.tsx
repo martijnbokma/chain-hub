@@ -225,7 +225,7 @@ export function SettingsPage() {
         throw new Error('Each provider needs a model selected');
       }
 
-      const response = await aiSettingsApi.update({
+      return aiSettingsApi.update({
         provider,
         models,
         ollamaBaseUrl: ollamaBaseUrl.trim() || undefined,
@@ -238,10 +238,6 @@ export function SettingsPage() {
         deepseekApiKey: deepseekApiKey.trim() || undefined,
         cerebrasApiKey: cerebrasApiKey.trim() || undefined
       });
-      if (!response.ok) {
-        throw new Error('Unable to save AI settings');
-      }
-      return response.json() as Promise<AiSettingsPublic>;
     },
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['settings', 'ai'] });

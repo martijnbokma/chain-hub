@@ -47,11 +47,7 @@ export function useCommandPalette() {
 
   const connectEditors = useMutation({
     mutationFn: async () => {
-      const response = await integrationsApi.setup();
-      if (!response.ok) {
-        throw new Error('Unable to connect editors');
-      }
-      return response.json();
+      return integrationsApi.setup();
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['setup'] });

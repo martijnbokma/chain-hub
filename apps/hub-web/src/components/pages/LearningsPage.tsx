@@ -142,11 +142,7 @@ export function LearningsPage() {
 
   const capture = useMutation({
     mutationFn: async () => {
-      const response = await learningsApi.capture({ type: eventType, skill: skill.trim(), summary: summary.trim() });
-      if (!response.ok) {
-        throw new Error('Unable to log event');
-      }
-      return response.json();
+      return learningsApi.capture({ type: eventType, skill: skill.trim(), summary: summary.trim() });
     },
     onSuccess: () => {
       setSkill('');

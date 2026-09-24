@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { setupApi, integrationsApi, validateApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import type { Integration, SetupGuide } from '@/types';
+import type { SetupGuide } from '@/types';
 
 function statusLabel(status: SetupGuide['steps'][number]['status']): string {
   switch (status) {
@@ -69,11 +69,7 @@ export function SetupPage() {
 
   const setupEditors = useMutation({
     mutationFn: async () => {
-      const response = await integrationsApi.setup();
-      if (!response.ok) {
-        throw new Error('Unable to connect editors');
-      }
-      return (await response.json()) as Integration[];
+      return integrationsApi.setup();
     },
     onSuccess: (integrations) => {
       void queryClient.invalidateQueries({ queryKey: ['setup'] });

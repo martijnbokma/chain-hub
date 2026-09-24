@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/contracts';
 import { aiSettingsApi, libraryApi } from '@/lib/api';
-import type { AssetDetail, AssetKind, DraftPromptResult } from '@/types';
+import type { AssetKind } from '@/types';
 
 import type { DraftKindChoice } from './CreateAssetDialog';
 
@@ -69,21 +69,19 @@ export function useLibraryCreateFlow(options: {
         throw new Error(blocking.message);
       }
 
-      let response: Response;
       try {
-        response = await libraryApi.create({
+        return await libraryApi.create({
           kind: draftKind,
           name: draftName,
           content
         });
-      } catch {
-        throw new Error('Hub server is unreachable. Run `bun run dev` or `chain hub` and try again.');
+      } catch (error) {
+        // fetch rejects with a TypeError when nothing answers; server errors carry their own message.
+        if (error instanceof TypeError) {
+          throw new Error('Hub server is unreachable. Run `bun run dev` or `chain hub` and try again.');
+        }
+        throw error;
       }
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || `Unable to create asset (${response.status})`);
-      }
-      return response.json() as Promise<AssetDetail>;
     },
     onSuccess: (asset) => {
       resetCreateDraft();
@@ -101,16 +99,11 @@ export function useLibraryCreateFlow(options: {
 
   const draftPromptWithAi = useMutation({
     mutationFn: async () => {
-      const response = await aiSettingsApi.draftPrompt({
+      return aiSettingsApi.draftPrompt({
         intent: draftIntent.trim(),
         kind: draftKindChoice,
         name: draftNameLocked && draftName.trim() ? draftName.trim() : undefined
       });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || 'Unable to draft asset. Check Settings → AI.');
-      }
-      return response.json() as Promise<DraftPromptResult>;
     },
     onSuccess: (result) => {
       setDraftContent(result.content);

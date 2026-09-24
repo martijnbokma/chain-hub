@@ -12,7 +12,6 @@ import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { libraryApi, overviewApi } from '@/lib/api';
 import { ASSET_KIND_LABELS, ASSET_KINDS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import type { MigrateAgentsSkillsResult } from '@/types';
 
 export function OverviewPage() {
   const queryClient = useQueryClient();
@@ -23,11 +22,7 @@ export function OverviewPage() {
 
   const importAgentsSkills = useMutation({
     mutationFn: async () => {
-      const response = await libraryApi.migrateAgentsSkills({});
-      if (!response.ok) {
-        throw new Error('Unable to migrate agents skills');
-      }
-      return response.json() as Promise<MigrateAgentsSkillsResult>;
+      return libraryApi.migrateAgentsSkills({});
     },
     onSuccess: (result) => {
       const migrated = result.results.filter((item) => item.status === 'migrated').length;
