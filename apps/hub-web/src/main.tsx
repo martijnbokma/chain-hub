@@ -6,7 +6,10 @@ import { Toaster } from "sonner";
 
 import { App } from "./app";
 import { useTheme } from "./hooks/use-theme";
+// Fonts ship with the app: the hub is local-first and must not call Google on load.
 import "@fontsource-variable/big-shoulders-display";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
 import "./styles.css";
 
 // Every hub read scans the hub folder; don't repeat that on each window focus.
