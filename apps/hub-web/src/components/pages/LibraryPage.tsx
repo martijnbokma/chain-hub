@@ -53,6 +53,7 @@ export function LibraryPage() {
   );
   const [editorContent, setEditorContent] = useState('');
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
+  const [autoAuditAsset, setAutoAuditAsset] = useState<string | null>(null);
 
   const createFlow = useLibraryCreateFlow({
     searchParams,
@@ -73,9 +74,13 @@ export function LibraryPage() {
     const linkedAsset = parseSelectedAssetParams(searchParams.get('kind'), searchParams.get('asset'));
     if (linkedAsset) {
       setSelected(linkedAsset);
+      if (searchParams.get('audit') === '1') {
+        setAutoAuditAsset(linkedAsset.name);
+      }
       // Consume the deep link so closing the panel does not reopen it on the next param change.
       const next = new URLSearchParams(searchParams);
       next.delete('asset');
+      next.delete('audit');
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setCreateOpenFromParams, setSearchParams]);
@@ -113,16 +118,6 @@ export function LibraryPage() {
     enabled: selected?.kind === 'skills'
   });
 
-  useEffect(() => {
-    if (selectedAsset.data) {
-      setEditorContent(selectedAsset.data.content);
-    }
-  }, [selectedAsset.data]);
-
-  useEffect(() => {
-    setPreviewFilePath(null);
-  }, [selected?.kind, selected?.name]);
-
   const {
     kindAssessment,
     assetAudit,
@@ -136,6 +131,29 @@ export function LibraryPage() {
     fixDescriptionWithAi,
     forkAndFixDescription
   } = useLibraryAiActions({ selected, editorContent, setEditorContent, setSelected });
+
+  const auditAssetMutateRef = useRef(auditAsset.mutate);
+  auditAssetMutateRef.current = auditAsset.mutate;
+
+  useEffect(() => {
+    if (autoAuditAsset && selected?.name !== autoAuditAsset) {
+      setAutoAuditAsset(null);
+    }
+  }, [selected?.name, autoAuditAsset]);
+
+  useEffect(() => {
+    if (selectedAsset.data) {
+      setEditorContent(selectedAsset.data.content);
+      if (autoAuditAsset && autoAuditAsset === selectedAsset.data.name) {
+        setAutoAuditAsset(null);
+        auditAssetMutateRef.current(selectedAsset.data.content);
+      }
+    }
+  }, [selectedAsset.data, autoAuditAsset]);
+
+  useEffect(() => {
+    setPreviewFilePath(null);
+  }, [selected?.kind, selected?.name]);
 
   const isDirty = selectedAsset.data !== undefined && editorContent !== selectedAsset.data.content;
   // `undefined` = no switch pending; `null` = user asked to close the detail panel.
@@ -541,7 +559,7 @@ export function LibraryPage() {
               assetAudit={assetAudit}
               author={selectedAsset.data?.author}
               editorContent={editorContent}
-              isAuditing={auditAsset.isPending}
+              isAuditing={auditAsset.isPending || autoAuditAsset === selected.name}
               isConverting={convertKind.isPending}
               isDeleting={removeAsset.isPending}
               isFixingDescriptionWithAi={fixDescriptionWithAi.isPending}

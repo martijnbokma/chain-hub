@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,13 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { CircularLoader } from '@/components/ui/loader';
 import type { AuditAssetFinding, AuditAssetResult } from '@/types';
 
 export type AssetAuditDialogProps = {
-  audit: AuditAssetResult;
+  audit: AuditAssetResult | null;
+  isLoading?: boolean;
+  assetName?: string;
   activeFindingIndex: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,6 +49,8 @@ export function fieldReportsLabel(count: number): string {
 
 export function AssetAuditDialog({
   audit,
+  isLoading = false,
+  assetName,
   activeFindingIndex,
   open,
   onOpenChange,
@@ -55,9 +60,9 @@ export function AssetAuditDialog({
   canImprove,
   onImprove
 }: AssetAuditDialogProps) {
-  const hasFindings = audit.findings.length > 0;
+  const hasFindings = Boolean(audit && audit.findings.length > 0);
   const currentFinding =
-    activeFindingIndex !== null && activeFindingIndex >= 0 && activeFindingIndex < audit.findings.length
+    !isLoading && audit && activeFindingIndex !== null && activeFindingIndex >= 0 && activeFindingIndex < audit.findings.length
       ? audit.findings[activeFindingIndex]
       : null;
 
@@ -66,17 +71,41 @@ export function AssetAuditDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <DialogTitle>Audit findings</DialogTitle>
-            <Badge variant="default">{hasFindings ? `${audit.findings.length} findings` : 'No findings'}</Badge>
-            {audit.learningsConsidered ? (
-              <Badge variant="default">Checked against {fieldReportsLabel(audit.learningsConsidered)}</Badge>
-            ) : null}
+            <DialogTitle>
+              {isLoading ? (assetName ? `Auditing ${assetName}` : 'Auditing asset') : 'Audit findings'}
+            </DialogTitle>
+            {isLoading ? (
+              <Badge variant="accent">Auditing…</Badge>
+            ) : (
+              <>
+                <Badge variant="default">{hasFindings ? `${audit?.findings.length} findings` : 'No findings'}</Badge>
+                {audit?.learningsConsidered ? (
+                  <Badge variant="default">Checked against {fieldReportsLabel(audit.learningsConsidered)}</Badge>
+                ) : null}
+              </>
+            )}
           </div>
-          <DialogDescription className="text-foreground/80">{audit.summary}</DialogDescription>
+          <DialogDescription className="text-foreground/80">
+            {isLoading
+              ? 'Evaluating content against field reports from Learnings and quality standards…'
+              : audit?.summary}
+          </DialogDescription>
         </DialogHeader>
 
         <DialogBody>
-          {currentFinding !== null && activeFindingIndex !== null ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+              <CircularLoader size="lg" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  {assetName ? `Auditing ${assetName}…` : 'Auditing asset…'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Checking content against field reports and best practice rules
+                </p>
+              </div>
+            </div>
+          ) : currentFinding !== null && activeFindingIndex !== null && audit ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                 <div className="flex items-center gap-2">
@@ -139,7 +168,7 @@ export function AssetAuditDialog({
                 ) : null}
               </div>
             </div>
-          ) : (
+          ) : hasFindings && audit ? (
             <div className="grid gap-2">
               {audit.findings.map((finding, index) => (
                 <div
@@ -172,11 +201,21 @@ export function AssetAuditDialog({
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+              <div className="rounded-full bg-emerald-500/10 p-3 text-emerald-500">
+                <Check className="size-5" />
+              </div>
+              <p className="text-sm font-medium text-foreground">No material findings</p>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                This asset meets quality standards and addresses checked field reports.
+              </p>
+            </div>
           )}
         </DialogBody>
 
         <DialogFooter>
-          {hasFindings ? (
+          {!isLoading && hasFindings ? (
             isUpstreamSkill ? (
               <p className="mr-auto text-xs text-muted-foreground leading-5">
                 Fork this skill first if you want AI to apply improvements to a local copy.

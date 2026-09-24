@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { libraryApi, overviewApi } from '@/lib/api';
+import { aiSettingsApi, libraryApi, overviewApi } from '@/lib/api';
 import { makeAsset, makeOverview, renderWithProviders } from '@/test/render';
 import type { AssetDetail } from '@/types';
 
@@ -124,5 +124,30 @@ describe('LibraryPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Discard changes' }));
 
     expect(await screen.findByRole('textbox', { name: 'Edit skills pdf-tool' })).toBeInTheDocument();
+  });
+
+  it('automatically runs audit and opens dialog when navigating with ?audit=1', async () => {
+    const auditSpy = vi.spyOn(aiSettingsApi, 'auditAsset').mockResolvedValue({
+      summary: 'One field-reported gap.',
+      findings: [
+        { severity: 'medium', title: 'PDF parsing gotcha', detail: 'Check buffer size.', source: 'learning' }
+      ],
+      learningsConsidered: 2
+    });
+
+    renderWithProviders(<LibraryPage />, { route: '/library?kind=skills&asset=pdf-tool&audit=1' });
+
+    await waitFor(() =>
+      expect(auditSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'skills',
+          name: 'pdf-tool'
+        })
+      )
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Audit findings' })).toBeInTheDocument();
+    expect(within(dialog).getByText('PDF parsing gotcha')).toBeInTheDocument();
   });
 });

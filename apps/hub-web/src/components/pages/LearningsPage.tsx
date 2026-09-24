@@ -97,7 +97,7 @@ function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
               {item.inHub ? (
                 <Link
                   className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }), 'shrink-0')}
-                  to={librarySkillLink(item.skill)}
+                  to={librarySkillLink(item.skill, { audit: true })}
                 >
                   Audit skill
                 </Link>

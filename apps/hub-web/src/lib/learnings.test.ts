@@ -60,4 +60,8 @@ describe("librarySkillLink", () => {
   it("deep-links to the skill in Library", () => {
     expect(librarySkillLink("review-pr")).toBe("/library?kind=skills&asset=review-pr");
   });
+
+  it("includes audit param when requested", () => {
+    expect(librarySkillLink("review-pr", { audit: true })).toBe("/library?kind=skills&asset=review-pr&audit=1");
+  });
 });

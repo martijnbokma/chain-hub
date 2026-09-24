@@ -404,10 +404,12 @@ export function AssetDetailPanel({
               ) : null}
             </div>
           ) : null}
-          {assetAudit ? (
+          {assetAudit || isAuditing ? (
             <AssetAuditCard
+              assetName={selected.name}
               audit={assetAudit}
               canImprove={Boolean(editorContent.trim())}
+              isAuditing={isAuditing}
               isImproving={isImproving}
               isUpstreamSkill={isUpstreamSkill}
               onImprove={onImproveAsset}

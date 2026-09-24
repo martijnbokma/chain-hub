@@ -30,6 +30,10 @@ export function selectSkillsNeedingAttention(
     );
 }
 
-export function librarySkillLink(skill: string): string {
-  return `/library?${new URLSearchParams({ kind: 'skills', asset: skill }).toString()}`;
+export function librarySkillLink(skill: string, options?: { audit?: boolean }): string {
+  const params = new URLSearchParams({ kind: 'skills', asset: skill });
+  if (options?.audit) {
+    params.set('audit', '1');
+  }
+  return `/library?${params.toString()}`;
 }

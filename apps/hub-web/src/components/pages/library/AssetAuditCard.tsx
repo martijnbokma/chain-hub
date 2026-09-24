@@ -8,7 +8,9 @@ import type { AuditAssetResult } from '@/types';
 import { AssetAuditDialog, fieldReportsLabel, severityLabel } from './AssetAuditDialog';
 
 type AssetAuditCardProps = {
-  audit: AuditAssetResult;
+  audit: AuditAssetResult | null;
+  assetName?: string;
+  isAuditing?: boolean;
   isUpstreamSkill: boolean;
   isImproving: boolean;
   canImprove: boolean;
@@ -18,52 +20,77 @@ type AssetAuditCardProps = {
 
 export function AssetAuditCard({
   audit,
+  assetName,
+  isAuditing = false,
   isUpstreamSkill,
   isImproving,
   canImprove,
   onImprove,
   defaultOpenModal = true
 }: AssetAuditCardProps) {
-  const hasFindings = audit.findings.length > 0;
-  const hasLearningFindings = audit.findings.some((finding) => finding.source === 'learning');
+  const hasFindings = Boolean(audit && audit.findings.length > 0);
+  const hasLearningFindings = Boolean(audit?.findings.some((finding) => finding.source === 'learning'));
 
-  const [isModalOpen, setIsModalOpen] = useState(defaultOpenModal && hasFindings);
+  const [isModalOpen, setIsModalOpen] = useState(
+    (defaultOpenModal && (audit?.findings.length ?? 0) > 0) || isAuditing
+  );
   const [activeFindingIndex, setActiveFindingIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (defaultOpenModal && audit.findings.length > 0) {
+    if (isAuditing) {
+      setIsModalOpen(true);
+      setActiveFindingIndex(null);
+    }
+  }, [isAuditing]);
+
+  useEffect(() => {
+    if (defaultOpenModal && audit && audit.findings.length > 0) {
       setIsModalOpen(true);
       setActiveFindingIndex(null);
     }
   }, [audit, defaultOpenModal]);
+
+  if (!audit && !isAuditing) {
+    return null;
+  }
 
   return (
     <>
       <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium text-foreground">Audit</span>
-          <Badge variant="default">{hasFindings ? `${audit.findings.length} findings` : 'No findings'}</Badge>
-          {hasFindings ? (
-            <Button
-              className="ml-auto h-6 px-2 text-xs"
-              onClick={() => {
-                setActiveFindingIndex(null);
-                setIsModalOpen(true);
-              }}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <Maximize2 className="size-3.5" />
-              View in modal
-            </Button>
-          ) : null}
+          {isAuditing ? (
+            <Badge variant="accent">Auditing…</Badge>
+          ) : (
+            <>
+              <Badge variant="default">{hasFindings ? `${audit?.findings.length} findings` : 'No findings'}</Badge>
+              {hasFindings ? (
+                <Button
+                  className="ml-auto h-6 px-2 text-xs"
+                  onClick={() => {
+                    setActiveFindingIndex(null);
+                    setIsModalOpen(true);
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Maximize2 className="size-3.5" />
+                  View in modal
+                </Button>
+              ) : null}
+            </>
+          )}
         </div>
-        <p className="mt-1 leading-5 text-foreground/80">{audit.summary}</p>
-        {audit.learningsConsidered ? (
+        <p className="mt-1 leading-5 text-foreground/80">
+          {isAuditing
+            ? 'Evaluating content against field reports and quality standards…'
+            : audit?.summary}
+        </p>
+        {!isAuditing && audit?.learningsConsidered ? (
           <p className="mt-1 leading-5">Checked against {fieldReportsLabel(audit.learningsConsidered)} from Learnings.</p>
         ) : null}
-        {hasFindings ? (
+        {!isAuditing && hasFindings && audit ? (
           <ul className="mt-3 grid gap-2">
             {audit.findings.map((finding, index) => (
               <li
@@ -101,7 +128,7 @@ export function AssetAuditCard({
             ))}
           </ul>
         ) : null}
-        {hasFindings ? (
+        {!isAuditing && hasFindings ? (
           isUpstreamSkill ? (
             <p className="mt-3 leading-5 text-foreground/80">
               {hasLearningFindings
@@ -125,9 +152,11 @@ export function AssetAuditCard({
 
       <AssetAuditDialog
         activeFindingIndex={activeFindingIndex}
+        assetName={assetName}
         audit={audit}
         canImprove={canImprove}
         isImproving={isImproving}
+        isLoading={isAuditing}
         isUpstreamSkill={isUpstreamSkill}
         onImprove={onImprove}
         onOpenChange={setIsModalOpen}

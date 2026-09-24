@@ -73,14 +73,14 @@ export function useLibraryAiActions(options: {
   });
 
   const auditAsset = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrideContent?: string) => {
       if (!selected) {
         throw new Error('No asset selected');
       }
       return aiSettingsApi.auditAsset({
         kind: selected.kind,
         name: selected.name,
-        content: editorContent
+        content: overrideContent ?? editorContent
       });
     },
     onSuccess: (result) => {

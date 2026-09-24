@@ -120,4 +120,14 @@ describe("AssetAuditCard", () => {
 
     expect(onImprove).toHaveBeenCalledOnce();
   });
+
+  it("shows auditing loading state in dialog and inline card when isAuditing is true", () => {
+    renderCard({ audit: null, isAuditing: true, assetName: "my-skill" });
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("heading", { name: "Auditing my-skill" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Auditing…")).toBeInTheDocument();
+    expect(within(dialog).getByText("Checking content against field reports and best practice rules")).toBeInTheDocument();
+    expect(screen.getByText("Evaluating content against field reports and quality standards…")).toBeInTheDocument();
+  });
 });
