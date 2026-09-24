@@ -43,7 +43,9 @@ export function useCommandPalette() {
     queryKey: ['integrations'],
     queryFn: () => integrationsApi.getAll()
   });
-  const connectedCount = integrations.data?.filter((integration) => integration.connected).length ?? 0;
+  // Only editors installed on this machine count, matching the Integrations page and setup.
+  const installedEditors = integrations.data?.filter((integration) => integration.installed) ?? [];
+  const connectedCount = installedEditors.filter((integration) => integration.connected).length;
 
   const connectEditors = useMutation({
     mutationFn: async () => {
@@ -184,6 +186,7 @@ export function useCommandPalette() {
     actions,
     actionGroups,
     integrations,
+    installedEditors,
     connectedCount,
     connectEditors
   };

@@ -15,6 +15,7 @@ import {
   getIntegrations,
   getLearningsTimeline,
   getSkillLearnings,
+  getSetupGuide,
   importDiscoveredAsset,
   initializeHub,
   listAssets,
@@ -373,6 +374,18 @@ describe("setupIntegrations", () => {
     await expect(fs.lstat(legacySymlinkPath)).rejects.toThrow();
     const managedSkill = await fs.readFile(path.join(tmpHome, ".claude", "skills", "demo", "SKILL.md"), "utf8");
     expect(managedSkill).toContain("chain_hub_source: skills/demo");
+  });
+
+  it("names the installed editors in the connect step as a readable list", async () => {
+    const hub = await makeTmpHub();
+    await fs.mkdir(path.join(tmpHome, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tmpHome, ".cursor"), { recursive: true });
+
+    const guide = await getSetupGuide(hub);
+
+    expect(guide.steps.find((step) => step.id === "connect-editors")?.description).toBe(
+      "Sync the hub into Cursor and Claude Code so they all stay up to date."
+    );
   });
 
   it("only projects into editors that are installed", async () => {

@@ -207,7 +207,7 @@ function LibraryNavItem() {
 export function Shell({ children }: ShellProps) {
   const location = useLocation();
 
-  const { commandOpen, setCommandOpen, actionGroups, integrations, connectedCount } = useCommandPalette();
+  const { commandOpen, setCommandOpen, actionGroups, installedEditors, connectedCount } = useCommandPalette();
 
   return (
     <ShellToolbarProvider>
@@ -217,7 +217,7 @@ export function Shell({ children }: ShellProps) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
-                  <ChainHubLogo showText={false} className="size-7 shrink-0" />
+                  <ChainHubLogo showText={false} className="size-8! shrink-0" />
                   <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
                     Chain Hub
                   </span>
@@ -284,11 +284,11 @@ export function Shell({ children }: ShellProps) {
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-muted-foreground">Linked editors</p>
                 <span className="font-mono text-2xs tabular-nums text-muted-foreground">
-                  {connectedCount}/{integrations.data?.length ?? 0}
+                  {connectedCount}/{installedEditors.length}
                 </span>
               </div>
               <div className="grid gap-2">
-                {(integrations.data ?? []).map((integration) => (
+                {installedEditors.map((integration) => (
                   <div className="flex min-w-0 items-center gap-2.5" key={integration.id}>
                     <span
                       aria-hidden="true"
@@ -304,11 +304,12 @@ export function Shell({ children }: ShellProps) {
                       )}
                     >
                       {integration.label}
+                      <span className="sr-only">{integration.connected ? ' (connected)' : ' (not connected)'}</span>
                     </span>
                   </div>
                 ))}
-                {integrations.data?.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No editors linked yet.</p>
+                {installedEditors.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No supported editor found on this machine.</p>
                 ) : null}
               </div>
             </div>
@@ -319,7 +320,7 @@ export function Shell({ children }: ShellProps) {
           <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
             <SidebarTrigger />
             <NavLink className="flex items-center gap-2.5 md:hidden" to="/">
-              <ChainHubLogo showText={false} className="size-7 shrink-0" />
+              <ChainHubLogo showText={false} className="size-8 shrink-0" />
               <span className="font-sans text-lg font-semibold tracking-tight text-foreground">
                 Chain Hub
               </span>

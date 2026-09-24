@@ -64,7 +64,9 @@ export async function getSetupGuide(chainHomeInput?: string): Promise<SetupGuide
       label: "Connect editors",
       description:
         installedEditors.length > 0
-          ? `Sync the hub into ${installedEditors.map((integration) => integration.label).join(", ")} so they all stay up to date.`
+          ? `Sync the hub into ${new Intl.ListFormat("en", { type: "conjunction" }).format(
+              installedEditors.map((integration) => integration.label)
+            )} so they all stay up to date.`
           : "No supported editor found yet. Install Cursor, Claude Code, Windsurf, Zed or Google Antigravity, then connect it here.",
       complete: editorsConnected,
       action: "connect",
