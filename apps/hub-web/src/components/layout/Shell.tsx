@@ -15,6 +15,7 @@ import { ASSET_KIND_LABELS, ASSET_KINDS } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 import type { AssetKind } from '../../types';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { ChainHubLogo } from '../ui/ChainHubLogo';
 import { SheetMarks } from '../common/SheetMarks';
 import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -216,8 +217,8 @@ export function Shell({ children }: ShellProps) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
-                  <img src="/logo.svg" alt="Chain Hub" className="size-8 shrink-0 rounded-sm" />
-                  <span className="truncate font-display text-xl font-semibold uppercase tracking-wide text-foreground">
+                  <ChainHubLogo showText={false} className="size-7 shrink-0" />
+                  <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
                     Chain Hub
                   </span>
                 </SidebarMenuButton>
@@ -317,9 +318,9 @@ export function Shell({ children }: ShellProps) {
         <SidebarInset className="min-w-0 overflow-x-hidden">
           <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
             <SidebarTrigger />
-            <NavLink className="flex items-center gap-3 md:hidden" to="/">
-              <img src="/logo.svg" alt="Chain Hub" className="size-8 shrink-0 rounded-sm" />
-              <span className="font-display text-xl font-semibold uppercase tracking-wide text-foreground">
+            <NavLink className="flex items-center gap-2.5 md:hidden" to="/">
+              <ChainHubLogo showText={false} className="size-7 shrink-0" />
+              <span className="font-sans text-lg font-semibold tracking-tight text-foreground">
                 Chain Hub
               </span>
             </NavLink>
