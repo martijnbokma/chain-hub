@@ -10,16 +10,22 @@ import { getAsset } from "@chain-hub/storage";
 import {
   auditHubAsset,
   captureHubEvent,
+  convertLibraryAssetKind,
   createLibraryAsset,
   deleteLibraryAsset,
+  discoverLibraryAssets,
   getDashboardOverview,
   getHubAgentsSkillsDrift,
   getHubLearningsTimeline,
   getHubReflectionReport,
+  getIntegrationStatus,
   getLibrary,
   getLibraryAsset,
+  getSkillFile,
+  getSkillFiles,
   initializeChainHub,
   installLibrarySkill,
+  renameLibraryAsset,
   syncAgentsSkillsIntoHub,
   updateHubAiSettings,
   updateLibraryAsset,
@@ -315,5 +321,61 @@ describe("auditHubAsset with learnings", () => {
 
     expect(user).not.toContain("Field reports");
     expect(result.learningsConsidered).toBeUndefined();
+  });
+
+});
+
+describe("library asset lifecycle via domain", () => {
+  async function hubWithSkill(name = "original-skill"): Promise<string> {
+    const hub = await makeTmpHub();
+    await initializeChainHub(hub);
+    await createLibraryAsset(hub, {
+      kind: "skills",
+      name,
+      content: `---\nname: ${name}\ndescription: Test skill. Use when testing.\n---\n# Body`
+    });
+    return hub;
+  }
+
+  it("lists and reads sibling files inside a skill folder", async () => {
+    const hub = await hubWithSkill();
+    await fs.writeFile(path.join(hub, "skills", "original-skill", "reference.md"), "# Reference notes", "utf8");
+
+    const files = await getSkillFiles(hub, "original-skill");
+    const file = await getSkillFile(hub, "original-skill", "reference.md");
+
+    expect(files.some((entry) => entry.path === "reference.md")).toBe(true);
+    expect(file.content).toContain("# Reference notes");
+  });
+
+  it("renames an asset and removes the old name", async () => {
+    const hub = await hubWithSkill();
+
+    const renamed = await renameLibraryAsset(hub, "skills", "original-skill", { name: "renamed-skill" });
+    const names = (await getLibrary(hub, "skills")).map((asset) => asset.name);
+
+    expect(renamed.name).toBe("renamed-skill");
+    expect(names).toContain("renamed-skill");
+    expect(names).not.toContain("original-skill");
+  });
+
+  it("converts an asset to another kind", async () => {
+    const hub = await hubWithSkill();
+
+    const converted = await convertLibraryAssetKind(hub, "skills", "original-skill", { toKind: "prompts" });
+
+    expect(converted.kind).toBe("prompts");
+    expect((await getLibrary(hub, "prompts")).map((asset) => asset.name)).toContain("original-skill");
+    expect((await getLibrary(hub, "skills")).map((asset) => asset.name)).not.toContain("original-skill");
+  });
+
+  it("reports integration status and discovery for a fresh home", async () => {
+    const hub = await hubWithSkill();
+
+    const integrations = await getIntegrationStatus(hub);
+    const discovered = await discoverLibraryAssets(hub);
+
+    expect(integrations.length).toBeGreaterThan(0);
+    expect(Array.isArray(discovered)).toBe(true);
   });
 });

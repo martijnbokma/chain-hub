@@ -23,7 +23,7 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:coverage": "turbo run test:coverage",
+    "test:coverage": "turbo run test:coverage --concurrency=1",
     "test:e2e": "turbo run test:e2e"
   },
   "devDependencies": {
