@@ -28,6 +28,16 @@ describe('SetupPage', () => {
     expect(screen.getByRole('heading', { name: 'Validate structure' })).toBeInTheDocument();
   });
 
+  it('keeps orange for the current step only', async () => {
+    mockGuide();
+    renderWithProviders(<SetupPage />);
+
+    const connect = await screen.findByRole('button', { name: 'Connect editors' });
+    const validate = screen.getByRole('button', { name: 'Run validation' });
+    expect(connect.className).toContain('bg-primary');
+    expect(validate.className).not.toContain('bg-primary');
+  });
+
   it('reports only installed editors after connecting', async () => {
     const user = userEvent.setup();
     mockGuide();

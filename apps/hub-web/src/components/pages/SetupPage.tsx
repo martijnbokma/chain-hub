@@ -166,6 +166,7 @@ export function SetupPage() {
                       disabled={setupEditors.isPending}
                       onClick={() => setupEditors.mutate()}
                       size="sm"
+                      variant={isCurrent ? 'default' : 'secondary'}
                     >
                       {setupEditors.isPending ? 'Connecting…' : 'Connect editors'}
                     </Button>
@@ -193,7 +194,12 @@ export function SetupPage() {
                 ) : null}
 
                 {showCreateAsset ? (
-                  <Button className="w-fit" onClick={() => navigate('/library?create=1')} size="sm">
+                  <Button
+                    className="w-fit"
+                    onClick={() => navigate('/library?create=1')}
+                    size="sm"
+                    variant={isCurrent ? 'default' : 'secondary'}
+                  >
                     Create asset
                   </Button>
                 ) : null}
@@ -205,6 +211,7 @@ export function SetupPage() {
                       disabled={runValidate.isPending}
                       onClick={() => runValidate.mutate()}
                       size="sm"
+                      variant={isCurrent ? 'default' : 'secondary'}
                     >
                       {runValidate.isPending ? 'Validating…' : 'Run validation'}
                     </Button>
