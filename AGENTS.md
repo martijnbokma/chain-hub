@@ -97,7 +97,10 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 
 ## Git
 
-Git Flow: `main` (release) ← `develop` (integration) ← `feature/<slug>`, `fix/<slug>`, `chore/<slug>`. `hotfix/<slug>` branches from `main`. Never commit to `main` or `develop` directly. Tag releases on `main` (`v1.2.0`).
+- Work directly on `develop`. Do not create feature/fix/chore branches or PRs unless the user asks for one.
+- One topic per commit: split unrelated changes into separate commits so `develop` history stays readable.
+- Keep `develop` CI green (lint, typecheck, `test:coverage`, e2e) — without PRs it is the only safety net.
+- `main` is release-only: never commit to it directly. Release by merging `develop` into `main` and tagging (`v1.2.0`).
 
 Conventional Commits with package scope: `feat(hub-web): add command palette shortcut`. Scopes: `hub-web`, `docs`, `cli`, `server`, `domain`, `storage`, `contracts`.
 
