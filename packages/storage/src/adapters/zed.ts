@@ -10,10 +10,10 @@ import {
   listSkillCandidates,
   pathExists,
   readUnmanagedCandidates,
-  removeManagedFile,
+  removeProjectedSkill,
   writeManagedFile
 } from "./files.js";
-import { projectSkillSidecars, removeEditorSkillDirectory } from "../skill-install.js";
+import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Zed discovery paths (user-level): docs/editor-adapters-research.md#zed
@@ -119,11 +119,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
 
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
   if (kind === "skills") {
-    const filePath = skillPath(homeDir, name);
-    await removeManagedFile(filePath);
-    if (!(await pathExists(filePath))) {
-      await removeEditorSkillDirectory(path.dirname(filePath));
-    }
+    await removeProjectedSkill(skillPath(homeDir, name));
   }
 }
 

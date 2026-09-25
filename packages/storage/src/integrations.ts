@@ -16,7 +16,7 @@ import { createAsset, getAsset, listAssets, loadAllAssetDetails, resolveChainHom
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
 import { zedConfigDir } from "./adapters/zed.js";
 import { parseFrontmatter } from "./adapters/frontmatter.js";
-import { copySkillSidecars } from "./skill-install.js";
+import { copySkillSidecars } from "./skill-copy.js";
 import { ensureDir, makeExcerpt, pathExists, resolveHomeDir } from "./shared.js";
 
 /**

@@ -12,21 +12,11 @@ export {
   validateHub,
   scanAssets,
   loadAllAssetDetails,
-  listSkillFiles,
-  readSkillFile,
   assertSafeAssetKind,
   assertSafeAssetName
 } from "./core.js";
 
-export {
-  installSkill,
-  installSkillBundle,
-  updateSkills,
-  checkSkillUpdates,
-  migrateAgentsSkills,
-  getAgentsSkillsDrift,
-  forkSkill
-} from "./assets.js";
+export { listSkillFiles, readSkillFile } from "./skill-files.js";
 
 export {
   installSkillFromSource,
@@ -37,10 +27,10 @@ export {
   detectAgentsSkillsDrift,
   forkSkillFromHub,
   readSkillsLock,
-  renameSkillLockEntry,
-  projectSkillSidecars,
-  removeEditorSkillDirectory
+  renameSkillLockEntry
 } from "./skill-install.js";
+
+export { projectSkillSidecars, removeEditorSkillDirectory } from "./adapters/skill-sidecars.js";
 
 export {
   getIntegrations,

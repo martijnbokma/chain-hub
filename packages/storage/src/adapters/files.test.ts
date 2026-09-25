@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { stringifyFrontmatter } from "./frontmatter.js";
 import { FRONTMATTER_MARKER_KEY, HEADER_MARKER, markerSource } from "./marker.js";
 import {
+  buildIntegrationStatus,
   dirHasAnyFile,
   listFlatCandidates,
   listSkillCandidates,
@@ -13,6 +14,8 @@ import {
   readUnmanagedCandidates,
   removeEmptyDir,
   removeManagedFile,
+  removeProjectedSkill,
+  resyncSupportedAssets,
   writeManagedFile
 } from "./files.js";
 
@@ -236,5 +239,82 @@ describe("readUnmanagedCandidates", () => {
     const [result] = await readUnmanagedCandidates([{ name: "titled", filePath }], "rules");
 
     expect(result.content).toBe("# Already Titled\n\nBody.");
+  });
+});
+
+describe("removeProjectedSkill", () => {
+  it("removes a managed SKILL.md together with its folder and sidecars", async () => {
+    const dir = await makeTmpDir();
+    const skillDir = path.join(dir, "demo");
+    const filePath = path.join(skillDir, "SKILL.md");
+    await fs.mkdir(path.join(skillDir, "scripts"), { recursive: true });
+    await fs.writeFile(path.join(skillDir, "scripts", "run.sh"), "echo hi", "utf8");
+    await fs.writeFile(
+      filePath,
+      stringifyFrontmatter({ [FRONTMATTER_MARKER_KEY]: markerSource("skills", "demo") }, "Body"),
+      "utf8"
+    );
+
+    await removeProjectedSkill(filePath);
+
+    expect(await pathExists(skillDir)).toBe(false);
+  });
+
+  it("keeps a hand-written SKILL.md and its folder", async () => {
+    const dir = await makeTmpDir();
+    const filePath = path.join(dir, "mine", "SKILL.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "# Mine", "utf8");
+
+    await removeProjectedSkill(filePath);
+
+    expect(await pathExists(filePath)).toBe(true);
+  });
+});
+
+describe("resyncSupportedAssets", () => {
+  it("force-writes only assets of supported kinds", async () => {
+    const written: string[] = [];
+    const asset = (kind: "skills" | "agents", name: string) =>
+      ({ kind, name, content: "" }) as unknown as Parameters<typeof resyncSupportedAssets>[1][number];
+
+    await resyncSupportedAssets(["skills"], [asset("skills", "a"), asset("agents", "b")], async (item, options) => {
+      written.push(`${item.kind}/${item.name}:${options.force}`);
+    });
+
+    expect(written).toEqual(["skills/a:true"]);
+  });
+});
+
+describe("buildIntegrationStatus", () => {
+  it("reports connected when any target directory has files", async () => {
+    const dir = await makeTmpDir();
+    const empty = path.join(dir, "empty");
+    const filled = path.join(dir, "filled");
+    await fs.mkdir(empty);
+    await fs.mkdir(filled);
+    await fs.writeFile(path.join(filled, "rule.md"), "x", "utf8");
+
+    const status = await buildIntegrationStatus({
+      id: "demo",
+      label: "Demo",
+      targetPaths: [empty, filled],
+      supportedKinds: ["rules"]
+    });
+
+    expect(status).toMatchObject({ id: "demo", connected: true, mode: "managed", supportedKinds: ["rules"] });
+    expect(status.unsupportedKinds).toEqual(["skills", "agents", "workflows", "prompts"]);
+  });
+
+  it("reports missing when no target directory has files", async () => {
+    const dir = await makeTmpDir();
+    const status = await buildIntegrationStatus({
+      id: "demo",
+      label: "Demo",
+      targetPaths: [path.join(dir, "nope")],
+      supportedKinds: ["rules"]
+    });
+
+    expect(status).toMatchObject({ connected: false, mode: "missing" });
   });
 });

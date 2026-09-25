@@ -5,24 +5,42 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AssetDetail } from "@chain-hub/contracts";
+
 import {
+  checkSkillUpdatesFromLock,
   deleteAsset,
-  forkSkill,
-  getAgentsSkillsDrift,
+  detectAgentsSkillsDrift,
+  forkSkillFromHub,
   getAsset,
   initializeHub,
-  installSkill,
-  installSkillBundle,
+  installSkillFromBundle,
+  installSkillFromSource,
   listAssets,
-  migrateAgentsSkills,
+  migrateAgentsSkillLock,
   projectSkillSidecars,
   readSkillFile,
   readSkillsLock,
   updateAsset,
-  updateSkills,
-  checkSkillUpdates,
+  updateSkillsFromLock,
   validateHub
 } from "./index.js";
+
+// Every test runs against an initialized tmpHub (see beforeEach), so these call the
+// skill-install functions directly with the hub's own asset reader.
+const readAsset = (home: string, kind: "skills", name: string): Promise<AssetDetail> => getAsset(home, kind, name);
+const installSkill = (hub: string, input: Parameters<typeof installSkillFromSource>[1]) =>
+  installSkillFromSource(hub, input, readAsset);
+const installSkillBundle = (hub: string, input: Parameters<typeof installSkillFromBundle>[1]) =>
+  installSkillFromBundle(hub, input, readAsset);
+const updateSkills = (hub: string, input: Parameters<typeof updateSkillsFromLock>[1] = {}) =>
+  updateSkillsFromLock(hub, input, readAsset);
+const checkSkillUpdates = (hub: string, input: Parameters<typeof checkSkillUpdatesFromLock>[1] = {}) =>
+  checkSkillUpdatesFromLock(hub, input);
+const migrateAgentsSkills = (hub: string, input: Parameters<typeof migrateAgentsSkillLock>[1] = {}) =>
+  migrateAgentsSkillLock(hub, input, readAsset);
+const getAgentsSkillsDrift = (hub: string, lockPath?: string) => detectAgentsSkillsDrift(hub, lockPath);
+const forkSkill = (hub: string, input: Parameters<typeof forkSkillFromHub>[1]) => forkSkillFromHub(hub, input, readAsset);
 
 const execFileAsync = promisify(execFile);
 

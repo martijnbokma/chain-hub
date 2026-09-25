@@ -1,22 +1,17 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 
-import type { AssetKind } from "@chain-hub/contracts";
+import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
+import { pathExists } from "../shared.js";
 import { parseFrontmatter } from "./frontmatter.js";
 import { hasFrontmatterMarker, hasHeaderMarker } from "./marker.js";
+import { removeEditorSkillDirectory } from "./skill-sidecars.js";
 import type { DiscoveredCandidate } from "./types.js";
 
-export type MarkerCheck = "frontmatter" | "header";
+export { pathExists };
 
-export async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.lstat(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
+export type MarkerCheck = "frontmatter" | "header";
 
 async function isManaged(content: string, markerCheck: MarkerCheck): Promise<boolean> {
   return markerCheck === "frontmatter" ? hasFrontmatterMarker(parseFrontmatter(content).data) : hasHeaderMarker(content);
@@ -196,4 +191,49 @@ export async function listFlatCandidates(dir: string, extension: string): Promis
   }
 
   return results;
+}
+
+/**
+ * Removes a projected SKILL.md and, once it is gone, its folder (sidecars included).
+ * A hand-written SKILL.md stays put, and so does its folder.
+ */
+export async function removeProjectedSkill(skillFilePath: string): Promise<void> {
+  await removeManagedFile(skillFilePath);
+  if (!(await pathExists(skillFilePath))) {
+    await removeEditorSkillDirectory(path.dirname(skillFilePath));
+  }
+}
+
+/** Full rebuild: writes every asset of a supported kind with `force` so Hub claims its projection slots. */
+export async function resyncSupportedAssets(
+  supportedKinds: AssetKind[],
+  assets: AssetDetail[],
+  write: (asset: AssetDetail, options: { force: boolean }) => Promise<void>
+): Promise<void> {
+  for (const asset of assets) {
+    if (supportedKinds.includes(asset.kind)) {
+      await write(asset, { force: true });
+    }
+  }
+}
+
+/** Standard adapter status: connected once any target directory has content. */
+export async function buildIntegrationStatus(params: {
+  id: string;
+  label: string;
+  targetPaths: string[];
+  supportedKinds: AssetKind[];
+}): Promise<Omit<Integration, "installed">> {
+  const connectedFlags = await Promise.all(params.targetPaths.map((dir) => dirHasAnyFile(dir)));
+  const connected = connectedFlags.some(Boolean);
+
+  return {
+    id: params.id,
+    label: params.label,
+    targetPaths: params.targetPaths,
+    connected,
+    mode: connected ? "managed" : "missing",
+    supportedKinds: params.supportedKinds,
+    unsupportedKinds: assetKinds.filter((kind) => !params.supportedKinds.includes(kind))
+  };
 }

@@ -3,7 +3,6 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 
 import {
-  assertSafeRelativeSkillPath,
   assertWritableAssetContent,
   type AssetDetail,
   type AssetKind,
@@ -17,11 +16,10 @@ import {
   isUpstreamOwnedSkill,
   listAssetCompatIssues,
   NotFoundError,
-  type SkillFileContent,
-  type SkillFileEntry,
   type ValidationResult
 } from "@chain-hub/contracts";
 
+import { seedLearningsRule, seedWelcomeSkill } from "./seed.js";
 import { CORRUPT_LOCK_PREFIX, readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
 import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
 
@@ -124,61 +122,6 @@ export async function readMeta(chainHome: string): Promise<AppMeta> {
 async function writeMeta(chainHome: string, meta: AppMeta): Promise<void> {
   await fs.mkdir(path.dirname(metaFilePath(chainHome)), { recursive: true });
   await writeFileAtomic(metaFilePath(chainHome), JSON.stringify(meta, null, 2));
-}
-
-async function seedWelcomeSkill(chainHome: string): Promise<void> {
-  const skillDir = path.join(chainHome, "skills", "welcome");
-  const skillFile = assetFilePath(chainHome, "skills", "welcome");
-
-  if (await pathExists(skillFile)) {
-    return;
-  }
-
-  await ensureDir(skillDir);
-  await fs.writeFile(
-    skillFile,
-    [
-      "---",
-      "name: welcome",
-      "description: Introduces Chain Hub. Use when the user asks what Chain Hub is or how its hub folder works.",
-      "---",
-      "",
-      "# Welcome",
-      "",
-      "You are inside Chain Hub.",
-      "",
-      "- Keep AI guidance local and portable",
-      "- Prefer clear workflows over hidden magic",
-      "- Validate changes before syncing into editors"
-    ].join("\n")
-  );
-}
-
-async function seedLearningsRule(chainHome: string): Promise<void> {
-  const ruleFile = assetFilePath(chainHome, "rules", "chain-hub-learnings");
-
-  if (await pathExists(ruleFile)) {
-    return;
-  }
-
-  await ensureDir(path.join(chainHome, "rules"));
-  await fs.writeFile(
-    ruleFile,
-    [
-      "# Learning capture",
-      "",
-      "Log what a skill should learn, not what you shipped:",
-      "",
-      '`chain capture --event <failure|correction|note|success> --skill <slug> --summary "<one line>"`',
-      "",
-      "- `correction`: the skill's guidance was wrong or incomplete and you had to deviate. Say what the skill should say instead.",
-      "- `failure`: following the skill led to a broken or rejected result.",
-      "- `note`: a reusable gotcha the skill does not mention yet.",
-      "- `success`: only when the skill's specific guidance prevented a mistake you would otherwise have made.",
-      "",
-      "Write the summary about the skill, not the project (\"Skill misses SVG targets in click handlers\", not \"Shipped media actions\"). Skip routine work — most tasks need no capture."
-    ].join("\n")
-  );
 }
 
 /**
@@ -350,82 +293,32 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
   };
 }
 
-const MAX_SKILL_FILE_READ_BYTES = 1_000_000;
-
-async function walkSkillDir(baseDir: string, currentDir: string, results: SkillFileEntry[]): Promise<void> {
-  const entries = await fs.readdir(currentDir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const absolute = path.join(currentDir, entry.name);
-    const relative = path.relative(baseDir, absolute).split(path.sep).join("/");
-
-    if (entry.isDirectory()) {
-      results.push({ path: relative, size: 0, isDirectory: true });
-      await walkSkillDir(baseDir, absolute, results);
-    } else if (entry.isFile() && entry.name !== "SKILL.md") {
-      const stats = await fs.stat(absolute);
-      results.push({ path: relative, size: stats.size, isDirectory: false });
-    }
+/** Upstream-locked skills are replaced on `skill update`, so hub edits to them would be lost. */
+async function assertEditableSkill(chainHome: string, name: string, advice: string): Promise<void> {
+  const provenance = (await readSkillsLock(chainHome)).skills[name] ?? null;
+  if (isUpstreamOwnedSkill(provenance)) {
+    throw new ConflictError(`Skill skills/${name} is upstream-owned. ${advice}`);
   }
 }
 
-/** Files and subfolders inside a skill's folder, other than SKILL.md itself. */
-export async function listSkillFiles(chainHomeInput: string | undefined, name: string): Promise<SkillFileEntry[]> {
-  const chainHome = resolveChainHome(chainHomeInput);
-  const skillDir = path.dirname(assetFilePath(chainHome, "skills", name));
+/**
+ * Validates the names for a rename or kind change. The current name is the existing folder or
+ * file name as-is (imports can keep any case); only the new name is normalized.
+ */
+function resolveMoveNames(currentName: string, nextName: string): { fromName: string; toName: string } {
+  const fromName = assertSafeAssetName(currentName);
+  const toName = normalizeAssetName(nextName);
 
-  if (!(await pathExists(skillDir))) {
-    throw new NotFoundError(`Asset not found: skills/${name}`);
+  if (!fromName) {
+    throw new InvalidInputError("Asset name cannot be empty");
   }
-
-  const results: SkillFileEntry[] = [];
-  await walkSkillDir(skillDir, skillDir, results);
-  results.sort((a, b) => a.path.localeCompare(b.path));
-  return results;
+  if (!toName) {
+    throw new InvalidInputError("New asset name cannot be empty");
+  }
+  return { fromName, toName };
 }
 
-/** Reads a single sibling file inside a skill's folder. Rejects paths that escape the skill folder. */
-export async function readSkillFile(
-  chainHomeInput: string | undefined,
-  name: string,
-  relativePath: string
-): Promise<SkillFileContent> {
-  const chainHome = resolveChainHome(chainHomeInput);
-  const safeRelative = assertSafeRelativeSkillPath(relativePath);
-  const skillDir = path.dirname(assetFilePath(chainHome, "skills", name));
-  const resolvedSkillDir = path.resolve(skillDir);
-  const resolvedTarget = path.resolve(skillDir, safeRelative);
-
-  if (resolvedTarget !== resolvedSkillDir && !resolvedTarget.startsWith(resolvedSkillDir + path.sep)) {
-    throw new InvalidInputError(`Unsafe skill file path: ${relativePath}`);
-  }
-
-  // Lexical checks don't see symlinks: resolve both sides and refuse anything that lands outside.
-  const realSkillDir = await fs.realpath(resolvedSkillDir);
-  const realTarget = await fs.realpath(resolvedTarget).catch(() => null);
-  if (!realTarget) {
-    throw new NotFoundError(`Skill file not found: ${relativePath}`);
-  }
-  if (!realTarget.startsWith(realSkillDir + path.sep)) {
-    throw new InvalidInputError(`Unsafe skill file path: ${relativePath}`);
-  }
-
-  const stats = await fs.stat(realTarget);
-  if (!stats.isFile()) {
-    throw new InvalidInputError(`Not a file: ${relativePath}`);
-  }
-
-  const truncated = stats.size > MAX_SKILL_FILE_READ_BYTES;
-  const handle = await fs.open(realTarget, "r");
-  try {
-    const readLength = Math.min(stats.size, MAX_SKILL_FILE_READ_BYTES);
-    const buffer = Buffer.alloc(readLength);
-    await handle.read(buffer, 0, readLength, 0);
-    return { path: safeRelative, content: buffer.toString("utf8"), size: stats.size, truncated };
-  } finally {
-    await handle.close();
-  }
-}
+const EDIT_UPSTREAM_ADVICE = "Fork it to customize, or edits will be lost on update.";
 
 export async function createAsset(chainHomeInput: string | undefined, input: CreateAssetInput): Promise<AssetDetail> {
   const chainHome = resolveChainHome(chainHomeInput);
@@ -466,12 +359,7 @@ export async function updateAsset(
   }
 
   if (kind === "skills") {
-    const provenance = (await readSkillsLock(chainHome)).skills[name] ?? null;
-    if (isUpstreamOwnedSkill(provenance)) {
-      throw new ConflictError(
-        `Skill skills/${name} is upstream-owned. Fork it to customize, or edits will be lost on update.`
-      );
-    }
+    await assertEditableSkill(chainHome, name, EDIT_UPSTREAM_ADVICE);
   }
 
   const nextContent = prepareAssetContent(kind, name, content);
@@ -511,17 +399,7 @@ export async function renameAsset(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  // The current name is the existing folder or file name as-is (imports can keep any case);
-  // only the new name is normalized.
-  const fromName = assertSafeAssetName(currentName);
-  const toName = normalizeAssetName(nextNameInput);
-
-  if (!fromName) {
-    throw new InvalidInputError("Asset name cannot be empty");
-  }
-  if (!toName) {
-    throw new InvalidInputError("New asset name cannot be empty");
-  }
+  const { fromName, toName } = resolveMoveNames(currentName, nextNameInput);
 
   const fromPath = assetFilePath(chainHome, kind, fromName);
   if (!(await pathExists(fromPath))) {
@@ -538,12 +416,7 @@ export async function renameAsset(
   }
 
   if (kind === "skills") {
-    const provenance = (await readSkillsLock(chainHome)).skills[fromName] ?? null;
-    if (isUpstreamOwnedSkill(provenance)) {
-      throw new ConflictError(
-        `Skill skills/${fromName} is upstream-owned. Fork it to customize, or edits will be lost on update.`
-      );
-    }
+    await assertEditableSkill(chainHome, fromName, EDIT_UPSTREAM_ADVICE);
     await fs.rename(path.dirname(fromPath), path.dirname(toPath));
     await renameSkillLockEntry(chainHome, fromName, toName);
   } else {
@@ -568,15 +441,7 @@ export async function convertAssetKind(
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  const fromName = assertSafeAssetName(fromNameInput);
-  const toName = normalizeAssetName(toNameInput ?? fromNameInput);
-
-  if (!fromName) {
-    throw new InvalidInputError("Asset name cannot be empty");
-  }
-  if (!toName) {
-    throw new InvalidInputError("New asset name cannot be empty");
-  }
+  const { fromName, toName } = resolveMoveNames(fromNameInput, toNameInput ?? fromNameInput);
   if (fromKind === toKind && fromName === toName) {
     return getAsset(chainHome, fromKind, fromName);
   }
@@ -590,12 +455,7 @@ export async function convertAssetKind(
   }
 
   if (fromKind === "skills") {
-    const provenance = (await readSkillsLock(chainHome)).skills[fromName] ?? null;
-    if (isUpstreamOwnedSkill(provenance)) {
-      throw new ConflictError(
-        `Skill skills/${fromName} is upstream-owned. Fork it to customize, then convert the fork.`
-      );
-    }
+    await assertEditableSkill(chainHome, fromName, "Fork it to customize, then convert the fork.");
   }
 
   const toPath = assetFilePath(chainHome, toKind, toName);

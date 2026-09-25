@@ -1,19 +1,21 @@
 import path from "node:path";
 
-import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
+import { type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
 import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
 import { projectedFrontmatter } from "./marker.js";
 import {
-  dirHasAnyFile,
+  buildIntegrationStatus,
   listFlatCandidates,
   listSkillCandidates,
   pathExists,
   readUnmanagedCandidates,
   removeManagedFile,
+  removeProjectedSkill,
+  resyncSupportedAssets,
   writeManagedFile
 } from "./files.js";
-import { projectSkillSidecars, removeEditorSkillDirectory } from "../skill-install.js";
+import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Windsurf rebranded to "Devin Desktop" (~2026-06-02, confirmed via redirect check —
@@ -88,11 +90,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
 
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
   if (kind === "skills") {
-    const filePath = skillPath(homeDir, name);
-    await removeManagedFile(filePath);
-    if (!(await pathExists(filePath))) {
-      await removeEditorSkillDirectory(path.dirname(filePath));
-    }
+    await removeProjectedSkill(skillPath(homeDir, name));
     return;
   }
 
@@ -104,27 +102,16 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
 }
 
 async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
-  for (const asset of assets) {
-    if (SUPPORTED_KINDS.includes(asset.kind)) {
-      await writeAsset(chainHome, homeDir, asset, { force: true });
-    }
-  }
+  await resyncSupportedAssets(SUPPORTED_KINDS, assets, (asset, options) => writeAsset(chainHome, homeDir, asset, options));
 }
 
 async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
-  const allTargetDirs = [globalSkillsDir(homeDir), ...baseDirs(homeDir, "rules"), ...baseDirs(homeDir, "workflows")];
-  const connectedFlags = await Promise.all(allTargetDirs.map((dir) => dirHasAnyFile(dir)));
-  const connected = connectedFlags.some(Boolean);
-
-  return {
+  return buildIntegrationStatus({
     id: "windsurf",
     label: "Windsurf (Devin Desktop)",
-    targetPaths: allTargetDirs,
-    connected,
-    mode: connected ? "managed" : "missing",
-    supportedKinds: SUPPORTED_KINDS,
-    unsupportedKinds: assetKinds.filter((kind) => !SUPPORTED_KINDS.includes(kind))
-  };
+    targetPaths: [globalSkillsDir(homeDir), ...baseDirs(homeDir, "rules"), ...baseDirs(homeDir, "workflows")],
+    supportedKinds: SUPPORTED_KINDS
+  });
 }
 
 async function discoverKind(homeDir: string, kind: "rules" | "workflows"): Promise<DiscoveredCandidate[]> {

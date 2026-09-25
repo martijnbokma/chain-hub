@@ -1,20 +1,22 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 
-import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
+import { type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
 import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
 import { projectedFrontmatter } from "./marker.js";
 import {
-  dirHasAnyFile,
+  buildIntegrationStatus,
   listFlatCandidates,
   listSkillCandidates,
   pathExists,
   readUnmanagedCandidates,
   removeManagedFile,
+  removeProjectedSkill,
+  resyncSupportedAssets,
   writeManagedFile
 } from "./files.js";
-import { projectSkillSidecars, removeEditorSkillDirectory } from "../skill-install.js";
+import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Google Antigravity (2.0 app, IDE and `agy` CLI share ~/.gemini/config/):
@@ -134,35 +136,25 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
   }
 
   const filePath = targetPath(homeDir, kind, name);
-  await removeManagedFile(filePath);
-
-  if (kind === "skills" && !(await pathExists(filePath))) {
-    await removeEditorSkillDirectory(path.dirname(filePath));
+  if (kind === "skills") {
+    await removeProjectedSkill(filePath);
+    return;
   }
+
+  await removeManagedFile(filePath);
 }
 
 async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
-  for (const asset of assets) {
-    if (isSupported(asset.kind)) {
-      await writeAsset(chainHome, homeDir, asset, { force: true });
-    }
-  }
+  await resyncSupportedAssets(SUPPORTED_KINDS, assets, (asset, options) => writeAsset(chainHome, homeDir, asset, options));
 }
 
 async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
-  const targetDirs = SUPPORTED_KINDS.map((kind) => baseDir(homeDir, kind as SupportedKind));
-  const connectedFlags = await Promise.all(targetDirs.map((dir) => dirHasAnyFile(dir)));
-  const connected = connectedFlags.some(Boolean);
-
-  return {
+  return buildIntegrationStatus({
     id: "antigravity",
     label: "Google Antigravity",
-    targetPaths: targetDirs,
-    connected,
-    mode: connected ? "managed" : "missing",
-    supportedKinds: SUPPORTED_KINDS,
-    unsupportedKinds: assetKinds.filter((kind) => !SUPPORTED_KINDS.includes(kind))
-  };
+    targetPaths: SUPPORTED_KINDS.map((kind) => baseDir(homeDir, kind as SupportedKind)),
+    supportedKinds: SUPPORTED_KINDS
+  });
 }
 
 // Import candidates come from the user's own global folders. Other plugins belong to

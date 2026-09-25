@@ -1,9 +1,7 @@
 import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
-import { type Dirent, promises as fs } from "node:fs";
+import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 
 import {
   type AgentsSkillsDrift,
@@ -31,11 +29,9 @@ import {
   type UpdateSkillsResult
 } from "@chain-hub/contracts";
 
-import { writeFileAtomic } from "./shared.js";
-
-const execFileAsync = promisify(execFile);
-
-const GIT_CLONE_TIMEOUT_MS = 120_000;
+import { pathExists, writeFileAtomic } from "./shared.js";
+import { copySkillTree, createSkillCopyFilter } from "./skill-copy.js";
+import { fetchRemoteHeadSha, resolveGitSkillDir } from "./skill-git.js";
 
 interface AgentsLockEntry {
   sourceType?: string;
@@ -61,15 +57,6 @@ function skillDir(chainHome: string, name: string): string {
 
 function skillFile(chainHome: string, name: string): string {
   return path.join(skillDir(chainHome, name), "SKILL.md");
-}
-
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.lstat(target);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Prefix of lock files set aside because they could not be read; `chain validate` reports them. */
@@ -195,221 +182,39 @@ async function assertSkillSource(sourceDir: string): Promise<void> {
   }
 }
 
-/** Version-control folders never belong in an installed skill (or in every editor it is projected to). */
-/** Lists the sidecar entries Chain Hub projected into an editor skill folder. */
-const SIDECAR_MANIFEST = ".chain-hub-sidecars.json";
+/** Normalizes the target name and refuses to replace an existing hub skill unless `force` is set. */
+async function resolveInstallName(chainHome: string, rawName: string, force: boolean | undefined): Promise<string> {
+  const name = normalizeSkillName(rawName);
 
-const SKIPPED_SKILL_ENTRIES = new Set([".git", ".hg", ".svn", SIDECAR_MANIFEST]);
+  if (!name) {
+    throw new InvalidInputError("Skill name cannot be empty");
+  }
 
-function isInside(parent: string, target: string): boolean {
-  return target === parent || target.startsWith(parent + path.sep);
+  if ((await pathExists(skillFile(chainHome, name))) && !force) {
+    throw new ConflictError(`Skill already exists: skills/${name} (pass force to replace)`);
+  }
+
+  return name;
 }
 
-/**
- * Copy filter for untrusted skill sources. Symlinks are only followed when they point
- * to a regular file inside the skill folder; anything else (links to ~/.ssh, /etc,
- * directories that could loop) is skipped so it cannot leak into the hub or editors.
- */
-async function createSkillCopyFilter(sourceDir: string): Promise<(source: string) => Promise<boolean>> {
-  const realRoot = await fs.realpath(sourceDir);
-
-  return async (source: string) => {
-    if (SKIPPED_SKILL_ENTRIES.has(path.basename(source))) {
-      return false;
-    }
-
-    const stats = await fs.lstat(source);
-    if (!stats.isSymbolicLink()) {
-      return true;
-    }
-
-    try {
-      const target = await fs.realpath(source);
-      if (isInside(realRoot, target) && (await fs.stat(target)).isFile()) {
-        return true;
-      }
-    } catch {
-      // Dangling link.
-    }
-
-    console.warn(`[chain-hub] skipping symlink in skill source: ${source}`);
-    return false;
-  };
+/** Writes the lock entry for a fresh install, keeping the original `installedAt` on reinstalls. */
+function recordSkillInstall(
+  chainHome: string,
+  name: string,
+  fields: (previous: SkillLockEntry | undefined, now: string) => Omit<SkillLockEntry, "installedAt" | "updatedAt">
+): Promise<SkillLockEntry> {
+  const now = new Date().toISOString();
+  return mutateSkillsLock(chainHome, (lockFile) => {
+    const previous = lockFile.skills[name];
+    const entry: SkillLockEntry = { ...fields(previous, now), installedAt: previous?.installedAt ?? now, updatedAt: now };
+    lockFile.skills[name] = entry;
+    return entry;
+  });
 }
 
-/** Copies a skill folder's files other than SKILL.md (scripts/, references/, …) with the same safety filter as installs. */
-export async function copySkillSidecars(sourceDir: string, destinationDir: string): Promise<void> {
-  const filter = await createSkillCopyFilter(sourceDir);
-  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    if (entry.name === "SKILL.md" || entry.name === "skill.md") {
-      continue;
-    }
-
-    const from = path.join(sourceDir, entry.name);
-    if (!(await filter(from))) {
-      continue;
-    }
-
-    await fs.cp(from, path.join(destinationDir, entry.name), { recursive: true, dereference: true, filter });
-  }
-}
-
-/** Copies into a staging sibling first so a failed copy never destroys the installed skill. */
-async function copySkillTree(sourceDir: string, destinationDir: string): Promise<void> {
-  await fs.mkdir(path.dirname(destinationDir), { recursive: true });
-  const stagingDir = `${destinationDir}.staging-${process.pid}-${Date.now()}`;
-
-  try {
-    await fs.cp(sourceDir, stagingDir, {
-      recursive: true,
-      dereference: true,
-      filter: await createSkillCopyFilter(sourceDir)
-    });
-    await fs.rm(destinationDir, { recursive: true, force: true });
-    await fs.rename(stagingDir, destinationDir);
-  } finally {
-    await fs.rm(stagingDir, { recursive: true, force: true });
-  }
-}
-
-async function findSkillDirsInRepo(baseDir: string): Promise<string[]> {
-  const IGNORED_DIRS = new Set([
-    ".git",
-    "node_modules",
-    "dist",
-    "build",
-    "target",
-    "coverage",
-    ".cache",
-    ".idea",
-    ".vscode",
-    "tests",
-    "test",
-    "fixtures"
-  ]);
-
-  const skillDirs: string[] = [];
-
-  async function walk(currentDir: string, depth: number): Promise<void> {
-    if (depth > 6) return;
-    let entries: Dirent[];
-    try {
-      entries = await fs.readdir(currentDir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    const hasSkillMd = entries.some(
-      (e) => (e.isFile() || e.isSymbolicLink()) && e.name.toLowerCase() === "skill.md"
-    );
-    if (hasSkillMd && currentDir !== baseDir) {
-      skillDirs.push(currentDir);
-      return;
-    }
-
-    for (const entry of entries) {
-      if (entry.isDirectory() && !IGNORED_DIRS.has(entry.name) && !entry.name.startsWith(".")) {
-        await walk(path.join(currentDir, entry.name), depth + 1);
-      }
-    }
-  }
-
-  await walk(baseDir, 0);
-  return skillDirs;
-}
-
-async function resolveGitSkillDir(repo: string, subdir: string | undefined, nameHint: string | undefined): Promise<{
-  cleanupDir: string;
-  sourceDir: string;
-  commitSha: string | null;
-  detectedSubdir?: string;
-}> {
-  const cleanupDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-clone-"));
-
-  try {
-    // `--` stops a repo value like `--upload-pack=…` from being parsed as an option.
-    await execFileAsync("git", ["clone", "--depth", "1", "--", repo, cleanupDir], {
-      // Never block the server on an interactive credential prompt.
-      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-      timeout: GIT_CLONE_TIMEOUT_MS
-    });
-  } catch (error) {
-    await fs.rm(cleanupDir, { recursive: true, force: true });
-    const message = error instanceof Error ? error.message : String(error);
-    throw new InvalidInputError(`Failed to clone skill repo ${repo}: ${message}`);
-  }
-
-  let commitSha: string | null = null;
-  try {
-    const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], {
-      cwd: cleanupDir,
-      timeout: 5000
-    });
-    commitSha = stdout.trim() || null;
-  } catch {
-    commitSha = null;
-  }
-
-  const candidates: string[] = [];
-
-  if (subdir) {
-    candidates.push(path.join(cleanupDir, assertSafeRelativeSkillPath(subdir)));
-  }
-
-  candidates.push(cleanupDir);
-
-  const inferredName = nameHint || path.basename(repo).replace(/\.git$/, "");
-  const safeNameHint = inferredName ? normalizeSkillName(inferredName) : "";
-  if (safeNameHint) {
-    candidates.push(path.join(cleanupDir, safeNameHint));
-    candidates.push(path.join(cleanupDir, "skills", safeNameHint));
-  }
-
-  for (const candidate of candidates) {
-    if (await pathExists(path.join(candidate, "SKILL.md"))) {
-      const detectedSubdir =
-        candidate === cleanupDir
-          ? undefined
-          : path.relative(cleanupDir, candidate).replace(/\\/g, "/");
-      return { cleanupDir, sourceDir: candidate, commitSha, detectedSubdir };
-    }
-  }
-
-  if (!subdir) {
-    const discovered = await findSkillDirsInRepo(cleanupDir);
-    if (discovered.length > 0) {
-      discovered.sort((a, b) => a.length - b.length);
-
-      if (safeNameHint) {
-        const matching = discovered.find((dir) => {
-          const base = normalizeSkillName(path.basename(dir));
-          return base === safeNameHint;
-        });
-        if (matching) {
-          const detectedSubdir = path.relative(cleanupDir, matching).replace(/\\/g, "/");
-          return { cleanupDir, sourceDir: matching, commitSha, detectedSubdir };
-        }
-      }
-
-      if (discovered.length === 1) {
-        const detectedSubdir = path.relative(cleanupDir, discovered[0]).replace(/\\/g, "/");
-        return { cleanupDir, sourceDir: discovered[0], commitSha, detectedSubdir };
-      }
-
-      const relativeList = discovered.map((dir) => path.relative(cleanupDir, dir).replace(/\\/g, "/"));
-      await fs.rm(cleanupDir, { recursive: true, force: true });
-      throw new InvalidInputError(
-        `No SKILL.md found at repo root. Found skills in: ${relativeList.join(", ")}. Specify one in Subdir.`
-      );
-    }
-  }
-
-  await fs.rm(cleanupDir, { recursive: true, force: true });
-  throw new InvalidInputError(
-    `No SKILL.md found in cloned repo${subdir ? ` at subdir ${subdir}` : ""}. Pass --subdir to the skill folder.`
-  );
+function isSkillMdPath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/");
+  return normalized === "SKILL.md" || normalized.endsWith("/SKILL.md");
 }
 
 export async function installSkillFromBundle(
@@ -417,36 +222,18 @@ export async function installSkillFromBundle(
   input: InstallSkillBundleInput,
   readAsset: ReadAsset
 ): Promise<InstallSkillResult> {
-  const hasSkillMd = input.files.some((file) => {
-    const normalized = file.path.replace(/\\/g, "/");
-    return normalized === "SKILL.md" || normalized.endsWith("/SKILL.md");
-  });
+  const skillMdEntry = input.files.find((file) => isSkillMdPath(file.path));
 
-  if (!hasSkillMd) {
+  if (!skillMdEntry) {
     throw new InvalidInputError("Uploaded skill folder must include SKILL.md");
   }
 
-  const skillMdEntry = input.files.find((file) => {
-    const normalized = file.path.replace(/\\/g, "/");
-    return normalized === "SKILL.md" || normalized.endsWith("/SKILL.md");
-  });
+  const inferredName = skillMdEntry.path.includes("/")
+    ? path.posix.dirname(skillMdEntry.path.replace(/\\/g, "/")).split("/").filter(Boolean).at(-1)
+    : undefined;
 
-  const inferredName =
-    skillMdEntry && skillMdEntry.path.includes("/")
-      ? path.posix.dirname(skillMdEntry.path.replace(/\\/g, "/")).split("/").filter(Boolean).at(-1)
-      : undefined;
-
-  const name = normalizeSkillName(input.name ?? inferredName ?? "uploaded-skill");
-
-  if (!name) {
-    throw new InvalidInputError("Skill name cannot be empty");
-  }
-
+  const name = await resolveInstallName(chainHome, input.name ?? inferredName ?? "uploaded-skill", input.force);
   const destination = skillDir(chainHome, name);
-
-  if ((await pathExists(skillFile(chainHome, name))) && !input.force) {
-    throw new ConflictError(`Skill already exists: skills/${name} (pass force to replace)`);
-  }
 
   const stagingDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-upload-"));
 
@@ -471,20 +258,13 @@ export async function installSkillFromBundle(
 
     await copySkillTree(sourceDir, destination);
 
-    const now = new Date().toISOString();
     const contentHash = await hashSkillTree(destination);
-    const lockEntry = await mutateSkillsLock(chainHome, (lockFile) => {
-      const entry: SkillLockEntry = {
-        sourceType: "path",
-        source: `upload://${name}`,
-        subdir: null,
-        contentHash,
-        installedAt: lockFile.skills[name]?.installedAt ?? now,
-        updatedAt: now
-      };
-      lockFile.skills[name] = entry;
-      return entry;
-    });
+    const lockEntry = await recordSkillInstall(chainHome, name, () => ({
+      sourceType: "path",
+      source: `upload://${name}`,
+      subdir: null,
+      contentHash
+    }));
 
     const asset = await readAsset(chainHome, "skills", name);
     return { asset, lockEntry };
@@ -537,18 +317,8 @@ async function installSkillFromSourceUnlessUnchanged(
       throw new InvalidInputError("Provide exactly one of path or repo");
     }
 
-    const folderName = path.basename(sourceDir);
-    const name = normalizeSkillName(input.name ?? folderName);
-
-    if (!name) {
-      throw new InvalidInputError("Skill name cannot be empty");
-    }
-
+    const name = await resolveInstallName(chainHome, input.name ?? path.basename(sourceDir), input.force);
     const destination = skillDir(chainHome, name);
-
-    if ((await pathExists(skillFile(chainHome, name))) && !input.force) {
-      throw new ConflictError(`Skill already exists: skills/${name} (pass force to replace)`);
-    }
 
     const contentHash = await hashSkillTree(sourceDir);
     const previousEntry = (await readSkillsLock(chainHome)).skills[name];
@@ -569,21 +339,14 @@ async function installSkillFromSourceUnlessUnchanged(
 
     await copySkillTree(sourceDir, destination);
 
-    const now = new Date().toISOString();
-    const lockEntry = await mutateSkillsLock(chainHome, (lockFile) => {
-      const entry: SkillLockEntry = {
-        sourceType,
-        source,
-        subdir: resolvedSubdir,
-        contentHash,
-        commitSha: commitSha ?? lockFile.skills[name]?.commitSha ?? null,
-        installedAt: lockFile.skills[name]?.installedAt ?? now,
-        updatedAt: now,
-        lastCheckedAt: now
-      };
-      lockFile.skills[name] = entry;
-      return entry;
-    });
+    const lockEntry = await recordSkillInstall(chainHome, name, (previous, now) => ({
+      sourceType,
+      source,
+      subdir: resolvedSubdir,
+      contentHash,
+      commitSha: commitSha ?? previous?.commitSha ?? null,
+      lastCheckedAt: now
+    }));
 
     const asset = await readAsset(chainHome, "skills", name);
     return { asset, lockEntry, unchanged: false };
@@ -714,25 +477,7 @@ export async function checkSkillUpdatesFromLock(
   await Promise.all(
     Array.from(gitReposToSkills.keys()).map(async (repo) => {
       try {
-        const { stdout } = await execFileAsync("git", ["ls-remote", "--", repo, "HEAD"], {
-          env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-          timeout: 15_000
-        });
-        const lines = stdout.trim().split("\n");
-        let headSha: string | null = null;
-        for (const line of lines) {
-          const [sha, ref] = line.trim().split(/\s+/);
-          if (ref === "HEAD" && sha && /^[0-9a-f]{40}$/i.test(sha)) {
-            headSha = sha;
-            break;
-          }
-        }
-        if (!headSha && lines.length > 0) {
-          const [firstSha] = lines[0]!.trim().split(/\s+/);
-          if (firstSha && /^[0-9a-f]{40}$/i.test(firstSha)) {
-            headSha = firstSha;
-          }
-        }
+        const headSha = await fetchRemoteHeadSha(repo);
         repoRemoteShaMap.set(repo, { sha: headSha ?? undefined });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -894,85 +639,4 @@ export async function migrateAgentsSkillLock(
   }
 
   return { lockPath, results };
-}
-
-async function resolveEditorSkillDir(editorSkillDir: string): Promise<string> {
-  if (!(await pathExists(editorSkillDir))) {
-    return editorSkillDir;
-  }
-
-  try {
-    return await fs.realpath(editorSkillDir);
-  } catch {
-    return editorSkillDir;
-  }
-}
-
-async function copySidecarEntry(from: string, to: string): Promise<void> {
-  await fs.rm(to, { recursive: true, force: true });
-
-  try {
-    await fs.cp(from, to, { recursive: true });
-  } catch (error) {
-    const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
-    if (code !== "EEXIST") {
-      throw error;
-    }
-
-    await fs.rm(to, { recursive: true, force: true });
-    await fs.cp(from, to, { recursive: true });
-  }
-}
-
-async function readSidecarManifest(editorSkillDir: string): Promise<string[]> {
-  try {
-    const parsed: unknown = JSON.parse(await fs.readFile(path.join(editorSkillDir, SIDECAR_MANIFEST), "utf8"));
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Copies a hub skill's sidecar files into an editor skill folder and removes the ones
- * Chain Hub projected earlier that the hub skill no longer has. Only entries listed in
- * the folder's manifest are ever removed, so files a user added there are left alone.
- */
-export async function projectSkillSidecars(chainHome: string, editorSkillDir: string, name: string): Promise<void> {
-  const sourceDir = skillDir(chainHome, name);
-
-  if (!(await pathExists(sourceDir))) {
-    return;
-  }
-
-  const resolvedEditorSkillDir = await resolveEditorSkillDir(editorSkillDir);
-  await fs.mkdir(resolvedEditorSkillDir, { recursive: true });
-
-  const projected: string[] = [];
-  for (const entry of await fs.readdir(sourceDir, { withFileTypes: true })) {
-    if (entry.name === "SKILL.md" || entry.name === "skill.md" || SKIPPED_SKILL_ENTRIES.has(entry.name)) {
-      continue;
-    }
-
-    await copySidecarEntry(path.join(sourceDir, entry.name), path.join(resolvedEditorSkillDir, entry.name));
-    projected.push(entry.name);
-  }
-
-  for (const stale of await readSidecarManifest(resolvedEditorSkillDir)) {
-    const isPlainName = stale.length > 0 && stale !== "." && stale !== ".." && !/[\\/]/.test(stale);
-    if (isPlainName && !projected.includes(stale)) {
-      await fs.rm(path.join(resolvedEditorSkillDir, stale), { recursive: true, force: true });
-    }
-  }
-
-  const manifestPath = path.join(resolvedEditorSkillDir, SIDECAR_MANIFEST);
-  if (projected.length > 0) {
-    await fs.writeFile(manifestPath, `${JSON.stringify(projected.sort(), null, 2)}\n`, "utf8");
-  } else {
-    await fs.rm(manifestPath, { force: true });
-  }
-}
-
-export async function removeEditorSkillDirectory(editorSkillDir: string): Promise<void> {
-  await fs.rm(editorSkillDir, { recursive: true, force: true });
 }
