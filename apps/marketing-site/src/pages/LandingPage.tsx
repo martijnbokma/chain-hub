@@ -1,5 +1,3 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import {
   BookOpen,
   Bot,
@@ -13,17 +11,11 @@ import {
   Sparkles,
   HardDrive,
   Cloud,
-  X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
-import dashboardOverview from '../assets/dashboard-overview.webp';
-import dashboardLibrary from '../assets/dashboard-library.webp';
-import dashboardSettings from '../assets/dashboard-settings.webp';
-import dashboardSkillDetail from '../assets/dashboard-skill-detail.webp';
 import { GithubIcon, SheetMarks, TitleblockBar } from '../components/PageChrome';
+import { DashboardProof } from './landing/DashboardProof';
+import { HubSchematic } from './landing/HubSchematic';
 
-const EDITORS = ['Cursor', 'Claude Code', 'Windsurf', 'Zed'];
 const REPO_URL = 'https://github.com/martijnbokma/chain-hub';
 
 const assets = [
@@ -64,266 +56,7 @@ const surfaces = [
   },
 ];
 
-function HubSchematic() {
-  const editorY = [40, 146, 252, 358];
-  const busX = 340;
-  const hubMidY = 234;
-  return (
-    <svg
-      viewBox="0 0 640 440"
-      className="w-full h-auto max-w-lg mx-auto"
-      role="img"
-      aria-label="Diagram: one Chain Hub connecting to Cursor, Claude Code, Windsurf, and Zed"
-    >
-      {/* trunk + bus */}
-      <path
-        className="bp-line"
-        d={`M180,${hubMidY} H${busX} M${busX},${editorY[0] + 28} V${editorY[3] + 28}`}
-        stroke="var(--primary)"
-        strokeWidth="2"
-        fill="none"
-        strokeDasharray={500}
-        strokeDashoffset={500}
-        style={{ animationDelay: '0ms' }}
-      />
-      {editorY.map((y, i) => (
-        <g key={i}>
-          <path
-            className="bp-line"
-            d={`M${busX},${y + 28} H480`}
-            stroke="var(--primary)"
-            strokeWidth="2"
-            fill="none"
-            strokeDasharray={150}
-            strokeDashoffset={150}
-            style={{ animationDelay: `${400 + i * 100}ms` }}
-          />
-          <circle cx={busX} cy={y + 28} r="3" fill="var(--primary)" />
-          <text
-            x={busX + 14}
-            y={y + 22}
-            className="font-mono"
-            fontSize="10"
-            fill="var(--muted-foreground)"
-            letterSpacing="0.05em"
-          >
-            {String(i + 1).padStart(2, '0')}
-          </text>
-          <rect
-            className="bp-node"
-            x="480"
-            y={y}
-            width="150"
-            height="56"
-            rx="3"
-            fill="var(--card)"
-            stroke="var(--border)"
-            strokeWidth="1.5"
-            style={{ animationDelay: `${500 + i * 100}ms` }}
-          />
-          <text
-            x="555"
-            y={y + 33}
-            textAnchor="middle"
-            className="font-mono"
-            fontSize="12"
-            fill="var(--foreground)"
-            letterSpacing="0.02em"
-          >
-            {EDITORS[i].toUpperCase()}
-          </text>
-        </g>
-      ))}
-
-      {/* hub node */}
-      <rect
-        className="bp-node"
-        x="10"
-        y="184"
-        width="170"
-        height="100"
-        rx="3"
-        fill="var(--card)"
-        stroke="var(--primary)"
-        strokeWidth="2"
-        style={{ animationDelay: '0ms' }}
-      />
-      <circle cx="180" cy={hubMidY} r="3.5" fill="var(--primary)" />
-      <text x="95" y="220" textAnchor="middle" className="font-mono" fontSize="13" fill="var(--foreground)">
-        ~/.chain-hub
-      </text>
-      <text x="95" y="240" textAnchor="middle" className="font-mono" fontSize="8.5" fill="var(--muted-foreground)" letterSpacing="0.03em">
-        SKILLS · AGENTS · WORKFLOWS
-      </text>
-      <text x="95" y="253" textAnchor="middle" className="font-mono" fontSize="8.5" fill="var(--muted-foreground)" letterSpacing="0.03em">
-        RULES · MEMORY
-      </text>
-    </svg>
-  );
-}
-
-type LightboxImage = { src: string; alt: string; caption: string };
-
-function FramedFigure({
-  image,
-  index,
-  onOpen,
-}: {
-  image: LightboxImage;
-  index: number;
-  onOpen: (index: number) => void;
-}) {
-  return (
-    <div className="text-left">
-      <button
-        type="button"
-        onClick={() => onOpen(index)}
-        aria-label={`${image.alt} — view full size`}
-        className="group bp-corners block w-full border border-border rounded-sm overflow-hidden bg-card aspect-[16/10] cursor-zoom-in"
-      >
-        <img
-          src={image.src}
-          alt={image.alt}
-          className="w-full h-full object-cover object-top block transition-transform duration-300 group-hover:scale-[1.03]"
-          loading="lazy"
-        />
-      </button>
-      <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-3">
-        {image.caption} — <span className="text-primary">view full size</span>
-      </p>
-    </div>
-  );
-}
-
-function Lightbox({
-  images,
-  index,
-  onClose,
-  onNavigate,
-}: {
-  images: LightboxImage[];
-  index: number | null;
-  onClose: () => void;
-  onNavigate: (direction: -1 | 1) => void;
-}) {
-  const isOpen = index !== null;
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'ArrowLeft') onNavigate(-1);
-      if (event.key === 'ArrowRight') onNavigate(1);
-    };
-    document.addEventListener('keydown', onKeyDown);
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = overflow;
-    };
-  }, [isOpen, onClose, onNavigate]);
-
-  if (index === null) return null;
-  const image = images[index];
-  const hasMultiple = images.length > 1;
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={image.alt}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-6"
-      onClick={onClose}
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Close"
-        className="absolute top-6 right-6 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
-      >
-        <X size={20} />
-      </button>
-
-      {hasMultiple && (
-        <>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onNavigate(-1);
-            }}
-            aria-label="Previous screenshot"
-            className="absolute left-6 top-1/2 -translate-y-1/2 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onNavigate(1);
-            }}
-            aria-label="Next screenshot"
-            className="absolute right-6 top-1/2 -translate-y-1/2 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </>
-      )}
-
-      <figure
-        className="bp-corners max-w-5xl w-full border border-border rounded-sm overflow-hidden bg-card"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <img src={image.src} alt={image.alt} className="w-full h-auto block" />
-        <figcaption className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase px-5 py-3 border-t border-border flex items-center justify-between">
-          <span>{image.caption}</span>
-          {hasMultiple && (
-            <span className="text-muted-foreground/70">
-              {index + 1} / {images.length}
-            </span>
-          )}
-        </figcaption>
-      </figure>
-    </div>,
-    document.body,
-  );
-}
-
-const dashboardImages: LightboxImage[] = [
-  {
-    src: dashboardOverview,
-    alt: 'Chain Hub dashboard overview showing hub status and asset counts',
-    caption: 'Fig. 1 — Hub status, live local dashboard',
-  },
-  {
-    src: dashboardLibrary,
-    alt: 'Chain Hub dashboard library showing skills and agents',
-    caption: 'Fig. 2 — Library, browsing skills and agents',
-  },
-  {
-    src: dashboardSkillDetail,
-    alt: 'Chain Hub skill detail view showing the agent-browser skill source',
-    caption: 'Fig. 3 — Asset detail, inspecting a skill file',
-  },
-  {
-    src: dashboardSettings,
-    alt: 'Chain Hub settings page showing theme and local AI provider configuration',
-    caption: 'Fig. 4 — Settings, local AI providers',
-  },
-];
-
 export function LandingPage() {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
-  const navigateLightbox = useCallback((direction: -1 | 1) => {
-    setLightboxIndex((current) => {
-      if (current === null) return current;
-      return (current + direction + dashboardImages.length) % dashboardImages.length;
-    });
-  }, []);
-
   return (
     <div className="min-h-screen">
       <TitleblockBar />
@@ -473,24 +206,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Proof */}
-      <section id="proof" className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8">
-          Detail — the real local dashboard, not a mockup
-        </h2>
-        <div className="grid md:grid-cols-2 gap-8">
-          {dashboardImages.map((image, index) => (
-            <FramedFigure key={image.src} image={image} index={index} onOpen={setLightboxIndex} />
-          ))}
-        </div>
-      </section>
-
-      <Lightbox
-        images={dashboardImages}
-        index={lightboxIndex}
-        onClose={closeLightbox}
-        onNavigate={navigateLightbox}
-      />
+      <DashboardProof />
 
       {/* CTA */}
       <section className="relative">
