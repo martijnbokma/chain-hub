@@ -9,6 +9,7 @@ import type {
   InstallSkillResult,
   MigrateAgentsSkillsInput,
   MigrateAgentsSkillsResult,
+  SkillBatchItemResult,
   UpdateSkillsInput,
   UpdateSkillsResult
 } from "@chain-hub/contracts";
@@ -40,6 +41,17 @@ async function withInitializedHub(chainHomeInput: string | undefined): Promise<s
 
 const readSkillAsset = async (home: string, kind: "skills", name: string) => getAsset(home, kind, name);
 
+/** Re-projects every skill a batch run replaced in the hub; skipped and failed items are left alone. */
+async function projectChangedSkills(chainHome: string, results: SkillBatchItemResult[]): Promise<void> {
+  for (const item of results) {
+    if (item.status !== "updated" && item.status !== "migrated") {
+      continue;
+    }
+    const asset = await getAsset(chainHome, "skills", item.name);
+    await syncAssetToEditors(chainHome, "skills", item.name, asset);
+  }
+}
+
 export async function installLibrarySkill(
   chainHomeInput: string | undefined,
   input: InstallSkillInput
@@ -67,13 +79,7 @@ export async function updateLibrarySkills(
   const chainHome = await withInitializedHub(chainHomeInput);
   const result = await updateSkillsFromLock(chainHome, input, readSkillAsset);
 
-  for (const item of result.results) {
-    if (item.status !== "updated" && item.status !== "migrated") {
-      continue;
-    }
-    const asset = await getAsset(chainHome, "skills", item.name);
-    await syncAssetToEditors(chainHome, "skills", item.name, asset);
-  }
+  await projectChangedSkills(chainHome, result.results);
 
   return result;
 }
@@ -93,13 +99,7 @@ export async function migrateAgentsLibrarySkills(
   const chainHome = await withInitializedHub(chainHomeInput);
   const result = await migrateAgentsSkillLock(chainHome, input, readSkillAsset);
 
-  for (const item of result.results) {
-    if (item.status !== "migrated" && item.status !== "updated") {
-      continue;
-    }
-    const asset = await getAsset(chainHome, "skills", item.name);
-    await syncAssetToEditors(chainHome, "skills", item.name, asset);
-  }
+  await projectChangedSkills(chainHome, result.results);
 
   return result;
 }
