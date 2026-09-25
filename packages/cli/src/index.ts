@@ -40,12 +40,16 @@ import {
   updateSkillsInputSchema,
   type AssetKind
 } from "@chain-hub/contracts";
-import { resolveChainHome } from "@chain-hub/storage";
-import { startServer } from "@chain-hub/server";
+import { runHubCommand } from "./commands/hub.js";
 import { formatReflectionReport } from "./reflect-format.js";
 
 // Resolves to packages/cli/package.json from both src/ and the published dist/.
 const { version } = createRequire(import.meta.url)("../package.json") as { version: string };
+
+/** Commands print their result as pretty JSON so scripts can pipe it. */
+function printJson(value: unknown, write: (text: string) => void = console.log): void {
+  write(JSON.stringify(value, null, 2));
+}
 
 export function createProgram(): Command {
   const program = new Command();
@@ -72,7 +76,7 @@ program
   .action(async () => {
     const options = program.opts<{ chainHome?: string }>();
     const overview = await getDashboardOverview(options.chainHome);
-    console.log(JSON.stringify(overview, null, 2));
+    printJson(overview);
   });
 
 program
@@ -82,7 +86,7 @@ program
     const options = program.opts<{ chainHome?: string }>();
     const integrations = await connectEditors(options.chainHome);
     const syncResult = await syncAgentsSkillsIntoHub(options.chainHome);
-    console.log(JSON.stringify(integrations, null, 2));
+    printJson(integrations);
     if (syncResult.results.length > 0) {
       console.log(summarizeAgentsSkillSync(syncResult));
     }
@@ -94,7 +98,7 @@ program
   .action(async () => {
     const options = program.opts<{ chainHome?: string }>();
     const guide = await getGuidedSetup(options.chainHome);
-    console.log(JSON.stringify(guide, null, 2));
+    printJson(guide);
   });
 
 const assetCommand = program.command("asset").description("Manage local hub assets");
@@ -106,7 +110,7 @@ assetCommand
     const options = program.opts<{ chainHome?: string }>();
     const kind = commandOptions.kind === undefined ? undefined : assetKindSchema.parse(commandOptions.kind);
     const assets = await getLibrary(options.chainHome, kind);
-    console.log(JSON.stringify(assets, null, 2));
+    printJson(assets);
   });
 
 assetCommand
@@ -117,7 +121,7 @@ assetCommand
   .action(async (commandOptions: { kind: AssetKind; name: string; content: string }) => {
     const options = program.opts<{ chainHome?: string }>();
     const asset = await createLibraryAsset(options.chainHome, commandOptions);
-    console.log(JSON.stringify(asset, null, 2));
+    printJson(asset);
   });
 
 assetCommand
@@ -127,7 +131,7 @@ assetCommand
   .action(async (commandOptions: { kind: AssetKind; name: string }) => {
     const options = program.opts<{ chainHome?: string }>();
     const asset = await getLibraryAsset(options.chainHome, commandOptions.kind, commandOptions.name);
-    console.log(JSON.stringify(asset, null, 2));
+    printJson(asset);
   });
 
 assetCommand
@@ -143,7 +147,7 @@ assetCommand
       commandOptions.name,
       commandOptions.content
     );
-    console.log(JSON.stringify(asset, null, 2));
+    printJson(asset);
   });
 
 assetCommand
@@ -153,7 +157,7 @@ assetCommand
   .action(async (commandOptions: { kind: AssetKind; name: string }) => {
     const options = program.opts<{ chainHome?: string }>();
     await deleteLibraryAsset(options.chainHome, commandOptions.kind, commandOptions.name);
-    console.log(JSON.stringify({ ok: true, removed: `${commandOptions.kind}/${commandOptions.name}` }, null, 2));
+    printJson({ ok: true, removed: `${commandOptions.kind}/${commandOptions.name}` });
   });
 
 assetCommand
@@ -162,7 +166,7 @@ assetCommand
   .action(async () => {
     const options = program.opts<{ chainHome?: string }>();
     const discovered = await discoverLibraryAssets(options.chainHome);
-    console.log(JSON.stringify(discovered, null, 2));
+    printJson(discovered);
   });
 
 assetCommand
@@ -177,7 +181,7 @@ assetCommand
       kind: commandOptions.kind,
       name: commandOptions.name
     });
-    console.log(JSON.stringify(asset, null, 2));
+    printJson(asset);
   });
 
 const skillCommand = program.command("skill").description("Install and manage skills in the hub");
@@ -207,7 +211,7 @@ skillCommand
         force: commandOptions.force
       });
       const result = await installLibrarySkill(options.chainHome, input);
-      console.log(JSON.stringify(result, null, 2));
+      printJson(result);
     }
   );
 
@@ -223,7 +227,7 @@ skillCommand
       force: commandOptions.force
     });
     const result = await updateLibrarySkills(options.chainHome, input);
-    console.log(JSON.stringify(result, null, 2));
+    printJson(result);
   });
 
 skillCommand
@@ -236,7 +240,7 @@ skillCommand
       force: commandOptions.force
     });
     const result = await checkLibrarySkillUpdates(options.chainHome, input);
-    console.log(JSON.stringify(result, null, 2));
+    printJson(result);
   });
 
 skillCommand
@@ -251,7 +255,7 @@ skillCommand
       force: commandOptions.force
     });
     const result = await migrateAgentsLibrarySkills(options.chainHome, input);
-    console.log(JSON.stringify(result, null, 2));
+    printJson(result);
   });
 
 skillCommand
@@ -266,7 +270,7 @@ skillCommand
       as: commandOptions.as
     });
     const asset = await forkLibrarySkill(options.chainHome, input);
-    console.log(JSON.stringify(asset, null, 2));
+    printJson(asset);
   });
 
 program
@@ -277,12 +281,12 @@ program
     const validation = await validateChainHub(options.chainHome);
 
     if (!validation.ok) {
-      console.error(JSON.stringify(validation, null, 2));
+      printJson(validation, console.error);
       process.exitCode = 1;
       return;
     }
 
-    console.log(JSON.stringify(validation, null, 2));
+    printJson(validation);
   });
 
 program
@@ -301,7 +305,7 @@ program
         summary: commandOptions.summary
       })
     );
-    console.log(JSON.stringify(event, null, 2));
+    printJson(event);
   });
 
 program
@@ -321,7 +325,7 @@ program
     const report = await getHubReflectionReport(options.chainHome);
 
     if (commandOptions.json) {
-      console.log(JSON.stringify(report, null, 2));
+      printJson(report);
       return;
     }
 
@@ -337,62 +341,12 @@ program
   .option("--no-open", "Do not automatically open the browser")
   .action(async (commandOptions: { port: string; open: boolean }) => {
     const options = program.opts<{ chainHome?: string }>();
-    const chainHome = resolveChainHome(options.chainHome);
-
-    const { isFirstRun } = await initializeChainHub(chainHome);
-
-    if (isFirstRun) {
-      console.log(`\nChain Hub initialized at: ${chainHome}`);
-      console.log("First run complete — hub structure created.\n");
-    }
-
-    const port = Number(commandOptions.port);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      console.error(`Invalid port: ${commandOptions.port}. Must be an integer between 1 and 65535.`);
-      process.exitCode = 1;
-      return;
-    }
-
-    const cliDir = path.dirname(fileURLToPath(import.meta.url));
-    const candidatePaths = [
-      // Published package: dashboard copied next to the CLI bundle at build time.
-      path.resolve(cliDir, "web"),
-      path.resolve(cliDir, "../../apps/hub-web/dist"),
-      path.resolve(cliDir, "../apps/hub-web/dist"),
-      path.resolve(process.cwd(), "apps", "hub-web", "dist")
-    ];
-    const staticRoot = candidatePaths.find((candidate) => fs.existsSync(candidate)) ?? candidatePaths[0];
-
-    await startServer({
-      chainHome,
-      port,
-      staticRoot
+    await runHubCommand({
+      chainHome: options.chainHome,
+      port: commandOptions.port,
+      open: commandOptions.open,
+      cliDir: path.dirname(fileURLToPath(import.meta.url))
     });
-
-    const url = `http://127.0.0.1:${port}`;
-    console.log(`Chain Hub running at ${url}`);
-    console.log(`Chain home: ${chainHome}`);
-
-    if (commandOptions.open !== false) {
-      const { execFile } = await import("node:child_process");
-      // `start` is a cmd.exe built-in, not an executable; the empty string is its window title.
-      const [command, args] =
-        process.platform === "win32"
-          ? ["cmd", ["/c", "start", "", url]]
-          : [process.platform === "darwin" ? "open" : "xdg-open", [url]];
-      execFile(command, args as string[], () => undefined);
-    }
-
-    // Pick up skills installed with `npx skills add` since the last start (existing hub skills are kept).
-    void syncAgentsSkillsIntoHub(chainHome)
-      .then((result) => {
-        if (result.results.some((item) => item.status !== "skipped")) {
-          console.log(summarizeAgentsSkillSync(result));
-        }
-      })
-      .catch((error: unknown) => {
-        console.warn(`Agents skill sync skipped: ${error instanceof Error ? error.message : String(error)}`);
-      });
   });
 
   return program;
