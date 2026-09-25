@@ -92,4 +92,51 @@ describe("CreateAssetDialog", () => {
     await user.click(createButton);
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
+
+  it("fills the intent from a suggestion, derives a name and drafts with AI", async () => {
+    const user = userEvent.setup();
+    const onDraftIntentChange = vi.fn();
+    const onDraftNameChange = vi.fn();
+    const onDraftWithAi = vi.fn();
+    const props = {
+      draftContent: "",
+      draftKindChoice: "auto" as const,
+      draftName: "",
+      draftNameLocked: false,
+      isDrafting: false,
+      isSubmitting: false,
+      kindReason: null,
+      onDraftContentChange: vi.fn(),
+      onDraftIntentChange,
+      onDraftKindChoiceChange: vi.fn(),
+      onDraftNameChange,
+      onDraftNameLockedChange: vi.fn(),
+      onDraftWithAi,
+      onOpenChange: vi.fn(),
+      onSubmit: vi.fn(),
+      open: true,
+      resolvedKind: "skills" as const
+    };
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <CreateAssetDialog {...props} draftIntent="" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "Let AI choose form and draft" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Audit React components for accessibility issues" }));
+    expect(onDraftIntentChange).toHaveBeenCalledWith("Audit React components for accessibility issues");
+    expect(onDraftNameChange).toHaveBeenCalledWith("audit-react-components-accessibility-issues");
+
+    rerender(
+      <MemoryRouter>
+        <CreateAssetDialog {...props} draftIntent="Audit React components for accessibility issues" />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Let AI choose form and draft" }));
+    expect(onDraftWithAi).toHaveBeenCalledTimes(1);
+  });
 });

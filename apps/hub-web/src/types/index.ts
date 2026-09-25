@@ -1,60 +1,55 @@
-// Overview types
-export type { Overview, AgentsSkillsDrift, ValidationResult } from './overview';
+import type { AssetKind } from "@chain-hub/contracts";
 
-// Asset types
+// Dashboard types: the HTTP contract types from @chain-hub/contracts plus a few UI-only types.
 export type {
-  AssetRecord,
-  AssetDetail,
-  AssetCompatIssue,
-  AssetKind,
-  FilterKind,
-  OwnershipFilter,
-  InstallSkillInput,
-  InstallSkillBundleInput,
-  InstallSkillResult,
-  MigrateAgentsSkillsResult,
-  SkillFileEntry,
-  SkillFileContent,
-  SkillLockEntry,
-  UpdateSkillsResult,
-  CheckSkillUpdatesResult,
-  SkillCheckItemResult,
-  SkillUpdateStatus
-} from './assets';
-
-// Integration types
-export type { Integration, IntegrationMode } from './integrations';
-
-// Discover/import types
-export type { DiscoveredAsset, ImportAssetInput } from './discover';
-
-// Setup types
-export type { SetupStep, SetupGuide } from './setup';
-
-// Learnings / reflect types
-export type {
-  CaptureEventType,
-  CaptureEvent,
-  CaptureInput,
-  LearningsTimeline,
-  SkillReflection,
-  ReflectionReport
-} from './learnings';
-
-// AI settings / prompt drafting
-export type {
+  AgentsSkillsDrift,
   AiProvider,
   AiSettingsPublic,
-  UpdateAiSettingsInput,
+  AssetCompatIssue,
+  AssetDetail,
+  AssetKind,
+  AssetRecord,
+  AuditAssetFinding,
+  AuditAssetInput,
+  AuditAssetResult,
+  CaptureEvent,
+  CaptureEventType,
+  CaptureInput,
+  CheckSkillUpdatesResult,
+  ClassifyAssetInput,
+  ClassifyAssetResult,
+  DiscoveredAsset,
   DraftAssetInput,
   DraftAssetResult,
   DraftPromptInput,
   DraftPromptResult,
-  ClassifyAssetInput,
-  ClassifyAssetResult,
-  AuditAssetInput,
-  AuditAssetFinding,
-  AuditAssetResult,
+  ImportAssetInput,
   ImproveAssetInput,
-  ImproveAssetResult
-} from './ai';
+  ImproveAssetResult,
+  InstallSkillBundleInput,
+  InstallSkillInput,
+  InstallSkillResult,
+  Integration,
+  IntegrationMode,
+  LearningsTimeline,
+  MigrateAgentsSkillsResult,
+  Overview,
+  ReflectionReport,
+  SetupGuide,
+  SetupStep,
+  SkillCheckItemResult,
+  SkillFileContent,
+  SkillFileEntry,
+  SkillLockEntry,
+  SkillReflection,
+  SkillUpdateStatus,
+  UpdateAiSettingsInput,
+  UpdateSkillsResult,
+  ValidationResult
+} from "@chain-hub/contracts";
+
+/** Library filter chip: all kinds or one specific kind. */
+export type FilterKind = AssetKind | "__all__";
+
+/** Library ownership filter: all assets, hub-editable only, or upstream-locked skills. */
+export type OwnershipFilter = "all" | "editable" | "upstream";

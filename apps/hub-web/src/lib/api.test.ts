@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getJson, libraryApi, sendJson } from './api';
+import { errorMessage, getJson, libraryApi, sendJson } from './api';
 
 const originalFetch = globalThis.fetch;
 
@@ -43,5 +43,16 @@ describe('library URLs', () => {
     await libraryApi.getByKindAndName('rules', 'my rule#1');
 
     expect(fetchMock).toHaveBeenLastCalledWith('/api/library/rules/my%20rule%231');
+  });
+});
+
+describe('errorMessage', () => {
+  it('returns the message of an Error', () => {
+    expect(errorMessage(new Error('Disk full'), 'Unable to save')).toBe('Disk full');
+  });
+
+  it('falls back for non-Error values and empty messages', () => {
+    expect(errorMessage('boom', 'Unable to save')).toBe('Unable to save');
+    expect(errorMessage(new Error(''), 'Unable to save')).toBe('Unable to save');
   });
 });

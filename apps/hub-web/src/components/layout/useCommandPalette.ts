@@ -16,7 +16,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { useTheme } from '../../hooks/use-theme';
-import { integrationsApi } from '../../lib/api';
+import { errorMessage, integrationsApi } from '../../lib/api';
+import { queryKeys } from '../../lib/query-keys';
 
 export type CommandActionGroup = 'Navigate' | 'Appearance' | 'Hub';
 
@@ -40,7 +41,7 @@ export function useCommandPalette() {
   const [commandOpen, setCommandOpen] = useState(false);
 
   const integrations = useQuery({
-    queryKey: ['integrations'],
+    queryKey: queryKeys.integrations,
     queryFn: () => integrationsApi.getAll()
   });
   // Only editors installed on this machine count, matching the Integrations page and setup.
@@ -52,16 +53,18 @@ export function useCommandPalette() {
       return integrationsApi.setup();
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['setup'] });
-      void queryClient.invalidateQueries({ queryKey: ['integrations'] });
-      void queryClient.invalidateQueries({ queryKey: ['overview'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.setup });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.integrations });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.overview });
       toast.success('Editors connected');
       setCommandOpen(false);
     },
-    onError: () => {
-      toast.error('Unable to connect editors');
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Unable to connect editors'));
     }
   });
+  // `mutate` is stable across renders, unlike the mutation result object.
+  const runConnectEditors = connectEditors.mutate;
 
   const actions: CommandAction[] = useMemo(
     () => [
@@ -153,10 +156,10 @@ export function useCommandPalette() {
         keywords: 'connect editors integrations setup',
         group: 'Hub',
         icon: Link2,
-        run: () => connectEditors.mutate()
+        run: () => runConnectEditors()
       }
     ],
-    [connectEditors, navigate, setPreference]
+    [runConnectEditors, navigate, setPreference]
   );
 
   const actionGroups = useMemo(

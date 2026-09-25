@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { libraryApi } from '@/lib/api';
 import type { AssetKind } from '@/types';
 
-import { type BrowsedSkillFolder, readBrowsedSkillFolder } from './asset-helpers';
+import { type BrowsedSkillFolder, readBrowsedSkillFolder } from './skill-folder-upload';
 
 type SelectedAsset = { kind: AssetKind; name: string };
 

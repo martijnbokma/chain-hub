@@ -11,9 +11,9 @@ import {
   parseSelectedAssetParams,
   parseOwnershipParam,
   resolveKindMeta,
-  stripYamlFrontmatter,
-  suggestAssetNameFromText
+  stripYamlFrontmatter
 } from "./asset-helpers";
+import { suggestAssetNameFromText } from "./asset-name";
 
 function lockEntry(
   overrides: Partial<SkillLockEntry> & Pick<SkillLockEntry, "sourceType" | "source">

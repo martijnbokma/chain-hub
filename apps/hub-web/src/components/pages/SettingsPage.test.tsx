@@ -70,4 +70,18 @@ describe('SettingsPage', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('ollamaBaseUrl: Invalid url'));
   });
+
+  it('refuses to save when a provider has no model', async () => {
+    const user = userEvent.setup();
+    const update = vi.spyOn(aiSettingsApi, 'update');
+    vi.spyOn(aiSettingsApi, 'get').mockResolvedValue({ ...settings, models: { ...DEFAULT_AI_MODELS, groq: 'my-custom' } });
+    renderWithProviders(<SettingsPage />, { route: '/settings' });
+
+    const customInputs = await screen.findAllByPlaceholderText('provider-specific model id');
+    await user.clear(customInputs[0]!);
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Each provider needs a model selected'));
+    expect(update).not.toHaveBeenCalled();
+  });
 });

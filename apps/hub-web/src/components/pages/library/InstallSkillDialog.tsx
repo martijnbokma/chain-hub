@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { BrowsedSkillFolder } from './asset-helpers';
+import type { BrowsedSkillFolder } from './skill-folder-upload';
 
 interface InstallSkillDialogProps {
   open: boolean;
