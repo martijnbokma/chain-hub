@@ -47,6 +47,10 @@ export function fieldReportsLabel(count: number): string {
   return count === 1 ? '1 field report' : `${count} field reports`;
 }
 
+function SeverityBadge({ severity }: { severity: AuditAssetFinding['severity'] }) {
+  return <Badge variant={severity === 'high' ? 'accent' : 'default'}>{severityLabel(severity)}</Badge>;
+}
+
 export function AssetAuditDialog({
   audit,
   isLoading = false,
@@ -149,9 +153,7 @@ export function AssetAuditDialog({
 
               <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={currentFinding.severity === 'high' ? 'accent' : 'default'}>
-                    {severityLabel(currentFinding.severity)}
-                  </Badge>
+                  <SeverityBadge severity={currentFinding.severity} />
                   {currentFinding.source === 'learning' ? (
                     <Badge variant="default">From learnings</Badge>
                   ) : (
@@ -171,24 +173,15 @@ export function AssetAuditDialog({
           ) : hasFindings && audit ? (
             <div className="grid gap-2">
               {audit.findings.map((finding, index) => (
-                <div
-                  className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-foreground/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                <button
+                  className="flex w-full flex-col gap-1.5 rounded-lg border border-border bg-card p-3.5 text-left hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   key={`${finding.severity}-${finding.title}`}
                   onClick={() => onSelectFindingIndex(index)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onSelectFindingIndex(index);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
+                  type="button"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={finding.severity === 'high' ? 'accent' : 'default'}>
-                        {severityLabel(finding.severity)}
-                      </Badge>
+                      <SeverityBadge severity={finding.severity} />
                       {finding.source === 'learning' ? <Badge variant="default">From learnings</Badge> : null}
                       <span className="font-medium text-foreground">{finding.title}</span>
                     </div>
@@ -198,12 +191,12 @@ export function AssetAuditDialog({
                     </span>
                   </div>
                   <p className="text-xs text-foreground/80 leading-5">{finding.detail}</p>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-              <div className="rounded-full bg-emerald-500/10 p-3 text-emerald-500">
+              <div className="rounded-full bg-success/10 p-3 text-success">
                 <Check className="size-5" />
               </div>
               <p className="text-sm font-medium text-foreground">No material findings</p>

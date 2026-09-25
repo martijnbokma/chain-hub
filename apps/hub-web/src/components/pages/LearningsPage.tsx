@@ -11,7 +11,8 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { learningsApi, libraryApi } from '@/lib/api';
+import { errorMessage, learningsApi, libraryApi } from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
 import { librarySkillLink, selectSkillsNeedingAttention, type SkillNeedingAttention } from '@/lib/learnings';
 import { cn } from '@/lib/utils';
 import type { CaptureEventType, SkillReflection } from '@/types';
@@ -119,17 +120,12 @@ export function LearningsPage() {
   const [summary, setSummary] = useState('');
 
   const reflection = useQuery({
-    queryKey: ['learnings-reflect'],
+    queryKey: queryKeys.learningsReflect,
     queryFn: () => learningsApi.getReflection()
   });
 
-  const timeline = useQuery({
-    queryKey: ['learnings-timeline'],
-    queryFn: () => learningsApi.getTimeline()
-  });
-
   const library = useQuery({
-    queryKey: ['library'],
+    queryKey: queryKeys.library,
     queryFn: () => libraryApi.getAll()
   });
 
@@ -147,20 +143,19 @@ export function LearningsPage() {
     onSuccess: () => {
       setSkill('');
       setSummary('');
-      void queryClient.invalidateQueries({ queryKey: ['learnings-reflect'] });
-      void queryClient.invalidateQueries({ queryKey: ['learnings-timeline'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.learningsReflect });
       toast.success('Event logged');
     },
-    onError: () => {
-      toast.error('Unable to log event');
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Unable to log event'));
     }
   });
 
-  if (reflection.isLoading || timeline.isLoading) {
+  if (reflection.isLoading) {
     return <PageSkeleton variant="dashboard" />;
   }
 
-  if (reflection.isError || timeline.isError) {
+  if (reflection.isError) {
     return <EmptyState description="Learnings are temporarily unavailable." title="Unable to load learnings" />;
   }
 
@@ -229,6 +224,7 @@ export function LearningsPage() {
               {capture.isPending ? 'Logging…' : 'Log event'}
             </Button>
             <Textarea
+              aria-label="Event summary"
               className="sm:col-span-2"
               onChange={(event) => setSummary(event.target.value)}
               placeholder="One-line summary of what happened"
