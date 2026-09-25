@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { promises as fs } from "node:fs";
+import { type Dirent, promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -274,10 +274,57 @@ async function copySkillTree(sourceDir: string, destinationDir: string): Promise
   }
 }
 
+async function findSkillDirsInRepo(baseDir: string): Promise<string[]> {
+  const IGNORED_DIRS = new Set([
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "target",
+    "coverage",
+    ".cache",
+    ".idea",
+    ".vscode",
+    "tests",
+    "test",
+    "fixtures"
+  ]);
+
+  const skillDirs: string[] = [];
+
+  async function walk(currentDir: string, depth: number): Promise<void> {
+    if (depth > 6) return;
+    let entries: Dirent[];
+    try {
+      entries = await fs.readdir(currentDir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    const hasSkillMd = entries.some(
+      (e) => (e.isFile() || e.isSymbolicLink()) && e.name.toLowerCase() === "skill.md"
+    );
+    if (hasSkillMd && currentDir !== baseDir) {
+      skillDirs.push(currentDir);
+      return;
+    }
+
+    for (const entry of entries) {
+      if (entry.isDirectory() && !IGNORED_DIRS.has(entry.name) && !entry.name.startsWith(".")) {
+        await walk(path.join(currentDir, entry.name), depth + 1);
+      }
+    }
+  }
+
+  await walk(baseDir, 0);
+  return skillDirs;
+}
+
 async function resolveGitSkillDir(repo: string, subdir: string | undefined, nameHint: string | undefined): Promise<{
   cleanupDir: string;
   sourceDir: string;
   commitSha: string | null;
+  detectedSubdir?: string;
 }> {
   const cleanupDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-clone-"));
 
@@ -313,7 +360,8 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
 
   candidates.push(cleanupDir);
 
-  const safeNameHint = nameHint ? normalizeSkillName(nameHint) : "";
+  const inferredName = nameHint || path.basename(repo).replace(/\.git$/, "");
+  const safeNameHint = inferredName ? normalizeSkillName(inferredName) : "";
   if (safeNameHint) {
     candidates.push(path.join(cleanupDir, safeNameHint));
     candidates.push(path.join(cleanupDir, "skills", safeNameHint));
@@ -321,7 +369,40 @@ async function resolveGitSkillDir(repo: string, subdir: string | undefined, name
 
   for (const candidate of candidates) {
     if (await pathExists(path.join(candidate, "SKILL.md"))) {
-      return { cleanupDir, sourceDir: candidate, commitSha };
+      const detectedSubdir =
+        candidate === cleanupDir
+          ? undefined
+          : path.relative(cleanupDir, candidate).replace(/\\/g, "/");
+      return { cleanupDir, sourceDir: candidate, commitSha, detectedSubdir };
+    }
+  }
+
+  if (!subdir) {
+    const discovered = await findSkillDirsInRepo(cleanupDir);
+    if (discovered.length > 0) {
+      discovered.sort((a, b) => a.length - b.length);
+
+      if (safeNameHint) {
+        const matching = discovered.find((dir) => {
+          const base = normalizeSkillName(path.basename(dir));
+          return base === safeNameHint;
+        });
+        if (matching) {
+          const detectedSubdir = path.relative(cleanupDir, matching).replace(/\\/g, "/");
+          return { cleanupDir, sourceDir: matching, commitSha, detectedSubdir };
+        }
+      }
+
+      if (discovered.length === 1) {
+        const detectedSubdir = path.relative(cleanupDir, discovered[0]).replace(/\\/g, "/");
+        return { cleanupDir, sourceDir: discovered[0], commitSha, detectedSubdir };
+      }
+
+      const relativeList = discovered.map((dir) => path.relative(cleanupDir, dir).replace(/\\/g, "/"));
+      await fs.rm(cleanupDir, { recursive: true, force: true });
+      throw new InvalidInputError(
+        `No SKILL.md found at repo root. Found skills in: ${relativeList.join(", ")}. Specify one in Subdir.`
+      );
     }
   }
 
@@ -433,7 +514,7 @@ async function installSkillFromSourceUnlessUnchanged(
   let sourceType: SkillLockEntry["sourceType"];
   let source: string;
   let commitSha: string | null = null;
-  const subdir: string | null = input.subdir ?? null;
+  let resolvedSubdir: string | null = input.subdir ?? null;
 
   try {
     if (input.path) {
@@ -446,6 +527,9 @@ async function installSkillFromSourceUnlessUnchanged(
       cleanupDir = resolved.cleanupDir;
       sourceDir = resolved.sourceDir;
       commitSha = resolved.commitSha;
+      if (!input.subdir && resolved.detectedSubdir) {
+        resolvedSubdir = resolved.detectedSubdir;
+      }
       sourceType = "git";
       source = input.repo;
       await assertSkillSource(sourceDir);
@@ -490,7 +574,7 @@ async function installSkillFromSourceUnlessUnchanged(
       const entry: SkillLockEntry = {
         sourceType,
         source,
-        subdir,
+        subdir: resolvedSubdir,
         contentHash,
         commitSha: commitSha ?? lockFile.skills[name]?.commitSha ?? null,
         installedAt: lockFile.skills[name]?.installedAt ?? now,

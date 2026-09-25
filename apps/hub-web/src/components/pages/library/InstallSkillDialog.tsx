@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { FolderOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogBody,
@@ -139,9 +140,12 @@ export function InstallSkillDialog({
                 <span className="text-sm text-muted-foreground">Subdir (optional)</span>
                 <Input
                   onChange={(event) => onInstallSubdirChange(event.target.value)}
-                  placeholder="skills/my-skill"
+                  placeholder="e.g. plugin/skills/my-skill"
                   value={installSubdir}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Leave empty to auto-detect SKILL.md in the repo root or subfolders.
+                </p>
               </label>
             </>
           )}
@@ -149,13 +153,13 @@ export function InstallSkillDialog({
             <span className="text-sm text-muted-foreground">Name override (optional)</span>
             <Input onChange={(event) => onInstallNameChange(event.target.value)} value={installName} />
           </label>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input
+          <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <Checkbox
               checked={installForce}
-              onChange={(event) => onInstallForceChange(event.target.checked)}
-              type="checkbox"
+              id="install-force"
+              onCheckedChange={(checked) => onInstallForceChange(Boolean(checked))}
             />
-            Replace if the skill already exists in the hub
+            <span>Replace if the skill already exists in the hub</span>
           </label>
         </DialogBody>
         <DialogFooter>

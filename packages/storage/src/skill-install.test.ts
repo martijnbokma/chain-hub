@@ -137,6 +137,22 @@ describe("installSkill", () => {
     await expect(installSkill(tmpHub, { repo, subdir: "../../etc" })).rejects.toThrow(/Unsafe skill file path/);
   });
 
+  it("auto-discovers nested skill in git repo when subdir is omitted", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    const nestedDir = path.join(repo, "plugin", "skills");
+    await fs.mkdir(nestedDir, { recursive: true });
+    await writeFixtureSkill(nestedDir, "nested-auto");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+
+    const result = await installSkill(tmpHub, { repo, name: "nested-auto" });
+    expect(result.asset.name).toBe("nested-auto");
+    expect(result.lockEntry.subdir).toBe("plugin/skills/nested-auto");
+  });
+
   it("forgets the lock entry when a skill is deleted, so update does not bring it back", async () => {
     const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
     await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "gone-skill") });

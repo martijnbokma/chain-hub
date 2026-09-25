@@ -29,3 +29,7 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
       dispatchEvent: () => false
     }) as MediaQueryList;
 }
+
+if (typeof window !== "undefined" && typeof window.PointerEvent === "undefined") {
+  window.PointerEvent = window.MouseEvent as unknown as typeof PointerEvent;
+}

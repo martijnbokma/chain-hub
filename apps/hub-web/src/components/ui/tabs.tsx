@@ -55,7 +55,12 @@ export function Tabs({
 export function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("inline-flex w-fit items-center gap-1 rounded-xl border border-border bg-background p-1", className)}
+      className={cn(
+        "inline-flex w-fit items-center gap-1 rounded-xl border border-border/70 bg-muted/70 p-1 text-muted-foreground",
+        className
+      )}
+      data-slot="tabs-list"
+      role="tablist"
       {...props}
     />
   );
@@ -75,12 +80,18 @@ export function TabsTrigger({
 
   return (
     <button
+      aria-selected={active}
       className={cn(
-        "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-        active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+        "inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        active
+          ? "bg-background text-foreground font-semibold shadow-xs border border-border/70 dark:bg-card dark:border-border/80"
+          : "text-muted-foreground hover:text-foreground border border-transparent hover:bg-background/40",
         className
       )}
+      data-active={active ? "" : undefined}
+      data-slot="tabs-trigger"
       onClick={() => context.setValue(value)}
+      role="tab"
       type="button"
     >
       {children}
