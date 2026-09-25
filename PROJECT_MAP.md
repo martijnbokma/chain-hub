@@ -7,8 +7,8 @@ Where things live, by feature area. Load only the section you need. Rules and co
 | Package | Entry | Key files |
 |---|---|---|
 | `@chain-hub/contracts` | `packages/contracts/src/index.ts` | `asset.ts` (asset kinds, skill name/path policy), `hub.ts` (overview, integrations, drift), `learning.ts`, `setup.ts`, `ai.ts` (providers, draft/classify/audit/improve), `frontmatter.ts` |
-| `@chain-hub/storage` | `packages/storage/src/index.ts` | `core.ts` (hub init, asset scan, asset CRUD), `assets.ts` + `skill-install.ts` (install/update/fork, skills lock), `integrations.ts` (editor sync, discover/import), `learnings.ts`, `hub.ts` (overview, setup guide), `ai-settings.ts`, `adapters/` (per-editor) |
-| `@chain-hub/domain` | `packages/domain/src/index.ts` | `index.ts` (use-cases wrapping storage), `skills.ts`, `ai-providers.ts` (provider calls, `AiProviderError`) |
+| `@chain-hub/storage` | `packages/storage/src/index.ts` | `core.ts` (hub init, asset scan, asset CRUD), `seed.ts` (first-run assets), `skill-files.ts` (skill sidecar reads), `skill-install.ts` (install/update/fork, skills lock) with `skill-copy.ts` + `skill-git.ts`, `integrations.ts` (editor sync, discover/import), `learnings.ts`, `hub.ts` (overview, setup guide), `ai-settings.ts`, `adapters/` (per-editor; shared helpers in `files.ts`, sidecar projection in `skill-sidecars.ts`) |
+| `@chain-hub/domain` | `packages/domain/src/index.ts` | `index.ts` (use-cases wrapping storage), `skills.ts`, `ai-providers.ts` (AI use-cases) with `ai-prompts.ts`, `ai-transport.ts` (provider calls, `AiProviderError`), `ai-parse.ts` |
 | `@chain-hub/server` | `packages/server/src/index.ts` | `routes/*.ts` (route registrars), `http-errors.ts`, `dev-server.ts`, `dev-port.ts` |
 | `chain-hub` (CLI) | `packages/cli/src/index.ts` | All Commander commands in `index.ts`; `reflect-format.ts` |
 
@@ -44,8 +44,8 @@ Where things live, by feature area. Load only the section you need. Rules and co
 | Feature | Files |
 |---|---|
 | Asset CRUD | `contracts/src/asset.ts` → `storage/src/core.ts` → `domain/src/index.ts` → `server/src/routes/library.ts` → `hub-web/.../library/` |
-| Skill install/update/fork | `storage/src/skill-install.ts`, `storage/src/assets.ts`, `domain/src/skills.ts`, `routes/library.ts`, `InstallSkillDialog.tsx`; spec: `docs/specs/hub-skill-install.md` |
+| Skill install/update/fork | `storage/src/skill-install.ts` (+ `skill-copy.ts`, `skill-git.ts`), `domain/src/skills.ts`, `routes/library.ts`, `InstallSkillDialog.tsx`; spec: `docs/specs/hub-skill-install.md` |
 | Editor sync / discover | `storage/src/integrations.ts`, `storage/src/adapters/`, `routes/hub.ts`, `routes/library.ts` (discover/import) |
 | Learnings | `contracts/src/learning.ts`, `storage/src/learnings.ts`, `routes/learnings.ts`, `LearningsPage.tsx`, CLI `capture`/`reflect` |
-| AI drafting/audit | `contracts/src/ai.ts`, `storage/src/ai-settings.ts`, `domain/src/ai-providers.ts`, `routes/ai.ts`, `lib/ai-models.ts`, `AiEditPreviewDialog.tsx` |
+| AI drafting/audit | `contracts/src/ai.ts`, `storage/src/ai-settings.ts`, `domain/src/ai-providers.ts` (+ `ai-prompts.ts`, `ai-transport.ts`, `ai-parse.ts`), `routes/ai.ts`, `lib/ai-models.ts`, `AiEditPreviewDialog.tsx` |
 | Overview / setup | `storage/src/hub.ts`, `routes/hub.ts`, `OverviewPage.tsx`, `SetupPage.tsx` |
