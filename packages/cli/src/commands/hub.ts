@@ -27,29 +27,34 @@ async function isDirectory(target: string): Promise<boolean> {
   }
 }
 
-/** Finds the built dashboard: bundled next to the CLI when published, else the workspace build. */
+/** Finds the built dashboard: workspace build in this repo, or bundled next to the CLI when published. */
 async function resolveStaticRoot(cliDir: string): Promise<string> {
   const candidatePaths = [
-    // Published package: dashboard copied next to the CLI bundle at build time.
-    path.resolve(cliDir, "web"),
+    // Workspace build of the dashboard in this repository
     path.resolve(cliDir, "../../apps/hub-web/dist"),
     path.resolve(cliDir, "../apps/hub-web/dist"),
-    path.resolve(process.cwd(), "apps", "hub-web", "dist")
+    path.resolve(process.cwd(), "apps", "hub-web", "dist"),
+    // Published package: dashboard copied next to the CLI bundle at build time
+    path.resolve(cliDir, "web")
   ];
   for (const candidate of candidatePaths) {
     if (await isDirectory(candidate)) {
       return candidate;
     }
   }
-  return candidatePaths[0]!;
+  return candidatePaths[candidatePaths.length - 1]!;
 }
 
 function openInBrowser(url: string): void {
-  // `start` is a cmd.exe built-in, not an executable; the empty string is its window title.
+  const browser = process.env.BROWSER?.trim();
   const [command, args] =
     process.platform === "win32"
       ? ["cmd", ["/c", "start", "", url]]
-      : [process.platform === "darwin" ? "open" : "xdg-open", [url]];
+      : process.platform === "darwin"
+        ? browser
+          ? ["open", ["-a", browser, url]]
+          : ["open", [url]]
+        : [browser || "xdg-open", [url]];
   execFile(command, args as string[], () => undefined);
 }
 

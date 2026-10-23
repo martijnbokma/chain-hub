@@ -92,7 +92,7 @@ describe("runHubCommand", () => {
     await runHubCommand({ chainHome: hub, port: "2342", open: true, cliDir });
 
     expect(mocks.startServer).not.toHaveBeenCalled();
-    expect(mocks.execFile).toHaveBeenCalledWith(expect.any(String), ["http://localhost:4320"], expect.any(Function));
+    expect(mocks.execFile).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining(["http://localhost:4320"]), expect.any(Function));
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining("http://localhost:4320"));
   });
 
@@ -108,7 +108,7 @@ describe("runHubCommand", () => {
     await runHubCommand({ chainHome: hub, port: "2342", open: true, cliDir });
 
     expect(mocks.startServer).not.toHaveBeenCalled();
-    expect(mocks.execFile).toHaveBeenCalledWith(expect.any(String), ["http://127.0.0.1:2342"], expect.any(Function));
+    expect(mocks.execFile).toHaveBeenCalledWith(expect.any(String), expect.arrayContaining(["http://127.0.0.1:2342"]), expect.any(Function));
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining("http://127.0.0.1:2342"));
   });
 

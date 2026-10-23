@@ -1,8 +1,23 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { isAddressInUseError, reclaimPort } from "./dev-port.js";
 import { startServer } from "./index.js";
 
 const PORT = 2342;
 const MAX_BIND_ATTEMPTS = 3;
+
+function resolveDevStaticRoot(): string | undefined {
+  const candidate = path.resolve(process.cwd(), "apps/hub-web/dist");
+  if (existsSync(path.join(candidate, "index.html"))) {
+    return candidate;
+  }
+  const alt = path.resolve(process.cwd(), "../../apps/hub-web/dist");
+  if (existsSync(path.join(alt, "index.html"))) {
+    return alt;
+  }
+  return undefined;
+}
 
 async function startDevServer(): Promise<void> {
   let lastError: unknown;
@@ -10,7 +25,11 @@ async function startDevServer(): Promise<void> {
   for (let attempt = 1; attempt <= MAX_BIND_ATTEMPTS; attempt += 1) {
     try {
       // The Vite dev server proxies /api from a loopback origin whose port may float.
-      await startServer({ port: PORT, requestGuard: { allowLoopbackOrigins: true } });
+      await startServer({
+        port: PORT,
+        staticRoot: resolveDevStaticRoot(),
+        requestGuard: { allowLoopbackOrigins: true }
+      });
       console.log(`Chain Hub dev server running at http://127.0.0.1:${PORT}`);
       return;
     } catch (error) {
