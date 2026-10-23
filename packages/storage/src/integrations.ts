@@ -14,6 +14,7 @@ import {
 
 import { createAsset, getAsset, listAssets, loadAllAssetDetails, resolveChainHome } from "./core.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
+import { devinConfigDir } from "./adapters/devin.js";
 import { zedConfigDir } from "./adapters/zed.js";
 import { parseFrontmatter } from "./adapters/frontmatter.js";
 import { copySkillSidecars } from "./skill-copy.js";
@@ -28,6 +29,8 @@ const LEGACY_INTEGRATION_TARGETS = [
   { id: "cursor", label: "Cursor", relativeTarget: ".cursor/chain-hub" },
   { id: "claude-code", label: "Claude Code", relativeTarget: ".claude/chain-hub" },
   { id: "windsurf", label: "Windsurf (Devin Desktop)", relativeTarget: ".codeium/windsurf/chain-hub" },
+  // No legacy symlink ever existed for Devin CLI; removeLegacySymlink only unlinks symlinks, so this is inert.
+  { id: "devin", label: "Devin CLI", relativeTarget: ".config/devin/chain-hub" },
   { id: "zed", label: "Zed", relativeTarget: ".config/zed/chain-hub" },
   // No legacy symlink ever existed for Antigravity; removeLegacySymlink only unlinks symlinks, so this is inert.
   { id: "antigravity", label: "Google Antigravity", relativeTarget: ".gemini/config/plugins/chain-hub" }
@@ -41,7 +44,7 @@ const LEGACY_INTEGRATION_TARGETS = [
 const EDITOR_CONFIG_ROOTS: Record<string, string[]> = {
   cursor: [".cursor"],
   "claude-code": [".claude"],
-  windsurf: [".codeium/windsurf", ".windsurf", ".devin"],
+  windsurf: [".codeium/windsurf", ".windsurf"],
   antigravity: [".gemini"]
 };
 
@@ -49,6 +52,12 @@ export async function isEditorInstalled(id: string, homeDir: string): Promise<bo
   if (id === "zed") {
     // Zed's config folder is platform specific (%APPDATA%\Zed on Windows).
     return pathExists(zedConfigDir(homeDir));
+  }
+
+  if (id === "devin") {
+    // Devin CLI's config folder is platform specific (%APPDATA%\devin on Windows);
+    // ~/.devin is the shared Devin product folder (Desktop writes rules/workflows there).
+    return (await pathExists(devinConfigDir(homeDir))) || (await pathExists(path.join(homeDir, ".devin")));
   }
 
   for (const root of EDITOR_CONFIG_ROOTS[id] ?? []) {

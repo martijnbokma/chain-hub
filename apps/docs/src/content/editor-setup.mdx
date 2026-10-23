@@ -2,7 +2,7 @@
 title: Editor Setup
 section: Guides
 order: 2
-description: Connect Cursor, Claude Code, Windsurf, Zed, or Google Antigravity to the hub folder.
+description: Connect Cursor, Claude Code, Windsurf, Devin CLI, Zed, or Google Antigravity to the hub folder.
 ---
 
 # Editor Setup
@@ -29,13 +29,14 @@ Remove or rename the conflicting file, then rerun `chain setup`.
 | --- | --- | --- | --- |
 | **Claude Code** | skills, agents, rules | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md`, `~/.claude/rules/<name>.md` |
 | **Cursor** | skills, rules | `~/.cursor/skills/<name>/SKILL.md` | `~/.cursor/rules/<name>.mdc` (`alwaysApply: true`) |
-| **Windsurf** | skills, rules, workflows | `~/.codeium/windsurf/skills/<name>/SKILL.md` | written to `~/.devin/{rules,workflows}/` and/or `~/.windsurf/{rules,workflows}/`, whichever exist (`~/.devin` when neither does) |
+| **Windsurf** | skills, rules, workflows | `~/.codeium/windsurf/skills/<name>/SKILL.md` | `~/.windsurf/{rules,workflows}/<name>.md` (legacy paths, still read by Devin Desktop and imported by Devin CLI) |
+| **Devin CLI** | skills, agents, rules, workflows | `~/.config/devin/skills/<name>/SKILL.md` (`%APPDATA%\devin` on Windows) | `~/.config/devin/agents/<name>.md` (subagent profiles), `~/.devin/{rules,workflows}/<name>.md` (shared with Devin Desktop); workflows also project as user-triggered skills (`triggers: [user]`, invocable as `/name`) |
 | **Zed** | skills, rules (merged) | `~/.agents/skills/<name>/SKILL.md` | all rules in one marked section of `~/.config/zed/AGENTS.md` (`%APPDATA%\Zed\AGENTS.md` on Windows); your own text in that file is kept |
 | **Google Antigravity** | skills, agents, rules | `~/.gemini/config/plugins/chain-hub/skills/<name>/SKILL.md` | one Chain Hub plugin: `agents/<name>.md`, `rules/<name>.md` (`trigger: always_on`) |
 
 Chain Hub only syncs into editors it finds on this machine (their config
-folder exists: `~/.cursor`, `~/.claude`, `~/.codeium/windsurf` / `~/.windsurf`
-/ `~/.devin`, `~/.config/zed` or `%APPDATA%\Zed`, `~/.gemini`), so it never creates folders for
+folder exists: `~/.cursor`, `~/.claude`, `~/.codeium/windsurf` / `~/.windsurf`,
+`~/.devin` / `~/.config/devin` or `%APPDATA%\devin`, `~/.config/zed` or `%APPDATA%\Zed`, `~/.gemini`), so it never creates folders for
 editors you don't use. Setup counts only those editors.
 
 Projected files keep all of the asset's frontmatter (`allowed-tools`, agent
@@ -47,7 +48,7 @@ hand-written file, the original is saved under `~/.chain-hub/backups/`.
 
 No adapter syncs `agents` or `workflows` universally — Cursor skips both
 (Custom Modes were removed in Cursor 2.1.0), Zed skips both (no native
-concept in Zed), Antigravity skips workflows (retired by Google on
+concept in Zed), Windsurf skips agents, Antigravity skips workflows (retired by Google on
 2026-11-01). Antigravity assets live in a single plugin, so
 `agy plugin disable chain-hub` turns them all off at once. `prompts` isn't synced to any editor today; it's a
 library-only asset kind. See [Writing an Asset](/asset-format) for the full

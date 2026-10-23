@@ -46,7 +46,7 @@ import {
   SidebarTrigger,
   useSidebar
 } from '../ui/sidebar';
-import { ShellToolbarHost, ShellToolbarProvider } from './ShellToolbar';
+import { ShellToolbarProvider } from './ShellToolbar';
 import { useCommandPalette } from './useCommandPalette';
 
 interface ShellProps {
@@ -212,17 +212,20 @@ export function Shell({ children }: ShellProps) {
     <ShellToolbarProvider>
       <SidebarProvider>
         <Sidebar collapsible="icon">
-          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
-                  <ChainHubLogo showText={false} className="size-8! shrink-0" />
-                  <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
-                    Chain Hub
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+          <SidebarHeader className="h-14 justify-center border-b border-sidebar-border">
+            <div className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+              <SidebarMenu className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                <SidebarMenuItem>
+                  <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
+                    <ChainHubLogo showText={false} className="size-8! shrink-0" />
+                    <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
+                      Chain Hub
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+              <SidebarTrigger className="hidden md:flex size-8 shrink-0" />
+            </div>
           </SidebarHeader>
 
           <SidebarContent>
@@ -260,24 +263,27 @@ export function Shell({ children }: ShellProps) {
           </SidebarContent>
 
           <SidebarFooter className="gap-2 border-t border-sidebar-border">
-            <Button
-              aria-label="Open command menu"
-              className={cn(
-                'h-9 w-full justify-start gap-2 whitespace-nowrap px-3',
-                'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8',
-                'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0'
-              )}
-              onClick={() => setCommandOpen(true)}
-              variant="secondary"
-            >
-              <CommandIcon className="size-4 shrink-0" />
-              <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
-                Command
-              </span>
-              <kbd className="pointer-events-none rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-3xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
-                ⌘K
-              </kbd>
-            </Button>
+            <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
+              <Button
+                aria-label="Open command menu"
+                className={cn(
+                  'h-9 flex-1 justify-start gap-2 whitespace-nowrap px-3',
+                  'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8',
+                  'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0'
+                )}
+                onClick={() => setCommandOpen(true)}
+                variant="secondary"
+              >
+                <CommandIcon className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+                  Command
+                </span>
+                <kbd className="pointer-events-none rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-3xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  ⌘K
+                </kbd>
+              </Button>
+              <ThemeToggle className="group-data-[collapsible=icon]:size-8" />
+            </div>
 
             <div className="grid gap-2.5 rounded-2xl border border-border px-3 py-3 group-data-[collapsible=icon]:hidden">
               <div className="flex items-center justify-between gap-2">
@@ -316,18 +322,20 @@ export function Shell({ children }: ShellProps) {
         </Sidebar>
 
         <SidebarInset className="min-w-0 overflow-x-hidden">
-          <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
-            <SidebarTrigger />
-            <NavLink className="flex items-center gap-2.5 md:hidden" to="/">
-              <ChainHubLogo showText={false} className="size-8 shrink-0" />
-              <span className="font-sans text-lg font-semibold tracking-tight text-foreground">
-                Chain Hub
-              </span>
-            </NavLink>
-            <ShellToolbarHost className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" />
-            <ThemeToggle />
-          </header>
-          <main className="min-w-0 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
+          {/* Mobile-only navigation bar */}
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 md:hidden">
+            <div className="flex items-center gap-2.5">
+              <SidebarTrigger />
+              <NavLink className="flex items-center gap-2" to="/">
+                <ChainHubLogo showText={false} className="size-6 shrink-0" />
+                <span className="font-sans text-base font-semibold tracking-tight text-foreground">
+                  Chain Hub
+                </span>
+              </NavLink>
+            </div>
+            <ThemeToggle className="size-8" />
+          </div>
+          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
             {children}
           </main>
         </SidebarInset>

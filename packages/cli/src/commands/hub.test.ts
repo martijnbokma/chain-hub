@@ -26,9 +26,13 @@ beforeEach(async () => {
   cliDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-cli-dir-"));
   vi.spyOn(console, "log").mockImplementation(() => undefined);
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    throw new Error("connection refused");
+  }));
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   mocks.startServer.mockClear();
   mocks.execFile.mockClear();
@@ -71,5 +75,53 @@ describe("runHubCommand", () => {
     await vi.waitFor(() =>
       expect(console.warn).toHaveBeenCalledWith("Agents skill sync skipped: lock unreadable")
     );
+  });
+
+  it("detects an already-running hub and opens the dev server URL when Vite is active", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string | URL | Request) => {
+      const urlString = String(url);
+      if (urlString.includes("2342/api/overview")) {
+        return new Response(JSON.stringify({ chainHome: hub }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (urlString.includes("4320")) {
+        return new Response("<html><title>Chain Hub</title></html>", { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    }));
+
+    await runHubCommand({ chainHome: hub, port: "2342", open: true, cliDir });
+
+    expect(mocks.startServer).not.toHaveBeenCalled();
+    expect(mocks.execFile).toHaveBeenCalledWith(expect.any(String), ["http://localhost:4320"], expect.any(Function));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("http://localhost:4320"));
+  });
+
+  it("detects an already-running hub and opens direct URL when Vite is not active", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string | URL | Request) => {
+      const urlString = String(url);
+      if (urlString.includes("2342/api/overview")) {
+        return new Response(JSON.stringify({ chainHome: hub }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      throw new Error("connection refused");
+    }));
+
+    await runHubCommand({ chainHome: hub, port: "2342", open: true, cliDir });
+
+    expect(mocks.startServer).not.toHaveBeenCalled();
+    expect(mocks.execFile).toHaveBeenCalledWith(expect.any(String), ["http://127.0.0.1:2342"], expect.any(Function));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("http://127.0.0.1:2342"));
+  });
+
+  it("handles EADDRINUSE gracefully when port is occupied by another application", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const inUseError = new Error("listen EADDRINUSE: address already in use 127.0.0.1:2342");
+    Object.assign(inUseError, { code: "EADDRINUSE" });
+    mocks.startServer.mockRejectedValueOnce(inUseError);
+
+    await runHubCommand({ chainHome: hub, port: "2342", open: true, cliDir });
+
+    expect(process.exitCode).toBe(1);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Port 2342 is already in use by another application"));
+    expect(mocks.execFile).not.toHaveBeenCalled();
   });
 });

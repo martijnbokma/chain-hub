@@ -53,6 +53,51 @@ function openInBrowser(url: string): void {
   execFile(command, args as string[], () => undefined);
 }
 
+export function isAddressInUseError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const code = "code" in error ? error.code : undefined;
+  if (code === "EADDRINUSE") {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("EADDRINUSE") || message.includes("address already in use");
+}
+
+export async function checkExistingHub(port: number): Promise<{ isRunning: boolean; url: string } | null> {
+  const apiCheckUrl = `http://127.0.0.1:${port}/api/overview`;
+  try {
+    const res = await fetch(apiCheckUrl, { signal: AbortSignal.timeout(600) });
+    if (!res.ok) {
+      return null;
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    if (typeof data !== "object" || data === null || !("chainHome" in data)) {
+      return null;
+    }
+
+    if (port === 2342) {
+      const viteUrl = "http://localhost:4320";
+      try {
+        const viteRes = await fetch(viteUrl, { signal: AbortSignal.timeout(300) });
+        if (viteRes.ok) {
+          const text = await viteRes.text();
+          if (text.includes("Chain Hub") || text.includes("@react-refresh")) {
+            return { isRunning: true, url: viteUrl };
+          }
+        }
+      } catch {
+        // Vite dev server not running, use direct port
+      }
+    }
+
+    return { isRunning: true, url: `http://127.0.0.1:${port}` };
+  } catch {
+    return null;
+  }
+}
+
 /** Pick up skills installed with `npx skills add` since the last start (existing hub skills are kept). */
 function syncAgentsSkillsInBackground(chainHome: string): void {
   void syncAgentsSkillsIntoHub(chainHome)
@@ -82,7 +127,25 @@ export async function runHubCommand(options: HubCommandOptions): Promise<void> {
     return;
   }
 
-  await startServer({ chainHome, port, staticRoot: await resolveStaticRoot(options.cliDir) });
+  const existingHub = await checkExistingHub(port);
+  if (existingHub) {
+    console.log(`Chain Hub is already running at ${existingHub.url}`);
+    if (options.open) {
+      openInBrowser(existingHub.url);
+    }
+    return;
+  }
+
+  try {
+    await startServer({ chainHome, port, staticRoot: await resolveStaticRoot(options.cliDir) });
+  } catch (error) {
+    if (isAddressInUseError(error)) {
+      console.error(`Port ${port} is already in use by another application. Use --port <number> to specify a different port.`);
+      process.exitCode = 1;
+      return;
+    }
+    throw error;
+  }
 
   const url = `http://127.0.0.1:${port}`;
   console.log(`Chain Hub running at ${url}`);

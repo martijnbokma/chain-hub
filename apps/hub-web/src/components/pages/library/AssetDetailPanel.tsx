@@ -82,6 +82,9 @@ interface AssetDetailPanelProps {
   isImproving: boolean;
   skillFiles: SkillFileEntry[];
   onPreviewFile?: (path: string) => void;
+  activeFile?: string;
+  onSelectFile?: (path: string) => void;
+  onOpenFileManager?: () => void;
 }
 
 function formatFileSize(size: number): string {
@@ -126,16 +129,28 @@ export function AssetDetailPanel({
   onImproveAsset,
   isImproving,
   skillFiles,
-  onPreviewFile: _onPreviewFile
+  onPreviewFile: _onPreviewFile,
+  activeFile: propActiveFile,
+  onSelectFile: propOnSelectFile,
+  onOpenFileManager
 }: AssetDetailPanelProps) {
   const [copied, setCopied] = useState(false);
   const [isRenamingUi, setIsRenamingUi] = useState(false);
   const [renameValue, setRenameValue] = useState(selected.name);
-  const [activeTab, setActiveTab] = useState<'SKILL.md' | string>('SKILL.md');
+  const [activeTab, setActiveTab] = useState<'SKILL.md' | string>(propActiveFile ?? 'SKILL.md');
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [isFilesMenuOpen, setIsFilesMenuOpen] = useState(false);
   const [fileSearch, setFileSearch] = useState('');
   const filesMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (propActiveFile) {
+      setActiveTab(propActiveFile);
+      if (propActiveFile !== 'SKILL.md') {
+        setOpenTabs((prev) => (prev.includes(propActiveFile) ? prev : [...prev, propActiveFile]));
+      }
+    }
+  }, [propActiveFile]);
 
   const nonDirectoryFiles = useMemo(
     () => skillFiles.filter((file) => !file.isDirectory),
@@ -191,15 +206,18 @@ export function AssetDetailPanel({
       setOpenTabs((prev) => [...prev, filePath]);
     }
     setActiveTab(filePath);
+    propOnSelectFile?.(filePath);
     setIsFilesMenuOpen(false);
     setFileSearch('');
   }
 
   function handleCloseTab(filePath: string, event: React.MouseEvent) {
     event.stopPropagation();
-    setOpenTabs((prev) => prev.filter((p) => p !== filePath));
+    const nextTabs = openTabs.filter((p) => p !== filePath);
+    setOpenTabs(nextTabs);
     if (activeTab === filePath) {
       setActiveTab('SKILL.md');
+      propOnSelectFile?.('SKILL.md');
     }
   }
 
@@ -418,15 +436,29 @@ export function AssetDetailPanel({
                 <Badge variant="default">{nonDirectoryFiles.length}</Badge>
                 <span className="hidden sm:inline text-muted-foreground">· Available as tabs in editor</span>
               </div>
-              <Button
-                className="h-6 px-2 text-xs"
-                onClick={() => setIsFilesMenuOpen((prev) => !prev)}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                Browse files <ChevronDown className="ml-1 size-3" />
-              </Button>
+              <div className="flex items-center gap-1.5">
+                {onOpenFileManager ? (
+                  <Button
+                    className="h-6 px-2 text-xs"
+                    onClick={onOpenFileManager}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FolderTree className="mr-1 size-3" />
+                    Files in sidebar
+                  </Button>
+                ) : null}
+                <Button
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setIsFilesMenuOpen((prev) => !prev)}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  Browse files <ChevronDown className="ml-1 size-3" />
+                </Button>
+              </div>
             </div>
           ) : null}
           {kindAssessment ? (

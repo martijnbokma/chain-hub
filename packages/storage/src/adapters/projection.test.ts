@@ -8,6 +8,7 @@ import type { AssetDetail, AssetKind } from "@chain-hub/contracts";
 import { antigravityAdapter } from "./antigravity.js";
 import { claudeCodeAdapter } from "./claude-code.js";
 import { cursorAdapter } from "./cursor.js";
+import { devinAdapter, devinConfigDir } from "./devin.js";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { EditorAdapter } from "./types.js";
 import { windsurfAdapter } from "./windsurf.js";
@@ -66,6 +67,22 @@ describe("projection keeps asset frontmatter", () => {
     });
   });
 
+  it("keeps skill fields for Devin CLI (platform-specific config dir)", async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-projection-devin-"));
+    await devinAdapter.writeAsset("/chain-home", homeDir, skill);
+    const data = parseFrontmatter(await fs.readFile(path.join(devinConfigDir(homeDir), "skills", "pdf-tool", "SKILL.md"), "utf8")).data;
+
+    expect(data).toMatchObject({
+      chain_hub_source: "skills/pdf-tool",
+      name: "pdf-tool",
+      description: "Work with PDFs",
+      "allowed-tools": ["Bash", "Read"],
+      "disable-model-invocation": true,
+      license: "MIT",
+      metadata: { author: "someone" }
+    });
+  });
+
   it("keeps Claude Code agent tools and model", async () => {
     const agent = asset("agents", "reviewer", "---\nname: reviewer\ndescription: Reviews code\ntools: Read, Grep\nmodel: haiku\n---\n\nYou review code.\n");
     const data = await projectedData(claudeCodeAdapter, agent, ".claude/agents/reviewer.md");
@@ -88,7 +105,10 @@ describe("projection keeps asset frontmatter", () => {
     expect((await projectedData(cursorAdapter, scoped, ".cursor/rules/tests.mdc")).alwaysApply).toBeUndefined();
     expect(await projectedData(cursorAdapter, plain, ".cursor/rules/plain.mdc")).toMatchObject({ alwaysApply: true });
 
-    expect(await projectedData(windsurfAdapter, scoped, ".devin/rules/tests.md")).toMatchObject({ trigger: "glob" });
-    expect(await projectedData(windsurfAdapter, plain, ".devin/rules/plain.md")).toMatchObject({ trigger: "always_on" });
+    expect(await projectedData(windsurfAdapter, scoped, ".windsurf/rules/tests.md")).toMatchObject({ trigger: "glob" });
+    expect(await projectedData(windsurfAdapter, plain, ".windsurf/rules/plain.md")).toMatchObject({ trigger: "always_on" });
+
+    expect(await projectedData(devinAdapter, scoped, ".devin/rules/tests.md")).toMatchObject({ trigger: "glob" });
+    expect(await projectedData(devinAdapter, plain, ".devin/rules/plain.md")).toMatchObject({ trigger: "always_on" });
   });
 });

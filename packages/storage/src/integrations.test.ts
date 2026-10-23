@@ -30,8 +30,14 @@ async function exists(target: string): Promise<boolean> {
 describe("isEditorInstalled", () => {
   it("detects Windsurf from any of its config roots", async () => {
     expect(await isEditorInstalled("windsurf", tmpHome)).toBe(false);
-    await fs.mkdir(path.join(tmpHome, ".devin"), { recursive: true });
+    await fs.mkdir(path.join(tmpHome, ".windsurf"), { recursive: true });
     expect(await isEditorInstalled("windsurf", tmpHome)).toBe(true);
+  });
+
+  it("detects Devin CLI from ~/.devin or its platform config folder", async () => {
+    expect(await isEditorInstalled("devin", tmpHome)).toBe(false);
+    await fs.mkdir(path.join(tmpHome, ".devin"), { recursive: true });
+    expect(await isEditorInstalled("devin", tmpHome)).toBe(true);
   });
 
   it("detects Zed from its platform config folder", async () => {

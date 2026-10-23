@@ -25,24 +25,24 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
 }
 
 describe("windsurfAdapter.writeAsset", () => {
-  it("dual-writes a rule to both .devin/rules and .windsurf/rules with trigger: always_on", async () => {
+  it("writes a rule to .windsurf/rules with trigger: always_on, leaving .devin to the devin adapter", async () => {
     const homeDir = await makeTmpHome();
     await fs.mkdir(path.join(homeDir, ".devin"));
     await fs.mkdir(path.join(homeDir, ".windsurf"));
     await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
 
-    for (const root of [".devin", ".windsurf"]) {
-      const filePath = path.join(homeDir, root, "rules", "style.md");
-      const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
-      expect(data.trigger).toBe("always_on");
-      expect(data.description).toBe("Style");
-      expect(data.chain_hub_source).toBe("rules/style");
-    }
+    const filePath = path.join(homeDir, ".windsurf", "rules", "style.md");
+    const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
+    expect(data.trigger).toBe("always_on");
+    expect(data.description).toBe("Style");
+    expect(data.chain_hub_source).toBe("rules/style");
+
+    await expect(fs.access(path.join(homeDir, ".devin", "rules"))).rejects.toThrow();
   });
 
-  it("writes only to the Windsurf root that exists", async () => {
+  it("creates ~/.windsurf when only ~/.codeium/windsurf exists", async () => {
     const homeDir = await makeTmpHome();
-    await fs.mkdir(path.join(homeDir, ".windsurf"));
+    await fs.mkdir(path.join(homeDir, ".codeium", "windsurf"), { recursive: true });
 
     await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
 
@@ -50,29 +50,16 @@ describe("windsurfAdapter.writeAsset", () => {
     await expect(fs.access(path.join(homeDir, ".devin"))).rejects.toThrow();
   });
 
-  it("falls back to .devin when neither root exists", async () => {
+  it("writes a workflow to .windsurf/workflows without a trigger field", async () => {
     const homeDir = await makeTmpHome();
-
-    await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
-
-    await expect(fs.access(path.join(homeDir, ".devin", "rules", "style.md"))).resolves.toBeUndefined();
-    await expect(fs.access(path.join(homeDir, ".windsurf"))).rejects.toThrow();
-  });
-
-  it("dual-writes a workflow without a trigger field", async () => {
-    const homeDir = await makeTmpHome();
-    await fs.mkdir(path.join(homeDir, ".devin"));
-    await fs.mkdir(path.join(homeDir, ".windsurf"));
     const asset = makeAsset({ id: "workflows:deploy", kind: "workflows", name: "deploy", content: "# Deploy\n\n1. Build\n2. Ship" });
 
     await windsurfAdapter.writeAsset("/chain-home", homeDir, asset);
 
-    for (const root of [".devin", ".windsurf"]) {
-      const filePath = path.join(homeDir, root, "workflows", "deploy.md");
-      const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
-      expect(data.trigger).toBeUndefined();
-      expect(data.description).toBe("Deploy");
-    }
+    const filePath = path.join(homeDir, ".windsurf", "workflows", "deploy.md");
+    const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
+    expect(data.trigger).toBeUndefined();
+    expect(data.description).toBe("Deploy");
   });
 
   it("writes a skill to ~/.codeium/windsurf/skills with name+description frontmatter", async () => {
@@ -98,20 +85,18 @@ describe("windsurfAdapter.writeAsset", () => {
     const homeDir = await makeTmpHome();
     await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "agents", name: "reviewer" }));
 
-    await expect(fs.stat(path.join(homeDir, ".devin", "agents"))).rejects.toThrow();
+    await expect(fs.stat(path.join(homeDir, ".windsurf", "agents"))).rejects.toThrow();
     await expect(fs.stat(path.join(homeDir, ".codeium", "windsurf", "agents"))).rejects.toThrow();
   });
 });
 
 describe("windsurfAdapter.removeAsset", () => {
-  it("removes the managed file from both roots", async () => {
+  it("removes the managed rule file", async () => {
     const homeDir = await makeTmpHome();
     await windsurfAdapter.writeAsset("/chain-home", homeDir, makeAsset());
     await windsurfAdapter.removeAsset("/chain-home", homeDir, "rules", "style");
 
-    for (const root of [".devin", ".windsurf"]) {
-      await expect(fs.stat(path.join(homeDir, root, "rules", "style.md"))).rejects.toThrow();
-    }
+    await expect(fs.stat(path.join(homeDir, ".windsurf", "rules", "style.md"))).rejects.toThrow();
   });
 
   it("removes a managed skill file and its directory", async () => {
@@ -131,9 +116,9 @@ describe("windsurfAdapter.removeAsset", () => {
 });
 
 describe("windsurfAdapter.discover", () => {
-  it("finds a plain, unmanaged rule under .devin/rules", async () => {
+  it("finds a plain, unmanaged rule under .windsurf/rules", async () => {
     const homeDir = await makeTmpHome();
-    const filePath = path.join(homeDir, ".devin", "rules", "hand-written.md");
+    const filePath = path.join(homeDir, ".windsurf", "rules", "hand-written.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "Rule body.", "utf8");
 
@@ -155,17 +140,15 @@ describe("windsurfAdapter.discover", () => {
     expect(discovered[0]).toMatchObject({ kind: "skills", name: "hand-written" });
   });
 
-  it("dedupes a name that exists in both .devin and .windsurf, preferring .devin", async () => {
+  it("ignores ~/.devin files — those belong to the devin adapter", async () => {
     const homeDir = await makeTmpHome();
-    await fs.mkdir(path.join(homeDir, ".devin", "workflows"), { recursive: true });
-    await fs.writeFile(path.join(homeDir, ".devin", "workflows", "deploy.md"), "Devin version.", "utf8");
-    await fs.mkdir(path.join(homeDir, ".windsurf", "workflows"), { recursive: true });
-    await fs.writeFile(path.join(homeDir, ".windsurf", "workflows", "deploy.md"), "Windsurf version.", "utf8");
+    const filePath = path.join(homeDir, ".devin", "workflows", "deploy.md");
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, "Devin version.", "utf8");
 
     const discovered = await windsurfAdapter.discover(homeDir);
 
-    expect(discovered).toHaveLength(1);
-    expect(discovered[0].content).toBe("Devin version.");
+    expect(discovered).toHaveLength(0);
   });
 
   it("excludes chain-hub-managed rules/workflows", async () => {

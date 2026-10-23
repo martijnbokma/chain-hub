@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useSearchParams } from 'react-router-dom';
-import { Download } from 'lucide-react';
+import { Download, FolderTree } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
@@ -19,6 +19,7 @@ import type {
 } from '@/types';
 import { AiEditPreviewDialog } from './library/AiEditPreviewDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
+import { AssetFileManager } from './library/AssetFileManager';
 import { AssetList } from './library/AssetList';
 import {
   filterLibraryAssets,
@@ -43,6 +44,8 @@ export function LibraryPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState<{ kind: AssetKind; name: string } | null>(null);
+  const [masterView, setMasterView] = useState<'assets' | 'files'>('assets');
+  const [activeFile, setActiveFile] = useState<string>('SKILL.md');
   const [removeOpen, setRemoveOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
@@ -163,11 +166,17 @@ export function LibraryPage() {
 
   function requestSelection(next: { kind: AssetKind; name: string } | null) {
     const sameAsset = next !== null && selected !== null && next.kind === selected.kind && next.name === selected.name;
-    if (isDirty && !sameAsset) {
+    if (sameAsset) {
+      setMasterView('files');
+      return;
+    }
+    if (isDirty) {
       setPendingSelection(next);
       return;
     }
     setSelected(next);
+    setMasterView('assets');
+    setActiveFile('SKILL.md');
   }
 
   // Leaving the Library (sidebar, command palette, back button) would drop the edits too.
@@ -480,7 +489,7 @@ export function LibraryPage() {
 
   if (library.isLoading) {
     return (
-      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
+      <div className="flex h-[calc(100vh-2rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-3rem)]">
         {listToolbar}
         <PageSkeleton className="min-h-0 flex-1" variant="workspace" />
       </div>
@@ -489,7 +498,7 @@ export function LibraryPage() {
 
   if (library.isError) {
     return (
-      <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
+      <div className="flex h-[calc(100vh-2rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-3rem)]">
         {listToolbar}
         <EmptyState description="The library index is temporarily unavailable." title="Unable to load library" />
       </div>
@@ -497,7 +506,7 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-108px+1rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-108px+1.5rem)]">
+    <div className="flex h-[calc(100vh-2rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-3rem)]">
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         {hasAgentsDrift && agentsDrift ? (
           <div className="min-w-0 shrink-0 pb-3">
@@ -534,28 +543,59 @@ export function LibraryPage() {
           )}
         >
           <div className={cn('flex min-h-0 min-w-0 flex-col', selected && 'hidden xl:flex')}>
-            {listToolbar}
-            <div
-              className={cn(
-                'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto',
-                // Extend into the shell's inline padding so the scrollbar sits on the pane edge.
-                !selected && '-mr-4 pr-4 sm:-mr-6 sm:pr-6',
-                !listAtTop && 'fade-top',
-                !listAtBottom && 'fade-bottom'
-              )}
-              ref={listScrollRef}
-            >
-              <AssetList
-                filterKind={filterKind}
-                kindSections={kindSections}
-                onSelect={(asset) => requestSelection({ kind: asset.kind as AssetKind, name: asset.name })}
-                selected={selected}
+            {selected && masterView === 'files' ? (
+              <AssetFileManager
+                activeFile={activeFile}
+                assetKind={selected.kind}
+                assetName={selected.name}
+                files={skillFiles.data?.files ?? []}
+                onBackToAssets={() => setMasterView('assets')}
+                onSelectFile={(filePath) => setActiveFile(filePath)}
+                provenanceSource={selectedAsset.data?.provenance?.source}
               />
-            </div>
+            ) : (
+              <>
+                {selected ? (
+                  <div className="mb-2 flex items-center justify-between rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1.5 text-xs">
+                    <span className="truncate text-muted-foreground">
+                      Selected: <strong className="text-foreground">{selected.name}</strong>
+                    </span>
+                    <Button
+                      className="h-6 shrink-0 gap-1 px-2 text-xs font-medium"
+                      onClick={() => setMasterView('files')}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <FolderTree className="size-3" />
+                      Files ({skillFiles.data?.files?.filter((f) => !f.isDirectory).length ?? 0}) →
+                    </Button>
+                  </div>
+                ) : null}
+                {listToolbar}
+                <div
+                  className={cn(
+                    'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto',
+                    !selected && '-mr-4 pr-4 sm:-mr-6 sm:pr-6',
+                    !listAtTop && 'fade-top',
+                    !listAtBottom && 'fade-bottom'
+                  )}
+                  ref={listScrollRef}
+                >
+                  <AssetList
+                    filterKind={filterKind}
+                    kindSections={kindSections}
+                    onSelect={(asset) => requestSelection({ kind: asset.kind as AssetKind, name: asset.name })}
+                    selected={selected}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {selected ? (
             <AssetDetailPanel
+              activeFile={activeFile}
               assetAudit={assetAudit}
               author={selectedAsset.data?.author}
               editorContent={editorContent}
@@ -586,11 +626,13 @@ export function LibraryPage() {
               onForkAndFixHeading={() => forkAndFixDescription.mutate('heading')}
               onForkAndFixWithAi={() => forkAndFixDescription.mutate('ai')}
               onImproveAsset={() => improveAsset.mutate()}
+              onOpenFileManager={() => setMasterView('files')}
+              onPreviewFile={setPreviewFilePath}
               onReassessKind={() => reassessKind.mutate()}
               onRename={(nextName) => renameAsset.mutate(nextName)}
-              onPreviewFile={setPreviewFilePath}
               onRequestDelete={() => setRemoveOpen(true)}
               onSave={() => saveAsset.mutate()}
+              onSelectFile={(filePath) => setActiveFile(filePath)}
               onUpdateFromSource={() => updateSkills.mutate(selected.name)}
               provenance={selectedAsset.data?.provenance}
               selected={selected}
@@ -660,6 +702,8 @@ export function LibraryPage() {
               return;
             }
             setSelected(pendingSelection ?? null);
+            setMasterView('assets');
+            setActiveFile('SKILL.md');
             setPendingSelection(undefined);
           }}
           onKeepEditing={() => {
