@@ -4,6 +4,13 @@ import type { AssetKind } from "@chain-hub/contracts";
 export type {
   AgentsSkillsDrift,
   AiProvider,
+  AnalysisEntryInput,
+  AnalysisItem,
+  AnalysisItemStatus,
+  AnalysisItemType,
+  AnalysisReport,
+  SaveAnalysisInput,
+  UpdateAnalysisItemInput,
   AiSettingsPublic,
   AssetCompatIssue,
   AssetDetail,

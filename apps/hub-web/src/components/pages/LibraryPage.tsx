@@ -10,15 +10,18 @@ import { cn } from '@/lib/utils';
 import { isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill-ownership';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { libraryApi, overviewApi } from '@/lib/api';
+import { analysisApi, libraryApi, overviewApi } from '@/lib/api';
 import type {
+  AnalysisItem,
   AssetKind,
+  AssetRecord,
   FilterKind,
   OwnershipFilter,
   DiscoveredAsset
 } from '@/types';
 import { AiEditPreviewDialog } from './library/AiEditPreviewDialog';
 import type { AnalysisEntry } from './library/analyze-assets';
+import { AnalysisReview } from './library/AnalysisReview';
 import { AnalyzeReportDialog } from './library/AnalyzeReportDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
 import { AssetFileManager } from './library/AssetFileManager';
@@ -39,6 +42,7 @@ import { DiscardChangesDialog } from './library/DiscardChangesDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
 import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
 import { useLibraryAiActions } from './library/use-library-ai-actions';
+import { assetKey, useAnalysisReview } from './library/use-analysis-review';
 import { useLibraryAnalysis } from './library/use-library-analysis';
 import { useLibraryCreateFlow } from './library/use-library-create-flow';
 import { useLibraryInstallFlow } from './library/use-library-install-flow';
@@ -61,6 +65,7 @@ export function LibraryPage() {
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
   const [autoAuditAsset, setAutoAuditAsset] = useState<string | null>(null);
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [view, setView] = useState<'assets' | 'review'>('assets');
   const analysis = useLibraryAnalysis();
 
   const createFlow = useLibraryCreateFlow({
@@ -426,15 +431,79 @@ export function LibraryPage() {
     }
   });
 
+  const analysisReport = useQuery({
+    queryKey: ['analysis'],
+    queryFn: () => analysisApi.get()
+  });
+
+  const assetsByKey = useMemo(() => {
+    const map = new Map<string, AssetRecord>();
+    for (const asset of library.data ?? []) {
+      map.set(assetKey(asset.kind, asset.name), asset);
+    }
+    return map;
+  }, [library.data]);
+
+  const review = useAnalysisReview({ assetsByKey });
+
+  async function runAnalysisAndSave() {
+    const assets = library.data ?? [];
+    const { entries, cancelled } = await analysis.run(assets);
+    if (cancelled) {
+      return;
+    }
+    try {
+      const report = await analysisApi.save({
+        totalAssets: assets.length,
+        entries: entries.map((entry) => ({
+          kind: entry.asset.kind,
+          name: entry.asset.name,
+          classification: entry.classification,
+          classifyError: entry.classifyError,
+          audit: entry.audit,
+          auditError: entry.auditError,
+          compatIssues: entry.asset.compatIssues ?? []
+        }))
+      });
+      queryClient.setQueryData(['analysis'], report);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save analysis report');
+    }
+  }
+
   function handleAnalyze() {
     setAnalyzeOpen(true);
     if (analysis.status === 'idle') {
-      void analysis.run(library.data ?? []);
+      void runAnalysisAndSave();
     }
   }
 
   function handleRunAnalysisAgain() {
-    void analysis.run(library.data ?? []);
+    void runAnalysisAndSave();
+  }
+
+  function handleOpenAnalysisItem(item: AnalysisItem) {
+    seedAiResults({
+      kind: item.kind,
+      name: item.name,
+      kindAssessment:
+        item.type === 'kind-mismatch' && item.recommendedKind
+          ? {
+              currentKind: item.kind,
+              recommendedKind: item.recommendedKind,
+              matchesCurrent: false,
+              reason: item.reason ?? ''
+            }
+          : null,
+      assetAudit:
+        item.type === 'audit-findings' && item.findings
+          ? { summary: item.summary ?? '', findings: item.findings }
+          : null
+    });
+    const alreadySelected = selected?.kind === item.kind && selected?.name === item.name;
+    if (!alreadySelected) {
+      requestSelection({ kind: item.kind, name: item.name });
+    }
   }
 
   function handleOpenAnalyzedAsset(entry: AnalysisEntry) {
@@ -533,8 +602,11 @@ export function LibraryPage() {
       onOwnershipChange={setOwnershipSynced}
       onSearchQueryChange={setSearchQuery}
       onUpdateSkills={() => updateSkills.mutate(undefined)}
+      onViewChange={setView}
       ownership={ownership}
+      reviewOpenCount={analysisReport.data?.items.filter((item) => item.status === 'open').length ?? 0}
       searchQuery={searchQuery}
+      view={view}
     />
   );
 
@@ -633,12 +705,36 @@ export function LibraryPage() {
                   )}
                   ref={listScrollRef}
                 >
-                  <AssetList
-                    filterKind={filterKind}
-                    kindSections={kindSections}
-                    onSelect={(asset) => requestSelection({ kind: asset.kind as AssetKind, name: asset.name })}
-                    selected={selected}
-                  />
+                  {view === 'review' ? (
+                    <AnalysisReview
+                      assetsByKey={assetsByKey}
+                      batch={review.batch}
+                      fixingId={review.fixingId}
+                      isAnalyzing={analysis.status === 'running'}
+                      onApplySelected={() =>
+                        review.applyItems(
+                          (analysisReport.data?.items ?? []).filter(
+                            (item) => item.status === 'open' && review.selectedIds.has(item.id)
+                          )
+                        )
+                      }
+                      onFixItem={review.fixItem}
+                      onOpenItem={handleOpenAnalysisItem}
+                      onRunAgain={handleAnalyze}
+                      onSelectAllOpen={() => review.selectAllOpen(analysisReport.data?.items ?? [])}
+                      onSetStatus={(item, status) => void review.setItemStatus(item.id, status)}
+                      onToggleSelect={review.toggleSelect}
+                      report={analysisReport.data ?? null}
+                      selectedIds={review.selectedIds}
+                    />
+                  ) : (
+                    <AssetList
+                      filterKind={filterKind}
+                      kindSections={kindSections}
+                      onSelect={(asset) => requestSelection({ kind: asset.kind as AssetKind, name: asset.name })}
+                      selected={selected}
+                    />
+                  )}
                 </div>
               </>
             )}
@@ -808,6 +904,26 @@ export function LibraryPage() {
           progress={analysis.progress}
           status={analysis.status}
           totalAssets={library.data?.length ?? 0}
+        />
+
+        <AiEditPreviewDialog
+          onApprove={() => void review.approveQueuedDiff()}
+          onDiscard={review.discardQueuedDiff}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
+              review.discardQueuedDiff();
+            }
+          }}
+          open={pendingAiEdit === null && review.diffQueue.length > 0}
+          pendingEdit={
+            pendingAiEdit === null && review.diffQueue.length > 0
+              ? {
+                  label: `Improve ${review.diffQueue[0].kind}/${review.diffQueue[0].name}`,
+                  before: review.diffQueue[0].before,
+                  after: review.diffQueue[0].after
+                }
+              : null
+          }
         />
 
         <SkillFilePreviewDialog

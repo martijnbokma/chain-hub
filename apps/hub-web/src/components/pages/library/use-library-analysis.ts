@@ -49,12 +49,14 @@ export function useLibraryAnalysis() {
           });
         }
       }
-    }).finally(() => {
-      if (isCurrent()) {
-        setStatus('done');
-        setProgress(null);
-      }
-    });
+    })
+      .then((entries) => ({ entries, cancelled: !isCurrent() }))
+      .finally(() => {
+        if (isCurrent()) {
+          setStatus('done');
+          setProgress(null);
+        }
+      });
   }, []);
 
   const cancel = useCallback(() => {

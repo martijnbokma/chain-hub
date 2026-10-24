@@ -12,6 +12,9 @@ interface LibraryToolbarProps {
   assetCount: number;
   filterKind: FilterKind;
   isCompact: boolean;
+  view: 'assets' | 'review';
+  reviewOpenCount: number;
+  onViewChange: (view: 'assets' | 'review') => void;
   ownership: OwnershipFilter;
   searchQuery: string;
   onOwnershipChange: (value: OwnershipFilter) => void;
@@ -29,6 +32,9 @@ export function LibraryToolbar({
   assetCount,
   filterKind,
   isCompact,
+  view,
+  reviewOpenCount,
+  onViewChange,
   ownership,
   searchQuery,
   onOwnershipChange,
@@ -131,6 +137,30 @@ export function LibraryToolbar({
           !isCompact && 'sm:flex-row sm:items-center'
         )}
       >
+        <Tabs
+          className="shrink-0 gap-0"
+          onValueChange={(value) => {
+            if (value === 'assets' || value === 'review') {
+              onViewChange(value);
+            }
+          }}
+          value={view}
+        >
+          <TabsList aria-label="Library view">
+            <TabsTrigger value="assets">Assets</TabsTrigger>
+            <TabsTrigger value="review">
+              Review
+              {reviewOpenCount > 0 ? (
+                <Badge className="ml-1.5 px-1.5 py-0" variant="accent">
+                  {reviewOpenCount}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {view === 'assets' ? (
+          <>
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -160,6 +190,8 @@ export function LibraryToolbar({
             <TabsTrigger value="upstream">Upstream</TabsTrigger>
           </TabsList>
         </Tabs>
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -1,5 +1,8 @@
 import type {
   Overview,
+  AnalysisReport,
+  SaveAnalysisInput,
+  UpdateAnalysisItemInput,
   AssetRecord,
   AssetDetail,
   DiscoveredAsset,
@@ -45,7 +48,7 @@ export async function getJson<T>(url: string): Promise<T> {
  * Sends a JSON request and returns the parsed response. Failed requests throw an
  * Error carrying the hub's { error } message, so callers need no response checks.
  */
-export async function sendJson<T>(url: string, method: 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<T> {
+export async function sendJson<T>(url: string, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', body?: unknown): Promise<T> {
   const response = await fetch(url, {
     method,
     ...(body === undefined
@@ -125,6 +128,14 @@ export const libraryApi = {
 };
 
 export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult, CheckSkillUpdatesResult, SkillCheckItemResult };
+
+// Analysis API — persisted library analysis report + per-item status
+export const analysisApi = {
+  get: () => getJson<AnalysisReport | null>('/api/analysis'),
+  save: (data: SaveAnalysisInput) => sendJson<AnalysisReport>('/api/analysis', 'PUT', data),
+  setItemStatus: (data: UpdateAnalysisItemInput) =>
+    sendJson<AnalysisReport>('/api/analysis/items', 'PATCH', data)
+};
 
 // Integrations API
 export const integrationsApi = {
