@@ -18,6 +18,8 @@ import type {
   DiscoveredAsset
 } from '@/types';
 import { AiEditPreviewDialog } from './library/AiEditPreviewDialog';
+import type { AnalysisEntry } from './library/analyze-assets';
+import { AnalyzeReportDialog } from './library/AnalyzeReportDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
 import { AssetFileManager } from './library/AssetFileManager';
 import { AssetList } from './library/AssetList';
@@ -37,6 +39,7 @@ import { DiscardChangesDialog } from './library/DiscardChangesDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
 import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
 import { useLibraryAiActions } from './library/use-library-ai-actions';
+import { useLibraryAnalysis } from './library/use-library-analysis';
 import { useLibraryCreateFlow } from './library/use-library-create-flow';
 import { useLibraryInstallFlow } from './library/use-library-install-flow';
 
@@ -57,6 +60,8 @@ export function LibraryPage() {
   const [editorContent, setEditorContent] = useState('');
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
   const [autoAuditAsset, setAutoAuditAsset] = useState<string | null>(null);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const analysis = useLibraryAnalysis();
 
   const createFlow = useLibraryCreateFlow({
     searchParams,
@@ -126,6 +131,7 @@ export function LibraryPage() {
     assetAudit,
     pendingAiEdit,
     resetAiResults,
+    seedAiResults,
     approveAiEdit,
     discardAiEdit,
     reassessKind,
@@ -420,6 +426,49 @@ export function LibraryPage() {
     }
   });
 
+  function handleAnalyze() {
+    setAnalyzeOpen(true);
+    if (analysis.status === 'idle') {
+      void analysis.run(library.data ?? []);
+    }
+  }
+
+  function handleRunAnalysisAgain() {
+    void analysis.run(library.data ?? []);
+  }
+
+  function handleOpenAnalyzedAsset(entry: AnalysisEntry) {
+    seedAiResults({
+      kind: entry.asset.kind,
+      name: entry.asset.name,
+      kindAssessment: entry.classification,
+      assetAudit: entry.audit
+    });
+    setAnalyzeOpen(false);
+    const alreadySelected = selected?.kind === entry.asset.kind && selected?.name === entry.asset.name;
+    if (!alreadySelected) {
+      requestSelection({ kind: entry.asset.kind, name: entry.asset.name });
+    }
+  }
+
+  // The run continues while the report dialog is closed; announce completion then.
+  const prevAnalysisStatusRef = useRef(analysis.status);
+  useEffect(() => {
+    const previous = prevAnalysisStatusRef.current;
+    prevAnalysisStatusRef.current = analysis.status;
+    if (previous !== 'running' || analysis.status !== 'done' || analyzeOpen || analysis.cancelled) {
+      return;
+    }
+    const flagged = analysis.entries.filter(
+      (entry) => entry.classification !== null && !entry.classification.matchesCurrent
+    ).length;
+    toast.success(
+      flagged > 0
+        ? `Analysis complete — ${flagged} asset${flagged === 1 ? '' : 's'} need attention`
+        : 'Analysis complete — all assets look right'
+    );
+  }, [analysis.status, analysis.cancelled, analysis.entries, analyzeOpen]);
+
   const isUpstreamSkill =
     selected?.kind === 'skills' && isUpstreamOwnedSkill(selectedAsset.data?.provenance ?? null);
   const upstreamBrowseUrl = resolveSkillUpstreamBrowseUrl(selectedAsset.data?.provenance ?? null);
@@ -474,8 +523,10 @@ export function LibraryPage() {
     <LibraryToolbar
       assetCount={filteredAssets.length}
       filterKind={filterKind}
+      isAnalyzing={analysis.status === 'running'}
       isCompact={selected !== null}
       isUpdatingSkills={updateSkills.isPending}
+      onAnalyze={handleAnalyze}
       onCreate={() => createFlow.setCreateOpenSynced(true)}
       onDiscover={() => setDiscoverOpen(true)}
       onInstall={() => installFlow.setInstallOpen(true)}
@@ -744,6 +795,19 @@ export function LibraryPage() {
           onImportAll={(candidates) => importMultipleAssets.mutate(candidates)}
           onOpenChange={setDiscoverOpen}
           open={discoverOpen}
+        />
+
+        <AnalyzeReportDialog
+          cancelled={analysis.cancelled}
+          entries={analysis.entries}
+          onCancel={analysis.cancel}
+          onOpenAsset={handleOpenAnalyzedAsset}
+          onOpenChange={setAnalyzeOpen}
+          onRunAgain={handleRunAnalysisAgain}
+          open={analyzeOpen}
+          progress={analysis.progress}
+          status={analysis.status}
+          totalAssets={library.data?.length ?? 0}
         />
 
         <SkillFilePreviewDialog

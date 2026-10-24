@@ -62,6 +62,48 @@ describe('useLibraryAiActions', () => {
     expect(result.current.assetAudit).toBeNull();
   });
 
+  it('applies seeded analysis results when the matching asset gets selected', async () => {
+    const kindAssessment = {
+      currentKind: 'agents' as const,
+      recommendedKind: 'skills' as const,
+      matchesCurrent: false,
+      reason: 'Reads like a skill'
+    };
+    const { result, rerender } = renderAiActions({ selected: { kind: 'rules', name: 'a' }, editorContent: '# A' });
+
+    act(() =>
+      result.current.seedAiResults({ kind: 'agents', name: 'b', kindAssessment, assetAudit: audit })
+    );
+    // Seeding does not leak into the currently selected asset.
+    expect(result.current.kindAssessment).toBeNull();
+
+    rerender({ selected: { kind: 'agents', name: 'b' }, editorContent: '# B' });
+    expect(result.current.kindAssessment).toEqual(kindAssessment);
+    expect(result.current.assetAudit).toEqual(audit);
+
+    // …and a later selection clears them as usual.
+    rerender({ selected: { kind: 'agents', name: 'c' }, editorContent: '# C' });
+    expect(result.current.kindAssessment).toBeNull();
+    expect(result.current.assetAudit).toBeNull();
+  });
+
+  it('applies a seed immediately when it matches the current selection', () => {
+    const kindAssessment = {
+      currentKind: 'rules' as const,
+      recommendedKind: 'prompts' as const,
+      matchesCurrent: false,
+      reason: 'Single-shot text'
+    };
+    const { result } = renderAiActions({ selected: { kind: 'rules', name: 'a' }, editorContent: '# A' });
+
+    act(() =>
+      result.current.seedAiResults({ kind: 'rules', name: 'a', kindAssessment, assetAudit: null })
+    );
+
+    expect(result.current.kindAssessment).toEqual(kindAssessment);
+    expect(result.current.assetAudit).toBeNull();
+  });
+
   it('refuses to improve before an audit ran', async () => {
     const improve = vi.spyOn(aiSettingsApi, 'improveAsset');
     const { result } = renderAiActions({ selected: { kind: 'rules', name: 'a' }, editorContent: '# A' });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -22,12 +22,40 @@ export function useLibraryAiActions(options: {
   const [kindAssessment, setKindAssessment] = useState<ClassifyAssetResult | null>(null);
   const [assetAudit, setAssetAudit] = useState<AuditAssetResult | null>(null);
   const [pendingAiEdit, setPendingAiEdit] = useState<PendingAiEdit | null>(null);
+  // Seeds from a library-wide analysis run; applied when the matching asset opens.
+  const seedRef = useRef<{
+    kind: AssetKind;
+    name: string;
+    kindAssessment: ClassifyAssetResult | null;
+    assetAudit: AuditAssetResult | null;
+  } | null>(null);
 
   // Results belong to one asset; drop them when the selection changes.
   useEffect(() => {
-    setKindAssessment(null);
-    setAssetAudit(null);
+    const seed = seedRef.current;
+    seedRef.current = null;
+    const match = seed && seed.kind === selected?.kind && seed.name === selected.name ? seed : null;
+    setKindAssessment(match?.kindAssessment ?? null);
+    setAssetAudit(match?.assetAudit ?? null);
   }, [selected?.kind, selected?.name]);
+
+  /**
+   * Hand analysis results to the panel for an asset that is about to be
+   * selected, so they render without re-running classify/audit.
+   */
+  function seedAiResults(entry: {
+    kind: AssetKind;
+    name: string;
+    kindAssessment: ClassifyAssetResult | null;
+    assetAudit: AuditAssetResult | null;
+  }) {
+    if (selected && entry.kind === selected.kind && entry.name === selected.name) {
+      setKindAssessment(entry.kindAssessment);
+      setAssetAudit(entry.assetAudit);
+      return;
+    }
+    seedRef.current = entry;
+  }
 
   function resetAiResults() {
     setKindAssessment(null);
@@ -196,6 +224,7 @@ export function useLibraryAiActions(options: {
     assetAudit,
     pendingAiEdit,
     resetAiResults,
+    seedAiResults,
     approveAiEdit,
     discardAiEdit,
     reassessKind,

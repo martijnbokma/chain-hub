@@ -1,4 +1,4 @@
-import { Search, Plus, Sparkles, Download, RefreshCw } from 'lucide-react';
+import { Search, Plus, Sparkles, Download, RefreshCw, ScanSearch } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ interface LibraryToolbarProps {
   onCreate: () => void;
   onInstall: () => void;
   onDiscover: () => void;
+  onAnalyze: () => void;
+  isAnalyzing: boolean;
   onUpdateSkills: () => void;
   isUpdatingSkills: boolean;
 }
@@ -34,6 +36,8 @@ export function LibraryToolbar({
   onCreate,
   onInstall,
   onDiscover,
+  onAnalyze,
+  isAnalyzing,
   onUpdateSkills,
   isUpdatingSkills
 }: LibraryToolbarProps) {
@@ -90,6 +94,22 @@ export function LibraryToolbar({
                 </Tooltip>
               </>
             ) : null}
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    aria-label={isAnalyzing ? 'Analyzing assets' : 'Analyze assets'}
+                    onClick={onAnalyze}
+                    size="icon-sm"
+                    variant="secondary"
+                  >
+                    <ScanSearch className={cn('size-4', isAnalyzing && 'animate-pulse')} />
+                  </Button>
+                }
+              />
+              <TooltipContent>{isAnalyzing ? 'Analyzing…' : 'Analyze'}</TooltipContent>
+            </Tooltip>
 
             <Tooltip>
               <TooltipTrigger
