@@ -35,6 +35,7 @@ import {
   readAiSecrets,
   readSkillFile,
   renameAsset,
+  resolveSkillLearnings,
   setupIntegrations,
   syncAssetToEditors,
   updateAiSettings,
@@ -56,6 +57,8 @@ export {
   syncAgentsSkillsIntoHub,
   updateLibrarySkills
 } from "./skills.js";
+
+export { getHubAnalysisReport, saveHubAnalysisReport, updateHubAnalysisItemStatus } from "./analysis.js";
 
 export async function initializeChainHub(chainHome?: string) {
   const result = await initializeHub(chainHome);
@@ -163,6 +166,10 @@ export async function getHubLearningsTimeline(chainHome: string | undefined, lim
 
 export async function getHubReflectionReport(chainHome?: string) {
   return buildReflectionReport(chainHome);
+}
+
+export async function resolveHubSkillLearnings(chainHome: string | undefined, skill: string) {
+  return resolveSkillLearnings(chainHome, skill);
 }
 
 export async function writeHubReflection(chainHome?: string) {

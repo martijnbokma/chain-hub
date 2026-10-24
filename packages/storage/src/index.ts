@@ -30,6 +30,24 @@ export {
   renameSkillLockEntry
 } from "./skill-install.js";
 
+export {
+  readInstallLock,
+  mutateInstallLock,
+  installLockKey,
+  type InstallLockFile
+} from "./install-lock.js";
+
+export {
+  readCatalogSources,
+  refreshCatalogIndexes,
+  listCatalogEntries,
+  resolveCatalogEntry,
+  installCatalogEntry,
+  CATALOG_FETCH_TTL_MS
+} from "./catalog.js";
+
+export { installAssetFromSource, type InstallAssetInput } from "./asset-install.js";
+
 export { projectSkillSidecars, removeEditorSkillDirectory } from "./adapters/skill-sidecars.js";
 
 export {
@@ -42,10 +60,13 @@ export {
 
 export { getOverview, getSetupGuide } from "./hub.js";
 
+export { readAnalysisReport, writeAnalysisReport } from "./analysis.js";
+
 export {
   captureEvent,
   getLearningsTimeline,
   getSkillLearnings,
+  resolveSkillLearnings,
   buildReflectionReport,
   writeReflectionMarkdown
 } from "./learnings.js";

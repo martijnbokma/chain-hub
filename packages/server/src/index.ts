@@ -11,6 +11,7 @@ import { handleError } from "./http-errors.js";
 import { requestGuard, type RequestGuardOptions } from "./request-guard.js";
 
 import { registerAiRoutes } from "./routes/ai.js";
+import { registerAnalysisRoutes } from "./routes/analysis.js";
 import { registerHubRoutes } from "./routes/hub.js";
 import { registerLearningsRoutes } from "./routes/learnings.js";
 import { registerLibraryRoutes } from "./routes/library.js";
@@ -59,6 +60,7 @@ export function createServer(options: StartServerOptions = {}) {
   registerLibraryRoutes(app, routeOptions);
   registerLearningsRoutes(app, routeOptions);
   registerAiRoutes(app, routeOptions);
+  registerAnalysisRoutes(app, routeOptions);
 
   // Before the SPA fallback, so API clients get JSON instead of the dashboard page.
   app.all("/api/*", (context) => context.json({ error: "Unknown API route" }, 404));
