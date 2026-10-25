@@ -1,7 +1,7 @@
 import path from "node:path";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import mdx from "@mdx-js/rollup";
@@ -54,6 +54,41 @@ function rehypeHeadingLinks() {
   };
 }
 
+const CONTENT_DIR = path.resolve(dirname, "src/content");
+const RAW_ID = "virtual:docs-raw";
+const RAW_RESOLVED_ID = "\0docs-raw";
+
+/**
+ * Raw .mdx sources for the client-side search index. A `?raw` glob import
+ * still gets transformed by the MDX plugin (it matches on the clean path),
+ * so a virtual module is the reliable way to ship the uncompiled text.
+ */
+function docsRawPlugin(): Plugin {
+  return {
+    name: "docs-raw-content",
+    resolveId(id) {
+      return id === RAW_ID ? RAW_RESOLVED_ID : null;
+    },
+    load(id) {
+      if (id !== RAW_RESOLVED_ID) return null;
+      const files = Object.fromEntries(
+        readdirSync(CONTENT_DIR)
+          .filter((name) => name.endsWith(".mdx"))
+          .sort()
+          .map((name) => [name, readFileSync(path.join(CONTENT_DIR, name), "utf8")])
+      );
+      return `export default ${JSON.stringify(files)};`;
+    },
+    handleHotUpdate({ file, server }) {
+      if (!file.startsWith(CONTENT_DIR)) return;
+      const mod = server.moduleGraph.getModuleById(RAW_RESOLVED_ID);
+      if (mod) server.moduleGraph.invalidateModule(mod);
+      server.ws.send({ type: "full-reload" });
+      return [];
+    }
+  };
+}
+
 export default defineConfig({
   base: "/docs/",
   define: {
@@ -66,7 +101,8 @@ export default defineConfig({
       rehypePlugins: [rehypeSlug, rehypeHeadingLinks]
     }) },
     react({ include: /\.(jsx|js|mdx|md|tsx|ts)$/ }),
-    tailwindcss()
+    tailwindcss(),
+    docsRawPlugin()
   ],
   clearScreen: false,
   resolve: {

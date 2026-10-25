@@ -1,15 +1,9 @@
 import GithubSlugger from 'github-slugger';
+import rawModules from 'virtual:docs-raw';
 import { docPages } from './nav';
 
-// Raw MDX text for the client-side index — the corpus is ~1k lines, so an
-// eager in-memory index beats any server or dependency here.
-const rawModules = import.meta.glob<string | { default: string }>('../content/*.mdx', {
-  query: '?raw',
-  eager: true,
-});
-
-const rawText = (mod: string | { default: string }): string =>
-  typeof mod === 'string' ? mod : mod.default;
+// Raw MDX text for the client-side index, keyed by filename — the corpus is
+// ~1k lines, so an eager in-memory index beats any server or dependency here.
 
 type Section = {
   path: string;
@@ -46,7 +40,7 @@ const index: Section[] = Object.entries(rawModules).flatMap(([filePath, mod]) =>
   const path = pathFromFile(filePath);
   const page = docPages.find((p) => p.path === path);
   const pageTitle = page?.title ?? path;
-  const body = rawText(mod).replace(/^---[\s\S]*?---/, '');
+  const body = mod.replace(/^---[\s\S]*?---/, '');
 
   // Split into sections at h2 boundaries; the part before the first h2 is
   // the page intro.
