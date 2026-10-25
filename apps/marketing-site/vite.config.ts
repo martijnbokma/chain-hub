@@ -51,8 +51,34 @@ ${urls
   };
 }
 
+/**
+ * Injects <link rel="preload"> for the latin woff2 variable fonts the first
+ * screen needs — resolved from the emitted bundle, so it survives Vite's
+ * per-build filename hashing. Other subsets stay on-demand.
+ */
+function fontPreloadPlugin(): Plugin {
+  const fonts: string[] = [];
+  return {
+    name: "preload-fonts",
+    apply: "build",
+    generateBundle(_, bundle) {
+      fonts.length = 0;
+      for (const fileName of Object.keys(bundle)) {
+        if (/latin-wght-normal-[^/]+\.woff2$/.test(fileName)) fonts.push(fileName);
+      }
+      fonts.sort();
+    },
+    transformIndexHtml(html) {
+      const links = fonts
+        .map((f) => `    <link rel="preload" href="/${f}" as="font" type="font/woff2" crossorigin />`)
+        .join("\n");
+      return links ? html.replace("</head>", `${links}\n  </head>`) : html;
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), sitemapPlugin()],
+  plugins: [react(), tailwindcss(), sitemapPlugin(), fontPreloadPlugin()],
   clearScreen: false,
   resolve: {
     alias: {
