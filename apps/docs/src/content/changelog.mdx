@@ -1,0 +1,41 @@
+---
+title: Changelog
+section: Reference
+order: 14
+description: What changed per release, and how Chain Hub versions itself.
+---
+
+# Changelog
+
+Releases are cut from `main` with
+[release-please](https://github.com/googleapis/release-please) and published
+to npm as `chain-hub`. The footer of every docs page shows which CLI version
+the documentation describes.
+
+- **[GitHub releases](https://github.com/martijnbokma/chain-hub/releases)** —
+  per-release notes, generated from the commit history.
+- **`CHANGELOG.md`** at the repo root — the running log release-please
+  maintains.
+
+## Versioning
+
+Chain Hub follows semantic versioning. Commits on `develop` use
+[Conventional Commits](https://www.conventionalcommits.org) with a package
+scope (`feat(cli): …`, `fix(hub-web): …`), which is what the changelog is
+generated from.
+
+- `fix:` → patch release
+- `feat:` → minor release
+- `feat!:` / breaking notes → major release
+
+## Upgrading
+
+```bash
+npm install -g chain-hub@latest
+chain --version
+```
+
+The hub folder format is forward-compatible within a major version —
+upgrading the CLI never rewrites or migrates your assets without telling
+you; when a migration is needed it runs once and is noted in the release
+notes.

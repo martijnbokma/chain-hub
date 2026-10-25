@@ -301,12 +301,26 @@ export function DocsLayout() {
         </div>
       </header>
 
+      {/* Mobile nav drawer — overlays the page instead of pushing content down */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-30 md:hidden" role="presentation">
+          <div
+            className="absolute inset-0 bg-foreground/20"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside
+            id="docs-sidebar"
+            aria-label="Documentation navigation"
+            className="absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto bg-background border-r border-border px-6 pb-6 pt-24"
+          >
+            <Sidebar onNavigate={() => setMobileNavOpen(false)} />
+          </aside>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-6 py-10 grid md:grid-cols-[220px_1fr] xl:grid-cols-[220px_minmax(0,1fr)_200px] gap-10">
-        <aside
-          id="docs-sidebar"
-          className={`${mobileNavOpen ? 'block' : 'hidden'} md:block md:sticky md:top-24 md:self-start`}
-        >
-          <Sidebar onNavigate={() => setMobileNavOpen(false)} />
+        <aside className="hidden md:block md:sticky md:top-24 md:self-start">
+          <Sidebar />
         </aside>
 
         <main id="main-content" className="docs-prose min-w-0">
