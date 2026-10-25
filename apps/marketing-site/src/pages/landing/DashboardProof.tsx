@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { SectionHead } from './SectionHead';
+import { Reveal } from '../../components/Reveal';
 import dashboardOverview from '../../assets/dashboard-overview.webp';
 import dashboardLibrary from '../../assets/dashboard-library.webp';
 import dashboardSettings from '../../assets/dashboard-settings.webp';
@@ -171,15 +173,18 @@ export function DashboardProof() {
 
   return (
     <>
-      <section id="proof" className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8">
-          Detail — the real local dashboard, not a mockup
-        </h2>
-        <div className="grid md:grid-cols-2 gap-8">
+      <section id="proof" className="max-w-6xl mx-auto px-6 py-16 lg:py-20 scroll-mt-16">
+        <SectionHead
+          index="06"
+          kicker="Detail"
+          title="The real dashboard, not a mockup"
+          copy="Real screenshots of the dashboard running on your machine: hub health, your files, a skill in detail, and the AI settings. Click any figure to view it full size."
+        />
+        <Reveal className="grid md:grid-cols-2 gap-8">
           {dashboardImages.map((image, index) => (
             <FramedFigure key={image.src} image={image} index={index} onOpen={setLightboxIndex} />
           ))}
-        </div>
+        </Reveal>
       </section>
 
       <Lightbox

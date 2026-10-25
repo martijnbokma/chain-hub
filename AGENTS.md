@@ -88,7 +88,7 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 - Pending async actions: use the `loading` prop on `Button` (spinner + auto-disable + `aria-busy`) — don't hand-roll `disabled={isPending}` + spinner markup. For status flips and result entrances use the `icon-in` pop, `animate-pulse`, and staggered `fade-up` keyframes in `styles.css`; icon-only buttons may spin their own icon instead (e.g. `RefreshCw animate-spin`).
 - Tailwind semantic tokens only (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). No hex codes, no arbitrary values, 4px spacing scale.
 - `cn()` for class merging, `cva` for variants, lucide-react for icons, sonner `toast` for feedback (no wrapper).
-- AI UI uses prompt-kit building blocks (`prompt-input.tsx`, `prompt-suggestion.tsx`, `loader.tsx`) styled with Cool Trust tokens.
+- AI UI uses prompt-kit building blocks (`prompt-input.tsx`, `prompt-suggestion.tsx`, `loader.tsx`) styled with Signaal tokens.
 - Accessibility: labels on inputs, visible `:focus-visible`, keyboard navigation, `aria-label` on icon-only buttons.
 - For new UI with unclear direction: propose 2–3 layout directions and wait for a choice before implementing.
 
@@ -119,7 +119,7 @@ Requirements are ambiguous, package ownership is unclear, code contradicts this 
 ## Learned User Preferences
 
 - Hub UI should feel premium, simple, sleek, and trustworthy—not a dense console/terminal aesthetic and not marketing-card or AI-slop layouts (oversized radii, sparse stadium cards, eyebrow-on-everything).
-- Cool Trust is the chosen visual direction: light default (near-white zinc page, white surfaces) plus switchable Cool Trust Dark (prompts-inspired deep slate canvas/panels); slate text; orange as the sole brand accent in both themes (One Signal—not for status dots or hover/selection fills); ~10–12px radius; tight type scale; theme switch via header, Settings → Appearance, and ⌘K.
+- Signaal is the chosen visual direction (shared with apps/marketing-site): light default (paper `#f2f0eb` page, `#fbfaf8` surfaces, ink `#1c1d1f` text, accent `#d9482b`) plus switchable Signaal dark (ink `#1c1d1f` canvas, `#242629` panels, paper text, accent-bright `#ff8a5b`); orange as the sole brand accent in both themes (One Signal—not for status dots or hover/selection fills); ~10–12px radius; Geist + Geist Mono; theme switch via header, Settings → Appearance, and ⌘K.
 - Standardize hub-web layouts by surface type (Direction A): dashboard Overview as default landing (`/`); checklist for Setup (under Settings, not primary nav) and Integrations; workspace master–detail for Library and Catalog (browse may use compact asset cards). Primary nav: Overview → Library → Catalog → Learnings → Integrations → Settings. Library chrome: Create + Discover (and skills Install/Update) in the Assets title row; search below title; search + ownership filters side-by-side from `sm` when browsing (wide master), stacked when the detail panel narrows the master column.
 - Prefer rebuilding UI against existing design-system components and tokens; flag gaps and make the smallest addition rather than inventing one-off primitives.
 - Often writes requests in Dutch; treat Dutch instructions as first-class and follow them directly.
