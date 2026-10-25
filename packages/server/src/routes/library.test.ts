@@ -117,6 +117,15 @@ describe("skill routes", () => {
     }
   });
 
+  it("unlinks a path-installed skill into an editable asset", async () => {
+    const source = await writeSkillSource("detachable");
+    await send("POST", "/api/library/skills/install", { path: source });
+
+    const unlinked = await send("POST", "/api/library/skills/detachable/unlink", {});
+
+    expect(unlinked.status).toBe(200);
+  });
+
   it("reports a missing agents lock on migrate", async () => {
     const migrate = await send<{ error: string }>("POST", "/api/library/skills/migrate-agents", {
       lockPath: path.join(tmpHome, "missing-lock.json")
@@ -124,6 +133,29 @@ describe("skill routes", () => {
 
     expect(migrate.status).toBeGreaterThanOrEqual(400);
     expect(migrate.data.error).toMatch(/Agents skill lock not found/);
+  });
+});
+
+describe("catalog routes", () => {
+  it("lists catalog entries with and without the refresh flag", async () => {
+    for (const url of ["/api/catalog", "/api/catalog?refresh=true"]) {
+      const res = await send<{ entries: unknown[] }>("GET", url);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.data.entries)).toBe(true);
+    }
+  });
+
+  it("scopes update checks to a single skill via the name param", async () => {
+    const source = await writeSkillSource("named-check");
+    await send("POST", "/api/library/skills/install", { path: source });
+
+    const check = await send<{ results: Array<{ name: string }> }>(
+      "GET",
+      "/api/library/skills/check-updates?name=named-check&force=true"
+    );
+
+    expect(check.status).toBe(200);
+    expect(check.data.results.map((entry) => entry.name)).toEqual(["named-check"]);
   });
 });
 
