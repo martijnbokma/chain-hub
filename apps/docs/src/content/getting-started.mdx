@@ -5,11 +5,14 @@ order: 1
 description: Install Chain Hub, initialize the hub folder, and start the dashboard.
 ---
 
-# Getting Started
+Two ways in: install the CLI and use it, or clone the repo to develop on it.
+Most people want the first.
 
-The `chain` CLI is published on npm as
-[`chain-hub`](https://www.npmjs.com/package/chain-hub). Install it globally
-and you're one command away from the dashboard:
+## Install and run (npm)
+
+The `chain` CLI is published as
+[`chain-hub`](https://www.npmjs.com/package/chain-hub). You need Node.js
+22.13+ — that's it:
 
 ```bash
 npm install -g chain-hub    # or: bun install -g chain-hub
@@ -17,12 +20,19 @@ chain hub
 # → http://127.0.0.1:2342
 ```
 
-That initializes `~/.chain-hub` on first run, starts the API server, and
-opens your browser. Everything below covers running Chain Hub from a local
-clone instead — useful for development or following `main`. The commands
-are the same on macOS, Linux, and Windows unless noted otherwise.
+`chain hub` initializes `~/.chain-hub` on first run, starts the API server,
+and opens your browser. Flags: `chain hub --port 3456 --no-open`.
 
-## Prerequisites
+That's the whole install. Next stop:
+[Editor Setup](/editor-setup) to link the hub into your editors.
+
+## Run from source (for development)
+
+Everything below runs from a local clone via [Bun](https://bun.sh)
+workspaces. The commands are the same on macOS, Linux, and Windows unless
+noted otherwise.
+
+### Prerequisites
 
 - **Node.js 22.13.0+**
 - **[Bun](https://bun.sh) 1.3+** — the package manager and task runner.
@@ -34,11 +44,11 @@ beyond quick testing, install Bun and Node inside
 [WSL2](https://learn.microsoft.com/windows/wsl/install) and run every command
 below from there — it's the more reliable path on Windows today.
 
-## Fastest path
-
-One command builds every package and starts the dashboard:
+### Fastest path
 
 ```bash
+git clone https://github.com/martijnbokma/chain-hub.git
+cd chain-hub
 bun install
 bun run hub
 # → http://127.0.0.1:2342
@@ -51,7 +61,7 @@ starts the API server, and opens your browser. Pass flags after `--`:
 bun run hub -- --no-open --port 3456
 ```
 
-## Step by step
+### Step by step
 
 If you want more control over each stage:
 
@@ -78,32 +88,32 @@ Override the default (`~/.chain-hub`) with `--chain-home` — identical on
 every OS since it's a plain CLI flag:
 
 ```bash
-node packages/cli/dist/index.js --chain-home ./.sandbox-hub hub --port 3456
+chain --chain-home ./.sandbox-hub hub --port 3456
 ```
 
 Or the `CHAIN_HOME` environment variable, which is set differently per shell:
 
 ```bash
 # macOS / Linux / WSL2 (bash, zsh)
-CHAIN_HOME=~/my-hub node packages/cli/dist/index.js hub
+CHAIN_HOME=~/my-hub chain hub
 ```
 
 ```powershell
 # Windows PowerShell
 $env:CHAIN_HOME = "$HOME\my-hub"
-node packages/cli/dist/index.js hub
+chain hub
 ```
 
 ```bat
 :: Windows cmd.exe
 set CHAIN_HOME=%USERPROFILE%\my-hub
-node packages/cli/dist/index.js hub
+chain hub
 ```
 
-## Install the `chain` binary globally
+## Link `chain` to your checkout
 
-`bun link` makes `chain` available anywhere on your machine, still backed by
-this checkout:
+When developing against the clone, `bun link` makes `chain` resolve to this
+checkout instead of the npm-installed one:
 
 ```bash
 bun run build

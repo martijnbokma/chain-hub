@@ -5,8 +5,6 @@ order: 3
 description: The file format behind skills, agents, workflows, rules, and prompts.
 ---
 
-# Writing an Asset
-
 Every asset is a single Markdown file on disk under `~/.chain-hub/`.
 
 ## The five kinds
@@ -57,6 +55,29 @@ You are inside Chain Hub v2.
 - Prefer clear workflows over hidden magic
 - Validate changes before syncing into editors
 ```
+
+## Frontmatter fields
+
+Frontmatter is optional everywhere except the skill `description`, and it's
+preserved verbatim when assets project into editors — editor-specific
+defaults (Cursor's `alwaysApply`, Antigravity's `trigger: always_on`) only
+fill fields you leave unset. The fields each editor actually honors:
+
+| Kind | Field | Type | Used for |
+| --- | --- | --- | --- |
+| `skills` | `description` | string | Required for Zed and other strict editors; shown in pickers |
+| `skills` | `allowed-tools` | list | Tool allowlist (Claude Code style) |
+| `skills` | `triggers` | list | e.g. `triggers: [user]` — Devin CLI workflow-skills invocable as `/name` |
+| `skills` | `license` | string | Packaged skills conventionally carry one |
+| `skills` | `metadata` | map | Free-form; `metadata.author` powers author search in the Library |
+| `agents` | `tools` | list | Claude Code subagent tool list (dropped on Antigravity) |
+| `agents` | `model` | string | Claude Code subagent model (`sonnet`, `haiku`, …) — dropped on Antigravity |
+| `rules` | `globs` | list | Makes the rule a glob-scoped rule in editors that support it |
+| `rules` | `alwaysApply` / `trigger` | — | Editor activation mode; adapters default it when absent |
+| all | `author` | string | Shown wherever the asset appears (see below) |
+
+Unknown fields aren't stripped — they round-trip through the hub and land in
+the projected file, so editor features we haven't mapped still work.
 
 ## Creating an asset
 

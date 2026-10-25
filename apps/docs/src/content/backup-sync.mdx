@@ -1,0 +1,88 @@
+---
+title: Backup & Sync
+section: Guides
+order: 5
+description: Version, back up and share your hub across machines through a private GitHub repo.
+---
+
+`chain sync` turns your hub folder into a git repo and keeps it in sync with
+a **private GitHub repository**. That gives you a backup, a full history of
+every change, and the same skills/agents/workflows/rules/prompts on every
+machine you connect.
+
+Everything stays local-first: the remote is your own private repo, sync only
+runs when you ask (or when the dashboard starts), and secrets never leave
+the machine — see [What never syncs](#what-never-syncs).
+
+## Connect
+
+The easiest path uses the [`gh` CLI](https://cli.github.com), which handles
+auth and repo creation for you:
+
+```bash
+gh auth login          # once
+chain sync connect     # creates private repo "chain-hub-sync"
+```
+
+Connect does three things: creates the private repo when it doesn't exist,
+turns `~/.chain-hub` into a git repo with a managed `.gitignore`, and pushes
+your hub. A `chain-hub.json` manifest at the repo root marks it as a sync
+target.
+
+Options:
+
+- `--repo <name>` — use a different repo name than `chain-hub-sync`.
+- `--token <pat>` — authenticate with a fine-grained PAT instead of `gh`.
+  The token needs contents read/write on the sync repo; to have Chain Hub
+  *create* the repo for you, `gh` is the reliable path — with a PAT, create
+  the private repo yourself first and pass `--adopt`.
+- `--adopt` — take over a repo that exists but doesn't carry the Chain Hub
+  manifest yet.
+- `--no-auto-sync` — don't sync automatically when `chain hub` starts.
+
+## A second machine
+
+On another machine with the hub not yet initialized, run the same connect
+command. When the repo already carries the Chain Hub manifest, connect
+**clones the remote into your hub path** instead of pushing local state —
+so a fresh machine pulls your existing hub down rather than overwriting it.
+
+## What never syncs
+
+Two files are hard-denylisted — sync refuses to push even if `.gitignore` is
+edited:
+
+- `system/secrets.json` — API keys and the sync token itself
+- `system/sync-state.json` — the connection state
+
+## Staying in sync
+
+- `chain sync` — commit local changes, pull remote changes, push.
+- `chain sync status` — shows the connection, uncommitted changes,
+  ahead/behind counts and any conflicts.
+- When auto-sync is on (the default), `chain hub` syncs in the background
+  every time the dashboard starts.
+
+## Conflicts
+
+If the same file changed on two machines, sync stops at a merge and reports
+the conflicted files. Resolve them from the dashboard, or with:
+
+```bash
+chain sync resolve --local skills/my-skill/SKILL.md   # keep our version
+chain sync resolve --remote rules/style.md            # keep theirs
+chain sync resolve --all local                        # all conflicts, one side
+chain sync resolve --done                             # you edited files by hand
+```
+
+A pending merge blocks further syncs until it's resolved.
+
+## Disconnect
+
+```bash
+chain sync disconnect
+```
+
+Removes the remote link but keeps everything local — all files and the
+`.git` history stay. Reconnecting later with `--adopt` resumes where you
+left off.

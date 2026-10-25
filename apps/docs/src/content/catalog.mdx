@@ -1,0 +1,58 @@
+---
+title: Catalog
+section: Guides
+order: 4
+description: Browse and install curated skills, agents and workflows instead of writing them from scratch.
+---
+
+The catalog is a set of curated indexes that point at ready-made assets —
+skills, agents and workflows you can install into your hub with one command
+instead of writing them yourself. The dashboard's **Catalog** page is the
+visual version of `chain catalog`.
+
+## Sources
+
+A catalog source is a published `catalog.json` — a pointer file listing
+entries with a name, kind, description and where to fetch the asset. Sources
+are registered in `~/.chain-hub/system/catalogs.json`; the default
+`chain-hub` source is added automatically on first use. Fetched indexes are
+cached per source under `system/catalogs/<source-id>.json`, so browsing
+works offline once you've fetched at least once. `chain catalog refresh`
+(or `chain catalog list --refresh`) re-fetches all indexes.
+
+## Installing
+
+```bash
+# See what's available, with install state
+chain catalog list
+
+# Filter to one kind
+chain catalog list --kind skills
+
+# Install an entry
+chain catalog install <entryId>
+```
+
+`install` drops the asset into the hub folder like a hand-written one — from
+there it syncs to your editors with `chain setup` or the next dashboard
+resync. If an asset with that name already exists, pass `--force` to
+replace it.
+
+## Catalog assets are upstream-owned
+
+Installing from a catalog records provenance in `system/assets-lock.json` —
+which source and entry the asset came from. That makes it **upstream-owned**:
+the same rules apply as for `chain skill install`. Editing it directly fails
+with an "upstream-owned" error so a later refresh can't silently eat your
+changes. To customize one, fork it first:
+
+```bash
+chain skill fork --name <name>   # skills: local, editable copy
+```
+
+For agents and workflows there's no fork command — open the entry in the
+Library, copy the content, and create a new local asset from it.
+
+See [Writing an Asset → Author field](/asset-format#author-field) for the
+ownership rules and [CLI Reference → Catalog](/cli-reference#catalog) for the
+full command list.

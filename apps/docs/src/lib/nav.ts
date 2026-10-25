@@ -18,6 +18,8 @@ export type DocPage = {
   section: string;
   order: number;
   description?: string;
+  /** Repo-relative content file name, e.g. "cli-reference.mdx" — powers "Edit on GitHub". */
+  file: string;
   Component: ComponentType;
 };
 
@@ -33,6 +35,7 @@ export const docPages: DocPage[] = Object.entries(modules)
     section: mod.frontmatter.section,
     order: mod.frontmatter.order ?? 0,
     description: mod.frontmatter.description,
+    file: filePath.split('/').pop()!,
     Component: mod.default,
   }))
   .sort((a, b) => a.order - b.order);

@@ -1,11 +1,9 @@
 ---
 title: Troubleshooting
 section: Guides
-order: 5
+order: 7
 description: Fixes for common errors from the CLI, dashboard, and editor setup.
 ---
-
-# Troubleshooting
 
 ## `EADDRINUSE` — port already in use
 
@@ -72,6 +70,33 @@ rejected before anything is written.
 These come from the AI draft/classify/audit/improve actions in the Library,
 not from the hub itself — see [AI Providers](/ai-providers#errors-you-might-see)
 for the full list of mapped error messages and what triggers each one.
+
+## Sync: `gh` not found or not authenticated
+
+`chain sync connect` defaults to the GitHub CLI for auth. If `gh` isn't
+installed or logged in, either run `gh auth login` or pass a token:
+`chain sync connect --token <pat>` — see
+[Backup & Sync → Connect](/backup-sync#connect) for what the PAT needs.
+
+## Sync: `<owner>/<repo> exists but isn't a Chain Hub sync repo`
+
+The repo exists but doesn't carry the `chain-hub.json` manifest. If it's
+meant for sync, take it over with `chain sync connect --adopt`; otherwise
+pick another name with `--repo <name>`.
+
+## Sync: `A merge is in progress — resolve conflicts first`
+
+A previous pull hit conflicts. List them with `chain sync status`, then
+resolve per file (`--local`/`--remote`), all at once (`--all local|remote`),
+or edit by hand and finish with `--done`. The dashboard shows the same
+conflicts. See [Backup & Sync → Conflicts](/backup-sync#conflicts).
+
+## Catalog list is empty or stale
+
+Index fetches can fail offline or on a bad source — the last good cache is
+kept, so an empty list after a fresh install usually means the fetch failed.
+Force a re-fetch with `chain catalog refresh`; check the registered sources
+in `system/catalogs.json`.
 
 ## Hub folder in the wrong place
 

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { MDXProvider } from '@mdx-js/react';
-import { Menu, Moon, Sun, X } from 'lucide-react';
+import { Menu, Moon, Pencil, Search, Sun, X } from 'lucide-react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { docPages, docSections } from '../lib/nav';
 import { CodeBlock } from './CodeBlock';
 import { DocsLink } from './DocsLink';
+import { SearchDialog } from './SearchDialog';
 
 const mdxComponents = { a: DocsLink, pre: CodeBlock };
 
@@ -147,7 +148,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 type TocItem = { id: string; text: string };
 
 /** "On this page" — h2 outline of the current article with a scrollspy. */
-function OnThisPage() {
+function OnThisPage({ file }: { file?: string }) {
   const location = useLocation();
   const [items, setItems] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -196,13 +197,26 @@ function OnThisPage() {
           </li>
         ))}
       </ul>
+      {file && (
+        <a
+          href={`https://github.com/martijnbokma/chain-hub/edit/develop/apps/docs/src/content/${file}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-6 flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Pencil size={12} aria-hidden="true" />
+          Edit this page
+        </a>
+      )}
     </nav>
   );
 }
 
 export function DocsLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+  const page = docPages.find((p) => p.path === location.pathname);
 
   // React Router doesn't scroll to hash fragments — do it ourselves, after
   // the MDX page has rendered.
@@ -224,6 +238,18 @@ export function DocsLayout() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [mobileNavOpen]);
+
+  // ⌘K / Ctrl+K opens search from anywhere.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -248,6 +274,18 @@ export function DocsLayout() {
             >
               Back to site
             </a>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 border border-border rounded-lg px-3 py-1.5 text-muted-foreground hover:text-foreground hover:border-ring transition-colors"
+              aria-label="Search documentation (⌘K)"
+            >
+              <Search size={14} aria-hidden="true" />
+              <span className="hidden sm:inline text-xs">Search</span>
+              <kbd className="hidden sm:inline font-mono text-[10px] text-muted-foreground border border-border rounded px-1">
+                ⌘K
+              </kbd>
+            </button>
             <ThemeToggle />
             <button
               type="button"
@@ -272,6 +310,16 @@ export function DocsLayout() {
         </aside>
 
         <main id="main-content" className="docs-prose min-w-0">
+          {page && (
+            <>
+              <h1>{page.title}</h1>
+              {page.description && (
+                <p className="text-lg text-muted-foreground -mt-3 mb-8 text-pretty">
+                  {page.description}
+                </p>
+              )}
+            </>
+          )}
           <MDXProvider components={mdxComponents}>
             <Outlet />
           </MDXProvider>
@@ -279,9 +327,17 @@ export function DocsLayout() {
         </main>
 
         <aside className="hidden xl:block xl:sticky xl:top-24 xl:self-start">
-          <OnThisPage />
+          <OnThisPage file={page?.file} />
         </aside>
       </div>
+
+      <footer className="max-w-6xl mx-auto px-6 py-8 border-t border-border">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          Docs for chain-hub v{__CHAIN_HUB_VERSION__}
+        </p>
+      </footer>
+
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

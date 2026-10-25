@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -11,6 +12,12 @@ import rehypeSlug from "rehype-slug";
 import { visit } from "unist-util-visit";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Shown in the footer as "Docs for chain-hub vX" — the CLI package is the
+// version users install.
+const cliVersion = JSON.parse(
+  readFileSync(path.resolve(dirname, "../../packages/cli/package.json"), "utf8")
+).version as string;
 
 type HastText = { type: "text"; value: string };
 
@@ -49,6 +56,9 @@ function rehypeHeadingLinks() {
 
 export default defineConfig({
   base: "/docs/",
+  define: {
+    __CHAIN_HUB_VERSION__: JSON.stringify(cliVersion)
+  },
   plugins: [
     { enforce: "pre", ...mdx({
       providerImportSource: "@mdx-js/react",
