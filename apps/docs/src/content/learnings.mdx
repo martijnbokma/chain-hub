@@ -1,0 +1,68 @@
+---
+title: Learnings
+section: Guides
+order: 7
+description: Capture what your agents got wrong, and fold those lessons back into the skills they follow.
+---
+
+A skill you wrote last month doesn't know what went wrong yesterday.
+**Learnings** closes that loop: events get captured against a skill, the
+Learnings page shows the timeline per skill, and an audit folds the open
+lessons back into the skill file — so next time your agent gets it right.
+
+Everything lives in your hub folder: an append-only event log at
+`memory/learnings/events.jsonl` and reflection reports under
+`memory/reflections/`.
+
+## Capture an event
+
+```bash
+chain capture --event correction --skill commits \
+  --summary "Never amend a published commit — create a fixup commit instead"
+```
+
+Four event types:
+
+| Event | When to use it |
+| --- | --- |
+| `failure` | Following the skill produced a broken or rejected result |
+| `correction` | You had to deviate from the skill's guidance — say what it should say instead |
+| `note` | A reusable gotcha the skill doesn't mention yet |
+| `success` | The skill's specific guidance prevented a mistake you'd have made |
+
+Write the summary **about the skill, not the task**: "Skill misses SVG
+targets in click handlers" teaches; "Fixed the button" doesn't.
+
+Editors can capture on their own too — the seeded `chain-hub-learnings`
+rule tells connected agents to log corrections and failures as they work.
+
+## The improvement loop
+
+Open learnings are resolved in one of two ways on the **Learnings** page
+in the dashboard (`/learnings`):
+
+- **Audit skill** — runs an audit on that skill and folds the open events
+  into the file. This is how a lesson actually improves future behavior.
+- **Mark addressed** — acknowledges events you handled another way
+  (you rewrote the skill yourself, or the note no longer applies).
+
+Each skill card shows its event timeline and counts per type, so you can
+see which skills keep getting corrected and which are stable.
+
+## CLI equivalents
+
+```bash
+chain reflect           # per-skill reflection report from the timeline
+chain reflect --write   # save today's report to memory/reflections/YYYY-MM-DD.md
+chain resolve <slug>    # mark a skill's corrections and failures as addressed
+```
+
+`chain reflect` is read-only — it never edits skills. The fold-in happens
+through the audit, so a person (or your configured model) judges whether
+the lesson belongs in the file.
+
+## What syncs
+
+Events and reflections are plain files in `~/.chain-hub/memory/` — they
+sync like everything else under [Backup & Sync](/backup-sync), so lessons
+captured on your laptop are visible on your desktop.
