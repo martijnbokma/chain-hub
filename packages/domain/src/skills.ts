@@ -25,9 +25,9 @@ import {
   listSkillUpstreamDirs,
   migrateAgentsSkillLock,
   relinkSkill,
-  removeSkillLockEntry,
   resolveChainHome,
   syncAssetToEditors,
+  unlinkSkill,
   updateSkillsFromLock
 } from "@chain-hub/storage";
 
@@ -148,10 +148,14 @@ export async function forkLibrarySkill(
   return asset;
 }
 
-/** Drops the lock entry: the skill stays in the hub and becomes hub-editable. */
-export async function unlinkLibrarySkill(chainHomeInput: string | undefined, name: string): Promise<{ ok: true }> {
+/** Detaches the lock entry: the skill stays in the hub and becomes hub-editable, keeping provenance. */
+export async function unlinkLibrarySkill(
+  chainHomeInput: string | undefined,
+  name: string,
+  reason: "source-missing" | "manual" = "manual"
+): Promise<{ ok: true }> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  await removeSkillLockEntry(chainHome, name);
+  await unlinkSkill(chainHome, name, reason);
   return { ok: true };
 }
 

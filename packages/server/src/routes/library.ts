@@ -12,6 +12,7 @@ import {
   installSkillInputSchema,
   migrateAgentsSkillsInputSchema,
   relinkSkillInputSchema,
+  unlinkSkillInputSchema,
   renameAssetInputSchema,
   type AssetKind,
   updateAssetInputSchema,
@@ -118,7 +119,9 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
 
   app.post("/api/library/skills/:name/unlink", async (context) => {
     const name = context.req.param("name");
-    const result = await unlinkLibrarySkill(options.chainHome, name);
+    const body = await context.req.json().catch(() => ({}));
+    const payload = unlinkSkillInputSchema.parse(body ?? {});
+    const result = await unlinkLibrarySkill(options.chainHome, name, payload.reason);
     return context.json(result);
   });
 

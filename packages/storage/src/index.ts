@@ -30,6 +30,7 @@ export {
   readSkillsLock,
   renameSkillLockEntry,
   removeSkillLockEntry,
+  unlinkSkill,
   listSkillUpstreamDirs,
   relinkSkill
 } from "./skill-install.js";

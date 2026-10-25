@@ -5,7 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { type AssetDetail, hasSkillUpdate } from "@chain-hub/contracts";
+import { type AssetDetail, hasSkillUpdate, isUpstreamOwnedSkill } from "@chain-hub/contracts";
 
 import {
   checkSkillUpdatesFromLock,
@@ -24,7 +24,7 @@ import {
   readSkillFile,
   readSkillsLock,
   relinkSkill,
-  removeSkillLockEntry,
+  unlinkSkill,
   updateAsset,
   updateSkillsFromLock,
   validateHub
@@ -522,16 +522,42 @@ describe("hub issues and error recovery", () => {
     expect((await readSkillsLock(tmpHub)).skills["moved-skill"]?.lastUpdateError).toBeNull();
   });
 
-  it("unlinks a skill so it becomes a local editable copy", async () => {
+  it("unlinks a skill: keeps provenance marked detached, editable, out of update/check", async () => {
     const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
     await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "unlinked-skill") });
+    await fs.rm(path.join(fixtureRoot, "unlinked-skill"), { recursive: true, force: true });
+    await updateSkills(tmpHub, { name: "unlinked-skill" }); // fails → lastUpdateError set
 
-    await removeSkillLockEntry(tmpHub, "unlinked-skill");
+    await unlinkSkill(tmpHub, "unlinked-skill", "source-missing");
 
     const asset = await getAsset(tmpHub, "skills", "unlinked-skill");
-    expect(asset.provenance).toBeNull();
+    expect(asset.provenance?.unlinkedAt).toBeTruthy();
+    expect(asset.provenance?.unlinkedReason).toBe("source-missing");
+    expect(asset.provenance?.lastUpdateError).toBeNull();
+    expect(isUpstreamOwnedSkill(asset.provenance)).toBe(false);
+
+    // Editable like a local skill, skipped by update and check.
+    await updateAsset(tmpHub, "skills", "unlinked-skill", "# local edit\n");
     const update = await updateSkills(tmpHub, { force: true });
-    expect(update.results.find((item) => item.name === "unlinked-skill")).toBeUndefined();
+    expect(update.results.find((item) => item.name === "unlinked-skill")?.status).toBe("skipped");
+    const check = await checkSkillUpdates(tmpHub, { force: true });
+    expect(check.results.find((item) => item.name === "unlinked-skill")?.status).toBe("not_applicable");
+
+    const { issues } = await listHubIssues(tmpHub);
+    expect(issues.find((issue) => issue.assetName === "unlinked-skill")).toBeUndefined();
+  });
+
+  it("re-tracks a previously unlinked skill when it is reinstalled", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const source = await writeFixtureSkill(fixtureRoot, "retracked-skill");
+    await installSkill(tmpHub, { path: source });
+    await unlinkSkill(tmpHub, "retracked-skill");
+
+    await installSkill(tmpHub, { path: source, force: true });
+
+    const entry = (await readSkillsLock(tmpHub)).skills["retracked-skill"];
+    expect(entry?.unlinkedAt).toBeNull();
+    expect(entry?.unlinkedReason).toBeNull();
   });
 
   it("collects lock errors and compat findings as hub issues", async () => {

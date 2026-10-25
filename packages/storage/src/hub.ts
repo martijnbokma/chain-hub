@@ -81,6 +81,9 @@ export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesR
   }
 
   for (const [name, entry] of Object.entries(lock.skills)) {
+    if (entry.unlinkedAt) {
+      continue;
+    }
     const relink: HubIssueAction[] = entry.sourceType === "git" ? ["relink"] : [];
     if (entry.lastCheckError) {
       issues.push({

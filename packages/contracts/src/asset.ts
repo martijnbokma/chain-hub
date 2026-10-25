@@ -24,6 +24,10 @@ export const skillLockEntrySchema = z.object({
   lastCheckError: z.string().nullable().optional(),
   /** Message of the last failed `skill update` run; cleared on the next successful install. */
   lastUpdateError: z.string().nullable().optional(),
+  /** Set when the user detached the skill from its source; the skill is editable and never updated. */
+  unlinkedAt: z.string().nullable().optional(),
+  /** Why it was unlinked: the upstream source vanished, or the user detached it manually. */
+  unlinkedReason: z.enum(["source-missing", "manual"]).nullable().optional(),
   /** Catalog provenance when installed via a catalog entry (notes/docs/specs/hub-catalog.md). */
   catalogId: z.string().nullable().optional(),
   catalogEntryId: z.string().nullable().optional()
@@ -163,13 +167,18 @@ export const forkSkillInputSchema = z.object({
 
 type SkillLockEntryValue = z.infer<typeof skillLockEntrySchema>;
 
-/** Upstream-tracked skills are overwrite targets for `skill update`; uploads and local skills are not. */
+/** Upstream-tracked skills are overwrite targets for `skill update`; uploads, unlinked and local skills are not. */
 export function isUpstreamOwnedSkill(entry: SkillLockEntryValue | null | undefined): boolean {
-  if (!entry) {
+  if (!entry || entry.unlinkedAt) {
     return false;
   }
 
   return !entry.source.startsWith("upload://");
+}
+
+/** Skill detached from its source on purpose — provenance is kept for context, not tracking. */
+export function isUnlinkedSkill(entry: SkillLockEntryValue | null | undefined): boolean {
+  return Boolean(entry?.unlinkedAt);
 }
 
 /** True when the last update check found the upstream HEAD ahead of the locked copy. */
@@ -316,6 +325,11 @@ export const checkSkillUpdatesInputSchema = z.object({
   force: z.boolean().optional()
 });
 
+export const unlinkSkillInputSchema = z.object({
+  /** `source-missing` marks "the upstream repo/folder is gone"; default is `manual`. */
+  reason: z.enum(["source-missing", "manual"]).optional()
+});
+
 export const relinkSkillInputSchema = z.object({
   /** New subdir inside the locked git source that now contains SKILL.md. */
   subdir: z.string().min(1)
@@ -331,6 +345,7 @@ export type SkillUpdateStatus = z.infer<typeof skillUpdateStatusSchema>;
 export type SkillCheckItemResult = z.infer<typeof skillCheckItemResultSchema>;
 export type CheckSkillUpdatesResult = z.infer<typeof checkSkillUpdatesResultSchema>;
 export type CheckSkillUpdatesInput = z.infer<typeof checkSkillUpdatesInputSchema>;
+export type UnlinkSkillInput = z.infer<typeof unlinkSkillInputSchema>;
 export type RelinkSkillInput = z.infer<typeof relinkSkillInputSchema>;
 export type SkillUpstreamDirsResult = z.infer<typeof skillUpstreamDirsResultSchema>;
 export type MigrateAgentsSkillsInput = z.infer<typeof migrateAgentsSkillsInputSchema>;

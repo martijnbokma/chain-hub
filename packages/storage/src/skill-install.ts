@@ -134,6 +134,31 @@ export async function removeSkillLockEntry(chainHome: string, name: string): Pro
 }
 
 /**
+ * Detach a skill from its source without removing provenance: the entry stays so the
+ * UI can show where it came from and why it was unlinked, but update/check skip it and
+ * the copy becomes hub-editable. Errors are cleared — unlinking is the resolution.
+ */
+export async function unlinkSkill(
+  chainHome: string,
+  name: string,
+  reason: "source-missing" | "manual" = "manual"
+): Promise<void> {
+  const normalized = normalizeSkillName(name);
+  if (!(await readSkillsLock(chainHome)).skills[normalized]) {
+    throw new NotFoundError(`No lock entry for ${normalized}`);
+  }
+  await mutateSkillsLock(chainHome, (lockFile) => {
+    const entry = lockFile.skills[normalized];
+    if (entry) {
+      entry.unlinkedAt = new Date().toISOString();
+      entry.unlinkedReason = reason;
+      entry.lastCheckError = null;
+      entry.lastUpdateError = null;
+    }
+  });
+}
+
+/**
  * Hash of every file a skill install would copy (SKILL.md plus scripts/, references/, …),
  * so an update notices changes outside SKILL.md and skips sources that did not change.
  */
@@ -205,7 +230,9 @@ function recordSkillInstall(
       installedAt: previous?.installedAt ?? now,
       updatedAt: now,
       lastCheckError: null,
-      lastUpdateError: null
+      lastUpdateError: null,
+      unlinkedAt: null,
+      unlinkedReason: null
     };
     lockFile.skills[name] = entry;
     return entry;
@@ -508,12 +535,12 @@ export async function checkSkillUpdatesFromLock(
       continue;
     }
 
-    if (entry.sourceType !== "git") {
-      if (!isUpstreamOwnedSkill(entry)) {
-        results.push({ name, status: "not_applicable", source: entry.source });
-        continue;
-      }
+    if (!isUpstreamOwnedSkill(entry)) {
+      results.push({ name, status: "not_applicable", source: entry.source });
+      continue;
+    }
 
+    if (entry.sourceType !== "git") {
       // Local path sources are cheap to verify: the folder can move or lose its SKILL.md.
       const sourceOk = await pathExists(path.join(entry.source, "SKILL.md"));
       if (sourceOk) {
