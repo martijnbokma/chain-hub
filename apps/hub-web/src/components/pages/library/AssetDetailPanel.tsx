@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ChevronDown, FolderTree, GitFork, Sparkles, Wrench } from 'lucide-react';
+import { ArrowLeft, ChevronDown, FolderTree } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/contracts';
@@ -18,6 +18,7 @@ import type {
   SkillLockEntry
 } from '@/types';
 import { AssetAuditCard } from './AssetAuditCard';
+import { AssetCompatBanner } from './AssetCompatBanner';
 import { AssetDetailActions } from './AssetDetailActions';
 import { AssetFileTabs } from './AssetFileTabs';
 import { AssetProvenanceCard } from './AssetProvenanceCard';
@@ -314,47 +315,17 @@ export function AssetDetailPanel({
       <CardContent className="grid flex-1 grid-rows-[minmax(0,auto)_1fr_auto] gap-4 overflow-hidden">
         <div className="grid min-h-0 max-h-72 gap-3 overflow-y-auto">
           {blockingCompatIssue ? (
-            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-foreground">Editor compatibility</span>
-                <Badge variant="warning">Missing description</Badge>
-              </div>
-              <p className="mt-1 leading-5 text-foreground/80">{blockingCompatIssue.message}</p>
-              {isUpstreamSkill ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    loading={isForkingAndFixingHeading}
-                    onClick={onForkAndFixHeading}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    <GitFork className="size-4" />
-                    {isForkingAndFixingHeading ? 'Forking…' : 'Fork & fix from heading'}
-                  </Button>
-                  <Button loading={isForkingAndFixingWithAi} onClick={onForkAndFixWithAi} size="sm" type="button">
-                    <GitFork className="size-4" />
-                    {isForkingAndFixingWithAi ? 'Forking…' : 'Fork & fix with AI'}
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button onClick={handleFixDescription} size="sm" type="button" variant="secondary">
-                    <Wrench className="size-4" />
-                    Fix from heading
-                  </Button>
-                  <Button
-                    loading={isFixingDescriptionWithAi}
-                    onClick={onFixDescriptionWithAi}
-                    size="sm"
-                    type="button"
-                  >
-                    <Sparkles className="size-4" />
-                    {isFixingDescriptionWithAi ? 'Drafting…' : 'Fix with AI'}
-                  </Button>
-                </div>
-              )}
-            </div>
+            <AssetCompatBanner
+              isFixingDescriptionWithAi={isFixingDescriptionWithAi}
+              isForkingAndFixingHeading={isForkingAndFixingHeading}
+              isForkingAndFixingWithAi={isForkingAndFixingWithAi}
+              isUpstreamSkill={isUpstreamSkill}
+              issue={blockingCompatIssue}
+              onFixDescriptionWithAi={onFixDescriptionWithAi}
+              onFixFromHeading={handleFixDescription}
+              onForkAndFixHeading={onForkAndFixHeading}
+              onForkAndFixWithAi={onForkAndFixWithAi}
+            />
           ) : null}
           <AssetProvenanceCard
             isRetryingCheck={isRetryingCheck}
