@@ -245,9 +245,9 @@ export function OverviewPage() {
             <h3 className="text-sm font-semibold tracking-tight text-foreground">Issues</h3>
             <Badge variant="warning">{hubIssues.length}</Badge>
           </div>
-          <ul className="grid gap-3 p-4">
+          <ul className="grid items-start gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
             {hubIssues.map((issue) => (
-              <li className="rounded-xl border border-border bg-muted/40 px-3 py-3" key={issue.id}>
+              <li className="h-full rounded-xl border border-border bg-muted/40 px-3 py-3" key={issue.id}>
                 <div className="flex min-w-0 items-start gap-3">
                   {issue.severity === 'error' ? (
                     <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
