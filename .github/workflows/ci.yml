@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # docs drift check diffs the pushed range
 
       # The oldest Node the CLI supports (package.json engines), so we catch APIs it lacks.
       - name: Setup Node
@@ -52,6 +54,14 @@ jobs:
 
       - name: Typecheck
         run: bun run typecheck
+
+      - name: Docs drift check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun scripts/check-docs-drift.ts origin/${{ github.base_ref }} HEAD
+          else
+            bun scripts/check-docs-drift.ts "${{ github.event.before }}" "${{ github.sha }}"
+          fi
 
       - name: Test with coverage gate
         run: bun run test:coverage
