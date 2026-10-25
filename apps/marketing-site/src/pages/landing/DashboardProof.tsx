@@ -28,12 +28,12 @@ function FramedFigure({
   onOpen: (index: number) => void;
 }) {
   return (
-    <div className="text-left">
+    <div className="group text-left">
       <button
         type="button"
         onClick={() => onOpen(index)}
-        aria-label={`${image.alt} — view full size`}
-        className="group bp-corners block w-full border border-border rounded-sm overflow-hidden bg-card cursor-zoom-in"
+        aria-label={`${image.alt}, view full size`}
+        className="block w-full border border-border rounded-sm overflow-hidden bg-card cursor-zoom-in"
       >
         <img
           src={image.light}
@@ -49,8 +49,8 @@ function FramedFigure({
           loading="lazy"
         />
       </button>
-      <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-3">
-        {image.caption} — <span className="text-primary">view full size</span>
+      <p className="text-sm text-muted-foreground mt-3">
+        {image.caption}. <span className="text-foreground underline underline-offset-4 decoration-border group-hover:decoration-foreground">View full size</span>
       </p>
     </div>
   );
@@ -98,14 +98,14 @@ function Lightbox({
       onClick={onClose}
     >
       <figure
-        className="bp-corners w-[min(1600px,94vw)] border border-border rounded-sm overflow-hidden bg-card"
+        className="w-[min(1600px,94vw)] border border-border rounded-sm overflow-hidden bg-card"
         onClick={(event) => event.stopPropagation()}
       >
         <img src={image.light} alt={image.alt} className="w-full h-auto max-h-[78vh] object-contain block dark:hidden" />
         <img src={image.dark} alt="" aria-hidden="true" className="w-full h-auto max-h-[78vh] object-contain hidden dark:block" />
-        <figcaption className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase px-5 py-3 border-t border-border flex items-center justify-between gap-4">
+        <figcaption className="text-sm text-muted-foreground px-5 py-3 border-t border-border flex items-center justify-between gap-4">
           <span className="truncate">{image.caption}</span>
-          <span className="flex items-center gap-2 normal-case">
+          <span className="flex items-center gap-2">
             {hasMultiple && (
               <>
                 <button
@@ -116,7 +116,7 @@ function Lightbox({
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span className="font-mono text-muted-foreground/70">
+                <span className="tabular-nums text-muted-foreground/70">
                   {index + 1} / {images.length}
                 </span>
                 <button
@@ -151,37 +151,37 @@ const dashboardImages: LightboxImage[] = [
     light: dashboardOverview,
     dark: dashboardOverviewDark,
     alt: 'Chain Hub dashboard overview showing hub status and asset counts',
-    caption: 'Fig. 1 — Hub status, live local dashboard',
+    caption: 'Hub status on a live local dashboard',
   },
   {
     light: dashboardLibrary,
     dark: dashboardLibraryDark,
     alt: 'Chain Hub dashboard library showing skills and agents',
-    caption: 'Fig. 2 — Library, browsing skills and agents',
+    caption: 'The library, browsing skills and agents',
   },
   {
     light: dashboardSkillDetail,
     dark: dashboardSkillDetailDark,
     alt: 'Chain Hub skill detail view showing the design skill source',
-    caption: 'Fig. 3 — Asset detail, inspecting a skill file',
+    caption: 'Asset detail, inspecting a skill file',
   },
   {
     light: dashboardSettings,
     dark: dashboardSettingsDark,
     alt: 'Chain Hub settings page showing theme and local AI provider configuration',
-    caption: 'Fig. 4 — Settings, local AI providers',
+    caption: 'Settings, local AI providers',
   },
   {
     light: dashboardLearnings,
     dark: dashboardLearningsDark,
     alt: 'Chain Hub learnings page showing captured events and skill reflections',
-    caption: 'Fig. 5 — Learnings, captured events and reflections',
+    caption: 'Learnings, captured events and reflections',
   },
   {
     light: dashboardCatalog,
     dark: dashboardCatalogDark,
     alt: 'Chain Hub catalog page showing browsable community skills and agents',
-    caption: 'Fig. 6 — Catalog, community assets to install',
+    caption: 'The catalog, community assets to install',
   },
 ];
 
@@ -198,10 +198,8 @@ export function DashboardProof() {
 
   return (
     <>
-      <section id="proof" className="max-w-6xl mx-auto px-6 py-16 lg:py-20 scroll-mt-16">
+      <section id="proof" className="max-w-6xl mx-auto px-6 py-20 lg:py-28 scroll-mt-16">
         <SectionHead
-          index="07"
-          kicker="Detail"
           title="The real dashboard, not a mockup"
           copy="Real screenshots of the dashboard running on your machine: hub health, your files, a skill in detail, and the AI settings. Click any figure to view it full size."
         />

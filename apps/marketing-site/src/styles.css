@@ -10,7 +10,7 @@
   --foreground: #1c1d1f;
   --card: #fbfaf8;
   --card-foreground: #1c1d1f;
-  --primary: #d9482b;
+  --primary: #c13f1f;
   --primary-foreground: #f2f0eb;
   --secondary: #e6e3dc;
   --secondary-foreground: #1c1d1f;
@@ -24,6 +24,7 @@
   --band-ink: #f2f0eb;
   --band-muted: rgba(242, 240, 235, 0.6);
   --band-line: rgba(242, 240, 235, 0.18);
+  --band-panel: rgba(242, 240, 235, 0.05);
 }
 
 /* Signaal (ink) — brand ground with accent-bright as the sole signal */
@@ -46,6 +47,7 @@
   --band-ink: #f2f0eb;
   --band-muted: rgba(242, 240, 235, 0.6);
   --band-line: rgba(242, 240, 235, 0.18);
+  --band-panel: rgba(242, 240, 235, 0.05);
 }
 
 @theme {
@@ -88,17 +90,6 @@
 
   body {
     @apply min-h-dvh bg-background font-sans text-foreground antialiased;
-  }
-
-  html.dark body {
-    background-image:
-      radial-gradient(
-        1200px 600px at 10% -10%,
-        color-mix(in srgb, var(--muted-foreground) 12%, transparent),
-        transparent 55%
-      ),
-      linear-gradient(180deg, var(--background) 0%, #151618 100%);
-    background-attachment: fixed;
   }
 
   /* Kill transitions while a manual theme switch repaints, so token changes land at once */
@@ -232,44 +223,4 @@
   border-top: none;
 }
 
-/* Sheet registration marks — crop ticks at content-column corners, not a wallpaper grid */
-.bp-marks {
-  position: absolute;
-  inset-block: 1.5rem;
-  left: 50%;
-  width: min(calc(100% - 3rem), 72rem);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
 
-.bp-marks span {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: color-mix(in srgb, var(--border) 85%, transparent);
-  border-style: solid;
-}
-
-.bp-marks span:nth-child(1) {
-  top: 0;
-  left: 0;
-  border-width: 1px 0 0 1px;
-}
-
-.bp-marks span:nth-child(2) {
-  top: 0;
-  right: 0;
-  border-width: 1px 1px 0 0;
-}
-
-.bp-marks span:nth-child(3) {
-  bottom: 0;
-  left: 0;
-  border-width: 0 0 1px 1px;
-}
-
-.bp-marks span:nth-child(4) {
-  bottom: 0;
-  right: 0;
-  border-width: 0 1px 1px 0;
-}

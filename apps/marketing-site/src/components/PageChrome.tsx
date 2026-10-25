@@ -107,25 +107,14 @@ function ThemeToggle() {
   );
 }
 
-export function SheetMarks() {
-  return (
-    <div className="bp-marks" aria-hidden="true">
-      <span />
-      <span />
-      <span />
-      <span />
-    </div>
-  );
-}
-
 export function TitleblockBar() {
   return (
-    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <Link to="/" className="flex items-center text-foreground" aria-label="Chain Hub — home">
+      <Link to="/" className="flex items-center text-foreground" aria-label="Chain Hub, home">
         <LogoLockup className="h-6 w-auto" />
       </Link>
-      <nav className="flex items-center gap-6 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <nav className="flex items-center gap-6 text-sm text-muted-foreground">
         <a href="#why" className="hidden sm:inline-block -my-3 py-3 hover:text-foreground transition-colors">
           Why
         </a>

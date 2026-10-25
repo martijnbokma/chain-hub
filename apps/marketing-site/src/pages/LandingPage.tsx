@@ -4,12 +4,11 @@ import {
   Workflow,
   ScrollText,
   FileText,
-  Heart,
   Link2,
   Terminal,
   LayoutDashboard,
 } from 'lucide-react';
-import { GithubIcon, LogoLockup, LogoMark, SheetMarks, TitleblockBar } from '../components/PageChrome';
+import { GithubIcon, LogoLockup, LogoMark, TitleblockBar } from '../components/PageChrome';
 import { Reveal } from '../components/Reveal';
 import { DashboardProof } from './landing/DashboardProof';
 import { HubSchematic } from './landing/HubSchematic';
@@ -41,22 +40,16 @@ const assets = [
 
 const steps = [
   {
-    num: '01',
-    label: 'Install',
     title: 'Install the CLI',
     description: 'Chain Hub is free and open source, published on npm. Node.js 22.13 or newer is all you need.',
     command: 'npm install -g chain-hub',
   },
   {
-    num: '02',
-    label: 'Start',
     title: 'Start your hub',
     description: 'Creates the hub folder on first run and opens the dashboard. From now on, this is where everything lives.',
     command: 'chain hub',
   },
   {
-    num: '03',
-    label: 'Connect',
     title: 'Connect your editors',
     description: 'Links the hub into each editor you use. From now on they all read the same files.',
     command: 'chain setup',
@@ -103,34 +96,30 @@ const dashStats = [
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <TitleblockBar />
 
       {/* Hero */}
       <section className="relative">
-        <SheetMarks />
         <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20 grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-              Free · open source · runs on your machine
-            </span>
-            <h1 className="font-display font-semibold text-6xl md:text-7xl leading-[1.02] tracking-[-0.04em] text-balance text-foreground mt-4 mb-6">
+            <h1 className="font-display font-semibold text-6xl md:text-7xl leading-[1.02] tracking-[-0.04em] text-balance text-foreground mb-6">
               One hub.
               <br />
               Every editor<span className="text-primary">.</span>
             </h1>
-            <p className="text-lg text-muted-foreground leading-relaxed text-pretty max-w-md mb-8">
+            <p className="text-lg text-foreground leading-relaxed text-pretty max-w-md mb-8">
               Using more than one AI editor means keeping the same skills, rules, and prompts in
-              sync by hand — and losing track of which copy is current. Chain Hub keeps them in
+              sync by hand, and losing track of which copy is current. Chain Hub keeps them in
               one folder on your computer and links them into Cursor, Claude Code, Windsurf, Zed,
-              Antigravity, and Devin. Edit once — every editor follows.
+              Antigravity, and Devin. Edit once. Every editor follows.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mb-5">
               <a
                 href={REPO_URL}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Get Chain Hub on GitHub — opens in a new tab"
+                aria-label="Get Chain Hub on GitHub, opens in a new tab"
                 className="px-6 py-3 rounded-sm bg-primary hover:opacity-90 hover:-translate-y-0.5 text-primary-foreground font-medium transition-[transform,opacity] text-center inline-flex items-center justify-center gap-2"
               >
                 <GithubIcon size={18} />
@@ -143,16 +132,9 @@ export function LandingPage() {
                 See how it works
               </a>
             </div>
-            <p className="text-sm text-muted-foreground mb-10 inline-flex items-center gap-2">
-              <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-              Nothing leaves your computer.
+            <p className="text-sm text-muted-foreground">
+              Free and open source. Nothing leaves your computer.
             </p>
-            <div className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase border-t border-border pt-4 flex flex-wrap gap-x-6 gap-y-1">
-              <span>Sheet 1/1</span>
-              <span>On your machine</span>
-              <span>Scale 1:1</span>
-              <span>Six editors</span>
-            </div>
           </div>
           <div>
             <HubSchematic />
@@ -160,21 +142,15 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 01 · The problem */}
-      <section id="why" className="border-t border-border scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20">
+      {/* The problem */}
+      <section id="why" className="scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
           <SectionHead
-            index="01"
-            kicker="The problem"
             title="Six editors. Six copies"
             copy="Every AI editor wants its own rules file, its own prompts and its own skills folder. So you copy the same things into each one, and after a week nobody knows which version is current."
           />
           <Reveal className="grid lg:grid-cols-2 gap-5">
-            <div className="border-[1.5px] border-frame bg-card p-6">
-              <div className="flex items-center justify-between mb-5 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <span>Without Chain Hub</span>
-                <span>Copy · paste · drift</span>
-              </div>
+            <div className="border-[1.5px] border-frame bg-card p-6" data-ui>
               <h3 className="font-display font-semibold text-2xl tracking-[-0.02em] text-balance text-foreground mb-5">
                 The same rules, scattered.
               </h3>
@@ -182,23 +158,19 @@ export function LandingPage() {
                 {drift.map(({ editor, status }) => (
                   <div
                     key={editor}
-                    className="flex items-center justify-between gap-2 border border-border rounded-sm px-3 py-2 font-mono text-[13px]"
+                    className="flex items-center justify-between gap-2 bg-secondary rounded-sm px-3 py-2 font-mono text-[13px]"
                   >
                     <span className="text-foreground font-medium">{editor}</span>
                     <span className="text-muted-foreground">{status}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-base text-muted-foreground leading-relaxed text-pretty mt-5">
+              <p className="text-base text-foreground leading-relaxed text-pretty mt-5">
                 Change something in one place and the others fall behind. After a week nobody knows
                 which version is the right one.
               </p>
             </div>
-            <div className="bp-corners border-[1.5px] border-frame bg-band p-6" style={BAND_VARS}>
-              <div className="flex items-center justify-between mb-5 font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <span>With Chain Hub</span>
-                <span>One source of truth</span>
-              </div>
+            <div className="bp-corners border-[1.5px] border-frame bg-band p-6" style={BAND_VARS} data-ui>
               <h3 className="font-display font-semibold text-2xl tracking-[-0.02em] text-balance text-foreground mb-5">
                 One folder. Linked everywhere.
               </h3>
@@ -213,15 +185,14 @@ export function LandingPage() {
                 {editors.map((editor) => (
                   <div
                     key={editor}
-                    className="border border-border rounded-sm px-3 py-2 font-mono text-[12px] text-muted-foreground text-center"
+                    className="bg-card rounded-sm px-3 py-2 font-mono text-[12px] text-muted-foreground text-center"
                   >
-                    <span className="text-primary" aria-hidden="true">● </span>
                     {editor}
                   </div>
                 ))}
               </div>
-              <p className="text-base text-muted-foreground leading-relaxed text-pretty mt-5">
-                You edit the file in the hub. Every connected editor reads that same file — two
+              <p className="text-base text-foreground leading-relaxed text-pretty mt-5">
+                You edit the file in the hub. Every connected editor reads that same file: two
                 editors or six, still one copy.
               </p>
             </div>
@@ -229,62 +200,50 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 02 · What it holds */}
-      <section id="what" className="border-t border-border scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20">
+      {/* What it holds */}
+      <section id="what" className="scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
           <SectionHead
-            index="02"
-            kicker="What it holds"
             title="Everything your editor needs"
             copy="Five kinds of assets, all plain Markdown files you own. Plus the connections that link them into each editor."
           />
           <Reveal>
-            <div className="bp-corners border-[1.5px] border-frame bg-card divide-y divide-border">
-              {assets.map(({ icon: Icon, name, description }, i) => (
+            <div className="border-[1.5px] border-frame bg-card divide-y divide-border">
+              {assets.map(({ icon: Icon, name, description }) => (
                 <div key={name} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 px-5 py-4">
                   <div className="flex items-center gap-3 sm:w-56 shrink-0">
-                    <span className="font-mono text-[10px] text-muted-foreground tracking-widest w-12 shrink-0">
-                      REF {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <Icon size={18} className="text-primary shrink-0" />
-                    <h3 className="font-display font-semibold text-base uppercase tracking-wider text-foreground">
+                    <Icon size={18} className="text-foreground shrink-0" />
+                    <h3 className="font-display font-semibold text-base text-foreground">
                       {name}
                     </h3>
                   </div>
-                  <p className="text-base text-muted-foreground leading-relaxed text-pretty max-w-prose">{description}</p>
+                  <p className="text-base text-foreground leading-relaxed text-pretty max-w-prose">{description}</p>
                 </div>
               ))}
             </div>
-            <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-4">
-              + ~/.chain-hub/memory — lessons your AI picked up, folded back into better skills.
+            <p className="text-sm text-muted-foreground mt-4">
+              Your hub also keeps <code className="font-mono text-[0.9em]">~/.chain-hub/memory</code>:
+              lessons your AI picked up, folded back into better skills.
             </p>
           </Reveal>
         </div>
       </section>
 
-      {/* 03 · How it works */}
-      <section id="how" className="border-t border-border scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20">
+      {/* How it works */}
+      <section id="how" className="scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
           <SectionHead
-            index="03"
-            kicker="How it works"
             title="Three steps"
             copy="Install the CLI, start the hub, connect your editors. After that you only ever edit files in one place."
           />
-          <Reveal className="grid md:grid-cols-3 gap-5">
-            {steps.map(({ num, label, title, description, command }) => (
-              <div key={num} className="border-[1.5px] border-frame bg-card flex flex-col">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                  <span className="font-mono text-[13px] font-semibold text-primary">{num}</span>
-                  <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                    {label}
-                  </span>
-                </div>
-                <div className="px-4 py-5 flex flex-col flex-1">
+          <Reveal className="grid md:grid-cols-3 gap-10 md:gap-8">
+            {steps.map(({ title, description, command }) => (
+              <div key={title} className="flex flex-col">
+                <div className="flex flex-col flex-1">
                   <h3 className="font-display font-semibold text-xl tracking-[-0.015em] text-balance text-foreground mb-1">
                     {title}
                   </h3>
-                  <p className="text-base text-muted-foreground leading-relaxed text-pretty mb-5 flex-1">
+                  <p className="text-base text-foreground leading-relaxed text-pretty mb-5 flex-1">
                     {description}
                   </p>
                   <CopyCommand command={command} />
@@ -292,28 +251,23 @@ export function LandingPage() {
               </div>
             ))}
           </Reveal>
-          <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-4">
-            Or clone the repo and run bun run hub if you want to develop on Chain Hub itself.
+          <p className="text-sm text-muted-foreground mt-4">
+            Or clone the repo and run <code className="font-mono text-[0.9em]">bun run hub</code> if
+            you want to develop on Chain Hub itself.
           </p>
         </div>
       </section>
 
-      {/* 04 · Two ways to use it */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20">
+      {/* Two ways to use it */}
+      <section>
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
           <SectionHead
-            index="04"
-            kicker="Two ways to use it"
             title="Terminal or dashboard"
             copy="Both work on the same hub folder. Use the command line when you're in flow, and the dashboard when you want to see everything at a glance."
           />
           <Reveal className="grid sm:grid-cols-2 gap-5">
-            <div className="bp-corners border-[1.5px] border-frame bg-card flex flex-col">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <span>Detail A</span>
-                <span>The engine</span>
-              </div>
-              <div className="bg-band font-mono text-[13px] leading-[1.85] text-foreground px-5 py-4 min-h-40" style={BAND_VARS}>
+            <div className="border-[1.5px] border-frame bg-card flex flex-col">
+              <div className="bg-band font-mono text-[13px] leading-[1.85] text-foreground px-5 py-4 min-h-40" style={BAND_VARS} data-ui>
                 <span className="text-primary">~ $</span> chain init<br />
                 <span className="text-primary">✓</span> Hub created<br />
                 <span className="text-primary">~ $</span> chain setup<br />
@@ -323,30 +277,26 @@ export function LandingPage() {
               </div>
               <div className="p-6 flex-1">
                 <div className="flex items-center gap-2.5 mb-1">
-                  <Terminal size={18} className="text-primary" />
+                  <Terminal size={18} className="text-foreground" />
                   <h3 className="font-display font-semibold text-2xl uppercase tracking-wider text-foreground">CLI</h3>
                 </div>
                 <p className="text-base text-muted-foreground mb-4">The system engine.</p>
                 <ul className="space-y-2">
                   {cliPoints.map((point) => (
-                    <li key={point} className="text-base text-muted-foreground flex items-start gap-2 font-mono">
-                      <span className="text-primary">&gt;</span>
+                    <li key={point} className="text-base text-foreground flex items-start gap-2">
+                      <span className="text-muted-foreground">&gt;</span>
                       <span className="font-sans">{point}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
-            <div className="bp-corners border-[1.5px] border-frame bg-card flex flex-col">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <span>Detail B</span>
-                <span>The control panel</span>
-              </div>
-              <div className="bg-secondary p-3 min-h-40 grid grid-cols-[112px_minmax(0,1fr)] gap-2.5">
+            <div className="border-[1.5px] border-frame bg-card flex flex-col">
+              <div className="bg-secondary p-3 min-h-40 grid grid-cols-[112px_minmax(0,1fr)] gap-2.5" data-ui>
                 <div className="bg-card border border-border p-2.5 grid gap-1.5 content-start font-mono text-[10px] text-muted-foreground">
                   {dashNav.map((item, i) => (
                     <span key={item} className={i === 0 ? 'text-foreground font-semibold' : undefined}>
-                      {i === 0 && <span className="text-primary" aria-hidden="true">● </span>}
+                      {i === 0 && <span aria-hidden="true">● </span>}
                       {item}
                     </span>
                   ))}
@@ -360,7 +310,7 @@ export function LandingPage() {
                   ))}
                   <div className="col-span-3 bg-card border border-border px-2.5 py-2 font-mono text-[11px] flex justify-between">
                     <span className="text-foreground">System health</span>
-                    <span className="text-primary">● all good</span>
+                    <span className="text-muted-foreground">all good</span>
                   </div>
                   <div className="col-span-3 bg-card border border-border px-2.5 py-2 font-mono text-[11px] flex justify-between">
                     <span className="text-foreground">skills/agent-browser.md</span>
@@ -370,14 +320,14 @@ export function LandingPage() {
               </div>
               <div className="p-6 flex-1">
                 <div className="flex items-center gap-2.5 mb-1">
-                  <LayoutDashboard size={18} className="text-primary" />
+                  <LayoutDashboard size={18} className="text-foreground" />
                   <h3 className="font-display font-semibold text-2xl uppercase tracking-wider text-foreground">Hub Dashboard</h3>
                 </div>
                 <p className="text-base text-muted-foreground mb-4">The visual control plane.</p>
                 <ul className="space-y-2">
                   {dashboardPoints.map((point) => (
-                    <li key={point} className="text-base text-muted-foreground flex items-start gap-2 font-mono">
-                      <span className="text-primary">&gt;</span>
+                    <li key={point} className="text-base text-foreground flex items-start gap-2">
+                      <span className="text-muted-foreground">&gt;</span>
                       <span className="font-sans">{point}</span>
                     </li>
                   ))}
@@ -385,30 +335,24 @@ export function LandingPage() {
               </div>
             </div>
           </Reveal>
-          <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-4">
-            Illustration — the numbers above are an example, not real data.
+          <p className="text-sm text-muted-foreground mt-4">
+            The numbers in the mock above are an example, not real data.
           </p>
         </div>
       </section>
 
-      {/* 05 · Grows with you — learnings + GitHub sync */}
-      <section className="border-t border-border">
-        <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20">
+      {/* Learns and syncs */}
+      <section>
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
           <Reveal>
             <SectionHead
-              index="05"
-              kicker="Grows with you"
-              title="It remembers. It travels"
+              title="It remembers, and it syncs"
               copy="Two quiet features make the hub worth more over time: it keeps what it learns, and it follows you between machines."
             />
           </Reveal>
           <Reveal className="grid lg:grid-cols-2 gap-6">
             <div className="border-[1.5px] border-frame rounded-sm bg-card overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <span>Detail C</span>
-                <span>Learnings</span>
-              </div>
-              <div className="bg-band font-mono text-[13px] leading-[1.85] text-foreground px-5 py-4" style={BAND_VARS}>
+              <div className="bg-band font-mono text-[13px] leading-[1.85] text-foreground px-5 py-4" style={BAND_VARS} data-ui>
                 <p><span className="text-primary">~ $</span> chain capture --event correction --skill commits \</p>
                 <p className="pl-6 opacity-70">--summary "never amend a published commit"</p>
                 <p><span className="text-primary">✓</span> Captured for commits</p>
@@ -420,28 +364,24 @@ export function LandingPage() {
                   It learns from what went wrong
                 </h3>
                 <p className="text-base text-muted-foreground leading-relaxed text-pretty">
-                  Your agent amended a published commit again? Capture the correction once — the
-                  next audit of that skill folds the lesson in. The Learnings page in the
+                  Your agent amended a published commit again? Capture the correction once. The
+                  next audit of that skill folds the lesson in, and the Learnings page in the
                   dashboard shows the full timeline and every reflection.
                 </p>
                 <a
                   href="/docs/learnings"
-                  className="mt-4 inline-block font-mono text-[11px] tracking-wide uppercase text-primary hover:opacity-80 transition-opacity"
+                  className="mt-4 inline-block text-sm font-medium text-foreground underline underline-offset-4 decoration-border hover:decoration-foreground transition-colors"
                 >
-                  Learn more →
+                  Read about learnings
                 </a>
               </div>
             </div>
             <div className="border-[1.5px] border-frame rounded-sm bg-card overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-                <span>Detail D</span>
-                <span>GitHub sync</span>
-              </div>
-              <div className="bg-band font-mono text-[13px] leading-[1.85] text-foreground px-5 py-4" style={BAND_VARS}>
+              <div className="bg-band font-mono text-[13px] leading-[1.85] text-foreground px-5 py-4" style={BAND_VARS} data-ui>
                 <p><span className="text-primary">~ $</span> chain sync</p>
-                <p><span className="text-primary">●</span> Connected — private repo chain-hub-sync</p>
+                <p><span className="text-primary">●</span> Connected: private repo chain-hub-sync</p>
                 <p><span className="text-primary">~ $</span> chain sync status</p>
-                <p><span className="text-primary">✓</span> In sync — 138 assets backed up</p>
+                <p><span className="text-primary">✓</span> In sync: 138 assets backed up</p>
               </div>
               <div className="px-5 py-5">
                 <h3 className="font-display font-semibold text-2xl tracking-[-0.02em] text-balance text-foreground mb-2">
@@ -449,18 +389,18 @@ export function LandingPage() {
                 </h3>
                 <p className="text-base text-muted-foreground leading-relaxed text-pretty">
                   Point chain sync at a private GitHub repo and your whole hub is versioned and
-                  backed up. It syncs when the dashboard starts — edit on your laptop, continue on
+                  backed up. It syncs when the dashboard starts. Edit on your laptop, continue on
                   your desktop. A bad edit? The full history is in the repo, and merge conflicts
                   resolve in the dashboard, not the terminal.
                 </p>
                 <a
                   href="/docs/backup-sync"
-                  className="mt-4 inline-block font-mono text-[11px] tracking-wide uppercase text-primary hover:opacity-80 transition-opacity"
+                  className="mt-4 inline-block text-sm font-medium text-foreground underline underline-offset-4 decoration-border hover:decoration-foreground transition-colors"
                 >
-                  Learn more →
+                  Read about backup and sync
                 </a>
               </div>
-              <div className="border-t border-border px-5 py-3" aria-hidden="true">
+              <div className="bg-secondary px-5 py-3" aria-hidden="true">
                 <svg viewBox="0 0 420 52" className="w-full h-12 text-muted-foreground">
                   <path className="bp-flow" d="M64 26 C110 26 140 26 186 26" fill="none" stroke="currentColor" strokeWidth="1.5" />
                   <path className="bp-flow" d="M234 26 C280 26 290 14 340 14" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -482,25 +422,20 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* 06 · Optional — bring your own model (always-ink band) */}
-      <section className="bg-band border-y border-band-line text-band-ink" style={BAND_VARS}>
-        <div className="max-w-6xl mx-auto px-6 py-16 lg:py-20">
+      {/* Optional: bring your own model (always-ink band) */}
+      <section className="bg-band text-band-ink" style={BAND_VARS}>
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
           <SectionHead
-            index="06"
-            kicker="Optional"
             title="Bring your own model"
-            copy="Add your own AI model in Settings and Chain Hub can draft a complete skill, agent, workflow, rule or prompt from a short description — or check and improve one you already have."
+            copy="Optional, and off by default. Add your own AI model in Settings and Chain Hub can draft a complete skill, agent, workflow, rule or prompt from a short description, or check and improve one you already have."
           />
           <Reveal className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {aiProviders.map(({ name, description, local }) => (
-              <div
-                key={name}
-                className={`border p-5 ${local ? 'border-primary' : 'border-border'}`}
-              >
+              <div key={name} className="bg-card p-5">
                 <div className="flex items-start justify-between gap-2">
                   <b className="font-display font-semibold text-lg text-foreground">{name}</b>
                   {local && (
-                    <em className="not-italic font-mono text-[10px] tracking-widest uppercase bg-primary text-[#1C1D1F] px-1.5 py-0.5">
+                    <em className="not-italic text-xs font-medium bg-foreground text-band px-1.5 py-0.5">
                       Local
                     </em>
                   )}
@@ -510,7 +445,7 @@ export function LandingPage() {
             ))}
           </Reveal>
           <p className="text-sm text-muted-foreground mt-5">
-            Your API keys stay on your machine — there is no Chain cloud. Everything else works
+            Your API keys stay on your machine. There is no Chain cloud, and everything else works
             without AI.
           </p>
         </div>
@@ -519,28 +454,22 @@ export function LandingPage() {
       <DashboardProof />
 
       {/* CTA */}
-      <section className="relative border-t border-border">
-        <SheetMarks />
-        <Reveal className="max-w-3xl mx-auto px-6 py-20 lg:py-24 text-center">
+      <section className="relative">
+        <Reveal className="max-w-3xl mx-auto px-6 py-24 lg:py-32 text-center">
           <LogoMark className="size-20 mx-auto mb-5 text-foreground" />
           <h2 className="font-display font-semibold text-4xl md:text-6xl leading-[1.08] tracking-[-0.03em] text-balance text-foreground mb-5">
             Ready when you are<span className="text-primary">.</span>
           </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed text-pretty">
+          <p className="text-lg text-foreground mb-8 max-w-md mx-auto leading-relaxed text-pretty">
             Chain Hub is free and open source. One install, three commands, and every
             editor reads the same files.
           </p>
-          <div className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-            <span>01 Install the CLI</span>
-            <span>02 chain hub</span>
-            <span>03 chain setup</span>
-          </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
               href={REPO_URL}
               target="_blank"
               rel="noreferrer"
-              aria-label="View on GitHub — opens in a new tab"
+              aria-label="View on GitHub, opens in a new tab"
               className="px-6 py-3 rounded-sm bg-primary hover:opacity-90 hover:-translate-y-0.5 text-primary-foreground font-medium transition-[transform,opacity] inline-flex items-center justify-center gap-2"
             >
               <GithubIcon size={18} />
@@ -560,22 +489,20 @@ export function LandingPage() {
         <div className="text-foreground">
           <LogoLockup className="h-5 w-auto" />
         </div>
-        <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
-          Made with
-          <Heart className="size-3.5 fill-primary text-primary" aria-label="love" />
-          by{' '}
+        <p className="text-sm text-muted-foreground">
+          Built by{' '}
           <a
             href="https://martijnbokma.nl"
             target="_blank"
             rel="noreferrer"
-            aria-label="Martijn Bokma — opens in a new tab"
-            className="inline-block -my-3 py-3 hover:text-foreground transition-colors"
+            aria-label="Martijn Bokma, opens in a new tab"
+            className="underline underline-offset-4 decoration-border hover:decoration-foreground transition-colors"
           >
             Martijn Bokma <span aria-hidden="true">↗</span>
           </a>
         </p>
         <div className="flex items-center gap-8 text-sm text-muted-foreground">
-          <a href={REPO_URL} target="_blank" rel="noreferrer" aria-label="GitHub — opens in a new tab" className="inline-block -my-3 py-3 hover:text-foreground transition-colors">GitHub <span aria-hidden="true">↗</span></a>
+          <a href={REPO_URL} target="_blank" rel="noreferrer" aria-label="GitHub, opens in a new tab" className="inline-block -my-3 py-3 hover:text-foreground transition-colors">GitHub <span aria-hidden="true">↗</span></a>
         </div>
       </footer>
     </div>
