@@ -24,7 +24,20 @@ export async function writeFileAtomic(filePath: string, content: string, mode = 
   const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
   try {
     await fs.writeFile(tempPath, content, { encoding: "utf8", mode });
-    await fs.rename(tempPath, filePath);
+    // Windows can transiently refuse rename-over-existing (AV scan, indexer or
+    // another handle on the target) — retry briefly before giving up.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await fs.rename(tempPath, filePath);
+        break;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (attempt >= 10 || (code !== "EPERM" && code !== "EBUSY" && code !== "EEXIST")) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+      }
+    }
   } finally {
     await fs.rm(tempPath, { force: true });
   }
