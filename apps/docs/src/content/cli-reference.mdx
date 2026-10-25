@@ -54,6 +54,7 @@ accidental local edits.
 | `chain skill install --repo <url> [--subdir <path>]` | Install a skill from a git repo (optionally a subdirectory of it) |
 | `chain skill install ... [--name <name>] [--force]` | Override the installed name; `--force` replaces an existing hub skill |
 | `chain skill update [--name <name>] [--force]` | Reinstall skills from their recorded upstream source (all locked skills, or just one). `--force` reinstalls even if the content hash hasn't changed |
+| `chain skill check-updates [--force]` | Probe git-installed skills for newer commits via `git ls-remote`. Results are cached for 15 minutes; `--force` bypasses the cache |
 | `chain skill migrate-agents [--lock-path <path>] [--force]` | Import skills already tracked in `~/.agents/.skill-lock.json` into the hub |
 | `chain skill fork --name <name> [--as <name>]` | Copy an upstream-owned skill into a local, freely-editable skill (no lock entry, no more "upstream-owned" errors) |
 
@@ -65,6 +66,41 @@ freely, disconnected from the upstream source. See
 error and [Editor Setup](/editor-setup) for how installed skills reach your
 editors.
 
+## Catalog
+
+`chain catalog` browses curated asset sources — remote indexes that point at
+installable skills, agents, and workflows. Sources are registered in
+`system/catalogs.json` (the default `chain-hub` source is added
+automatically); fetched indexes are cached under `system/catalogs/`.
+
+| Command | Description |
+| --- | --- |
+| `chain catalog list [--kind <kind>] [--refresh]` | List catalog entries with their install state, optionally filtered by kind (`skills\|agents\|workflows`). `--refresh` re-fetches indexes first |
+| `chain catalog install <entryId> [--source <id>] [--force]` | Install a catalog entry into the hub. `--force` replaces an existing asset |
+| `chain catalog refresh` | Re-fetch all catalog indexes |
+
+Catalog installs are recorded in `system/assets-lock.json` with their source
+catalog, which makes them **upstream-owned** — same editing rules as
+`chain skill install`, same `fork` escape hatch.
+
+## GitHub sync
+
+`chain sync` backs up and syncs the whole hub folder through a private
+GitHub repository. Connecting turns `~/.chain-hub` into a git repo; secrets
+(`system/secrets.json`, `system/sync-state.json`) are hard-denylisted and
+never leave the machine.
+
+| Command | Description |
+| --- | --- |
+| `chain sync` | Sync now (commit, pull, push) |
+| `chain sync connect [--repo <name>] [--method gh\|pat] [--token <pat>] [--adopt] [--no-auto-sync]` | Connect the hub to a private GitHub repo, creating it when missing (default name `chain-hub-sync`). Auth via the `gh` CLI or a fine-grained PAT. `--adopt` takes over an existing repo without the Chain Hub manifest |
+| `chain sync status` | Show the connection, ahead/behind counts, and any conflicts |
+| `chain sync disconnect` | Remove the sync remote — local files and `.git` history are kept |
+| `chain sync resolve [--local <paths...>] [--remote <paths...>] [--all local\|remote] [--done]` | Resolve merge conflicts, then finish the merge. `--done` marks hand-edited files resolved |
+
+When connected with auto-sync on, `chain hub` also syncs in the background
+every time it starts.
+
 ## Learnings
 
 | Command | Description |
@@ -73,6 +109,7 @@ editors.
 | `chain reflect` | Per-skill reflection report |
 | `chain reflect --write` | Write reflection to file |
 | `chain reflect --json` | Raw JSON output |
+| `chain resolve <slug>` | Mark a skill's captured corrections and failures as addressed |
 
 Event types for `chain capture`: `success`, `failure`, `correction`, `note`.
 

@@ -13,16 +13,22 @@ run on the same port as the hub server.
 | Route group | Purpose |
 | --- | --- |
 | `/api/overview` | Hub health, counts, storage stats |
-| `/api/library` | Asset CRUD operations |
-| `/api/learnings` | Timeline, reflection, and the Learnings dashboard page |
-| `/api/setup` | Guided setup |
-| `/api/integrations` | Editor integration status |
+| `/api/issues` | Aggregated hub issues surfaced on Overview |
 | `/api/validate` | Validation results |
+| `/api/setup` | Guided setup |
+| `/api/integrations` · `/api/integrations/setup` | Editor integration status and connect actions |
+| `/api/library` | Asset CRUD: list/create, plus `:kind/:name` get/update/delete, `rename`, `convert` |
+| `/api/library/discover` · `/api/library/import` | Find native editor assets not yet in the hub; import one |
+| `/api/library/skills/*` | External-skill lifecycle: `install`, `install-bundle`, `check-updates`, `update`, `migrate-agents`, `upstream-dirs`, `relink`, `unlink`, `fork`, `files` |
+| `/api/catalog` · `/api/catalog/install` | Catalog listing and entry installs |
+| `/api/learnings` | Timeline, plus `capture`, `resolve`, and `reflect` sub-routes for the Learnings page |
+| `/api/analysis` | Analysis/review worklist: get, put, and `PATCH /items` |
 | `/api/settings/ai` | Local-first AI provider settings — see [AI Providers](/ai-providers) |
 | `/api/ai/draft-prompt` | Draft a Library asset from an intent |
 | `/api/ai/classify-asset` | Re-check an existing asset's kind |
 | `/api/ai/audit-asset` | Audit an existing asset against its kind's best practices |
 | `/api/ai/improve-asset` | Rewrite an asset to address audit findings |
+| `/api/sync/*` | GitHub backup sync: `status`, `connect`, `disconnect`, `now`, `resolve` |
 
 ## Shared contracts
 

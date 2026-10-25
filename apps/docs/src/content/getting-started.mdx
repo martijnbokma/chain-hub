@@ -7,9 +7,20 @@ description: Install Chain Hub, initialize the hub folder, and start the dashboa
 
 # Getting Started
 
-Chain Hub is a monorepo tool today — there's no npm package yet. Everything
-runs from a local clone via [Bun](https://bun.sh) workspaces. The commands
-below are the same on macOS, Linux, and Windows unless noted otherwise.
+The `chain` CLI is published on npm as
+[`chain-hub`](https://www.npmjs.com/package/chain-hub). Install it globally
+and you're one command away from the dashboard:
+
+```bash
+npm install -g chain-hub    # or: bun install -g chain-hub
+chain hub
+# → http://127.0.0.1:2342
+```
+
+That initializes `~/.chain-hub` on first run, starts the API server, and
+opens your browser. Everything below covers running Chain Hub from a local
+clone instead — useful for development or following `main`. The commands
+are the same on macOS, Linux, and Windows unless noted otherwise.
 
 ## Prerequisites
 
@@ -111,6 +122,6 @@ remove the link: `bun unlink chain-hub` (the CLI package is named
 
 ## Next
 
-- [Editor Setup](/editor-setup) — connect Cursor, Claude Code, Windsurf, or Zed.
+- [Editor Setup](/editor-setup) — connect Cursor, Claude Code, Windsurf, Devin CLI, Zed, or Google Antigravity.
 - [Writing an Asset](/asset-format) — the file format behind skills, agents, workflows, and rules.
 - [CLI Reference](/cli-reference) — every command.

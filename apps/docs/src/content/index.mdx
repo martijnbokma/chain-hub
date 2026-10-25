@@ -10,7 +10,7 @@ description: What Chain Hub is and how the CLI, dashboard, and hub folder fit to
 Chain Hub is a local-first AI workspace control plane. One hub folder
 (`~/.chain-hub`) is the single source of truth, one CLI (`chain`) manages it,
 one dashboard gives visual control, and every editor you use — Cursor, Claude
-Code, Windsurf, Zed — reads a synced copy.
+Code, Windsurf, Devin CLI, Zed, Google Antigravity — reads a synced copy.
 
 ## Core philosophy
 
@@ -33,7 +33,14 @@ setup, browse assets, inspect integrations, run high-confidence actions.
 - **Prompts** — one-shot reusable prompt text for a specific task; library-only, not synced to editors.
 
 Assets live in the Library and sync out to your editors — see
-[Editor Setup](/editor-setup) for exactly which editor gets which kind.
+[Editor Setup](/editor-setup) for exactly which editor gets which kind. They
+can come from three places: written by hand, installed from an external
+source (`chain skill install`), or pulled from a curated catalog
+(`chain catalog`).
+
+Optionally, the whole hub folder can be backed up and synced across machines
+through a private GitHub repo — see
+[CLI Reference → GitHub sync](/cli-reference#github-sync).
 
 ## Learnings: a separate thing from assets
 
@@ -48,9 +55,10 @@ page for the same view backed by `/api/learnings`.
 ## Optional: bring your own LLM
 
 Drafting, classifying, auditing, and improving assets can be handed off to
-an LLM you connect yourself — Anthropic, OpenAI, Mistral, or a local Ollama
-model. See [AI Providers](/ai-providers). Nothing else in Chain Hub needs
-this — it's entirely optional.
+an LLM you connect yourself — Anthropic, OpenAI, Mistral, Gemini, Groq,
+OpenRouter, DeepSeek, Cerebras, or a local Ollama model. See
+[AI Providers](/ai-providers). Nothing else in Chain Hub needs this — it's
+entirely optional.
 
 New here? Start with [Getting Started](/getting-started) to install and run
 the hub, then [Writing an Asset](/asset-format) to create your first skill.

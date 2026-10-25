@@ -22,10 +22,14 @@ environment variable.
 │   │   └── events.jsonl # Append-only capture log
 │   └── reflections/     # Written reflection snapshots
 ├── system/              # Metadata, index, and local AI settings
-│   ├── skills-lock.json # Where installed skills came from
+│   ├── assets-lock.json # Where installed skills and catalog assets came from
+│   ├── catalogs.json    # Registered catalog sources (first catalog use)
+│   ├── catalogs/        # Cached catalog index files per source
 │   ├── meta.json        # Initialization metadata
 │   ├── ai-config.json   # Active AI provider + model per provider (no secrets)
-│   └── secrets.json     # AI provider API keys, file mode 0600 — only if you've configured one
+│   ├── secrets.json     # API keys + GitHub sync token, file mode 0600
+│   └── sync-state.json  # GitHub sync connection state (never synced itself)
+├── .git/ .gitignore .gitattributes chain-hub.json  # Only when `chain sync connect` ran
 ├── backups/             # Hand-written editor files replaced by sync or import
 └── logs/                # Application logs
 ```
@@ -63,19 +67,41 @@ When sync or import has to replace a hand-written file in an editor folder
 `backups/<date>/<path relative to your home folder>`, for example
 `backups/2026-09-24/.claude/agents/reviewer.md`.
 
+## Catalogs
+
+`system/catalogs.json` lists the registered catalog sources (the default
+`chain-hub` source is seeded automatically). Fetched indexes are cached per
+source under `system/catalogs/<source-id>.json`; `chain catalog refresh`
+re-fetches them. See [CLI Reference → Catalog](/cli-reference#catalog).
+
 ## System metadata
 
-- **`system/skills-lock.json`** — where each installed skill came from (git
-  repo, local path or upload). Skills with a git or path source are
-  upstream-owned: `chain skill update` refreshes them, so fork one before
-  editing it.
+- **`system/assets-lock.json`** — provenance for every externally installed
+  asset: where each installed skill came from (git repo, local path or
+  upload) and which catalog + entry catalog installs came from. Assets with
+  a git, path or catalog source are upstream-owned: `chain skill update`
+  refreshes them, so fork one before editing it. (This file replaced the
+  older `skills-lock.json`; existing hubs were migrated automatically.)
 - **`system/meta.json`** — records initialization metadata, such as when
   `chain init` first ran (used to decide whether to seed the welcome skill
   again).
 - **`system/ai-config.json`** — which AI provider is active and which model
-  is configured for each of the four supported providers. Created on first
+  is configured for each of the nine supported providers. Created on first
   save from Settings → AI, not on `chain init`. No secrets in this file.
-- **`system/secrets.json`** — API keys for cloud AI providers (Anthropic,
-  OpenAI, Mistral), written with file mode `0600` (owner read/write only).
-  Only exists once you've saved at least one API key. See
+- **`system/secrets.json`** — API keys for cloud AI providers plus the
+  GitHub sync token (`githubSyncToken`) when sync is connected via PAT,
+  written with file mode `0600` (owner read/write only). Only exists once
+  you've saved at least one secret. See
   [AI Providers](/ai-providers#where-your-keys-are-stored).
+- **`system/sync-state.json`** — GitHub sync connection state (remote URL,
+  auto-sync flag). It's hard-denylisted like `secrets.json`: sync never
+  pushes it.
+
+## GitHub sync files
+
+`chain sync connect` turns the hub folder itself into a git repo: it adds
+`.git/`, a managed `.gitignore` + `.gitattributes`, and a `chain-hub.json`
+manifest at the root (the marker that identifies the repo as a Chain Hub
+sync target). `system/secrets.json` and `system/sync-state.json` are
+denylisted from tracking — they never leave the machine. See
+[CLI Reference → GitHub sync](/cli-reference#github-sync).
