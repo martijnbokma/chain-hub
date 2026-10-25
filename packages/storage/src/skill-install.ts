@@ -441,6 +441,30 @@ export async function updateSkillsFromLock(
   const names = input.name ? [normalizeSkillName(input.name)] : Object.keys(lockFile.skills).sort();
   const results: SkillBatchItemResult[] = [];
 
+  // One ls-remote per repo (in parallel) answers "did the remote move?" far cheaper
+  // than the per-skill shallow clone the install path below would otherwise run.
+  // A failed probe yields null, which never matches commitSha and falls through to
+  // the clone — preserving the existing failure reporting for unreachable remotes.
+  const remoteShaByRepo = new Map<string, string | null>();
+  if (!input.force) {
+    const repos = new Set<string>();
+    for (const name of names) {
+      const entry = lockFile.skills[name];
+      if (entry && isUpstreamOwnedSkill(entry) && entry.sourceType === "git" && entry.commitSha) {
+        repos.add(entry.source);
+      }
+    }
+    await Promise.all(
+      Array.from(repos).map(async (repo) => {
+        try {
+          remoteShaByRepo.set(repo, await fetchRemoteHeadSha(repo));
+        } catch {
+          remoteShaByRepo.set(repo, null);
+        }
+      })
+    );
+  }
+
   for (const name of names) {
     const entry = lockFile.skills[name];
 
@@ -452,6 +476,13 @@ export async function updateSkillsFromLock(
     // Uploads are hub-owned, not upstream-owned: there is no source to update from.
     if (!isUpstreamOwnedSkill(entry)) {
       results.push({ name, status: "skipped", previousCommitSha: entry.commitSha ?? null });
+      continue;
+    }
+
+    // Remote HEAD still sits on the installed commit: upstream cannot have changed.
+    if (entry.sourceType === "git" && entry.commitSha && remoteShaByRepo.get(entry.source) === entry.commitSha) {
+      await clearSkillLockError(chainHome, name, "lastUpdateError");
+      results.push({ name, status: "skipped", previousCommitSha: entry.commitSha, lockEntry: entry });
       continue;
     }
 
