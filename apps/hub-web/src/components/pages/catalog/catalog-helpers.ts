@@ -41,7 +41,7 @@ export function catalogEntryKey(entry: Pick<CatalogEntryResult, 'id' | 'sourceId
 
 export function filterCatalogEntries(
   entries: CatalogEntryResult[],
-  filters: { kind: CatalogKindFilter; category: CatalogCategoryFilter; query: string }
+  filters: { kind: CatalogKindFilter; category: CatalogCategoryFilter; tag: CatalogTagFilter; query: string }
 ): CatalogEntryResult[] {
   const query = filters.query.trim().toLowerCase();
 
@@ -50,6 +50,9 @@ export function filterCatalogEntries(
       return false;
     }
     if (filters.category !== '__all__' && entry.category !== filters.category) {
+      return false;
+    }
+    if (filters.tag !== '__all__' && !entry.tags.includes(filters.tag)) {
       return false;
     }
     if (!query) {
@@ -123,4 +126,61 @@ export function describeCatalogFailures(failures: CatalogResult['failures']): st
     return null;
   }
   return failures.map((failure) => `${failure.sourceId}: ${failure.error}`).join(' · ');
+}
+
+/** Catalog sort dropdown: default relevance or one of the signal-based orderings. */
+export type CatalogSortFilter = 'relevance' | 'stars' | 'newest' | 'active';
+export const catalogSorts = ['relevance', 'stars', 'newest', 'active'] as const;
+
+export const CATALOG_SORT_LABELS = {
+  relevance: 'Relevance',
+  stars: 'Most starred',
+  newest: 'Recently added',
+  active: 'Recently updated'
+} as const satisfies Record<CatalogSortFilter, string>;
+
+export function parseCatalogSortParam(value: string | null): CatalogSortFilter {
+  return (catalogSorts as readonly string[]).includes(value ?? '') ? (value as CatalogSortFilter) : 'relevance';
+}
+
+/** Catalog tag dropdown: all tags or one tag already present on an entry. */
+export type CatalogTagFilter = string;
+
+export function parseCatalogTagParam(value: string | null): CatalogTagFilter {
+  return value && value.trim() ? value.trim() : '__all__';
+}
+
+/** Unique sorted tag list across the visible entries, for the theme/tag filter. */
+export function collectCatalogTags(entries: CatalogEntryResult[]): string[] {
+  const tags = new Set<string>();
+  for (const entry of entries) {
+    for (const tag of entry.tags) {
+      tags.add(tag);
+    }
+  }
+  return Array.from(tags).sort((a, b) => a.localeCompare(b));
+}
+
+/** Orders entries for display; signals absent on an entry sort it last within its group. */
+export function sortCatalogEntries(
+  entries: CatalogEntryResult[],
+  sort: CatalogSortFilter,
+  starsByRepo: Map<string, number>
+): CatalogEntryResult[] {
+  if (sort === 'relevance') {
+    return entries;
+  }
+  const score = (entry: CatalogEntryResult): number | null => {
+    switch (sort) {
+      case 'stars': {
+        const slug = parseGithubRepoSlug(entry.source.repo);
+        return (slug === null ? undefined : starsByRepo.get(slug)) ?? entry.stats?.stars ?? null;
+      }
+      case 'newest':
+        return entry.addedAt ? Date.parse(entry.addedAt) : null;
+      case 'active':
+        return entry.stats?.pushedAt ? Date.parse(entry.stats.pushedAt) : null;
+    }
+  };
+  return [...entries].sort((a, b) => (score(b) ?? -1) - (score(a) ?? -1));
 }

@@ -20,11 +20,18 @@ import {
   describeCatalogFailures,
   filterCatalogEntries,
   groupCatalogEntriesByKind,
+  collectCatalogTags,
   parseCatalogCategoryParam,
   parseCatalogKindParam,
+  parseCatalogSortParam,
+  parseCatalogTagParam,
+  sortCatalogEntries,
   type CatalogCategoryFilter,
-  type CatalogKindFilter
+  type CatalogKindFilter,
+  type CatalogSortFilter,
+  type CatalogTagFilter
 } from './catalog/catalog-helpers';
+import { useGithubStarsMap } from './catalog/use-github-stars';
 import { resolveKindMeta } from './library/asset-helpers';
 
 const PAGE_FRAME = 'flex h-[calc(100vh-2rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-3rem)]';
@@ -36,6 +43,8 @@ export function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const kind = parseCatalogKindParam(searchParams.get('kind'));
   const category = parseCatalogCategoryParam(searchParams.get('category'));
+  const tag = parseCatalogTagParam(searchParams.get('tag'));
+  const sort = parseCatalogSortParam(searchParams.get('sort'));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
@@ -103,12 +112,16 @@ export function CatalogPage() {
     }
   });
 
+  const repoUrls = useMemo(() => entries.map((entry) => entry.source.repo), [entries]);
+  const starsByRepo = useGithubStarsMap(repoUrls);
+  const tags = useMemo(() => collectCatalogTags(entries), [entries]);
   const filtered = useMemo(
-    () => filterCatalogEntries(entries, { kind, category, query: searchQuery }),
-    [entries, kind, category, searchQuery]
+    () => filterCatalogEntries(entries, { kind, category, tag, query: searchQuery }),
+    [entries, kind, category, tag, searchQuery]
   );
-  const grouped = useMemo(() => groupCatalogEntriesByKind(filtered), [filtered]);
-  const filterSignature = `${kind}|${category}|${searchQuery}`;
+  const sorted = useMemo(() => sortCatalogEntries(filtered, sort, starsByRepo), [filtered, sort, starsByRepo]);
+  const grouped = useMemo(() => groupCatalogEntriesByKind(sorted), [sorted]);
+  const filterSignature = `${kind}|${category}|${tag}|${sort}|${searchQuery}`;
   const [groupLimits, setGroupLimits] = useState<{ signature: string; limits: Record<string, number> }>({
     signature: filterSignature,
     limits: {}
@@ -125,9 +138,9 @@ export function CatalogPage() {
     });
   const selected = entries.find((entry) => catalogEntryKey(entry) === selectedKey) ?? null;
 
-  const setFilterParam = (key: 'kind' | 'category', value: string) => {
+  const setFilterParam = (key: 'kind' | 'category' | 'tag' | 'sort', value: string) => {
     const next = new URLSearchParams(searchParams);
-    if (value === '__all__') {
+    if (value === '__all__' || (key === 'sort' && value === 'relevance')) {
       next.delete(key);
     } else {
       next.set(key, value);
@@ -167,7 +180,12 @@ export function CatalogPage() {
       onKindChange={(value: CatalogKindFilter) => setFilterParam('kind', value)}
       onRefresh={() => refresh.mutate()}
       onSearchQueryChange={setSearchQuery}
+      onSortChange={(value: CatalogSortFilter) => setFilterParam('sort', value)}
+      onTagChange={(value: CatalogTagFilter) => setFilterParam('tag', value)}
       searchQuery={searchQuery}
+      sort={sort}
+      tag={tag}
+      tags={tags}
     />
   );
 

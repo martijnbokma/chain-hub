@@ -52,7 +52,16 @@ export const catalogEntrySchema = z.object({
   tags: z.array(z.string().min(1)).default([]),
   source: catalogEntrySourceSchema,
   /** Declared by the author; verified at install — skill bundles executable scripts. */
-  hasScripts: z.boolean().default(false)
+  hasScripts: z.boolean().default(false),
+  /** ISO date when the entry was added to the index; used for "recently added" sorting. */
+  addedAt: z.string().min(1).optional(),
+  /** Best-effort popularity/activity signals, refreshed when the index is generated. */
+  stats: z
+    .object({
+      stars: z.number().int().nonnegative().optional(),
+      pushedAt: z.string().min(1).optional()
+    })
+    .optional()
 });
 
 export const catalogIndexSchema = z.object({

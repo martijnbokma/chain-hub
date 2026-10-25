@@ -58,16 +58,16 @@ describe('catalog filters', () => {
   ];
 
   it('filters by kind, category, and query across name, description, author, and tags', () => {
-    expect(filterCatalogEntries(entries, { kind: 'agents', category: '__all__', query: '' }).map((e) => e.id)).toEqual([
+    expect(filterCatalogEntries(entries, { kind: 'agents', category: '__all__', tag: '__all__', query: '' }).map((e) => e.id)).toEqual([
       'reviewer'
     ]);
-    expect(filterCatalogEntries(entries, { kind: '__all__', category: 'devops', query: '' }).map((e) => e.id)).toEqual([
+    expect(filterCatalogEntries(entries, { kind: '__all__', category: 'devops', tag: '__all__', query: '' }).map((e) => e.id)).toEqual([
       'release'
     ]);
-    expect(filterCatalogEntries(entries, { kind: '__all__', category: '__all__', query: 'grace' }).map((e) => e.id)).toEqual([
+    expect(filterCatalogEntries(entries, { kind: '__all__', category: '__all__', tag: '__all__', query: 'grace' }).map((e) => e.id)).toEqual([
       'reviewer'
     ]);
-    expect(filterCatalogEntries(entries, { kind: '__all__', category: '__all__', query: 'QA' }).map((e) => e.id)).toEqual([
+    expect(filterCatalogEntries(entries, { kind: '__all__', category: '__all__', tag: '__all__', query: 'QA' }).map((e) => e.id)).toEqual([
       'reviewer'
     ]);
   });

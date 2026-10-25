@@ -10,10 +10,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import {
   CATALOG_CATEGORY_LABELS,
+  CATALOG_SORT_LABELS,
+  catalogSorts,
   parseCatalogCategoryParam,
   parseCatalogKindParam,
+  parseCatalogSortParam,
   type CatalogCategoryFilter,
-  type CatalogKindFilter
+  type CatalogKindFilter,
+  type CatalogSortFilter,
+  type CatalogTagFilter
 } from './catalog-helpers';
 
 interface CatalogToolbarProps {
@@ -21,10 +26,15 @@ interface CatalogToolbarProps {
   isCompact: boolean;
   kind: CatalogKindFilter;
   category: CatalogCategoryFilter;
+  tag: CatalogTagFilter;
+  tags: string[];
+  sort: CatalogSortFilter;
   searchQuery: string;
   isRefreshing: boolean;
   onKindChange: (value: CatalogKindFilter) => void;
   onCategoryChange: (value: CatalogCategoryFilter) => void;
+  onTagChange: (value: CatalogTagFilter) => void;
+  onSortChange: (value: CatalogSortFilter) => void;
   onSearchQueryChange: (value: string) => void;
   onRefresh: () => void;
 }
@@ -34,10 +44,15 @@ export function CatalogToolbar({
   isCompact,
   kind,
   category,
+  tag,
+  tags,
+  sort,
   searchQuery,
   isRefreshing,
   onKindChange,
   onCategoryChange,
+  onTagChange,
+  onSortChange,
   onSearchQueryChange,
   onRefresh
 }: CatalogToolbarProps) {
@@ -105,6 +120,33 @@ export function CatalogToolbar({
             {catalogCategories.map((value) => (
               <option key={value} value={value}>
                 {CATALOG_CATEGORY_LABELS[value]}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by tag"
+            className={cn('shrink-0', isCompact ? 'w-full' : 'w-full sm:w-44')}
+            onChange={(event) => onTagChange(event.target.value || '__all__')}
+            value={tag}
+          >
+            <option value="__all__">All tags</option>
+            {tags.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Sort catalog"
+            className={cn('shrink-0', isCompact ? 'w-full' : 'w-full sm:w-44')}
+            onChange={(event) => onSortChange(parseCatalogSortParam(event.target.value))}
+            value={sort}
+          >
+            {catalogSorts.map((value) => (
+              <option key={value} value={value}>
+                {CATALOG_SORT_LABELS[value]}
               </option>
             ))}
           </Select>
