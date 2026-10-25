@@ -3,11 +3,13 @@ import { docPages } from './nav';
 
 // Raw MDX text for the client-side index — the corpus is ~1k lines, so an
 // eager in-memory index beats any server or dependency here.
-const rawModules = import.meta.glob('../content/*.mdx', {
+const rawModules = import.meta.glob<string | { default: string }>('../content/*.mdx', {
   query: '?raw',
-  import: 'default',
   eager: true,
-}) as Record<string, string>;
+});
+
+const rawText = (mod: string | { default: string }): string =>
+  typeof mod === 'string' ? mod : mod.default;
 
 type Section = {
   path: string;
@@ -40,11 +42,11 @@ function toPlainText(markdown: string): string {
     .trim();
 }
 
-const index: Section[] = Object.entries(rawModules).flatMap(([filePath, raw]) => {
+const index: Section[] = Object.entries(rawModules).flatMap(([filePath, mod]) => {
   const path = pathFromFile(filePath);
   const page = docPages.find((p) => p.path === path);
   const pageTitle = page?.title ?? path;
-  const body = raw.replace(/^---[\s\S]*?---/, '');
+  const body = rawText(mod).replace(/^---[\s\S]*?---/, '');
 
   // Split into sections at h2 boundaries; the part before the first h2 is
   // the page intro.
