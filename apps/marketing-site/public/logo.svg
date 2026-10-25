@@ -1,15 +1,2 @@
-<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <filter id="ch-ambient-glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#f97316" flood-opacity="0.5" />
-    </filter>
-  </defs>
-  <g filter="url(#ch-ambient-glow)">
-    <g transform="translate(38, 38) rotate(45)">
-      <rect x="-6" y="-16" width="12" height="32" rx="6" fill="none" stroke="#f97316" stroke-width="4.5" />
-    </g>
-    <g transform="translate(22, 22) rotate(45)">
-      <rect x="-6" y="-16" width="12" height="32" rx="6" fill="none" stroke="#f97316" stroke-width="4.5" />
-    </g>
-  </g>
-</svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"  role="img" aria-label="Chain Hub"><path d="M46.14 17.86A20 20 0 1 0 46.14 46.14" fill="none" stroke="#F2F0EB" stroke-width="8" stroke-linecap="round"/><line x1="32" y1="32" x2="51" y2="32" stroke="#F2F0EB" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="32" r="7" fill="#F2F0EB"/><circle cx="55" cy="32" r="5" fill="#FF8A5B"/></svg>

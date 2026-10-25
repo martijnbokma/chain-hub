@@ -8,9 +8,10 @@ interface ChainHubLogoProps {
 
 /**
  * Chain Hub Official Brand Logo
- * 
- * Design: Two parallel unlinked 45° stadium capsules ascending from bottom-right to top-left,
- * rendered in solid amber (#f97316) with ambient diffusion glow.
+ *
+ * Design: open ring (broken circle) with a node at its center and a signal line
+ * out to an accent dot. Ink renders in currentColor so it follows the theme;
+ * the accent dot uses the primary brand token.
  */
 export function ChainHubLogo({
   className = "h-8 w-auto",
@@ -20,104 +21,71 @@ export function ChainHubLogo({
   if (!showText) {
     return (
       <svg
-        viewBox="0 0 60 60"
+        viewBox="0 0 64 64"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={className}
         style={size ? { width: size, height: size } : undefined}
       >
-        <defs>
-          <filter id="ch-icon-glow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#f97316" floodOpacity="0.4" />
-          </filter>
-        </defs>
-
-        <g filter="url(#ch-icon-glow)">
-          {/* Lower Right Stadium Link */}
-          <g transform="translate(38, 38) rotate(45)">
-            <rect
-              x="-6"
-              y="-16"
-              width="12"
-              height="32"
-              rx="6"
-              fill="none"
-              stroke="#f97316"
-              strokeWidth="4.5"
-            />
-          </g>
-          {/* Upper Left Stadium Link */}
-          <g transform="translate(22, 22) rotate(45)">
-            <rect
-              x="-6"
-              y="-16"
-              width="12"
-              height="32"
-              rx="6"
-              fill="none"
-              stroke="#f97316"
-              strokeWidth="4.5"
-            />
-          </g>
-        </g>
+        <path
+          d="M46.14 17.86A20 20 0 1 0 46.14 46.14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+        <line
+          x1="32"
+          y1="32"
+          x2="51"
+          y2="32"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <circle cx="32" cy="32" r="7" fill="currentColor" />
+        <circle cx="55" cy="32" r="5" className="fill-primary" />
       </svg>
     );
   }
 
   return (
     <svg
-      viewBox="0 0 220 50"
+      viewBox="0 0 356 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={size ? { height: size, width: 'auto' } : undefined}
     >
-      <defs>
-        <filter id="ch-logo-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#f97316" floodOpacity="0.4" />
-        </filter>
-      </defs>
-
-      {/* Emblem: Two parallel unlinked 45° stadium capsules */}
-      <g transform="translate(0, -5)" filter="url(#ch-logo-glow)">
-        <g transform="translate(32, 38) rotate(45)">
-          <rect
-            x="-5.5"
-            y="-14"
-            width="11"
-            height="28"
-            rx="5.5"
-            fill="none"
-            stroke="#f97316"
-            strokeWidth="4"
-          />
-        </g>
-        <g transform="translate(18, 24) rotate(45)">
-          <rect
-            x="-5.5"
-            y="-14"
-            width="11"
-            height="28"
-            rx="5.5"
-            fill="none"
-            stroke="#f97316"
-            strokeWidth="4"
-          />
-        </g>
+      <path
+        d="M46.14 17.86A20 20 0 1 0 46.14 46.14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="32"
+        y1="32"
+        x2="51"
+        y2="32"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      <circle cx="32" cy="32" r="7" fill="currentColor" />
+      <circle cx="55" cy="32" r="5" className="fill-primary" />
+      <g transform="translate(86 2)">
+        <path
+          d="M37.14 15.86A20 20 0 1 0 37.14 44.14M48 10V50M48 38A12 12 0 0 1 72 38V50M106 26V50M82 38A12 12 0 1 0 106 38A12 12 0 1 0 82 38M116 26V50M126 26V50M126 38A12 12 0 0 1 150 38V50M170 10V50M196 10V50M170 30H196M206 26V38A12 12 0 0 0 230 38M230 26V50M240 10V50M240 38A12 12 0 1 1 264 38A12 12 0 1 1 240 38"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="116" cy="14" r="4" className="fill-primary" />
       </g>
-
-      {/* Wordmark */}
-      <text
-        x="54"
-        y="32"
-        fontFamily="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-        fontSize="21"
-        fontWeight="600"
-        fill="#ffffff"
-        letterSpacing="-0.025em"
-      >
-        Chain Hub
-      </text>
     </svg>
   );
 }
