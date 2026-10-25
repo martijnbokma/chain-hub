@@ -62,7 +62,7 @@ export function SkillRelinkDialog({ skillName, onOpenChange }: SkillRelinkDialog
   });
 
   const unlink = useMutation({
-    mutationFn: async () => libraryApi.unlinkSkill(skillName ?? ''),
+    mutationFn: async () => libraryApi.unlinkSkill(skillName ?? '', { reason: 'source-missing' }),
     onSuccess: () => {
       invalidateAfterChange();
       toast.success(`${skillName} is now a local, editable skill`);

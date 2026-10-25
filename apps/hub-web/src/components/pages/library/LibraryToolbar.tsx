@@ -2,11 +2,30 @@ import { Search, Plus, Sparkles, Download, RefreshCw, ScanSearch } from 'lucide-
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { FilterKind, OwnershipFilter } from '@/types';
+
+export interface SkillUpdateItem {
+  name: string;
+  currentSha?: string | null;
+  latestSha?: string | null;
+}
+
+function shortSha(sha: string | null | undefined): string {
+  return sha ? sha.slice(0, 7) : '…';
+}
 
 interface LibraryToolbarProps {
   assetCount: number;
@@ -25,8 +44,9 @@ interface LibraryToolbarProps {
   onAnalyze: () => void;
   isAnalyzing: boolean;
   onUpdateSkills: () => void;
+  onUpdateSkill: (name: string) => void;
   isUpdatingSkills: boolean;
-  skillUpdateCount?: number;
+  skillUpdateItems?: SkillUpdateItem[];
 }
 
 export function LibraryToolbar({
@@ -46,10 +66,12 @@ export function LibraryToolbar({
   onAnalyze,
   isAnalyzing,
   onUpdateSkills,
+  onUpdateSkill,
   isUpdatingSkills,
-  skillUpdateCount = 0
+  skillUpdateItems = []
 }: LibraryToolbarProps) {
   const showSkillActions = filterKind === 'skills';
+  const skillUpdateCount = skillUpdateItems.length;
 
   return (
     <div className="grid min-w-0 shrink-0 gap-3 pb-4">
@@ -98,43 +120,50 @@ export function LibraryToolbar({
                 </Tooltip>
 
                 {skillUpdateCount > 0 ? (
-                  isCompact ? (
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        isCompact ? (
                           <Button
                             aria-label={
-                              isUpdatingSkills
-                                ? 'Updating skills'
-                                : `Update ${skillUpdateCount} skills`
+                              isUpdatingSkills ? 'Updating skills' : `Update ${skillUpdateCount} skills`
                             }
                             disabled={isUpdatingSkills}
-                            onClick={onUpdateSkills}
                             size="sm"
                             variant="secondary"
                           >
-                            <RefreshCw
-                              className={cn('size-4', isUpdatingSkills && 'animate-spin')}
-                            />
+                            <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
                             <span className="tabular-nums">{skillUpdateCount}</span>
                           </Button>
-                        }
-                      />
-                      <TooltipContent>
-                        {isUpdatingSkills ? 'Updating…' : `Update ${skillUpdateCount} skills`}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <Button
-                      disabled={isUpdatingSkills}
-                      onClick={onUpdateSkills}
-                      size="sm"
-                      variant="secondary"
-                    >
-                      <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
-                      {isUpdatingSkills ? 'Updating…' : `Update (${skillUpdateCount})`}
-                    </Button>
-                  )
+                        ) : (
+                          <Button disabled={isUpdatingSkills} size="sm" variant="secondary">
+                            <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+                            {isUpdatingSkills ? 'Updating…' : `Update (${skillUpdateCount})`}
+                          </Button>
+                        )
+                      }
+                    />
+                    <DropdownMenuContent align="end" className="w-80">
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>
+                          {skillUpdateCount} update{skillUpdateCount === 1 ? '' : 's'} available
+                        </DropdownMenuLabel>
+                        {skillUpdateItems.map((item) => (
+                        <DropdownMenuItem key={item.name} onClick={() => onUpdateSkill(item.name)}>
+                          <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                          <span className="ml-auto shrink-0 font-mono text-2xs tabular-nums text-muted-foreground">
+                            {shortSha(item.currentSha)} → {shortSha(item.latestSha)}
+                          </span>
+                        </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={onUpdateSkills}>
+                        <RefreshCw />
+                        Update all ({skillUpdateCount})
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger

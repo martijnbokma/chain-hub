@@ -594,10 +594,29 @@ export function LibraryPage() {
     return byName;
   }, [skillUpdateCheck.data, library.data]);
 
-  const skillUpdateCount = useMemo(
-    () => Array.from(skillUpdates.values()).filter(Boolean).length,
-    [skillUpdates]
-  );
+  // Rich list for the update popover: live check results first, persisted lock flags as fallback.
+  const skillUpdateItems = useMemo(() => {
+    const items = new Map<string, { name: string; currentSha?: string | null; latestSha?: string | null }>();
+    for (const item of skillUpdateCheck.data?.results ?? []) {
+      if (item.status === 'update_available') {
+        items.set(item.name, {
+          name: item.name,
+          currentSha: item.currentSha ?? null,
+          latestSha: item.latestSha ?? null
+        });
+      }
+    }
+    for (const asset of library.data ?? []) {
+      if (asset.kind === 'skills' && !items.has(asset.name) && hasSkillUpdate(asset.provenance)) {
+        items.set(asset.name, {
+          name: asset.name,
+          currentSha: asset.provenance?.commitSha ?? null,
+          latestSha: asset.provenance?.latestSha ?? null
+        });
+      }
+    }
+    return Array.from(items.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [skillUpdateCheck.data, library.data]);
 
   const forkTakenNames = useMemo(
     () =>
@@ -707,11 +726,12 @@ export function LibraryPage() {
       onOwnershipChange={setOwnershipSynced}
       onSearchQueryChange={setSearchQuery}
       onUpdateSkills={() => updateSkills.mutate(undefined)}
+      onUpdateSkill={(name) => updateSkills.mutate(name)}
       onViewChange={setView}
       ownership={ownership}
       reviewOpenCount={analysisReport.data?.items.filter((item) => item.status === 'open').length ?? 0}
       searchQuery={searchQuery}
-      skillUpdateCount={skillUpdateCount}
+      skillUpdateItems={skillUpdateItems}
       view={view}
     />
   );

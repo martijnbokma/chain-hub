@@ -135,8 +135,8 @@ export const libraryApi = {
     getJson<SkillUpstreamDirsResult>(`/api/library/skills/${encodeURIComponent(name)}/upstream-dirs`),
   relinkSkill: (name: string, subdir: string) =>
     sendJson<InstallSkillResult>(`/api/library/skills/${encodeURIComponent(name)}/relink`, 'POST', { subdir }),
-  unlinkSkill: (name: string) =>
-    sendJson<{ ok: true }>(`/api/library/skills/${encodeURIComponent(name)}/unlink`, 'POST'),
+  unlinkSkill: (name: string, options: { reason?: 'source-missing' | 'manual' } = {}) =>
+    sendJson<{ ok: true }>(`/api/library/skills/${encodeURIComponent(name)}/unlink`, 'POST', options),
   forkSkill: (data: { kind?: AssetKind; name: string; as?: string }) =>
     sendJson<AssetDetail>('/api/library/skills/fork', 'POST', data),
   getSkillFiles: (name: string) =>

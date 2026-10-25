@@ -20,6 +20,7 @@ export function AssetCard({ asset, selected, compact = false, onSelect, updateAv
   const upstreamOwned = isUpstreamOwnedSkill(asset.provenance ?? null);
   const hasCompatError = (asset.compatIssues ?? []).some((issue) => issue.severity === 'error');
   const hasSourceIssue = Boolean(asset.provenance?.lastCheckError || asset.provenance?.lastUpdateError);
+  const isUnlinked = Boolean(asset.provenance?.unlinkedAt);
 
   return (
     <button
@@ -53,6 +54,11 @@ export function AssetCard({ asset, selected, compact = false, onSelect, updateAv
             {updateAvailable ? <Badge variant="accent">Update available</Badge> : null}
             {hasCompatError ? <Badge variant="warning">Missing description</Badge> : null}
             {hasSourceIssue ? <Badge variant="warning">Source issue</Badge> : null}
+            {isUnlinked ? (
+              <Badge variant="warning">
+                {asset.provenance?.unlinkedReason === 'source-missing' ? 'Source gone' : 'Unlinked'}
+              </Badge>
+            ) : null}
           </div>
           <p className="truncate text-xs text-muted-foreground" title={asset.relativePath}>
             {asset.relativePath}

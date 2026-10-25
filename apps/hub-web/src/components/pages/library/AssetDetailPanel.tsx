@@ -419,6 +419,11 @@ export function AssetDetailPanel({
                 <Badge variant="default">{formatSkillSourceType(provenance)}</Badge>
                 {isUpstreamSkill ? <Badge variant="default">Upstream-owned</Badge> : null}
                 {updateAvailable ? <Badge variant="accent">Update available</Badge> : null}
+                {provenance?.unlinkedAt ? (
+                  <Badge variant="warning">
+                    {provenance.unlinkedReason === 'source-missing' ? 'Source gone' : 'Unlinked'}
+                  </Badge>
+                ) : null}
               </div>
               <p className="mt-1 break-all font-mono leading-5 text-foreground/80">
                 {formatSkillSource(provenance)}
@@ -438,6 +443,14 @@ export function AssetDetailPanel({
               ) : null}
               {provenance?.lastCheckedAt ? (
                 <p className="mt-1">Checked · {new Date(provenance.lastCheckedAt).toLocaleString()}</p>
+              ) : null}
+              {provenance?.unlinkedAt ? (
+                <p className="mt-2 leading-5 text-foreground/80">
+                  Unlinked · {new Date(provenance.unlinkedAt).toLocaleString()}
+                  {provenance.unlinkedReason === 'source-missing'
+                    ? ' — this source no longer exists. The copy below is now editable; reinstall from a new source to track it again.'
+                    : ' — detached from source. The copy below is now editable; reinstall to track it again.'}
+                </p>
               ) : null}
               {provenance?.lastCheckError || provenance?.lastUpdateError ? (
                 <div className="mt-2 rounded-lg border border-destructive/20 bg-destructive/5 px-2.5 py-2">
