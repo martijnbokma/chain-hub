@@ -336,3 +336,32 @@
   }
 }
 
+
+/* Sonner toasts — Signaal surfaces (sonner injects its stylesheet at runtime,
+   so these rules carry an extra `body` ancestor to outrank the defaults). */
+body [data-sonner-toaster] {
+  font-family: var(--font-sans);
+  --border-radius: 12px;
+}
+
+body [data-sonner-toaster][data-sonner-theme="light"],
+body [data-sonner-toaster][data-sonner-theme="dark"] {
+  --normal-bg: var(--popover);
+  --normal-border: var(--border);
+  --normal-text: var(--popover-foreground);
+}
+
+body [data-sonner-toast][data-styled="true"] {
+  box-shadow: var(--elevation-popover);
+}
+
+/* The 16px icon should sit on the title's first line (13px × 1.5), not centered
+   against a toast whose description wraps below it. */
+body [data-sonner-toast][data-styled="true"] [data-icon] {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+body [data-sonner-toast][data-styled="true"]:not([data-rich-colors="true"]) [data-description] {
+  color: var(--muted-foreground);
+}

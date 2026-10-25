@@ -23,7 +23,7 @@ function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-      <Toaster position="top-right" richColors theme={resolved} />
+      <Toaster position="bottom-right" richColors closeButton theme={resolved} />
     </QueryClientProvider>
   );
 }
