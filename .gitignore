@@ -34,3 +34,6 @@ apps/hub-web/test-results/
 .claude/settings.local.json
 .cursor/hooks/state/
 .impeccable/
+
+# Private notes clone (martijnbokma/chain-hub-notes, optional)
+notes/
