@@ -3,6 +3,7 @@ import type {
   AnalysisReport,
   SaveAnalysisInput,
   UpdateAnalysisItemInput,
+  AssetKind,
   AssetRecord,
   AssetDetail,
   DiscoveredAsset,
@@ -120,7 +121,7 @@ export const libraryApi = {
     sendJson<UpdateSkillsResult>('/api/library/skills/update', 'POST', data),
   checkSkillUpdates: (options: { force?: boolean } = {}) =>
     getJson<CheckSkillUpdatesResult>(`/api/library/skills/check-updates${options.force ? '?force=true' : ''}`),
-  forkSkill: (data: { name: string; as?: string }) =>
+  forkSkill: (data: { kind?: AssetKind; name: string; as?: string }) =>
     sendJson<AssetDetail>('/api/library/skills/fork', 'POST', data),
   getSkillFiles: (name: string) =>
     getJson<{ files: SkillFileEntry[] }>(`/api/library/skills/${encodeURIComponent(name)}/files`),

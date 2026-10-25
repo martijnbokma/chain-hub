@@ -9,6 +9,7 @@ export {
   renameAsset,
   convertAssetKind,
   deleteAsset,
+  forkHubAsset,
   validateHub,
   scanAssets,
   loadAllAssetDetails,
@@ -34,6 +35,7 @@ export {
   readInstallLock,
   mutateInstallLock,
   installLockKey,
+  removeInstallLockEntry,
   type InstallLockFile
 } from "./install-lock.js";
 

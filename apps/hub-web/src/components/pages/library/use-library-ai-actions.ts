@@ -182,7 +182,7 @@ export function useLibraryAiActions(options: {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const forked = await libraryApi.forkSkill({ name: selected.name });
+      const forked = await libraryApi.forkSkill({ kind: selected.kind, name: selected.name });
 
       const content =
         mode === 'heading'
@@ -212,7 +212,7 @@ export function useLibraryAiActions(options: {
       setSelected({ kind: forked.kind, name: forked.name });
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success(`Forked to skills/${forked.name} — description drafted, review and save`);
+      toast.success(`Forked to ${forked.kind}/${forked.name} — description drafted, review and save`);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Unable to fork and fix description');

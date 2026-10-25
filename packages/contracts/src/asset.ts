@@ -151,6 +151,8 @@ export const updateSkillsInputSchema = z.object({
 });
 
 export const forkSkillInputSchema = z.object({
+  /** Kind of the upstream asset to fork; defaults to `skills`. */
+  kind: assetKindSchema.optional(),
   name: z.string().min(1),
   as: z.string().min(1).optional()
 });

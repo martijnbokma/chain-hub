@@ -16,6 +16,7 @@ import type {
 import {
   checkSkillUpdatesFromLock,
   detectAgentsSkillsDrift,
+  forkHubAsset,
   forkSkillFromHub,
   getAsset,
   initializeHub,
@@ -135,8 +136,12 @@ export async function forkLibrarySkill(
   input: ForkSkillInput
 ): Promise<AssetDetail> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const asset = await forkSkillFromHub(chainHome, input, readSkillAsset);
-  await syncAssetToEditors(chainHome, "skills", asset.name, asset);
+  const kind = input.kind ?? "skills";
+  const asset =
+    kind === "skills"
+      ? await forkSkillFromHub(chainHome, input, readSkillAsset)
+      : await forkHubAsset(chainHome, kind, input.name, input.as);
+  await syncAssetToEditors(chainHome, kind, asset.name, asset);
   return asset;
 }
 

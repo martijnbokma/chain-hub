@@ -62,9 +62,15 @@ describe("isUpstreamOwnedSkill", () => {
 });
 
 describe("isEditableHubAsset", () => {
-  it("marks non-skills as editable", () => {
+  it("marks non-skills without a lock entry as editable", () => {
     expect(isEditableHubAsset({ kind: "prompts" })).toBe(true);
     expect(isEditableHubAsset({ kind: "agents", provenance: null })).toBe(true);
+  });
+
+  it("marks upstream-locked agents and workflows as not editable", () => {
+    const upstream = lockEntry({ sourceType: "git", source: "https://github.com/a/b" });
+    expect(isEditableHubAsset({ kind: "agents", provenance: upstream })).toBe(false);
+    expect(isEditableHubAsset({ kind: "workflows", provenance: upstream })).toBe(false);
   });
 
   it("marks local and uploaded skills as editable", () => {

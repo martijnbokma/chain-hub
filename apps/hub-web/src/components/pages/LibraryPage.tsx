@@ -384,18 +384,18 @@ export function LibraryPage() {
   });
 
   const forkSkill = useMutation({
-    mutationFn: async (name: string) => {
-      return libraryApi.forkSkill({ name });
+    mutationFn: async (target: { kind: AssetKind; name: string }) => {
+      return libraryApi.forkSkill(target);
     },
     onSuccess: (asset) => {
-      setSelected({ kind: 'skills', name: asset.name });
+      setSelected({ kind: asset.kind, name: asset.name });
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['library', 'detail', asset.kind, asset.name] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success(`Forked to skills/${asset.name} — safe to edit`);
+      toast.success(`Forked to ${asset.kind}/${asset.name} — safe to edit`);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Unable to fork skill');
+      toast.error(error.message || 'Unable to fork asset');
     }
   });
 
@@ -531,9 +531,66 @@ export function LibraryPage() {
     );
   }, [analysis.status, analysis.cancelled, analysis.entries, analyzeOpen]);
 
-  const isUpstreamSkill =
-    selected?.kind === 'skills' && isUpstreamOwnedSkill(selectedAsset.data?.provenance ?? null);
+  const isUpstreamSkill = Boolean(selected) && isUpstreamOwnedSkill(selectedAsset.data?.provenance ?? null);
   const upstreamBrowseUrl = resolveSkillUpstreamBrowseUrl(selectedAsset.data?.provenance ?? null);
+
+  // Live check results win over the persisted lock flag, which may predate the check.
+  const skillUpdates = useMemo(() => {
+    const byName = new Map<string, boolean>();
+    for (const item of skillUpdateCheck.data?.results ?? []) {
+      if (item.status === 'update_available' || item.status === 'up_to_date') {
+        byName.set(item.name, item.status === 'update_available');
+      }
+    }
+    for (const asset of library.data ?? []) {
+      if (asset.kind === 'skills' && !byName.has(asset.name)) {
+        byName.set(asset.name, hasSkillUpdate(asset.provenance));
+      }
+    }
+    return byName;
+  }, [skillUpdateCheck.data, library.data]);
+
+  const skillUpdateCount = useMemo(
+    () => Array.from(skillUpdates.values()).filter(Boolean).length,
+    [skillUpdates]
+  );
+
+  // Surface each distinct check outcome once; refetches of identical results stay silent.
+  const checkToastSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    const data = skillUpdateCheck.data;
+    if (!data) {
+      return;
+    }
+    const signature = data.results
+      .map((item) => `${item.name}:${item.status}:${item.latestSha ?? ''}`)
+      .join('|');
+    if (checkToastSignatureRef.current === signature) {
+      return;
+    }
+    checkToastSignatureRef.current = signature;
+
+    const updates = data.results.filter((item) => item.status === 'update_available');
+    const failed = data.results.filter((item) => item.status === 'failed');
+
+    if (updates.length > 0) {
+      toast.info(
+        updates.length === 1 ? '1 skill update available' : `${updates.length} skill updates available`,
+        { description: updates.map((item) => item.name).join(', '), duration: 6000 }
+      );
+    }
+    if (failed.length > 0) {
+      toast.warning(
+        failed.length === 1 ? 'Could not check 1 skill' : `Could not check ${failed.length} skills`,
+        {
+          description: failed
+            .map((item) => `${item.name}${item.error ? `: ${item.error}` : ''}`)
+            .join('\n'),
+          duration: 8000
+        }
+      );
+    }
+  }, [skillUpdateCheck.data]);
 
   const filteredAssets = useMemo(
     () => filterLibraryAssets(library.data ?? [], filterKind, searchQuery, ownership),
@@ -764,7 +821,7 @@ export function LibraryPage() {
               onConvertKind={(toKind) => convertKind.mutate(toKind)}
               onEditorChange={setEditorContent}
               onFixDescriptionWithAi={() => fixDescriptionWithAi.mutate()}
-              onFork={() => forkSkill.mutate(selected.name)}
+              onFork={() => forkSkill.mutate({ kind: selected.kind, name: selected.name })}
               onForkAndFixHeading={() => forkAndFixDescription.mutate('heading')}
               onForkAndFixWithAi={() => forkAndFixDescription.mutate('ai')}
               onImproveAsset={() => improveAsset.mutate()}

@@ -402,12 +402,13 @@ export function AssetDetailPanel({
               )}
             </div>
           ) : null}
-          {selected.kind === 'skills' ? (
+          {selected.kind === 'skills' || provenance ? (
             <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-foreground">Source</span>
                 <Badge variant="default">{formatSkillSourceType(provenance)}</Badge>
                 {isUpstreamSkill ? <Badge variant="default">Upstream-owned</Badge> : null}
+                {updateAvailable ? <Badge variant="accent">Update available</Badge> : null}
               </div>
               <p className="mt-1 break-all font-mono leading-5 text-foreground/80">
                 {formatSkillSource(provenance)}

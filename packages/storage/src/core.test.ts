@@ -8,8 +8,11 @@ import {
   assertSafeAssetName,
   convertAssetKind,
   createAsset,
+  deleteAsset,
+  forkHubAsset,
   getAsset,
   initializeHub,
+  listAssets,
   renameAsset,
   scanAssets,
   updateAsset
@@ -147,5 +150,74 @@ describe("convertAssetKind", () => {
     await expect(convertAssetKind(hub, "skills", "demo", "rules")).rejects.toThrow(
       "Skill skills/demo is upstream-owned. Fork it to customize, then convert the fork."
     );
+  });
+});
+
+describe("upstream-owned agents and workflows", () => {
+  const AGENT = "---\nname: qa-agent\ndescription: QA agent.\n---\n\n# QA\n";
+
+  async function lockAssetAsUpstream(hub: string, kind: string, name: string): Promise<void> {
+    const now = new Date().toISOString();
+    const lock = {
+      version: 1,
+      entries: {
+        [`${kind}/${name}`]: {
+          sourceType: "git",
+          source: "https://example.com/repo.git",
+          subdir: null,
+          installedAt: now,
+          updatedAt: now,
+          catalogId: "default"
+        }
+      }
+    };
+    await fs.writeFile(path.join(hub, "system", "assets-lock.json"), JSON.stringify(lock), "utf8");
+  }
+
+  it("exposes assets-lock provenance on list and detail", async () => {
+    const hub = await makeTmpHub();
+    await createAsset(hub, { kind: "agents", name: "qa-agent", content: AGENT });
+    await lockAssetAsUpstream(hub, "agents", "qa-agent");
+
+    expect((await getAsset(hub, "agents", "qa-agent")).provenance?.catalogId).toBe("default");
+    const listed = (await listAssets(hub, "agents")).find((asset) => asset.name === "qa-agent");
+    expect(listed?.provenance?.source).toBe("https://example.com/repo.git");
+  });
+
+  it("blocks edit, rename and convert of an upstream-owned agent", async () => {
+    const hub = await makeTmpHub();
+    await createAsset(hub, { kind: "agents", name: "qa-agent", content: AGENT });
+    await lockAssetAsUpstream(hub, "agents", "qa-agent");
+
+    await expect(updateAsset(hub, "agents", "qa-agent", AGENT)).rejects.toThrow(
+      "Asset agents/qa-agent is upstream-owned. Fork it to customize, or edits will be lost on update."
+    );
+    await expect(renameAsset(hub, "agents", "qa-agent", "other")).rejects.toThrow(/upstream-owned/);
+    await expect(convertAssetKind(hub, "agents", "qa-agent", "rules")).rejects.toThrow(/upstream-owned/);
+  });
+
+  it("forks an upstream-owned workflow into an editable copy", async () => {
+    const hub = await makeTmpHub();
+    await createAsset(hub, { kind: "workflows", name: "release", content: "# Release\n" });
+    await lockAssetAsUpstream(hub, "workflows", "release");
+
+    const forked = await forkHubAsset(hub, "workflows", "release");
+
+    expect(forked.name).toBe("release-local");
+    expect(forked.provenance).toBeNull();
+    expect(forked.content).toContain("# Release");
+    await expect(updateAsset(hub, "workflows", "release-local", "# Mine\n")).resolves.toBeTruthy();
+    await expect(forkHubAsset(hub, "workflows", "release-local")).rejects.toThrow(/not upstream-owned/);
+  });
+
+  it("drops the lock entry when an upstream agent is deleted", async () => {
+    const hub = await makeTmpHub();
+    await createAsset(hub, { kind: "agents", name: "qa-agent", content: AGENT });
+    await lockAssetAsUpstream(hub, "agents", "qa-agent");
+
+    await deleteAsset(hub, "agents", "qa-agent");
+    await createAsset(hub, { kind: "agents", name: "qa-agent", content: AGENT });
+
+    expect((await getAsset(hub, "agents", "qa-agent")).provenance).toBeNull();
   });
 });

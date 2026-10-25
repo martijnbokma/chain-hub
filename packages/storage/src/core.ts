@@ -20,7 +20,8 @@ import {
 } from "@chain-hub/contracts";
 
 import { seedLearningsRule, seedWelcomeSkill } from "./seed.js";
-import { CORRUPT_LOCK_PREFIX, readSkillsLock, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
+import { CORRUPT_ASSETS_LOCK_PREFIX, installLockKey, readInstallLock, removeInstallLockEntry } from "./install-lock.js";
+import { CORRUPT_LOCK_PREFIX, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
 import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
 
 function prepareAssetContent(kind: AssetKind, name: string, content: string): string {
@@ -217,7 +218,7 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
   await initializeHub(chainHome);
 
   const records = (await scanAssets(chainHome)).filter((record) => !kind || record.kind === kind);
-  const skillsLock = await readSkillsLock(chainHome);
+  const installLock = await readInstallLock(chainHome);
 
   return await Promise.all(
     records.map(async (asset) => {
@@ -233,15 +234,11 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
         author = null;
       }
 
-      if (asset.kind !== "skills") {
-        return { ...asset, author, compatIssues };
-      }
-
       return {
         ...asset,
         author,
         compatIssues,
-        provenance: skillsLock.skills[asset.name] ?? null
+        provenance: installLock.entries[installLockKey(asset.kind, asset.name)] ?? null
       };
     })
   );
@@ -252,7 +249,7 @@ export async function loadAllAssetDetails(chainHomeInput?: string): Promise<Asse
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
-  const skillsLock = await readSkillsLock(chainHome);
+  const installLock = await readInstallLock(chainHome);
 
   return Promise.all(
     (await scanAssets(chainHome)).map(async (record) => {
@@ -262,7 +259,7 @@ export async function loadAllAssetDetails(chainHomeInput?: string): Promise<Asse
         content,
         author: extractAssetAuthor(content),
         compatIssues: listAssetCompatIssues(record.kind, content),
-        provenance: record.kind === "skills" ? (skillsLock.skills[record.name] ?? null) : null
+        provenance: installLock.entries[installLockKey(record.kind, record.name)] ?? null
       };
     })
   );
@@ -278,7 +275,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
   }
   const content = await fs.readFile(filePath, "utf8");
   const stats = await fs.stat(filePath);
-  const provenance = kind === "skills" ? ((await readSkillsLock(chainHome)).skills[name] ?? null) : null;
+  const provenance = await readAssetProvenance(chainHome, kind, name);
 
   return {
     id: toAssetId(kind, name),
@@ -293,12 +290,58 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
   };
 }
 
-/** Upstream-locked skills are replaced on `skill update`, so hub edits to them would be lost. */
-async function assertEditableSkill(chainHome: string, name: string, advice: string): Promise<void> {
-  const provenance = (await readSkillsLock(chainHome)).skills[name] ?? null;
-  if (isUpstreamOwnedSkill(provenance)) {
-    throw new ConflictError(`Skill skills/${name} is upstream-owned. ${advice}`);
+async function readAssetProvenance(chainHome: string, kind: AssetKind, name: string) {
+  return (await readInstallLock(chainHome)).entries[installLockKey(kind, name)] ?? null;
+}
+
+/** Upstream-locked assets (any kind) are replaced on update, so hub edits to them would be lost. */
+async function assertEditableAsset(chainHome: string, kind: AssetKind, name: string, advice: string): Promise<void> {
+  if (isUpstreamOwnedSkill(await readAssetProvenance(chainHome, kind, name))) {
+    const label = kind === "skills" ? "Skill" : "Asset";
+    throw new ConflictError(`${label} ${kind}/${name} is upstream-owned. ${advice}`);
   }
+}
+
+/**
+ * Copy an upstream-owned single-file asset (agents, workflows, …) to an editable local
+ * asset without a lock entry. Skills use `forkSkillFromHub` (directory trees).
+ */
+export async function forkHubAsset(
+  chainHomeInput: string | undefined,
+  kind: AssetKind,
+  nameInput: string,
+  asInput?: string
+): Promise<AssetDetail> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+
+  const name = assertSafeAssetName(nameInput);
+  const fromPath = assetFilePath(chainHome, kind, name);
+  if (!(await pathExists(fromPath))) {
+    throw new NotFoundError(`Asset not found: ${kind}/${name}`);
+  }
+  if (!isUpstreamOwnedSkill(await readAssetProvenance(chainHome, kind, name))) {
+    throw new ConflictError(`Asset is not upstream-owned (nothing to fork): ${kind}/${name}`);
+  }
+
+  const targetName = normalizeAssetName(asInput ?? `${name}-local`);
+  if (!targetName) {
+    throw new InvalidInputError("Fork name cannot be empty");
+  }
+  if (targetName === name) {
+    throw new ConflictError(`Fork name must differ from the upstream ${kind} name`);
+  }
+  const toPath = assetFilePath(chainHome, kind, targetName);
+  if (await pathExists(toPath)) {
+    throw new ConflictError(`Asset already exists: ${kind}/${targetName}`);
+  }
+
+  const content = await fs.readFile(fromPath, "utf8");
+  await ensureDir(path.dirname(toPath));
+  await fs.writeFile(toPath, prepareAssetContent(kind, targetName, content), "utf8");
+  await removeInstallLockEntry(chainHome, kind, targetName);
+
+  return getAsset(chainHome, kind, targetName);
 }
 
 /**
@@ -358,9 +401,7 @@ export async function updateAsset(
     throw new NotFoundError(`Asset not found: ${kind}/${name}`);
   }
 
-  if (kind === "skills") {
-    await assertEditableSkill(chainHome, name, EDIT_UPSTREAM_ADVICE);
-  }
+  await assertEditableAsset(chainHome, kind, name, EDIT_UPSTREAM_ADVICE);
 
   const nextContent = prepareAssetContent(kind, name, content);
 
@@ -386,8 +427,8 @@ export async function deleteAsset(chainHomeInput: string | undefined, kind: Asse
     await removeSkillLockEntry(chainHome, name);
   } else {
     await fs.unlink(filePath);
+    await removeInstallLockEntry(chainHome, kind, name);
   }
-
 }
 
 export async function renameAsset(
@@ -415,8 +456,9 @@ export async function renameAsset(
     throw new ConflictError(`Asset already exists: ${kind}/${toName}`);
   }
 
+  await assertEditableAsset(chainHome, kind, fromName, EDIT_UPSTREAM_ADVICE);
+
   if (kind === "skills") {
-    await assertEditableSkill(chainHome, fromName, EDIT_UPSTREAM_ADVICE);
     await fs.rename(path.dirname(fromPath), path.dirname(toPath));
     await renameSkillLockEntry(chainHome, fromName, toName);
   } else {
@@ -454,9 +496,7 @@ export async function convertAssetKind(
     throw new NotFoundError(`Asset not found: ${fromKind}/${fromName}`);
   }
 
-  if (fromKind === "skills") {
-    await assertEditableSkill(chainHome, fromName, "Fork it to customize, then convert the fork.");
-  }
+  await assertEditableAsset(chainHome, fromKind, fromName, "Fork it to customize, then convert the fork.");
 
   const toPath = assetFilePath(chainHome, toKind, toName);
   if (await pathExists(toPath)) {
@@ -506,8 +546,8 @@ export async function validateHub(chainHomeInput?: string): Promise<ValidationRe
     }
   }
 
-  const corruptLocks = (await fs.readdir(path.join(chainHome, "system")).catch(() => [] as string[])).filter((name) =>
-    name.startsWith(CORRUPT_LOCK_PREFIX)
+  const corruptLocks = (await fs.readdir(path.join(chainHome, "system")).catch(() => [] as string[])).filter(
+    (name) => name.startsWith(CORRUPT_LOCK_PREFIX) || name.startsWith(CORRUPT_ASSETS_LOCK_PREFIX)
   );
   if (corruptLocks.length > 0) {
     const detail = `system/skills-lock.json could not be read and was moved to system/${corruptLocks.sort().at(-1)}; installed skills now show as local. Restore or delete that file.`;

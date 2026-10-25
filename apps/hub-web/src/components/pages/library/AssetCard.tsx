@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { isUpstreamOwnedSkill } from '@/lib/skill-ownership';
 import { cn } from '@/lib/utils';
 import type { AssetRecord } from '@/types';
 import { formatSkillSource, formatSkillSourceType, resolveKindMeta } from './asset-helpers';
@@ -44,9 +45,11 @@ export function AssetCard({ asset, selected, compact = false, onSelect, updateAv
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="min-w-0 truncate text-sm font-medium text-foreground">{asset.name}</span>
             <Badge variant="accent">{meta.label}</Badge>
-            {asset.kind === 'skills' ? (
+            {showsSource ? (
               <Badge variant="default">{formatSkillSourceType(asset.provenance)}</Badge>
             ) : null}
+            {upstreamOwned ? <Badge variant="default">Upstream-owned</Badge> : null}
+            {updateAvailable ? <Badge variant="accent">Update available</Badge> : null}
             {hasCompatError ? <Badge variant="warning">Missing description</Badge> : null}
           </div>
           <p className="truncate text-xs text-muted-foreground" title={asset.relativePath}>

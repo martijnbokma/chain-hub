@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -190,7 +190,8 @@ describe('LibraryPage', () => {
 
     // Verify upstream status text and badge
     expect(await screen.findByText('Viewing upstream skills')).toBeInTheDocument();
-    expect(screen.getByText('Upstream-owned')).toBeInTheDocument();
+    // Card and detail panel both mark the asset as upstream-owned
+    expect(screen.getAllByText('Upstream-owned').length).toBeGreaterThanOrEqual(2);
 
     // Verify Save changes is NOT present, and Fork to customize IS present
     expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
@@ -202,6 +203,115 @@ describe('LibraryPage', () => {
     // Verify editor is read-only
     const editor = screen.getByRole('textbox', { name: 'View skills community-skill' });
     expect(editor).toHaveAttribute('readonly');
+  });
+
+  it('treats catalog-installed agents as upstream and forks them as agents', async () => {
+    const user = userEvent.setup();
+    const upstreamAgent = makeAsset({
+      kind: 'agents',
+      name: 'qa-agent',
+      content: '---\nname: qa-agent\ndescription: QA agent\n---\n\n# QA\n',
+      provenance: {
+        source: 'https://github.com/example/agents',
+        sourceType: 'git',
+        updatedAt: '2026-09-01T00:00:00.000Z'
+      }
+    });
+    const forkedAgent = makeAsset({ kind: 'agents', name: 'qa-agent-local', content: upstreamAgent.content });
+
+    vi.spyOn(libraryApi, 'getAll').mockResolvedValue([...assets, upstreamAgent]);
+    vi.spyOn(libraryApi, 'getByKindAndName').mockImplementation(async (kind, name) => {
+      if (kind === 'agents' && name === 'qa-agent') return upstreamAgent;
+      if (kind === 'agents' && name === 'qa-agent-local') return forkedAgent;
+      const asset = assets.find((item) => item.kind === kind && item.name === name);
+      if (!asset) throw new Error('Asset not found');
+      return asset;
+    });
+    const forkSpy = vi.spyOn(libraryApi, 'forkSkill').mockResolvedValue(forkedAgent);
+
+    renderWithProviders(<LibraryPage />, { route: '/library?kind=agents&asset=qa-agent' });
+
+    expect(await screen.findByText('Viewing upstream agents')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rename asset' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'View agents qa-agent' })).toHaveAttribute('readonly');
+
+    await user.click(screen.getByRole('button', { name: 'Fork to customize' }));
+    await waitFor(() => expect(forkSpy).toHaveBeenCalledWith({ kind: 'agents', name: 'qa-agent' }));
+    expect(toast.success).toHaveBeenCalledWith('Forked to agents/qa-agent-local — safe to edit');
+  });
+
+  it('badges skills with an available update and counts them on the update button', async () => {
+    const upstreamSkill = makeAsset({
+      kind: 'skills',
+      name: 'community-skill',
+      content: '---\nname: community-skill\ndescription: A community skill\n---\n\n# Body\n',
+      provenance: {
+        source: 'https://github.com/example/skills',
+        sourceType: 'git',
+        subdir: null,
+        commitSha: 'abc123',
+        latestSha: 'def456',
+        installedAt: '2026-09-01T00:00:00.000Z',
+        updatedAt: '2026-09-01T00:00:00.000Z'
+      }
+    });
+
+    vi.spyOn(libraryApi, 'getAll').mockResolvedValue([...assets, upstreamSkill]);
+    vi.spyOn(libraryApi, 'checkSkillUpdates').mockResolvedValue({
+      results: [
+        {
+          name: 'community-skill',
+          status: 'update_available',
+          source: 'https://github.com/example/skills',
+          currentSha: 'abc123',
+          latestSha: 'def456'
+        }
+      ],
+      checkedAt: '2026-10-24T00:00:00.000Z'
+    });
+
+    renderWithProviders(<LibraryPage />, { route: '/library?kind=skills' });
+
+    expect(await screen.findByText('Update available')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Update (1)' })).toBeInTheDocument();
+  });
+
+  it('shows a per-skill summary dialog after updating skills', async () => {
+    vi.spyOn(libraryApi, 'updateSkills').mockResolvedValue({
+      results: [
+        {
+          name: 'pdf-tool',
+          status: 'updated',
+          previousCommitSha: 'aaaaaaa1111111',
+          lockEntry: {
+            sourceType: 'git',
+            source: 'https://github.com/example/skills',
+            subdir: null,
+            contentHash: 'hash',
+            commitSha: 'bbbbbbb2222222',
+            installedAt: '2026-09-01T00:00:00.000Z',
+            updatedAt: '2026-10-24T00:00:00.000Z'
+          }
+        },
+        { name: 'other-skill', status: 'skipped' },
+        { name: 'broken-skill', status: 'failed', error: 'remote gone' }
+      ]
+    });
+
+    renderWithProviders(<LibraryPage />, { route: '/library?kind=skills' });
+    // userEvent won't click through the base-ui TooltipTrigger render-prop in jsdom; fireEvent does.
+    fireEvent.click(await screen.findByRole('button', { name: 'Update skills' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Skill update summary')).toBeInTheDocument();
+    expect(within(dialog).getByText('pdf-tool')).toBeInTheDocument();
+    expect(within(dialog).getByText('Updated')).toBeInTheDocument();
+    expect(within(dialog).getByText('aaaaaaa → bbbbbbb')).toBeInTheDocument();
+    expect(within(dialog).getByText('broken-skill')).toBeInTheDocument();
+    expect(within(dialog).getByText('remote gone')).toBeInTheDocument();
+    expect(within(dialog).getByText('other-skill')).toBeInTheDocument();
+    expect(within(dialog).getByText('Up to date')).toBeInTheDocument();
   });
 
   it('protects upstream skills in audit: shows fork notice instead of apply improvements', async () => {
