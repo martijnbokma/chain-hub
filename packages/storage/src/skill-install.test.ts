@@ -90,10 +90,10 @@ describe("installSkill", () => {
     expect(await fs.readFile(path.join(hubSkill, "SKILL.md"), "utf8")).toContain("Fixture skill");
     expect(await fs.readFile(path.join(hubSkill, "scripts", "hello.sh"), "utf8")).toContain("echo hi");
 
-    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "skills-lock.json"), "utf8")) as {
-      skills: Record<string, { sourceType: string }>;
+    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "assets-lock.json"), "utf8")) as {
+      entries: Record<string, { sourceType: string }>;
     };
-    expect(lock.skills["demo-skill"]?.sourceType).toBe("path");
+    expect(lock.entries["skills/demo-skill"]?.sourceType).toBe("path");
   });
 
   it("refuses to overwrite without force", async () => {
@@ -177,10 +177,10 @@ describe("installSkill", () => {
 
     await deleteAsset(tmpHub, "skills", "gone-skill");
 
-    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "skills-lock.json"), "utf8")) as {
-      skills: Record<string, unknown>;
+    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "assets-lock.json"), "utf8")) as {
+      entries: Record<string, unknown>;
     };
-    expect(lock.skills["gone-skill"]).toBeUndefined();
+    expect(lock.entries["skills/gone-skill"]).toBeUndefined();
     const updated = await updateSkills(tmpHub, { force: true });
     expect(updated.results.find((item) => item.name === "gone-skill")).toBeUndefined();
     await expect(fs.access(path.join(tmpHub, "skills", "gone-skill"))).rejects.toThrow();
@@ -293,10 +293,10 @@ describe("installSkill", () => {
 
     await Promise.all(sources.map((source) => installSkill(tmpHub, { path: source })));
 
-    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "skills-lock.json"), "utf8")) as {
-      skills: Record<string, unknown>;
+    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "assets-lock.json"), "utf8")) as {
+      entries: Record<string, unknown>;
     };
-    expect(Object.keys(lock.skills).sort()).toEqual(expect.arrayContaining(names));
+    expect(Object.keys(lock.entries).sort()).toEqual(expect.arrayContaining(names.map((name) => `skills/${name}`)));
   });
 
   it("installs from an uploaded file bundle", async () => {
@@ -341,11 +341,11 @@ describe("installSkill", () => {
     const edited = await updateAsset(tmpHub, "skills", "upstream-skill-local", "# local fork\n");
     expect(edited.content).toContain("local fork");
 
-    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "skills-lock.json"), "utf8")) as {
-      skills: Record<string, unknown>;
+    const lock = JSON.parse(await fs.readFile(path.join(tmpHub, "system", "assets-lock.json"), "utf8")) as {
+      entries: Record<string, unknown>;
     };
-    expect(lock.skills["upstream-skill"]).toBeTruthy();
-    expect(lock.skills["upstream-skill-local"]).toBeUndefined();
+    expect(lock.entries["skills/upstream-skill"]).toBeTruthy();
+    expect(lock.entries["skills/upstream-skill-local"]).toBeUndefined();
   });
 
   it("migrates entries from an agents-style skill lock", async () => {

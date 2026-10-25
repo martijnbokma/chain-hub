@@ -4,6 +4,7 @@ import {
   assetKindSchema,
   convertAssetInputSchema,
   createAssetInputSchema,
+  installCatalogEntryInputSchema,
   forkSkillInputSchema,
   importAssetInputSchema,
   installSkillBundleInputSchema,
@@ -17,6 +18,8 @@ import {
 import {
   checkLibrarySkillUpdates,
   convertLibraryAssetKind,
+  getLibraryCatalog,
+  installLibraryCatalogEntry,
   createLibraryAsset,
   deleteLibraryAsset,
   discoverLibraryAssets,
@@ -52,6 +55,18 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
   app.post("/api/library/skills/install-bundle", async (context) => {
     const payload = installSkillBundleInputSchema.parse(await context.req.json());
     const result = await installLibrarySkillBundle(options.chainHome, payload);
+    return context.json(result, 201);
+  });
+
+  app.get("/api/catalog", async (context) => {
+    const refresh = context.req.query("refresh") === "true";
+    const result = await getLibraryCatalog(options.chainHome, { force: refresh });
+    return context.json(result);
+  });
+
+  app.post("/api/catalog/install", async (context) => {
+    const payload = installCatalogEntryInputSchema.parse(await context.req.json());
+    const result = await installLibraryCatalogEntry(options.chainHome, payload);
     return context.json(result, 201);
   });
 

@@ -60,6 +60,8 @@ export {
 
 export { getHubAnalysisReport, saveHubAnalysisReport, updateHubAnalysisItemStatus } from "./analysis.js";
 
+export { getLibraryCatalog, installLibraryCatalogEntry, refreshLibraryCatalog } from "./catalog.js";
+
 export async function initializeChainHub(chainHome?: string) {
   const result = await initializeHub(chainHome);
   return {

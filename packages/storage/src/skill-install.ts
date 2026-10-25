@@ -30,7 +30,8 @@ import {
   type UpdateSkillsResult
 } from "@chain-hub/contracts";
 
-import { pathExists, writeFileAtomic } from "./shared.js";
+import { mutateInstallLock, readInstallLock } from "./install-lock.js";
+import { pathExists } from "./shared.js";
 import { copySkillTree, createSkillCopyFilter } from "./skill-copy.js";
 import { fetchRemoteHeadSha, resolveGitSkillDir } from "./skill-git.js";
 
@@ -48,10 +49,6 @@ interface AgentsLockFile {
 
 type ReadAsset = (chainHome: string, kind: "skills", name: string) => Promise<AssetDetail>;
 
-function skillsLockPath(chainHome: string): string {
-  return path.join(chainHome, "system", "skills-lock.json");
-}
-
 function skillDir(chainHome: string, name: string): string {
   return path.join(chainHome, "skills", name);
 }
@@ -63,52 +60,47 @@ function skillFile(chainHome: string, name: string): string {
 /** Prefix of lock files set aside because they could not be read; `chain validate` reports them. */
 export const CORRUPT_LOCK_PREFIX = "skills-lock.json.corrupt-";
 
+/**
+ * Legacy skills-view over the unified `assets-lock.json` (D2, docs/specs/hub-catalog.md).
+ * The old `skills-lock.json` is migrated in once by readInstallLock and ignored after.
+ */
 export async function readSkillsLock(chainHome: string): Promise<SkillsLockFile> {
-  const lockPath = skillsLockPath(chainHome);
-  let raw: string;
-  try {
-    raw = await fs.readFile(lockPath, "utf8");
-  } catch {
-    // No lock yet: every skill is local.
-    return { version: 1, skills: {} };
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as SkillsLockFile;
-    // Only the file's shape is checked; one odd entry must not cost every skill its provenance.
-    if (parsed.version !== 1 || typeof parsed.skills !== "object" || parsed.skills === null || Array.isArray(parsed.skills)) {
-      throw new Error("Unexpected skills lock shape");
+  const lock = await readInstallLock(chainHome);
+  const skills: SkillsLockFile["skills"] = {};
+  for (const [key, entry] of Object.entries(lock.entries)) {
+    if (key.startsWith("skills/")) {
+      skills[key.slice("skills/".length)] = entry;
     }
-    return parsed;
-  } catch {
-    // Keep the unreadable file instead of letting the next write replace it with an empty lock.
-    const corruptPath = path.join(path.dirname(lockPath), `${CORRUPT_LOCK_PREFIX}${Date.now()}`);
-    await fs.rename(lockPath, corruptPath).catch(() => undefined);
-    console.warn(`[chain-hub] ${lockPath} could not be read; moved it to ${corruptPath}`);
-    return { version: 1, skills: {} };
   }
+  return { version: 1, skills };
 }
-
-async function writeSkillsLock(chainHome: string, lockFile: SkillsLockFile): Promise<void> {
-  await fs.mkdir(path.dirname(skillsLockPath(chainHome)), { recursive: true });
-  await writeFileAtomic(skillsLockPath(chainHome), `${JSON.stringify(lockFile, null, 2)}\n`);
-}
-
-let lockQueue: Promise<unknown> = Promise.resolve();
 
 /**
- * Read-modify-write of skills-lock.json, one at a time within this process, so
- * parallel installs (bulk import, dashboard + CLI server) never drop each other's entries.
+ * Read-modify-write of the skills slice of assets-lock.json, one at a time within
+ * this process, so parallel installs (bulk import, dashboard + CLI server) never
+ * drop each other's entries.
  */
 function mutateSkillsLock<T>(chainHome: string, mutate: (lockFile: SkillsLockFile) => T | Promise<T>): Promise<T> {
-  const run = lockQueue.then(async () => {
-    const lockFile = await readSkillsLock(chainHome);
-    const result = await mutate(lockFile);
-    await writeSkillsLock(chainHome, lockFile);
+  return mutateInstallLock(chainHome, async (lockFile) => {
+    const skills: SkillsLockFile["skills"] = {};
+    for (const [key, entry] of Object.entries(lockFile.entries)) {
+      if (key.startsWith("skills/")) {
+        skills[key.slice("skills/".length)] = entry;
+      }
+    }
+
+    const result = await mutate({ version: 1, skills });
+
+    for (const key of Object.keys(lockFile.entries)) {
+      if (key.startsWith("skills/")) {
+        delete lockFile.entries[key];
+      }
+    }
+    for (const [name, entry] of Object.entries(skills)) {
+      lockFile.entries[`skills/${name}`] = entry;
+    }
     return result;
   });
-  lockQueue = run.catch(() => undefined);
-  return run;
 }
 
 /** Move a skills.lock entry when a hub skill directory is renamed. */

@@ -66,7 +66,7 @@ cd packages/storage && bunx vitest run src/skill-install.test.ts
 
 CI (`.github/workflows/ci.yml`) runs build → lint → typecheck → `test:coverage` → e2e. Run lint, typecheck and relevant tests before delivering.
 
-CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|create|show|update|remove|discover|import`, `chain skill install|update|migrate-agents|fork`, `chain capture`, `chain reflect`. Asset kinds: `skills`, `agents`, `workflows`, `rules`, `prompts`.
+CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|create|show|update|remove|discover|import`, `chain skill install|update|check-updates|migrate-agents|fork`, `chain capture`, `chain reflect`. Asset kinds: `skills`, `agents`, `workflows`, `rules`, `prompts`.
 
 ## Code conventions
 
