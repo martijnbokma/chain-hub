@@ -13,9 +13,8 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --ui=stream --filter=@chain-hub/hub-web --filter=@chain-hub/server --filter=@chain-hub/contracts --filter=@chain-hub/domain --filter=@chain-hub/storage",
-    "dev:all": "turbo run dev --ui=stream",
-    "dev:hub": "turbo run dev --ui=stream --filter=@chain-hub/server --filter=@chain-hub/hub-web",
+    "dev": "bun scripts/dev.ts",
+    "dev:hub": "turbo run dev --ui=stream --filter=@chain-hub/hub-web --filter=@chain-hub/server --filter=@chain-hub/contracts --filter=@chain-hub/domain --filter=@chain-hub/storage",
     "dev:marketing": "turbo run dev --ui=stream --filter=@chain-hub/marketing-site",
     "dev:docs": "turbo run dev --ui=stream --filter=@chain-hub/docs",
     "hub": "turbo run build && node packages/cli/dist/index.js hub",
