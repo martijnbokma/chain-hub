@@ -40,6 +40,31 @@
       })();
     </script>
     <title>Docs — Chain Hub</title>
+    <script type="text/javascript">
+      (function () {
+        try {
+          if (
+            window.location &&
+            window.location.search &&
+            window.location.search.indexOf('capture-sitebehaviour-heatmap') !== -1
+          ) {
+            sessionStorage.setItem('capture-sitebehaviour-heatmap', '_');
+          }
+
+          var sbSiteSecret = '12324adf-d0ae-4a97-9fd1-2539868a1917';
+          window.sitebehaviourTrackingSecret = sbSiteSecret;
+          var scriptElement = document.createElement('script');
+          scriptElement.defer = true;
+          scriptElement.id = 'site-behaviour-script-v2';
+          scriptElement.src =
+            'https://sitebehaviour-cdn.fra1.cdn.digitaloceanspaces.com/index.min.js?sitebehaviour-secret=' +
+            sbSiteSecret;
+          document.head.appendChild(scriptElement);
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
