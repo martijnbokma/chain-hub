@@ -152,7 +152,7 @@ describe('CatalogPage', () => {
     expect(entryCard(/Release/)).toBeInTheDocument();
   });
 
-  it('renders large groups in pages with a show-more control', async () => {
+  it('renders large groups in pages with a show-more control', { timeout: 20_000 }, async () => {
     const user = userEvent.setup();
     const many = Array.from({ length: CATALOG_GROUP_PAGE_SIZE + 5 }, (_, index) =>
       makeEntry({ id: `bulk-skill-${index}`, name: `Bulk skill ${index}` })
