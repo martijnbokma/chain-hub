@@ -52,9 +52,36 @@ export function Tabs({
   );
 }
 
-export function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+const TAB_NAVIGATION_KEYS = new Set(["ArrowLeft", "ArrowRight", "Home", "End"]);
+
+/** WAI-ARIA tabs keyboard pattern: arrows/Home/End move focus and activate the target tab. */
+function handleTabListKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+  if (!TAB_NAVIGATION_KEYS.has(event.key)) {
+    return;
+  }
+  const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)'));
+  const currentIndex = tabs.findIndex((tab) => tab === document.activeElement);
+  if (tabs.length === 0 || currentIndex === -1) {
+    return;
+  }
+  event.preventDefault();
+  const nextIndex =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? tabs.length - 1
+        : (currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[nextIndex]?.focus();
+  tabs[nextIndex]?.click();
+}
+
+export function TabsList({ className, onKeyDown, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      onKeyDown={(event) => {
+        handleTabListKeyDown(event);
+        onKeyDown?.(event);
+      }}
       className={cn(
         "inline-flex w-fit items-center gap-1 rounded-xl border border-border/70 bg-muted/70 p-1 text-muted-foreground",
         className
@@ -92,6 +119,7 @@ export function TabsTrigger({
       data-slot="tabs-trigger"
       onClick={() => context.setValue(value)}
       role="tab"
+      tabIndex={active ? 0 : -1}
       type="button"
     >
       {children}

@@ -135,6 +135,14 @@ export const libraryApi = {
 
 export type { InstallSkillResult, UpdateSkillsResult, MigrateAgentsSkillsResult, CheckSkillUpdatesResult, SkillCheckItemResult };
 
+// Catalog API: curated pointer index of community assets; install reuses the git install flow
+export const catalogApi = {
+  getAll: (options: { refresh?: boolean } = {}) =>
+    getJson<CatalogResult>(`/api/catalog${options.refresh ? '?refresh=true' : ''}`),
+  install: (data: InstallCatalogEntryInput) =>
+    sendJson<InstallCatalogEntryResult>('/api/catalog/install', 'POST', data)
+};
+
 // Analysis API — persisted library analysis report + per-item status
 export const analysisApi = {
   get: () => getJson<AnalysisReport | null>('/api/analysis'),

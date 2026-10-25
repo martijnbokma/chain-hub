@@ -9,6 +9,7 @@ import {
   Moon,
   Plus,
   Settings,
+  Store,
   Sun,
   type LucideIcon
 } from 'lucide-react';
@@ -85,6 +86,15 @@ export function useCommandPalette() {
         group: 'Navigate',
         icon: FolderTree,
         run: () => navigate('/library')
+      },
+      {
+        id: 'go-catalog',
+        label: 'Open catalog',
+        description: 'Browse community skills, agents, and workflows to install.',
+        keywords: 'catalog community browse install discover marketplace',
+        group: 'Navigate',
+        icon: Store,
+        run: () => navigate('/catalog')
       },
       {
         id: 'create-asset',

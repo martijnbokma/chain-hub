@@ -1,4 +1,4 @@
-import type { AssetKind } from "@chain-hub/contracts";
+import type { AssetDetail, AssetKind } from "@chain-hub/contracts";
 
 // Dashboard types: the HTTP contract types from @chain-hub/contracts plus a few UI-only types.
 export type {
@@ -20,6 +20,11 @@ export type {
   AuditAssetInput,
   AuditAssetResult,
   CaptureEvent,
+  CatalogCategory,
+  CatalogEntryResult,
+  CatalogKind,
+  CatalogResult,
+  InstallCatalogEntryInput,
   CaptureEventType,
   CaptureInput,
   CheckSkillUpdatesResult,
@@ -57,6 +62,12 @@ export type {
   UpdateSkillsResult,
   ValidationResult
 } from "@chain-hub/contracts";
+
+/** `POST /api/catalog/install` response: the installed asset plus whether it ships scripts. */
+export interface InstallCatalogEntryResult {
+  asset: AssetDetail;
+  scriptsDetected: boolean;
+}
 
 /** Library filter chip: all kinds or one specific kind. */
 export type FilterKind = AssetKind | "__all__";

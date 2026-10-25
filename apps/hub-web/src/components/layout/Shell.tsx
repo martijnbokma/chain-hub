@@ -100,7 +100,7 @@ function LibraryNavItem() {
   const { isMobile, setOpenMobile, state } = useSidebar();
   const isLibraryRoute = location.pathname.startsWith('/library');
   const kindParam = new URLSearchParams(location.search).get('kind');
-  const activeKind = isAssetKind(kindParam) ? kindParam : null;
+  const activeKind = isLibraryRoute && isAssetKind(kindParam) ? kindParam : null;
   const [open, setOpen] = useState(isLibraryRoute);
   const isIconCollapsed = state === 'collapsed' && !isMobile;
 
@@ -246,12 +246,18 @@ export function Shell({ children }: ShellProps) {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarNavLink
-                    icon={PanelLeft}
+                    icon={LayoutDashboard}
                     isActive={location.pathname === '/'}
                     label="Overview"
                     to="/"
                   />
                   <LibraryNavItem />
+                  <SidebarNavLink
+                    icon={Store}
+                    isActive={location.pathname.startsWith('/catalog')}
+                    label="Catalog"
+                    to="/catalog"
+                  />
                   <SidebarNavLink
                     icon={Activity}
                     isActive={location.pathname.startsWith('/learnings')}
