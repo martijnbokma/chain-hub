@@ -42,17 +42,17 @@ const assets = [
 const steps = [
   {
     num: '01',
-    label: 'Get it',
-    title: 'Clone the repo',
-    description: 'Chain Hub is free and open source. Get the code from GitHub.',
-    command: 'git clone https://github.com/martijnbokma/chain-hub.git',
+    label: 'Install',
+    title: 'Install the CLI',
+    description: 'Chain Hub is free and open source, published on npm. Node.js 22.13 or newer is all you need.',
+    command: 'npm install -g chain-hub',
   },
   {
     num: '02',
-    label: 'Create',
-    title: 'Create your hub',
-    description: 'Makes the hub folder on your computer. From now on, this is where everything lives.',
-    command: 'chain init',
+    label: 'Start',
+    title: 'Start your hub',
+    description: 'Creates the hub folder on first run and opens the dashboard. From now on, this is where everything lives.',
+    command: 'chain hub',
   },
   {
     num: '03',
@@ -269,7 +269,7 @@ export function LandingPage() {
             index="03"
             kicker="How it works"
             title="Three steps"
-            copy="Clone the repository, create your hub, connect your editors. After that you only ever edit files in one place."
+            copy="Install the CLI, start the hub, connect your editors. After that you only ever edit files in one place."
           />
           <Reveal className="grid md:grid-cols-3 gap-5">
             {steps.map(({ num, label, title, description, command }) => (
@@ -293,7 +293,7 @@ export function LandingPage() {
             ))}
           </Reveal>
           <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase mt-4">
-            Then chain hub opens the dashboard in your browser.
+            Or clone the repo and run bun run hub if you want to develop on Chain Hub itself.
           </p>
         </div>
       </section>
@@ -527,12 +527,12 @@ export function LandingPage() {
             Ready when you are<span className="text-primary">.</span>
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed text-pretty">
-            Chain Hub is free and open source. Clone it, read the code, or follow along as it
-            ships.
+            Chain Hub is free and open source. One install, three commands, and every
+            editor reads the same files.
           </p>
           <div className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-            <span>01 Clone the repo</span>
-            <span>02 chain init</span>
+            <span>01 Install the CLI</span>
+            <span>02 chain hub</span>
             <span>03 chain setup</span>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
