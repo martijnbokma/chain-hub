@@ -1,20 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  Check,
-  ChevronDown,
-  ClipboardCopy,
-  ExternalLink,
-  FolderTree,
-  GitFork,
-  RefreshCw,
-  ScanSearch,
-  ListChecks,
-  Sparkles,
-  Trash2,
-  Wrench
-} from 'lucide-react';
+import { ArrowLeft, ChevronDown, FolderTree, GitFork, Sparkles, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/contracts';
@@ -32,6 +18,7 @@ import type {
   SkillLockEntry
 } from '@/types';
 import { AssetAuditCard } from './AssetAuditCard';
+import { AssetDetailActions } from './AssetDetailActions';
 import { AssetFileTabs } from './AssetFileTabs';
 import { AssetProvenanceCard } from './AssetProvenanceCard';
 import { AssetRenameTitle } from './AssetRenameTitle';
@@ -535,88 +522,33 @@ export function AssetDetailPanel({
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            className="w-fit"
-            disabled={!editorContent.trim() && !isSidecarActive}
-            onClick={() => {
-              void handleCopy();
-            }}
-            type="button"
-            variant="secondary"
-          >
-            {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
-            {copied ? 'Copied' : isSidecarActive ? 'Copy file' : isPrompt ? 'Copy prompt' : 'Copy'}
-          </Button>
-          {isUpstreamSkill && selected.kind === 'skills' ? (
-            <Button
-              className="w-fit"
-              loading={isUpdating}
-              onClick={onUpdateFromSource}
-              variant={updateAvailable ? 'default' : 'secondary'}
-            >
-              <RefreshCw className="size-4" />
-              {isUpdating ? 'Updating…' : updateAvailable ? 'Update to latest' : 'Update from source'}
-            </Button>
-          ) : null}
-          {upstreamBrowseUrl ? (
-            <Button
-              className="w-fit"
-              onClick={() => window.open(upstreamBrowseUrl, '_blank', 'noopener,noreferrer')}
-              type="button"
-              variant="secondary"
-            >
-              <ExternalLink className="size-4" />
-              Open source repo
-            </Button>
-          ) : null}
-          <Button
-            className="w-fit"
-            disabled={!editorContent.trim()}
-            loading={isReassessing}
-            onClick={onReassessKind}
-            type="button"
-            variant="secondary"
-          >
-            <ScanSearch className="size-4" />
-            {isReassessing ? 'Checking…' : 'Reassess kind'}
-          </Button>
-          <Button
-            className="w-fit"
-            disabled={!editorContent.trim()}
-            loading={isAuditing}
-            onClick={onAuditAsset}
-            type="button"
-            variant="secondary"
-          >
-            <ListChecks className="size-4" />
-            {isAuditing ? 'Auditing…' : 'Audit'}
-          </Button>
-          <Button className="w-fit" loading={isDeleting} onClick={onRequestDelete} variant="secondary">
-            <Trash2 className="size-4" />
-            {isDeleting ? 'Deleting…' : 'Delete asset'}
-          </Button>
-          {isSidecarActive ? (
-            <Button
-              className="ml-auto w-fit"
-              onClick={() => setActiveTab('SKILL.md')}
-              type="button"
-              variant="secondary"
-            >
-              <ArrowLeft className="size-4" />
-              Back to SKILL.md
-            </Button>
-          ) : isUpstreamSkill ? (
-            <Button className="ml-auto w-fit" loading={isForking} onClick={onFork}>
-              <GitFork className="size-4" />
-              {isForking ? 'Forking…' : 'Fork to customize'}
-            </Button>
-          ) : (
-            <Button className="ml-auto w-fit" disabled={!canSave} loading={isSaving} onClick={handleSave}>
-              {isSaving ? 'Saving…' : 'Save changes'}
-            </Button>
-          )}
-        </div>
+        <AssetDetailActions
+          canSave={canSave}
+          copied={copied}
+          hasContent={Boolean(editorContent.trim())}
+          isAuditing={isAuditing}
+          isDeleting={isDeleting}
+          isForking={isForking}
+          isPrompt={isPrompt}
+          isReassessing={isReassessing}
+          isSaving={isSaving}
+          isSidecarActive={isSidecarActive}
+          isUpdating={isUpdating}
+          isUpstreamSkill={isUpstreamSkill}
+          kind={selected.kind}
+          onAuditAsset={onAuditAsset}
+          onBackToMain={() => setActiveTab('SKILL.md')}
+          onCopy={() => {
+            void handleCopy();
+          }}
+          onFork={onFork}
+          onReassessKind={onReassessKind}
+          onRequestDelete={onRequestDelete}
+          onSave={handleSave}
+          onUpdateFromSource={onUpdateFromSource}
+          updateAvailable={updateAvailable}
+          upstreamBrowseUrl={upstreamBrowseUrl}
+        />
       </CardContent>
     </Card>
   );
