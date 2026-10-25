@@ -26,6 +26,7 @@ interface LibraryToolbarProps {
   isAnalyzing: boolean;
   onUpdateSkills: () => void;
   isUpdatingSkills: boolean;
+  skillUpdateCount?: number;
 }
 
 export function LibraryToolbar({
@@ -45,7 +46,8 @@ export function LibraryToolbar({
   onAnalyze,
   isAnalyzing,
   onUpdateSkills,
-  isUpdatingSkills
+  isUpdatingSkills,
+  skillUpdateCount = 0
 }: LibraryToolbarProps) {
   const showSkillActions = filterKind === 'skills';
 
@@ -82,22 +84,34 @@ export function LibraryToolbar({
                   <TooltipContent>Install skill</TooltipContent>
                 </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        aria-label={isUpdatingSkills ? 'Updating skills' : 'Update skills'}
-                        disabled={isUpdatingSkills}
-                        onClick={onUpdateSkills}
-                        size="icon-sm"
-                        variant="secondary"
-                      >
-                        <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>{isUpdatingSkills ? 'Updating…' : 'Update skills'}</TooltipContent>
-                </Tooltip>
+                {skillUpdateCount > 0 ? (
+                  <Button
+                    disabled={isUpdatingSkills}
+                    onClick={onUpdateSkills}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+                    {isUpdatingSkills ? 'Updating…' : `Update (${skillUpdateCount})`}
+                  </Button>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          aria-label={isUpdatingSkills ? 'Updating skills' : 'Update skills'}
+                          disabled={isUpdatingSkills}
+                          onClick={onUpdateSkills}
+                          size="icon-sm"
+                          variant="secondary"
+                        >
+                          <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+                        </Button>
+                      }
+                    />
+                    <TooltipContent>{isUpdatingSkills ? 'Updating…' : 'Update skills'}</TooltipContent>
+                  </Tooltip>
+                )}
               </>
             ) : null}
 

@@ -11,6 +11,7 @@ import {
   type CheckSkillUpdatesResult,
   ConflictError,
   type ForkSkillInput,
+  hasSkillUpdate,
   type InstallSkillBundleInput,
   type InstallSkillInput,
   type InstallSkillResult,
@@ -323,11 +324,12 @@ async function installSkillFromSourceUnlessUnchanged(
     const contentHash = await hashSkillTree(sourceDir);
     const previousEntry = (await readSkillsLock(chainHome)).skills[name];
     if (knownHash && contentHash === knownHash && previousEntry) {
-      if (commitSha && previousEntry.commitSha !== commitSha) {
+      if (commitSha && (previousEntry.commitSha !== commitSha || previousEntry.latestSha !== commitSha)) {
         const updatedEntry = await mutateSkillsLock(chainHome, (lockFile) => {
           const entry = lockFile.skills[name];
           if (entry) {
             entry.commitSha = commitSha;
+            entry.latestSha = commitSha;
             entry.lastCheckedAt = new Date().toISOString();
           }
           return entry ?? previousEntry;
@@ -345,6 +347,7 @@ async function installSkillFromSourceUnlessUnchanged(
       subdir: resolvedSubdir,
       contentHash,
       commitSha: commitSha ?? previous?.commitSha ?? null,
+      latestSha: commitSha ?? null,
       lastCheckedAt: now
     }));
 
@@ -437,22 +440,31 @@ export async function updateSkillsFromLock(
         input.force ? null : (entry.contentHash ?? null)
       );
 
-      results.push({ name, status: installed.unchanged ? "skipped" : "updated", lockEntry: installed.lockEntry });
+      results.push({
+        name,
+        status: installed.unchanged ? "skipped" : "updated",
+        previousCommitSha: entry.commitSha ?? null,
+        lockEntry: installed.lockEntry
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      results.push({ name, status: "failed", error: message });
+      results.push({ name, status: "failed", previousCommitSha: entry.commitSha ?? null, error: message });
     }
   }
 
   return { results };
 }
 
+/** Re-probe remotes at most this often; `force` bypasses the window. */
+export const SKILL_UPDATE_CHECK_TTL_MS = 15 * 60 * 1000;
+
 export async function checkSkillUpdatesFromLock(
   chainHome: string,
-  _input: CheckSkillUpdatesInput = {}
+  input: CheckSkillUpdatesInput = {}
 ): Promise<CheckSkillUpdatesResult> {
   const lockFile = await readSkillsLock(chainHome);
   const now = new Date().toISOString();
+  const freshSince = Date.now() - SKILL_UPDATE_CHECK_TTL_MS;
   const results: SkillCheckItemResult[] = [];
 
   const gitReposToSkills = new Map<string, Array<{ name: string; entry: SkillLockEntry }>>();
@@ -463,6 +475,18 @@ export async function checkSkillUpdatesFromLock(
         name,
         status: "not_applicable",
         source: entry.source
+      });
+      continue;
+    }
+
+    const checkedAt = entry.lastCheckedAt ? Date.parse(entry.lastCheckedAt) : Number.NaN;
+    if (!input.force && entry.latestSha && Number.isFinite(checkedAt) && checkedAt >= freshSince) {
+      results.push({
+        name,
+        status: hasSkillUpdate(entry) ? "update_available" : "up_to_date",
+        source: entry.source,
+        currentSha: entry.commitSha ?? null,
+        latestSha: entry.latestSha
       });
       continue;
     }
@@ -486,7 +510,7 @@ export async function checkSkillUpdatesFromLock(
     })
   );
 
-  const skillsToUpdateInLock: Array<{ name: string; lastCheckedAt: string }> = [];
+  const skillsToUpdateInLock: Array<{ name: string; latestSha: string; lastCheckedAt: string }> = [];
 
   for (const [repo, skillList] of gitReposToSkills.entries()) {
     const probe = repoRemoteShaMap.get(repo);
@@ -515,7 +539,7 @@ export async function checkSkillUpdatesFromLock(
         continue;
       }
 
-      skillsToUpdateInLock.push({ name, lastCheckedAt: now });
+      skillsToUpdateInLock.push({ name, latestSha, lastCheckedAt: now });
 
       if (entry.commitSha && entry.commitSha === latestSha) {
         results.push({
@@ -541,6 +565,7 @@ export async function checkSkillUpdatesFromLock(
     await mutateSkillsLock(chainHome, (currentLock) => {
       for (const item of skillsToUpdateInLock) {
         if (currentLock.skills[item.name]) {
+          currentLock.skills[item.name]!.latestSha = item.latestSha;
           currentLock.skills[item.name]!.lastCheckedAt = item.lastCheckedAt;
         }
       }

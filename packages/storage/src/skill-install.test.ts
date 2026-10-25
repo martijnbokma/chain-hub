@@ -5,7 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AssetDetail } from "@chain-hub/contracts";
+import { type AssetDetail, hasSkillUpdate } from "@chain-hub/contracts";
 
 import {
   checkSkillUpdatesFromLock,
@@ -237,16 +237,53 @@ describe("installSkill", () => {
     await execFileAsync("git", ["commit", "-m", "upstream update"], { cwd: repo });
 
     // Check should now detect update_available with the new SHA
-    const check2 = await checkSkillUpdates(tmpHub);
+    const check2 = await checkSkillUpdates(tmpHub, { force: true });
     const item2 = check2.results.find((r) => r.name === "git-check-skill");
     expect(item2?.status).toBe("update_available");
     expect(item2?.latestSha).not.toBe(item2?.currentSha);
 
     // After updating, check is back to up_to_date
-    await updateSkills(tmpHub, { name: "git-check-skill" });
+    const updateResult = await updateSkills(tmpHub, { name: "git-check-skill" });
+    const updatedItem = updateResult.results.find((r) => r.name === "git-check-skill");
+    expect(updatedItem?.status).toBe("updated");
+    expect(updatedItem?.previousCommitSha).toBeTruthy();
+    expect(updatedItem?.previousCommitSha).not.toBe(updatedItem?.lockEntry?.commitSha);
     const check3 = await checkSkillUpdates(tmpHub);
     const item3 = check3.results.find((r) => r.name === "git-check-skill");
     expect(item3?.status).toBe("up_to_date");
+  });
+
+  it("persists latestSha in the lock and reuses it inside the check TTL", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    await writeFixtureSkill(repo, "ttl-skill");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+    await installSkill(tmpHub, { repo, subdir: "ttl-skill" });
+
+    // Upstream moves on; a forced live check records the remote sha in the lock.
+    await fs.writeFile(path.join(repo, "ttl-skill", "extra.txt"), "new\n", "utf8");
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "upstream update"], { cwd: repo });
+
+    const check = await checkSkillUpdates(tmpHub, { force: true });
+    const item = check.results.find((r) => r.name === "ttl-skill");
+    expect(item?.status).toBe("update_available");
+
+    const entry = (await readSkillsLock(tmpHub)).skills["ttl-skill"];
+    expect(entry?.latestSha).toBe(item?.latestSha);
+    expect(hasSkillUpdate(entry)).toBe(true);
+
+    // Within the TTL the stored probe answers even when the remote is gone…
+    await fs.rm(repo, { recursive: true, force: true });
+    const cached = await checkSkillUpdates(tmpHub);
+    expect(cached.results.find((r) => r.name === "ttl-skill")?.status).toBe("update_available");
+
+    // …but force re-probes and surfaces the failure.
+    const forced = await checkSkillUpdates(tmpHub, { force: true });
+    expect(forced.results.find((r) => r.name === "ttl-skill")?.status).toBe("failed");
   });
 
   it("keeps every lock entry when skills are installed in parallel", async () => {

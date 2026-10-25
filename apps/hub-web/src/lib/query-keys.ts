@@ -13,5 +13,8 @@ export const queryKeys = {
   libraryDetails: ['library', 'detail'] as const,
   libraryDetail: (kind: string | undefined, name: string | undefined) => ['library', 'detail', kind, name] as const,
   skillFiles: (name: string | undefined) => ['library', 'skill-files', name] as const,
-  skillFile: (name: string, path: string) => ['library', 'skill-file', name, path] as const
+  skillFile: (name: string, path: string) => ['library', 'skill-file', name, path] as const,
+  skillUpdates: ['library', 'skill-updates'] as const,
+  catalog: ['catalog'] as const,
+  githubStars: (slug: string) => ['github-stars', slug] as const
 };

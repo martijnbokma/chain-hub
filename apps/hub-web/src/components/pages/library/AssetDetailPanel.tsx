@@ -62,6 +62,7 @@ interface AssetDetailPanelProps {
   isForking: boolean;
   onUpdateFromSource: () => void;
   isUpdating: boolean;
+  updateAvailable: boolean;
   onRequestDelete: () => void;
   isDeleting: boolean;
   onFixDescriptionWithAi: () => void;
@@ -110,6 +111,7 @@ export function AssetDetailPanel({
   isForking,
   onUpdateFromSource,
   isUpdating,
+  updateAvailable,
   onRequestDelete,
   isDeleting,
   onFixDescriptionWithAi,
@@ -418,6 +420,9 @@ export function AssetDetailPanel({
               {provenance?.updatedAt ? (
                 <p className="mt-1">Locked · {new Date(provenance.updatedAt).toLocaleString()}</p>
               ) : null}
+              {provenance?.lastCheckedAt ? (
+                <p className="mt-1">Checked · {new Date(provenance.lastCheckedAt).toLocaleString()}</p>
+              ) : null}
               {isUpstreamSkill ? (
                 <p className="mt-2 leading-5 text-foreground/80">
                   Updates from source overwrite this copy. Fork to customize locally.
@@ -701,10 +706,15 @@ export function AssetDetailPanel({
             {copied ? <Check className="size-4" /> : <ClipboardCopy className="size-4" />}
             {copied ? 'Copied' : isSidecarActive ? 'Copy file' : isPrompt ? 'Copy prompt' : 'Copy'}
           </Button>
-          {isUpstreamSkill ? (
-            <Button className="w-fit" disabled={isUpdating} onClick={onUpdateFromSource} variant="secondary">
+          {isUpstreamSkill && selected.kind === 'skills' ? (
+            <Button
+              className="w-fit"
+              loading={isUpdating}
+              onClick={onUpdateFromSource}
+              variant={updateAvailable ? 'default' : 'secondary'}
+            >
               <RefreshCw className="size-4" />
-              {isUpdating ? 'Updating…' : 'Update from source'}
+              {isUpdating ? 'Updating…' : updateAvailable ? 'Update to latest' : 'Update from source'}
             </Button>
           ) : null}
           {upstreamBrowseUrl ? (

@@ -2,7 +2,12 @@ import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import { initializeChainHub, summarizeAgentsSkillSync, syncAgentsSkillsIntoHub } from "@chain-hub/domain";
+import {
+  checkLibrarySkillUpdates,
+  initializeChainHub,
+  summarizeAgentsSkillSync,
+  syncAgentsSkillsIntoHub
+} from "@chain-hub/domain";
 import { resolveChainHome } from "@chain-hub/storage";
 import { startServer } from "@chain-hub/server";
 
@@ -116,6 +121,22 @@ function syncAgentsSkillsInBackground(chainHome: string): void {
     });
 }
 
+/** Probe upstream git skills once per hub start; results land in the skills lock for the dashboard. */
+function checkSkillUpdatesInBackground(chainHome: string): void {
+  void checkLibrarySkillUpdates(chainHome)
+    .then((result) => {
+      const names = result.results
+        .filter((item) => item.status === "update_available")
+        .map((item) => item.name);
+      if (names.length > 0) {
+        console.log(
+          `${names.length} skill update${names.length === 1 ? "" : "s"} available: ${names.join(", ")} — run \`chain skill update\``
+        );
+      }
+    })
+    .catch(() => undefined);
+}
+
 export async function runHubCommand(options: HubCommandOptions): Promise<void> {
   const chainHome = resolveChainHome(options.chainHome);
   const { isFirstRun } = await initializeChainHub(chainHome);
@@ -161,4 +182,5 @@ export async function runHubCommand(options: HubCommandOptions): Promise<void> {
   }
 
   syncAgentsSkillsInBackground(chainHome);
+  checkSkillUpdatesInBackground(chainHome);
 }

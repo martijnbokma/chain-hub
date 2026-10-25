@@ -9,9 +9,10 @@ interface AssetListProps {
   filterKind: FilterKind;
   selected: { kind: AssetKind; name: string } | null;
   onSelect: (asset: AssetRecord) => void;
+  skillUpdates?: Map<string, boolean>;
 }
 
-export function AssetList({ kindSections, filterKind, selected, onSelect }: AssetListProps) {
+export function AssetList({ kindSections, filterKind, selected, onSelect, skillUpdates }: AssetListProps) {
   if (kindSections.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
@@ -62,6 +63,7 @@ export function AssetList({ kindSections, filterKind, selected, onSelect }: Asse
                 key={`${asset.kind}-${asset.name}`}
                 onSelect={() => onSelect(asset)}
                 selected={selected?.kind === asset.kind && selected?.name === asset.name}
+                updateAvailable={skillUpdates?.get(asset.name) ?? false}
               />
             ))}
           </div>

@@ -8,13 +8,15 @@ interface AssetCardProps {
   selected: boolean;
   compact?: boolean;
   onSelect: () => void;
+  updateAvailable?: boolean;
 }
 
-export function AssetCard({ asset, selected, compact = false, onSelect }: AssetCardProps) {
+export function AssetCard({ asset, selected, compact = false, onSelect, updateAvailable = false }: AssetCardProps) {
   const meta = resolveKindMeta(asset.kind);
   const Icon = meta.icon;
-  const sourceLabel =
-    asset.kind === 'skills' ? formatSkillSource(asset.provenance) : null;
+  const showsSource = asset.kind === 'skills' || Boolean(asset.provenance);
+  const sourceLabel = showsSource ? formatSkillSource(asset.provenance) : null;
+  const upstreamOwned = isUpstreamOwnedSkill(asset.provenance ?? null);
   const hasCompatError = (asset.compatIssues ?? []).some((issue) => issue.severity === 'error');
 
   return (

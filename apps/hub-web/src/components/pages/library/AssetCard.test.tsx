@@ -48,6 +48,12 @@ describe("AssetCard", () => {
     expect(screen.getByText("Author · Martijn Bokma")).toBeInTheDocument();
   });
 
+  it("shows an update badge when an upstream update is available", () => {
+    render(<AssetCard asset={asset()} onSelect={vi.fn()} selected={false} updateAvailable />);
+
+    expect(screen.getByText("Update available")).toBeInTheDocument();
+  });
+
   it("flags assets with a missing-description compat error", () => {
     render(
       <AssetCard

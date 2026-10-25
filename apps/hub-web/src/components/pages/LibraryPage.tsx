@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill-ownership';
+import { hasSkillUpdate, isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill-ownership';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { analysisApi, libraryApi, overviewApi } from '@/lib/api';
@@ -17,7 +17,8 @@ import type {
   AssetRecord,
   FilterKind,
   OwnershipFilter,
-  DiscoveredAsset
+  DiscoveredAsset,
+  SkillBatchItemResult
 } from '@/types';
 import { AiEditPreviewDialog } from './library/AiEditPreviewDialog';
 import type { AnalysisEntry } from './library/analyze-assets';
@@ -41,6 +42,7 @@ import { LibraryToolbar } from './library/LibraryToolbar';
 import { DiscardChangesDialog } from './library/DiscardChangesDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
 import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
+import { SkillUpdateResultsDialog } from './library/SkillUpdateResultsDialog';
 import { useLibraryAiActions } from './library/use-library-ai-actions';
 import { assetKey, useAnalysisReview } from './library/use-analysis-review';
 import { useLibraryAnalysis } from './library/use-library-analysis';
@@ -64,6 +66,7 @@ export function LibraryPage() {
   const [editorContent, setEditorContent] = useState('');
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
   const [autoAuditAsset, setAutoAuditAsset] = useState<string | null>(null);
+  const [updateResults, setUpdateResults] = useState<SkillBatchItemResult[] | null>(null);
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [view, setView] = useState<'assets' | 'review'>('assets');
   const analysis = useLibraryAnalysis();
@@ -117,6 +120,13 @@ export function LibraryPage() {
   const overview = useQuery({
     queryKey: ['overview'],
     queryFn: () => overviewApi.get()
+  });
+
+  const skillUpdateCheck = useQuery({
+    queryKey: ['library', 'skill-updates'],
+    queryFn: () => libraryApi.checkSkillUpdates(),
+    enabled: filterKind === 'skills',
+    staleTime: 5 * 60 * 1000
   });
 
   const selectedAsset = useQuery({
@@ -349,41 +359,24 @@ export function LibraryPage() {
       return libraryApi.updateSkills(name ? { name } : {});
     },
     onSuccess: (result) => {
-      const updatedNames = result.results
-        .filter((item) => item.status === 'updated' || item.status === 'migrated')
-        .map((item) => item.name);
-      const skippedNames = result.results
-        .filter((item) => item.status === 'skipped')
-        .map((item) => item.name);
-      const failedItems = result.results.filter((item) => item.status === 'failed');
+      const changedOrFailed = result.results.some(
+        (item) => item.status === 'updated' || item.status === 'migrated' || item.status === 'failed'
+      );
 
       void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['library', 'skill-updates'] });
       if (selected) {
         void queryClient.invalidateQueries({
           queryKey: ['library', 'detail', selected.kind, selected.name]
         });
       }
 
-      if (updatedNames.length > 0) {
-        toast.success(
-          updatedNames.length === 1 ? `Updated ${updatedNames[0]}` : `Updated ${updatedNames.length} skills`,
-          { description: updatedNames.join(', '), duration: 6000 }
-        );
-      } else if (failedItems.length === 0) {
-        toast.success(
-          skippedNames.length === 1 ? `${skippedNames[0]} is already up to date` : 'All skills already up to date'
-        );
+      if (!changedOrFailed) {
+        toast.success('All skills already up to date');
+        return;
       }
 
-      if (failedItems.length > 0) {
-        toast.error(
-          failedItems.length === 1 ? `Failed to update ${failedItems[0].name}` : `${failedItems.length} skills failed to update`,
-          {
-            description: failedItems.map((item) => `${item.name}${item.error ? `: ${item.error}` : ''}`).join('\n'),
-            duration: 8000
-          }
-        );
-      }
+      setUpdateResults(result.results);
     },
     onError: () => {
       toast.error('Unable to update skills from upstream');
@@ -606,6 +599,7 @@ export function LibraryPage() {
       ownership={ownership}
       reviewOpenCount={analysisReport.data?.items.filter((item) => item.status === 'open').length ?? 0}
       searchQuery={searchQuery}
+      skillUpdateCount={skillUpdateCount}
       view={view}
     />
   );
@@ -733,6 +727,7 @@ export function LibraryPage() {
                       kindSections={kindSections}
                       onSelect={(asset) => requestSelection({ kind: asset.kind as AssetKind, name: asset.name })}
                       selected={selected}
+                      skillUpdates={skillUpdates}
                     />
                   )}
                 </div>
@@ -784,6 +779,7 @@ export function LibraryPage() {
               provenance={selectedAsset.data?.provenance}
               selected={selected}
               skillFiles={skillFiles.data?.files ?? []}
+              updateAvailable={skillUpdates.get(selected.name) ?? false}
               upstreamBrowseUrl={upstreamBrowseUrl}
             />
           ) : null}
@@ -904,6 +900,15 @@ export function LibraryPage() {
           progress={analysis.progress}
           status={analysis.status}
           totalAssets={library.data?.length ?? 0}
+        />
+
+        <SkillUpdateResultsDialog
+          onOpenChange={(open) => {
+            if (!open) {
+              setUpdateResults(null);
+            }
+          }}
+          results={updateResults}
         />
 
         <AiEditPreviewDialog

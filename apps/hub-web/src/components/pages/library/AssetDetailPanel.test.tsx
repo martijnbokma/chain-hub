@@ -54,6 +54,7 @@ describe('AssetDetailPanel tabs & sidecars', () => {
     isForking: false,
     onUpdateFromSource: vi.fn(),
     isUpdating: false,
+    updateAvailable: false,
     onRequestDelete: vi.fn(),
     isDeleting: false,
     onFixDescriptionWithAi: vi.fn(),
@@ -90,6 +91,14 @@ describe('AssetDetailPanel tabs & sidecars', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /SKILL\.md/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /\+ Files/i })).toBeInTheDocument();
+  });
+
+  it('surfaces an available update: accent badge and primary update button', () => {
+    renderWithProviders(<AssetDetailPanel {...baseProps} updateAvailable />);
+
+    expect(screen.getByText('Update available')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Update to latest' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Update from source' })).not.toBeInTheDocument();
   });
 
   it('does not render package files banner or tabs when skill has 0 sidecar files', () => {

@@ -17,7 +17,12 @@ export const skillLockEntrySchema = z.object({
   commitSha: z.string().nullable().optional(),
   installedAt: z.string(),
   updatedAt: z.string(),
-  lastCheckedAt: z.string().nullable().optional()
+  lastCheckedAt: z.string().nullable().optional(),
+  /** Remote HEAD sha seen by the last update check; compared to commitSha to flag updates. */
+  latestSha: z.string().nullable().optional(),
+  /** Catalog provenance when installed via a catalog entry (docs/specs/hub-catalog.md). */
+  catalogId: z.string().nullable().optional(),
+  catalogEntryId: z.string().nullable().optional()
 });
 
 export const assetCompatIssueCodeSchema = z.enum(["missing_description"]);
@@ -161,18 +166,19 @@ export function isUpstreamOwnedSkill(entry: SkillLockEntryValue | null | undefin
   return !entry.source.startsWith("upload://");
 }
 
+/** True when the last update check found the upstream HEAD ahead of the locked copy. */
+export function hasSkillUpdate(entry: SkillLockEntryValue | null | undefined): boolean {
+  return Boolean(entry?.latestSha && entry.latestSha !== entry.commitSha);
+}
+
 /**
- * Hub-editable assets: non-skills always; skills unless upstream-locked (git/path).
- * Created, forked, and uploaded skills count as editable.
+ * Hub-editable assets: anything without an upstream lock entry (git/path) in assets-lock.
+ * Created, forked, and uploaded assets count as editable; catalog installs of any kind do not.
  */
 export function isEditableHubAsset(asset: {
   kind: AssetKind;
   provenance?: SkillLockEntryValue | null;
 }): boolean {
-  if (asset.kind !== "skills") {
-    return true;
-  }
-
   return !isUpstreamOwnedSkill(asset.provenance);
 }
 
@@ -240,6 +246,8 @@ export const skillBatchItemResultSchema = z.object({
   name: z.string(),
   status: z.enum(["updated", "skipped", "failed", "migrated"]),
   error: z.string().optional(),
+  /** Commit the hub copy was locked at before this run; lets clients show old → new. */
+  previousCommitSha: z.string().nullable().optional(),
   lockEntry: skillLockEntrySchema.optional()
 });
 

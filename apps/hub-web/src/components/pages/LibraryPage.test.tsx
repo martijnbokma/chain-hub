@@ -9,7 +9,7 @@ import type { AssetDetail } from '@/types';
 
 import { LibraryPage } from './LibraryPage';
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
 
 vi.mock('@/components/common/MarkdownSourceEditor', () => ({
   MarkdownSourceEditor: ({
@@ -51,6 +51,10 @@ beforeEach(() => {
     return asset;
   });
   vi.spyOn(libraryApi, 'getSkillFiles').mockResolvedValue({ files: [] });
+  vi.spyOn(libraryApi, 'checkSkillUpdates').mockResolvedValue({
+    results: [],
+    checkedAt: '2026-10-24T00:00:00.000Z'
+  });
 });
 
 afterEach(() => {
