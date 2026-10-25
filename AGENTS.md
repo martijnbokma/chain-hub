@@ -11,10 +11,10 @@ Canonical repo: `martijnbokma/chain-hub` (local folder may be named `chain-hub-v
 | File | Load when |
 |---|---|
 | `PROJECT_MAP.md` | Locating files for a feature area |
-| `REBUILD_STRATEGY.md` | Product scope or architecture decisions |
+| `notes/REBUILD_STRATEGY.md` | Product scope or architecture decisions (lives in private `chain-hub-notes`, cloned locally as gitignored `notes/`) |
 | `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md` | Any hub-web UI work |
-| `docs/intent/`, `docs/specs/` | Skills control plane / skill install work |
-| `docs/archive/` | Historical only — not a source of truth |
+| `notes/docs/intent/`, `notes/docs/specs/` | Skills control plane / skill install work |
+| `notes/docs/archive/` | Historical only — not a source of truth |
 
 ## Stack
 
@@ -134,7 +134,7 @@ Requirements are ambiguous, package ownership is unclear, code contradicts this 
 - Design source of truth for hub-web is `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`, and local `apps/hub-web/.impeccable/` (gitignored agent/design tooling—not committed).
 - Personal skills vault lives at `/Users/silverfox/www/skills` (shared design skill lives there; not vendored under `.claude/skills/` in this repo).
 - Cross-IDE rules direction: one hub-owned SSOT with global and project-scoped rules, projected/synced into each editor's native rules format (Cursor, Claude Code, Windsurf, Zed) rather than separate per-IDE rule trees.
-- Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`docs/intent/hub-skills-control-plane.md`, `docs/specs/hub-skill-install.md`).
+- Chain Hub is the skills control plane: install/manage once in Hub, project into editors via adapters; do not maintain parallel Claude/Cursor skill inventories for Hub-managed skills (`notes/docs/intent/hub-skills-control-plane.md`, `notes/docs/specs/hub-skill-install.md`).
 - External `npx skills add` / `~/.agents` installs are imported into Hub on `chain hub` / `chain setup` start (no force overwrite), with remaining agents↔Hub drift surfaced on Overview/Library. Zed consumes projected skills under `~/.agents/skills/` and requires a non-empty description (multiline YAML block scalars must parse correctly on project).
 - Discover lists only editor candidates whose `kind/name` is not already in the hub inventory (in addition to skipping Chain-Hub-managed editor files).
 - Two Devin-family adapters: `windsurf` keeps legacy paths only (skills → `~/.codeium/windsurf/skills/`, rules/workflows → `~/.windsurf/{rules,workflows}/`); `devin` ("Devin CLI") owns the Devin generation (skills → `~/.config/devin/skills/`, agents → `~/.config/devin/agents/` as subagent profiles, rules/workflows → `~/.devin/{rules,workflows}/` shared with Devin Desktop; workflows also project as `triggers: [user]` skills into `~/.config/devin/skills/` for `/name` invocation). Devin installed = `~/.config/devin` (`%APPDATA%\devin` on Windows) or `~/.devin` exists.

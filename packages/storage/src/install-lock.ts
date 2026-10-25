@@ -8,7 +8,7 @@ import { writeFileAtomic } from "./shared.js";
 /**
  * Unified install lock (`system/assets-lock.json`): provenance for every
  * upstream-installed asset, keyed `"<kind>/<name>"`. Supersedes the skills-only
- * `skills-lock.json` (docs/specs/hub-catalog.md, decision D2) — that file is
+ * `skills-lock.json` (notes/docs/specs/hub-catalog.md, decision D2) — that file is
  * migrated in once on first access and ignored afterwards.
  */
 

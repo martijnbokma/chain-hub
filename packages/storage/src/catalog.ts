@@ -21,7 +21,7 @@ import { pathExists, writeFileAtomic } from "./shared.js";
 
 /**
  * Catalog storage: source registry + index fetch/cache under
- * `system/catalogs/` (docs/specs/hub-catalog.md). Indexes are pointer files
+ * `system/catalogs/` (notes/docs/specs/hub-catalog.md). Indexes are pointer files
  * fetched over HTTPS (or read from disk for dev/test sources); installs reuse
  * the existing git/path install path.
  */

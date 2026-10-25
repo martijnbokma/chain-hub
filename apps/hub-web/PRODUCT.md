@@ -10,7 +10,7 @@ web
 
 The primary user is an individual developer managing their own personal Chain Hub — one person, one local hub. Their core job when opening this dashboard: inspect what's in their hub (skills, agents, workflows, rules), keep it in sync across the AI coding editors they use, and fix anything that's drifted or missing.
 
-Team/shared-hub usage exists in the broader product roadmap (see repo-level `REBUILD_STRATEGY.md`) but is not the design target for this surface today — solo, individual use comes first.
+Team/shared-hub usage exists in the broader product roadmap (see repo-level `notes/REBUILD_STRATEGY.md` (private notes clone)) but is not the design target for this surface today — solo, individual use comes first.
 
 ## Product Purpose
 

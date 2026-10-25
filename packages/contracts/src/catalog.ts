@@ -2,7 +2,7 @@ import { z } from "zod";
 import { assetKindSchema } from "./asset.js";
 
 /**
- * Chain Hub Catalog — a git-hosted pointer index (docs/specs/hub-catalog.md).
+ * Chain Hub Catalog — a git-hosted pointer index (notes/docs/specs/hub-catalog.md).
  * The index file lives at a repo root (`catalog.json`); entries point at
  * upstream source repos and never embed asset content.
  */

@@ -43,3 +43,6 @@ apps/hub-web/test-results/
 
 # Local agent tooling (skills installed by other agent sessions)
 .agents/
+
+# Private notes clone (martijnbokma/chain-hub-notes, optional)
+notes/

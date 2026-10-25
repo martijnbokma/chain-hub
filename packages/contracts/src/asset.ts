@@ -20,7 +20,7 @@ export const skillLockEntrySchema = z.object({
   lastCheckedAt: z.string().nullable().optional(),
   /** Remote HEAD sha seen by the last update check; compared to commitSha to flag updates. */
   latestSha: z.string().nullable().optional(),
-  /** Catalog provenance when installed via a catalog entry (docs/specs/hub-catalog.md). */
+  /** Catalog provenance when installed via a catalog entry (notes/docs/specs/hub-catalog.md). */
   catalogId: z.string().nullable().optional(),
   catalogEntryId: z.string().nullable().optional()
 });

@@ -19,7 +19,7 @@ import {
 import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
-// Devin CLI discovery paths (user-level): docs/editor-adapters-research.md#devin-cli.
+// Devin CLI discovery paths (user-level): notes/docs/editor-adapters-research.md#devin-cli.
 // ~/.devin/ is shared with Devin Desktop (rules/workflows); ~/.config/devin/
 // (%APPDATA%\devin on Windows) is the CLI's own config root for skills/agents.
 const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules", "workflows"];

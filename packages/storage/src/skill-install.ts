@@ -61,7 +61,7 @@ function skillFile(chainHome: string, name: string): string {
 export const CORRUPT_LOCK_PREFIX = "skills-lock.json.corrupt-";
 
 /**
- * Legacy skills-view over the unified `assets-lock.json` (D2, docs/specs/hub-catalog.md).
+ * Legacy skills-view over the unified `assets-lock.json` (D2, notes/docs/specs/hub-catalog.md).
  * The old `skills-lock.json` is migrated in once by readInstallLock and ignored after.
  */
 export async function readSkillsLock(chainHome: string): Promise<SkillsLockFile> {

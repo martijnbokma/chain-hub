@@ -17,7 +17,7 @@ import {
 import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
-// Cursor discovery paths (user-level): docs/editor-adapters-research.md#cursor
+// Cursor discovery paths (user-level): notes/docs/editor-adapters-research.md#cursor
 // Agents/workflows have no native target — Custom Modes were removed in Cursor 2.1.0
 // and Commands is being folded into Skills, so both kinds are intentionally skipped.
 const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules"];

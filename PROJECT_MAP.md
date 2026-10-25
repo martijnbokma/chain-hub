@@ -44,7 +44,7 @@ Where things live, by feature area. Load only the section you need. Rules and co
 | Feature | Files |
 |---|---|
 | Asset CRUD | `contracts/src/asset.ts` → `storage/src/core.ts` → `domain/src/index.ts` → `server/src/routes/library.ts` → `hub-web/.../library/` |
-| Skill install/update/fork | `storage/src/skill-install.ts` (+ `skill-copy.ts`, `skill-git.ts`), `domain/src/skills.ts`, `routes/library.ts`, `InstallSkillDialog.tsx`; spec: `docs/specs/hub-skill-install.md` |
+| Skill install/update/fork | `storage/src/skill-install.ts` (+ `skill-copy.ts`, `skill-git.ts`), `domain/src/skills.ts`, `routes/library.ts`, `InstallSkillDialog.tsx`; spec: `notes/docs/specs/hub-skill-install.md` |
 | Editor sync / discover | `storage/src/integrations.ts`, `storage/src/adapters/`, `routes/hub.ts`, `routes/library.ts` (discover/import) |
 | Learnings | `contracts/src/learning.ts`, `storage/src/learnings.ts`, `routes/learnings.ts`, `LearningsPage.tsx`, CLI `capture`/`reflect` |
 | AI drafting/audit | `contracts/src/ai.ts`, `storage/src/ai-settings.ts`, `domain/src/ai-providers.ts` (+ `ai-prompts.ts`, `ai-transport.ts`, `ai-parse.ts`), `routes/ai.ts`, `lib/ai-models.ts`, `AiEditPreviewDialog.tsx` |

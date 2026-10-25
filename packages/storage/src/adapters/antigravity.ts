@@ -20,7 +20,7 @@ import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Google Antigravity (2.0 app, IDE and `agy` CLI share ~/.gemini/config/):
-// docs/antigravity-adapter-research.md
+// notes/docs/antigravity-adapter-research.md
 // Assets are projected into a single Chain-Hub-owned plugin instead of the loose
 // global folders, so hand-written files stay untouched and `agy plugin disable chain-hub`
 // switches everything off at once. Global rules otherwise only live in the single

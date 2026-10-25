@@ -17,7 +17,7 @@ import {
 import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
-// Claude Code discovery paths (user-level): docs/editor-adapters-research.md#claude-code
+// Claude Code discovery paths (user-level): notes/docs/editor-adapters-research.md#claude-code
 const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules"];
 
 function baseDir(homeDir: string, kind: AssetKind): string {

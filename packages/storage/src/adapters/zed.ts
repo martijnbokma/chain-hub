@@ -16,7 +16,7 @@ import {
 import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
-// Zed discovery paths (user-level): docs/editor-adapters-research.md#zed
+// Zed discovery paths (user-level): notes/docs/editor-adapters-research.md#zed
 // Agents/workflows have no native concept in Zed — intentionally skipped.
 // Rules are a MERGE kind: Zed reads exactly one instruction file per scope
 // (first match of .rules/AGENTS.md/etc.), so all Chain Hub rule assets get
