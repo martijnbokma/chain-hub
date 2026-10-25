@@ -16,7 +16,7 @@ function sitemapPlugin(): Plugin {
     name: "emit-sitemap",
     apply: "build",
     generateBundle() {
-      const urls = [
+      const urls: { loc: string; lastmod?: string; priority: string; changefreq: string }[] = [
         { loc: "/", priority: "1.0", changefreq: "weekly" },
         ...readdirSync(DOCS_CONTENT)
           .filter((file) => file.endsWith(".mdx"))
