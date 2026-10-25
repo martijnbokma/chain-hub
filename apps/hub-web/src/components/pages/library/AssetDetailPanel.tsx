@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ChevronDown, FolderTree } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/contracts';
@@ -21,6 +21,9 @@ import { AssetAuditCard } from './AssetAuditCard';
 import { AssetCompatBanner } from './AssetCompatBanner';
 import { AssetDetailActions } from './AssetDetailActions';
 import { AssetFileTabs } from './AssetFileTabs';
+import { AssetKindAssessment } from './AssetKindAssessment';
+import { AssetPackageFilesStrip } from './AssetPackageFilesStrip';
+import { AssetSidecarEditor } from './AssetSidecarEditor';
 import { AssetProvenanceCard } from './AssetProvenanceCard';
 import { AssetRenameTitle } from './AssetRenameTitle';
 import { contentForClipboard, KIND_META } from './asset-helpers';
@@ -76,12 +79,6 @@ interface AssetDetailPanelProps {
   onRelink?: () => void;
   onUnlink?: () => void;
   isUnlinking?: boolean;
-}
-
-function formatFileSize(size: number): string {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function AssetDetailPanel({
@@ -340,66 +337,21 @@ export function AssetDetailPanel({
             upstreamBrowseUrl={upstreamBrowseUrl}
           />
           {selected.kind === 'skills' && nonDirectoryFiles.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <FolderTree className="size-3.5 text-muted-foreground" />
-                <span className="font-medium text-foreground">Package files</span>
-                <Badge variant="default">{nonDirectoryFiles.length}</Badge>
-                <span className="hidden sm:inline text-muted-foreground">· Available as tabs in editor</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {onOpenFileManager ? (
-                  <Button
-                    className="h-6 px-2 text-xs"
-                    onClick={onOpenFileManager}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FolderTree className="mr-1 size-3" />
-                    Files in sidebar
-                  </Button>
-                ) : null}
-                <Button
-                  className="h-6 px-2 text-xs"
-                  onClick={() => setIsFilesMenuOpen((prev) => !prev)}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  Browse files <ChevronDown className="ml-1 size-3" />
-                </Button>
-              </div>
-            </div>
+            <AssetPackageFilesStrip
+              fileCount={nonDirectoryFiles.length}
+              onOpenFileManager={onOpenFileManager}
+              onToggleFilesMenu={() => setIsFilesMenuOpen((prev) => !prev)}
+            />
           ) : null}
           {kindAssessment ? (
-            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-foreground">Kind check</span>
-                <Badge variant={kindAssessment.matchesCurrent ? 'default' : 'accent'}>
-                  {kindAssessment.matchesCurrent ? 'Matches' : `Suggests ${recommendedLabel}`}
-                </Badge>
-              </div>
-              <p className="mt-1 leading-5 text-foreground/80">{kindAssessment.reason}</p>
-              {canConvert ? (
-                <Button
-                  className="mt-3 w-fit"
-                  loading={isConverting}
-                  onClick={() => onConvertKind(kindAssessment.recommendedKind)}
-                  size="sm"
-                  type="button"
-                >
-                  {isConverting
-                    ? 'Converting…'
-                    : `Convert to ${kindAssessment.recommendedKind}`}
-                </Button>
-              ) : null}
-              {isUpstreamSkill && !kindAssessment.matchesCurrent ? (
-                <p className="mt-2 leading-5 text-foreground/80">
-                  Fork this skill first if you want to convert a customized copy.
-                </p>
-              ) : null}
-            </div>
+            <AssetKindAssessment
+              assessment={kindAssessment}
+              canConvert={canConvert}
+              isConverting={isConverting}
+              isUpstreamSkill={isUpstreamSkill}
+              onConvert={() => onConvertKind(kindAssessment.recommendedKind)}
+              recommendedLabel={recommendedLabel}
+            />
           ) : null}
           {assetAudit || isAuditing ? (
             <AssetAuditCard
@@ -433,47 +385,13 @@ export function AssetDetailPanel({
 
           <div className="min-h-0 flex-1">
             {isSidecarActive ? (
-              <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border">
-                <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2 truncate">
-                    <Badge className="text-[10px] uppercase tracking-wider" variant="default">
-                      Read-only
-                    </Badge>
-                    <span className="truncate font-mono font-medium text-foreground">{activeTab}</span>
-                    {sidecarQuery.data ? <span>({formatFileSize(sidecarQuery.data.size)})</span> : null}
-                    {sidecarQuery.data?.truncated ? (
-                      <span className="font-medium text-warning-foreground">· Truncated (&gt;1 MB)</span>
-                    ) : null}
-                  </div>
-                  <Button
-                    className="h-6 px-2 text-xs"
-                    onClick={() => setActiveTab('SKILL.md')}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <ArrowLeft className="mr-1 size-3" /> Back to SKILL.md
-                  </Button>
-                </div>
-                <div className="min-h-0 flex-1">
-                  {sidecarQuery.isLoading ? (
-                    <Skeleton className="h-full min-h-50 w-full" />
-                  ) : sidecarQuery.isError ? (
-                    <div className="flex h-full items-center justify-center p-6 text-sm text-destructive">
-                      Unable to load file content.
-                    </div>
-                  ) : (
-                    <Suspense fallback={<Skeleton className="h-full min-h-50 w-full" />}>
-                      <MarkdownSourceEditor
-                        aria-label={`View sidecar ${activeTab}`}
-                        onChange={() => {}}
-                        readOnly={true}
-                        value={sidecarQuery.data?.content ?? ''}
-                      />
-                    </Suspense>
-                  )}
-                </div>
-              </div>
+              <AssetSidecarEditor
+                activeTab={activeTab}
+                data={sidecarQuery.data}
+                isError={sidecarQuery.isError}
+                isLoading={sidecarQuery.isLoading}
+                onBack={() => setActiveTab('SKILL.md')}
+              />
             ) : (
               <Suspense fallback={<Skeleton className="h-full min-h-50 w-full rounded-xl" />}>
                 <MarkdownSourceEditor
