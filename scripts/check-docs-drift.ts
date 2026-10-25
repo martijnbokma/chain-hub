@@ -22,8 +22,8 @@ const USER_FACING = [
   "packages/storage/src/adapters/"
 ];
 
-const userFacing = changed.filter((file) =>
-  USER_FACING.some((dir) => file.startsWith(dir))
+const userFacing = changed.filter(
+  (file) => USER_FACING.some((dir) => file.startsWith(dir)) && !file.includes(".test.")
 );
 const docsTouched = changed.some((file) => file.startsWith("apps/docs/"));
 
