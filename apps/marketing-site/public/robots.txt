@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Allow: /docs/
+
+Sitemap: https://www.chainhub.one/sitemap.xml

@@ -1,6 +1,9 @@
 {
   "name": "Chain Hub",
   "short_name": "Chain Hub",
+  "description": "One local source of truth for AI skills, agents, workflows, rules and prompts — synced into every editor.",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-192.png",
