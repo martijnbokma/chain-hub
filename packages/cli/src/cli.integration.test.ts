@@ -112,7 +112,8 @@ describe("CLI integration", () => {
     await runCli(cliArgv("resolve", "cli-test"));
     const resolved = JSON.parse(logs.join("\n")) as { skill: string; resolvedCount: number };
     expect(resolved.skill).toBe("cli-test");
-    expect(resolved.resolvedCount).toBe(1);
+    // The open note and the correction are both field reports counted as resolved.
+    expect(resolved.resolvedCount).toBe(2);
 
     logs = [];
     await runCli(cliArgv("reflect", "--write"));

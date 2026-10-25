@@ -28,7 +28,10 @@ export {
   detectAgentsSkillsDrift,
   forkSkillFromHub,
   readSkillsLock,
-  renameSkillLockEntry
+  renameSkillLockEntry,
+  removeSkillLockEntry,
+  listSkillUpstreamDirs,
+  relinkSkill
 } from "./skill-install.js";
 
 export {
@@ -60,7 +63,18 @@ export {
   importDiscoveredAsset
 } from "./integrations.js";
 
-export { getOverview, getSetupGuide } from "./hub.js";
+export { getOverview, getSetupGuide, listHubIssues } from "./hub.js";
+
+export {
+  readSyncConfig,
+  readSyncState,
+  getSyncStatus,
+  connectSync,
+  disconnectSync,
+  syncNow,
+  resolveSyncConflicts,
+  autoSyncOnStart
+} from "./sync.js";
 
 export { readAnalysisReport, writeAnalysisReport } from "./analysis.js";
 

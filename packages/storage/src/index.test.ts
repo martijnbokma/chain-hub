@@ -282,6 +282,14 @@ describe("buildReflectionReport", () => {
     expect(apiSkill?.correctionCount).toBe(1);
   });
 
+  it("marks notes-only skills as collecting instead of stable", async () => {
+    const hub = await makeTmpHub();
+    await captureEvent(hub, { type: "note", skill: "field-notes", summary: "a" });
+    await captureEvent(hub, { type: "note", skill: "field-notes", summary: "b" });
+    const report = await buildReflectionReport(hub);
+    expect(report.skills[0].trend).toBe("collecting");
+  });
+
   it("marks single-event skills as new", async () => {
     const hub = await makeTmpHub();
     await captureEvent(hub, { type: "note", skill: "brand-new", summary: "first event" });
@@ -317,11 +325,13 @@ describe("resolveSkillLearnings", () => {
 
     const result = await resolveSkillLearnings(hub, "api");
 
-    // The marker checkpoints all events, so it lands on the note's timestamp.
-    expect(result).toEqual({ skill: "api", resolvedAt: "2026-01-03T00:00:00.000Z", resolvedCount: 2 });
+    // The marker checkpoints all events, so it lands on the note's timestamp;
+    // resolvedCount covers every open field report, notes included.
+    expect(result).toEqual({ skill: "api", resolvedAt: "2026-01-03T00:00:00.000Z", resolvedCount: 3 });
     const api = (await buildReflectionReport(hub)).skills.find((s) => s.skill === "api");
     expect(api?.openCorrectionCount).toBe(0);
     expect(api?.openFailureCount).toBe(0);
+    expect(api?.openNoteCount).toBe(0);
     expect(api?.resolvedAt).toBe("2026-01-03T00:00:00.000Z");
     expect(api?.correctionCount).toBe(1);
     expect(api?.failureCount).toBe(1);
@@ -362,13 +372,27 @@ describe("resolveSkillLearnings", () => {
     expect(learnings.map((event) => event.summary)).toEqual(["fresh note"]);
   });
 
-  it("throws when the skill has no open issues", async () => {
+  it("resolves notes-only skills so collecting field reports can be cleared", async () => {
     const hub = await makeTmpHub();
     await writeEvents(hub, [
-      { type: "note", skill: "api", summary: "only notes", capturedAt: "2026-01-01T00:00:00.000Z" }
+      { type: "note", skill: "api", summary: "only notes", capturedAt: "2026-01-01T00:00:00.000Z" },
+      { type: "note", skill: "api", summary: "more notes", capturedAt: "2026-01-02T00:00:00.000Z" }
     ]);
 
-    await expect(resolveSkillLearnings(hub, "api")).rejects.toThrow(/No open corrections or failures/);
+    const result = await resolveSkillLearnings(hub, "api");
+
+    expect(result.resolvedCount).toBe(2);
+    const api = (await buildReflectionReport(hub)).skills.find((s) => s.skill === "api");
+    expect(api?.openNoteCount).toBe(0);
+  });
+
+  it("throws when the skill has no open field reports", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(hub, [
+      { type: "success", skill: "api", summary: "routine win", capturedAt: "2026-01-01T00:00:00.000Z" }
+    ]);
+
+    await expect(resolveSkillLearnings(hub, "api")).rejects.toThrow(/No open field reports/);
   });
 });
 

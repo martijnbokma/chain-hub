@@ -10,9 +10,12 @@ import type {
   ImportAssetInput,
   ImproveAssetInput,
   RenameAssetInput,
+  ResolveConflictsInput,
+  SyncConnectInput,
   UpdateAiSettingsInput
 } from "@chain-hub/contracts";
 import {
+  autoSyncOnStart,
   buildReflectionReport,
   captureEvent,
   writeReflectionMarkdown,
@@ -26,8 +29,12 @@ import {
   getLearningsTimeline,
   getSkillLearnings,
   getOverview,
+  listHubIssues,
   getSetupGuide,
   importDiscoveredAsset,
+  connectSync,
+  disconnectSync,
+  getSyncStatus,
   initializeHub,
   listAssets,
   listSkillFiles,
@@ -36,6 +43,8 @@ import {
   readSkillFile,
   renameAsset,
   resolveSkillLearnings,
+  resolveSyncConflicts,
+  syncNow,
   setupIntegrations,
   syncAssetToEditors,
   updateAiSettings,
@@ -50,11 +59,14 @@ export {
   checkLibrarySkillUpdates,
   forkLibrarySkill,
   getHubAgentsSkillsDrift,
+  getLibrarySkillUpstreamDirs,
   installLibrarySkill,
   installLibrarySkillBundle,
   migrateAgentsLibrarySkills,
+  relinkLibrarySkill,
   summarizeAgentsSkillSync,
   syncAgentsSkillsIntoHub,
+  unlinkLibrarySkill,
   updateLibrarySkills
 } from "./skills.js";
 
@@ -146,6 +158,31 @@ export async function getIntegrationStatus(chainHome?: string) {
   return getIntegrations(chainHome);
 }
 
+export async function getHubSyncStatus(chainHome?: string) {
+  return getSyncStatus(chainHome);
+}
+
+export async function connectHubSync(chainHome: string | undefined, input: SyncConnectInput) {
+  return connectSync(chainHome, input);
+}
+
+export async function disconnectHubSync(chainHome?: string) {
+  return disconnectSync(chainHome);
+}
+
+export async function syncHubNow(chainHome?: string) {
+  return syncNow(chainHome);
+}
+
+export async function resolveHubSyncConflicts(chainHome: string | undefined, input: ResolveConflictsInput) {
+  return resolveSyncConflicts(chainHome, input);
+}
+
+/** Fire-and-forget sync for `chain hub`/`chain setup` — no-op unless sync is connected with autoSync on. */
+export async function autoSyncHubOnStart(chainHome?: string): Promise<void> {
+  return autoSyncOnStart(chainHome);
+}
+
 export async function connectEditors(chainHome?: string) {
   return setupIntegrations(chainHome);
 }
@@ -156,6 +193,10 @@ export async function validateChainHub(chainHome?: string) {
 
 export async function getGuidedSetup(chainHome?: string) {
   return getSetupGuide(chainHome);
+}
+
+export async function getHubIssues(chainHome?: string) {
+  return listHubIssues(chainHome);
 }
 
 export async function captureHubEvent(chainHome: string | undefined, input: CaptureInput) {

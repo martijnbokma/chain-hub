@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
+import { CloudBackupCard } from '@/components/pages/integrations/CloudBackupCard';
 import { integrationsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -122,6 +123,8 @@ export function IntegrationsPage() {
           </li>
         ))}
       </ul>
+
+      <CloudBackupCard />
     </section>
   );
 }

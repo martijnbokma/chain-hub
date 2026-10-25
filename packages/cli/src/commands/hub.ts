@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import {
+  autoSyncHubOnStart,
   checkLibrarySkillUpdates,
   initializeChainHub,
   summarizeAgentsSkillSync,
@@ -121,6 +122,13 @@ function syncAgentsSkillsInBackground(chainHome: string): void {
     });
 }
 
+/** GitHub sync on hub start — no-op unless the user connected sync with autoSync on. */
+function syncWithRemoteInBackground(chainHome: string): void {
+  void autoSyncHubOnStart(chainHome).catch((error: unknown) => {
+    console.warn(`Cloud sync skipped: ${error instanceof Error ? error.message : String(error)}`);
+  });
+}
+
 /** Probe upstream git skills once per hub start; results land in the skills lock for the dashboard. */
 function checkSkillUpdatesInBackground(chainHome: string): void {
   void checkLibrarySkillUpdates(chainHome)
@@ -183,4 +191,5 @@ export async function runHubCommand(options: HubCommandOptions): Promise<void> {
 
   syncAgentsSkillsInBackground(chainHome);
   checkSkillUpdatesInBackground(chainHome);
+  syncWithRemoteInBackground(chainHome);
 }

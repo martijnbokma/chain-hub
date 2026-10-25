@@ -19,7 +19,9 @@ import type {
   AiSettingsPublic,
   UpdateAiSettingsInput,
   CheckSkillUpdatesResult,
+  HubIssuesResult,
   SkillCheckItemResult,
+  SkillUpstreamDirsResult,
   DraftAssetInput,
   DraftAssetResult,
   DraftPromptInput,
@@ -38,6 +40,9 @@ import type {
   ReflectionReport,
   ResolveLearningsInput,
   ResolveLearningsResult,
+  ResolveConflictsInput,
+  SyncConnectInput,
+  SyncStatus,
   CatalogResult,
   InstallCatalogEntryInput,
   InstallCatalogEntryResult
@@ -95,6 +100,11 @@ export const validateApi = {
   run: () => getJson<ValidationResult>('/api/validate')
 };
 
+// Issues API — every known hub problem, errors first
+export const issuesApi = {
+  get: () => getJson<HubIssuesResult>('/api/issues')
+};
+
 // Library API
 export const libraryApi = {
   getAll: () => getJson<AssetRecord[]>('/api/library'),
@@ -119,8 +129,14 @@ export const libraryApi = {
     sendJson<InstallSkillResult>('/api/library/skills/install-bundle', 'POST', data),
   updateSkills: (data: { name?: string; force?: boolean } = {}) =>
     sendJson<UpdateSkillsResult>('/api/library/skills/update', 'POST', data),
-  checkSkillUpdates: (options: { force?: boolean } = {}) =>
-    getJson<CheckSkillUpdatesResult>(`/api/library/skills/check-updates${options.force ? '?force=true' : ''}`),
+  checkSkillUpdates: (options: { name?: string; force?: boolean } = {}) =>
+    sendJson<CheckSkillUpdatesResult>('/api/library/skills/check-updates', 'POST', options),
+  getSkillUpstreamDirs: (name: string) =>
+    getJson<SkillUpstreamDirsResult>(`/api/library/skills/${encodeURIComponent(name)}/upstream-dirs`),
+  relinkSkill: (name: string, subdir: string) =>
+    sendJson<InstallSkillResult>(`/api/library/skills/${encodeURIComponent(name)}/relink`, 'POST', { subdir }),
+  unlinkSkill: (name: string) =>
+    sendJson<{ ok: true }>(`/api/library/skills/${encodeURIComponent(name)}/unlink`, 'POST'),
   forkSkill: (data: { kind?: AssetKind; name: string; as?: string }) =>
     sendJson<AssetDetail>('/api/library/skills/fork', 'POST', data),
   getSkillFiles: (name: string) =>
@@ -155,6 +171,15 @@ export const analysisApi = {
 export const integrationsApi = {
   getAll: () => getJson<Integration[]>('/api/integrations'),
   setup: () => sendJson<Integration[]>('/api/integrations/setup', 'POST')
+};
+
+// Sync API — GitHub-backed cloud backup of the hub folder
+export const syncApi = {
+  status: () => getJson<SyncStatus>('/api/sync/status'),
+  connect: (data: SyncConnectInput) => sendJson<SyncStatus>('/api/sync/connect', 'POST', data),
+  disconnect: () => sendJson<SyncStatus>('/api/sync/disconnect', 'POST'),
+  now: () => sendJson<SyncStatus>('/api/sync/now', 'POST'),
+  resolve: (data: ResolveConflictsInput) => sendJson<SyncStatus>('/api/sync/resolve', 'POST', data)
 };
 
 // Setup API
