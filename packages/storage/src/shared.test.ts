@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { makeExcerpt, pathExists, writeFileAtomic } from "./shared.js";
 
@@ -38,6 +38,10 @@ describe("pathExists", () => {
 });
 
 describe("writeFileAtomic", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("writes content and leaves no temp file behind", async () => {
     const dir = await makeTmpDir();
     const file = path.join(dir, "out.json");
@@ -45,6 +49,30 @@ describe("writeFileAtomic", () => {
 
     expect(await fs.readFile(file, "utf8")).toBe("{}");
     expect(await fs.readdir(dir)).toEqual(["out.json"]);
+  });
+
+  it("retries a transient rename failure before succeeding", async () => {
+    const dir = await makeTmpDir();
+    const file = path.join(dir, "out.json");
+
+    const eperm = Object.assign(new Error("operation not permitted"), { code: "EPERM" });
+    const renameSpy = vi.spyOn(fs, "rename").mockRejectedValueOnce(eperm);
+
+    await writeFileAtomic(file, "{}");
+
+    expect(renameSpy).toHaveBeenCalledTimes(2);
+    expect(await fs.readFile(file, "utf8")).toBe("{}");
+  });
+
+  it("does not retry non-transient rename failures", async () => {
+    const dir = await makeTmpDir();
+    const file = path.join(dir, "out.json");
+
+    const eacces = Object.assign(new Error("access denied"), { code: "EACCES" });
+    const renameSpy = vi.spyOn(fs, "rename").mockRejectedValue(eacces);
+
+    await expect(writeFileAtomic(file, "{}")).rejects.toThrow("access denied");
+    expect(renameSpy).toHaveBeenCalledTimes(1);
   });
 });
 
