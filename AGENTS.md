@@ -49,9 +49,10 @@ packages/cli/          chain-hub (npm name) — `chain` binary, Commander
 ```bash
 bun install
 bun run build            # all packages, dependency order
-bun run dev              # server + hub-web + packages (watch)
-bun run dev:hub          # server + hub-web only (fastest dashboard loop)
+bun run dev              # everything: server + hub-web + docs + marketing + packages (watch); frees dev ports first and prints the URLs
+bun run dev:hub          # hub only: server + hub-web + packages (watch)
 bun run dev:docs         # docs site
+bun run dev:marketing    # marketing site
 bun run hub              # build + start dashboard (port 2342)
 bun run lint             # ESLint 9 flat config, whole workspace
 bun run typecheck

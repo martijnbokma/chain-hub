@@ -119,9 +119,8 @@ Run from the repo root with `bun run <script>`.
 | --- | --- |
 | `install` | Install all dependencies |
 | `build` | Build all packages in dependency order |
-| `dev` | Hub stack in watch mode (server + hub-web + packages) |
-| `dev:hub` | Server + hub-web only (fastest dashboard loop) |
-| `dev:all` | Every workspace package in watch mode |
+| `dev` | Everything in watch mode (server + hub-web + docs + marketing + packages); frees the dev ports first and prints the local URLs |
+| `dev:hub` | Hub stack only (server + hub-web + package watches) |
 | `dev:marketing` | Marketing site only |
 | `dev:docs` | Documentation site only (this site) |
 | `hub` | Build + start dashboard (production mode) |
