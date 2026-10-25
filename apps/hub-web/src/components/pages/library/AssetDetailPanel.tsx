@@ -6,19 +6,14 @@ import {
   ChevronDown,
   ClipboardCopy,
   ExternalLink,
-  FileCode,
-  FileText,
   FolderTree,
   GitFork,
-  Pencil,
   RefreshCw,
   ScanSearch,
-  Search,
   ListChecks,
   Sparkles,
   Trash2,
-  Wrench,
-  X
+  Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,8 +21,7 @@ import { ensureExplicitDescription, listAssetCompatIssues } from '@chain-hub/con
 import { libraryApi } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type {
@@ -38,7 +32,10 @@ import type {
   SkillLockEntry
 } from '@/types';
 import { AssetAuditCard } from './AssetAuditCard';
-import { contentForClipboard, formatSkillSource, formatSkillSourceType, KIND_META } from './asset-helpers';
+import { AssetFileTabs } from './AssetFileTabs';
+import { AssetProvenanceCard } from './AssetProvenanceCard';
+import { AssetRenameTitle } from './AssetRenameTitle';
+import { contentForClipboard, KIND_META } from './asset-helpers';
 
 const MarkdownSourceEditor = React.lazy(async () => {
   const module = await import('@/components/common/MarkdownSourceEditor');
@@ -301,63 +298,23 @@ export function AssetDetailPanel({
             <span className="sr-only">Back to index</span>
           </Button>
           <div className="grid min-w-0 flex-1 gap-1">
-            {isRenamingUi ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Input
-                  aria-label="Asset name"
-                  autoFocus
-                  className="max-w-md font-mono text-sm"
-                  disabled={isRenaming}
-                  onChange={(event) => setRenameValue(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      submitRename();
-                    }
-                    if (event.key === 'Escape') {
-                      setIsRenamingUi(false);
-                      setRenameValue(selected.name);
-                    }
-                  }}
-                  value={renameValue}
-                />
-                <Button disabled={!renameValue.trim()} loading={isRenaming} onClick={submitRename} size="icon-sm" type="button">
-                  <Check className="size-4" />
-                  <span className="sr-only">Save name</span>
-                </Button>
-                <Button
-                  disabled={isRenaming}
-                  onClick={() => {
-                    setIsRenamingUi(false);
-                    setRenameValue(selected.name);
-                  }}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <X className="size-4" />
-                  <span className="sr-only">Cancel rename</span>
-                </Button>
-              </div>
-            ) : (
-              <div className="flex min-w-0 items-center gap-2">
-                <CardTitle className="truncate">{selected.name}</CardTitle>
-                {canRename ? (
-                  <Button
-                    onClick={() => {
-                      setRenameValue(selected.name);
-                      setIsRenamingUi(true);
-                    }}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Pencil className="size-3.5" />
-                    <span className="sr-only">Rename asset</span>
-                  </Button>
-                ) : null}
-              </div>
-            )}
+            <AssetRenameTitle
+              canRename={canRename}
+              isRenaming={isRenaming}
+              isRenamingUi={isRenamingUi}
+              name={selected.name}
+              onCancelRename={() => {
+                setIsRenamingUi(false);
+                setRenameValue(selected.name);
+              }}
+              onRenameValueChange={setRenameValue}
+              onStartRename={() => {
+                setRenameValue(selected.name);
+                setIsRenamingUi(true);
+              }}
+              onSubmitRename={submitRename}
+              renameValue={renameValue}
+            />
             <p className="text-xs text-muted-foreground">
               {isUpstreamSkill ? `Viewing upstream ${selected.kind}` : `Editing ${selected.kind}`}
               {isRenaming ? ' · Renaming…' : null}
@@ -412,84 +369,18 @@ export function AssetDetailPanel({
               )}
             </div>
           ) : null}
-          {selected.kind === 'skills' || provenance ? (
-            <div className="rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-foreground">Source</span>
-                <Badge variant="default">{formatSkillSourceType(provenance)}</Badge>
-                {isUpstreamSkill ? <Badge variant="default">Upstream-owned</Badge> : null}
-                {updateAvailable ? <Badge variant="accent">Update available</Badge> : null}
-                {provenance?.unlinkedAt ? (
-                  <Badge variant="warning">
-                    {provenance.unlinkedReason === 'source-missing' ? 'Source gone' : 'Unlinked'}
-                  </Badge>
-                ) : null}
-              </div>
-              <p className="mt-1 break-all font-mono leading-5 text-foreground/80">
-                {formatSkillSource(provenance)}
-              </p>
-              {provenance?.sourceType === 'path' ? (
-                <p className="mt-1 leading-5">
-                  This source is a folder on disk, so there is no remote repository or owner to link to.
-                </p>
-              ) : null}
-              {provenance?.subdir ? (
-                <p className="mt-1">
-                  Subdir · <span className="font-mono">{provenance.subdir}</span>
-                </p>
-              ) : null}
-              {provenance?.updatedAt ? (
-                <p className="mt-1">Locked · {new Date(provenance.updatedAt).toLocaleString()}</p>
-              ) : null}
-              {provenance?.lastCheckedAt ? (
-                <p className="mt-1">Checked · {new Date(provenance.lastCheckedAt).toLocaleString()}</p>
-              ) : null}
-              {provenance?.unlinkedAt ? (
-                <p className="mt-2 leading-5 text-foreground/80">
-                  Unlinked · {new Date(provenance.unlinkedAt).toLocaleString()}
-                  {provenance.unlinkedReason === 'source-missing'
-                    ? ' — this source no longer exists. The copy below is now editable; reinstall from a new source to track it again.'
-                    : ' — detached from source. The copy below is now editable; reinstall to track it again.'}
-                </p>
-              ) : null}
-              {provenance?.lastCheckError || provenance?.lastUpdateError ? (
-                <div className="mt-2 rounded-lg border border-destructive/20 bg-destructive/5 px-2.5 py-2">
-                  {provenance.lastCheckError ? (
-                    <p className="text-xs leading-5 text-destructive">Check failed · {provenance.lastCheckError}</p>
-                  ) : null}
-                  {provenance.lastUpdateError ? (
-                    <p className="text-xs leading-5 text-destructive">Update failed · {provenance.lastUpdateError}</p>
-                  ) : null}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {onRetryCheck ? (
-                      <Button loading={isRetryingCheck} onClick={onRetryCheck} size="sm" type="button" variant="secondary">
-                        <RefreshCw className="size-3.5" />
-                        Retry check
-                      </Button>
-                    ) : null}
-                    {onRelink && selected.kind === 'skills' && provenance.sourceType === 'git' ? (
-                      <Button onClick={onRelink} size="sm" type="button" variant="secondary">
-                        Relink…
-                      </Button>
-                    ) : null}
-                    {onUnlink ? (
-                      <Button loading={isUnlinking} onClick={onUnlink} size="sm" type="button" variant="ghost">
-                        Unlink
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-              {isUpstreamSkill ? (
-                <p className="mt-2 leading-5 text-foreground/80">
-                  Updates from source overwrite this copy. Fork to customize locally.
-                  {upstreamBrowseUrl
-                    ? ' To propose changes upstream, open a PR in the source repo — Hub does not open PRs for you.'
-                    : null}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
+          <AssetProvenanceCard
+            isRetryingCheck={isRetryingCheck}
+            isUnlinking={isUnlinking}
+            isUpstreamSkill={isUpstreamSkill}
+            kind={selected.kind}
+            onRelink={onRelink}
+            onRetryCheck={onRetryCheck}
+            onUnlink={onUnlink}
+            provenance={provenance}
+            updateAvailable={updateAvailable}
+            upstreamBrowseUrl={upstreamBrowseUrl}
+          />
           {selected.kind === 'skills' && nonDirectoryFiles.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -566,126 +457,20 @@ export function AssetDetailPanel({
         </div>
         <div className="flex min-h-0 flex-col">
           {selected.kind === 'skills' && nonDirectoryFiles.length > 0 ? (
-            <div className="relative mb-2 flex items-center justify-between border-b border-border pb-1">
-              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5 no-scrollbar">
-                <button
-                  className={cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-mono transition-colors',
-                    activeTab === 'SKILL.md'
-                      ? 'bg-muted font-medium text-foreground shadow-xs'
-                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                  )}
-                  onClick={() => setActiveTab('SKILL.md')}
-                  type="button"
-                >
-                  <FileText className="size-3.5" />
-                  <span>SKILL.md</span>
-                  <span className="rounded bg-background/80 px-1 py-0.2 text-[10px] text-muted-foreground uppercase">
-                    Main
-                  </span>
-                </button>
-
-                {openTabs.map((filePath) => {
-                  const fileName = filePath.split('/').pop() ?? filePath;
-                  const isActive = activeTab === filePath;
-                  return (
-                    <div
-                      key={filePath}
-                      className={cn(
-                        'group flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-mono transition-colors',
-                        isActive
-                          ? 'bg-muted font-medium text-foreground shadow-xs'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                      )}
-                    >
-                      <button
-                        className="flex max-w-44 items-center gap-1.5 truncate text-left"
-                        onClick={() => setActiveTab(filePath)}
-                        title={filePath}
-                        type="button"
-                      >
-                        <FileCode className="size-3.5 shrink-0" />
-                        <span className="truncate">{fileName}</span>
-                      </button>
-                      <button
-                        aria-label={`Close ${fileName}`}
-                        className="rounded p-0.5 text-muted-foreground opacity-70 hover:bg-background/80 hover:text-foreground hover:opacity-100"
-                        onClick={(e) => handleCloseTab(filePath, e)}
-                        type="button"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="relative shrink-0 pl-2" ref={filesMenuRef}>
-                <Button
-                  className="h-7 gap-1 px-2 text-xs font-mono text-muted-foreground hover:text-foreground"
-                  onClick={() => setIsFilesMenuOpen((prev) => !prev)}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <span>+ Files</span>
-                  <span className="text-[10px] text-muted-foreground">({nonDirectoryFiles.length})</span>
-                  <ChevronDown className="size-3" />
-                </Button>
-
-                {isFilesMenuOpen ? (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-xl border border-border bg-card p-2 shadow-lg">
-                    <div className="relative mb-2">
-                      <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
-                      <Input
-                        autoFocus
-                        className="h-8 pl-8 pr-2 text-xs font-mono"
-                        onChange={(e) => setFileSearch(e.target.value)}
-                        placeholder={`Search ${nonDirectoryFiles.length} files...`}
-                        value={fileSearch}
-                      />
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {filteredFiles.length === 0 ? (
-                        <p className="py-4 text-center text-xs text-muted-foreground">No matching files</p>
-                      ) : (
-                        <ul className="grid gap-0.5">
-                          {filteredFiles.map((file) => {
-                            const isTabOpen = openTabs.includes(file.path);
-                            const isCurrent = activeTab === file.path;
-                            return (
-                              <li key={file.path}>
-                                <button
-                                  className={cn(
-                                    'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left font-mono text-xs transition-colors',
-                                    isCurrent
-                                      ? 'bg-muted font-medium text-foreground'
-                                      : 'text-foreground/80 hover:bg-muted/50 hover:text-foreground'
-                                  )}
-                                  onClick={() => handleOpenFile(file.path)}
-                                  type="button"
-                                >
-                                  <FileCode className="size-3.5 shrink-0 text-muted-foreground" />
-                                  <span className="flex-1 truncate" title={file.path}>
-                                    {file.path}
-                                  </span>
-                                  <span className="shrink-0 text-[11px] text-muted-foreground">
-                                    {formatFileSize(file.size)}
-                                  </span>
-                                  {isTabOpen ? (
-                                    <span className="size-1.5 shrink-0 rounded-full bg-primary" title="Open in tab" />
-                                  ) : null}
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
+            <AssetFileTabs
+              activeTab={activeTab}
+              fileSearch={fileSearch}
+              filesMenuRef={filesMenuRef}
+              filteredFiles={filteredFiles}
+              isFilesMenuOpen={isFilesMenuOpen}
+              nonDirectoryFiles={nonDirectoryFiles}
+              onCloseTab={handleCloseTab}
+              onFileSearchChange={setFileSearch}
+              onOpenFile={handleOpenFile}
+              onSelectTab={setActiveTab}
+              onToggleFilesMenu={() => setIsFilesMenuOpen((prev) => !prev)}
+              openTabs={openTabs}
+            />
           ) : null}
 
           <div className="min-h-0 flex-1">

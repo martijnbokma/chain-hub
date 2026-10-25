@@ -64,6 +64,46 @@ interface FileTreeGroup {
   files: SkillFileEntry[];
 }
 
+function FileRowButton({
+  file,
+  label,
+  isCurrent,
+  onSelectFile,
+  className
+}: {
+  file: SkillFileEntry;
+  label: string;
+  isCurrent: boolean;
+  onSelectFile: (filePath: string) => void;
+  className?: string;
+}) {
+  const Icon = getFileIcon(file.path);
+  return (
+    <button
+      aria-selected={isCurrent}
+      className={cn(
+        'group flex w-full items-center justify-between gap-2 rounded-lg py-1.5 text-left text-xs transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        isCurrent
+          ? 'border border-border/70 bg-muted font-medium text-foreground shadow-xs'
+          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+        className
+      )}
+      onClick={() => onSelectFile(file.path)}
+      title={file.path}
+      type="button"
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon className={cn('size-3.5 shrink-0', isCurrent ? 'text-primary' : 'text-muted-foreground')} />
+        <span className="truncate font-mono">{label}</span>
+      </div>
+      <span className="font-mono text-3xs text-muted-foreground shrink-0">
+        {formatFileSize(file.size)}
+      </span>
+    </button>
+  );
+}
+
 export function AssetFileManager({
   assetName,
   assetKind,
@@ -231,33 +271,16 @@ export function AssetFileManager({
             {/* Root files */}
             {rootFiles.length > 0 ? (
               <div className="space-y-0.5">
-                {rootFiles.map((file) => {
-                  const Icon = getFileIcon(file.path);
-                  const isCurrent = activeFile === file.path;
-                  return (
-                    <button
-                      aria-selected={isCurrent}
-                      className={cn(
-                        'group flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        isCurrent
-                          ? 'border border-border/70 bg-muted font-medium text-foreground shadow-xs'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                      )}
-                      key={file.path}
-                      onClick={() => onSelectFile(file.path)}
-                      type="button"
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <Icon className={cn('size-3.5 shrink-0', isCurrent ? 'text-primary' : 'text-muted-foreground')} />
-                        <span className="truncate font-mono">{file.path}</span>
-                      </div>
-                      <span className="font-mono text-3xs text-muted-foreground shrink-0">
-                        {formatFileSize(file.size)}
-                      </span>
-                    </button>
-                  );
-                })}
+                {rootFiles.map((file) => (
+                  <FileRowButton
+                    className="px-2.5"
+                    file={file}
+                    isCurrent={activeFile === file.path}
+                    key={file.path}
+                    label={file.path}
+                    onSelectFile={onSelectFile}
+                  />
+                ))}
               </div>
             ) : null}
 
@@ -285,36 +308,16 @@ export function AssetFileManager({
 
                   {!isCollapsed ? (
                     <div className="ml-3 border-l border-border/70 pl-2 space-y-0.5">
-                      {groupFiles.map((file) => {
-                        const Icon = getFileIcon(file.path);
-                        const fileName = file.path.split('/').pop() ?? file.path;
-                        const isCurrent = activeFile === file.path;
-
-                        return (
-                          <button
-                            aria-selected={isCurrent}
-                            className={cn(
-                              'group flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors',
-                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                              isCurrent
-                                ? 'border border-border/70 bg-muted font-medium text-foreground shadow-xs'
-                                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                            )}
-                            key={file.path}
-                            onClick={() => onSelectFile(file.path)}
-                            title={file.path}
-                            type="button"
-                          >
-                            <div className="flex min-w-0 items-center gap-2">
-                              <Icon className={cn('size-3.5 shrink-0', isCurrent ? 'text-primary' : 'text-muted-foreground')} />
-                              <span className="truncate font-mono">{fileName}</span>
-                            </div>
-                            <span className="font-mono text-3xs text-muted-foreground shrink-0">
-                              {formatFileSize(file.size)}
-                            </span>
-                          </button>
-                        );
-                      })}
+                      {groupFiles.map((file) => (
+                        <FileRowButton
+                          className="px-2"
+                          file={file}
+                          isCurrent={activeFile === file.path}
+                          key={file.path}
+                          label={file.path.split('/').pop() ?? file.path}
+                          onSelectFile={onSelectFile}
+                        />
+                      ))}
                     </div>
                   ) : null}
                 </div>

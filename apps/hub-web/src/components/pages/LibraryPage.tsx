@@ -20,13 +20,12 @@ import type {
   DiscoveredAsset,
   SkillBatchItemResult
 } from '@/types';
-import { AiEditPreviewDialog } from './library/AiEditPreviewDialog';
 import type { AnalysisEntry } from './library/analyze-assets';
 import { AnalysisReview } from './library/AnalysisReview';
-import { AnalyzeReportDialog } from './library/AnalyzeReportDialog';
 import { AssetDetailPanel } from './library/AssetDetailPanel';
 import { AssetFileManager } from './library/AssetFileManager';
 import { AssetList } from './library/AssetList';
+import { LibraryDialogs } from './library/LibraryDialogs';
 import {
   filterLibraryAssets,
   groupAssetsByKind,
@@ -35,16 +34,7 @@ import {
   parseOwnershipParam,
   parseSelectedAssetParams
 } from './library/asset-helpers';
-import { CreateAssetDialog } from './library/CreateAssetDialog';
-import { DiscoverDialog } from './library/DiscoverDialog';
-import { ForkAssetDialog } from './library/ForkAssetDialog';
-import { InstallSkillDialog } from './library/InstallSkillDialog';
 import { LibraryToolbar } from './library/LibraryToolbar';
-import { DiscardChangesDialog } from './library/DiscardChangesDialog';
-import { RemoveAssetDialog } from './library/RemoveAssetDialog';
-import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
-import { SkillRelinkDialog } from './library/SkillRelinkDialog';
-import { SkillUpdateResultsDialog } from './library/SkillUpdateResultsDialog';
 import { useLibraryAiActions } from './library/use-library-ai-actions';
 import { assetKey, useAnalysisReview } from './library/use-analysis-review';
 import { useLibraryAnalysis } from './library/use-library-analysis';
@@ -923,61 +913,26 @@ export function LibraryPage() {
           ) : null}
         </div>
 
-        <CreateAssetDialog
-          draftContent={createFlow.draftContent}
-          draftIntent={createFlow.draftIntent}
-          draftKindChoice={createFlow.draftKindChoice}
-          draftName={createFlow.draftName}
-          draftNameLocked={createFlow.draftNameLocked}
-          isDrafting={createFlow.draftPromptWithAi.isPending}
-          isSubmitting={createFlow.createAsset.isPending}
-          kindReason={createFlow.kindReason}
-          onDraftContentChange={createFlow.setDraftContent}
-          onDraftIntentChange={createFlow.setDraftIntent}
-          onDraftKindChoiceChange={createFlow.handleDraftKindChoiceChange}
-          onDraftNameChange={createFlow.setDraftName}
-          onDraftNameLockedChange={createFlow.setDraftNameLocked}
-          onDraftWithAi={() => createFlow.draftPromptWithAi.mutate()}
-          onOpenChange={createFlow.setCreateOpenSynced}
-          onSubmit={() => createFlow.createAsset.mutate()}
-          open={createFlow.createOpen}
-          resolvedKind={createFlow.draftKind}
-        />
-
-        <InstallSkillDialog
-          browsedFolder={installFlow.browsedFolder}
-          folderInputRef={installFlow.folderInputRef}
-          installForce={installFlow.installForce}
-          installMode={installFlow.installMode}
-          installName={installFlow.installName}
-          installPath={installFlow.installPath}
-          installRepo={installFlow.installRepo}
-          installSubdir={installFlow.installSubdir}
-          isInstalling={installFlow.installSkill.isPending}
-          isMigrating={installFlow.migrateAgentsSkills.isPending}
-          onBrowseFiles={installFlow.handleBrowseFiles}
-          onInstallForceChange={installFlow.setInstallForce}
-          onInstallModeChange={(mode) => {
-            installFlow.setInstallMode(mode);
-            installFlow.setBrowsedFolder(null);
-          }}
-          onInstallNameChange={installFlow.setInstallName}
-          onInstallPathChange={(value) => {
-            installFlow.setBrowsedFolder(null);
-            installFlow.setInstallPath(value);
-          }}
-          onInstallRepoChange={installFlow.setInstallRepo}
-          onInstallSubdirChange={installFlow.setInstallSubdir}
-          onMigrate={() => installFlow.migrateAgentsSkills.mutate()}
-          onOpenChange={installFlow.setInstallOpen}
-          onSubmit={() => installFlow.installSkill.mutate()}
-          open={installFlow.installOpen}
-          submitDisabled={installFlow.installSubmitDisabled}
-        />
-
-        <DiscardChangesDialog
-          assetLabel={selected ? `${selected.kind}/${selected.name}` : 'this asset'}
-          onDiscard={() => {
+        <LibraryDialogs
+          analysis={analysis}
+          analyzeOpen={analyzeOpen}
+          createFlow={createFlow}
+          discoverLoading={discoverQuery.isLoading}
+          discoverOpen={discoverOpen}
+          discardOpen={pendingSelection !== undefined || navigationBlocker.state === 'blocked'}
+          forkOpen={forkOpen}
+          forkTakenNames={forkTakenNames}
+          groupedDiscovered={groupedDiscovered}
+          importProgress={importProgress}
+          installFlow={installFlow}
+          isCandidateImporting={isCandidateImporting}
+          isDeleting={removeAsset.isPending}
+          isForking={forkSkill.isPending}
+          isImportingAll={importMultipleAssets.isPending}
+          onAnalyzeOpenChange={setAnalyzeOpen}
+          onApproveAiEdit={approveAiEdit}
+          onDiscardAiEdit={discardAiEdit}
+          onDiscardChanges={() => {
             if (navigationBlocker.state === 'blocked') {
               navigationBlocker.proceed();
               return;
@@ -987,124 +942,54 @@ export function LibraryPage() {
             setActiveFile('SKILL.md');
             setPendingSelection(undefined);
           }}
+          onDiscoverOpenChange={setDiscoverOpen}
+          onForkOpenChange={setForkOpen}
+          onForkOpenExisting={(name) => {
+            setForkOpen(false);
+            if (selected) {
+              requestSelection({ kind: selected.kind, name });
+            }
+          }}
+          onForkSubmit={(name) => {
+            if (selected) {
+              forkSkill.mutate({ kind: selected.kind, name: selected.name, as: name });
+            }
+          }}
+          onImportAll={(candidates) => importMultipleAssets.mutate(candidates)}
+          onImportCandidate={(candidate) => importAsset.mutate(candidate)}
           onKeepEditing={() => {
             if (navigationBlocker.state === 'blocked') {
               navigationBlocker.reset();
             }
             setPendingSelection(undefined);
           }}
-          open={pendingSelection !== undefined || navigationBlocker.state === 'blocked'}
-        />
-        <RemoveAssetDialog
-          isDeleting={removeAsset.isPending}
-          onConfirm={() => removeAsset.mutate()}
-          onOpenChange={setRemoveOpen}
-          open={removeOpen}
-          selected={selected}
-        />
-
-        <ForkAssetDialog
-          isForking={forkSkill.isPending}
-          onOpenChange={setForkOpen}
-          onOpenExisting={(name) => {
-            setForkOpen(false);
-            if (selected) {
-              requestSelection({ kind: selected.kind, name });
-            }
-          }}
-          onSubmit={(name) => {
-            if (selected) {
-              forkSkill.mutate({ kind: selected.kind, name: selected.name, as: name });
-            }
-          }}
-          open={forkOpen}
-          selected={selected}
-          takenNames={forkTakenNames}
-        />
-
-        <AiEditPreviewDialog
-          onApprove={approveAiEdit}
-          onDiscard={discardAiEdit}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) {
-              discardAiEdit();
-            }
-          }}
-          open={pendingAiEdit !== null}
-          pendingEdit={pendingAiEdit}
-        />
-
-        <DiscoverDialog
-          groupedDiscovered={groupedDiscovered}
-          importProgress={importProgress}
-          isCandidateImporting={isCandidateImporting}
-          isImportingAll={importMultipleAssets.isPending}
-          isLoading={discoverQuery.isLoading}
-          onImport={(candidate) => importAsset.mutate(candidate)}
-          onImportAll={(candidates) => importMultipleAssets.mutate(candidates)}
-          onOpenChange={setDiscoverOpen}
-          open={discoverOpen}
-        />
-
-        <AnalyzeReportDialog
-          cancelled={analysis.cancelled}
-          entries={analysis.entries}
-          onCancel={analysis.cancel}
-          onOpenAsset={handleOpenAnalyzedAsset}
-          onOpenChange={setAnalyzeOpen}
-          onRunAgain={handleRunAnalysisAgain}
-          open={analyzeOpen}
-          progress={analysis.progress}
-          status={analysis.status}
-          totalAssets={library.data?.length ?? 0}
-        />
-
-        <SkillUpdateResultsDialog
-          onOpenChange={(open) => {
-            if (!open) {
-              setUpdateResults(null);
-            }
-          }}
-          results={updateResults}
-        />
-
-        <SkillRelinkDialog
-          onOpenChange={(open) => {
-            if (!open) {
-              setRelinkTarget(null);
-            }
-          }}
-          skillName={relinkTarget}
-        />
-
-        <AiEditPreviewDialog
-          onApprove={() => void review.approveQueuedDiff()}
-          onDiscard={review.discardQueuedDiff}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen) {
-              review.discardQueuedDiff();
-            }
-          }}
-          open={pendingAiEdit === null && review.diffQueue.length > 0}
-          pendingEdit={
-            pendingAiEdit === null && review.diffQueue.length > 0
-              ? {
-                  label: `Improve ${review.diffQueue[0].kind}/${review.diffQueue[0].name}`,
-                  before: review.diffQueue[0].before,
-                  after: review.diffQueue[0].after
-                }
-              : null
-          }
-        />
-
-        <SkillFilePreviewDialog
-          onOpenChange={(open) => {
+          onOpenAnalyzedAsset={handleOpenAnalyzedAsset}
+          onPreviewOpenChange={(open) => {
             if (!open) {
               setPreviewFilePath(null);
             }
           }}
-          path={previewFilePath}
-          skillName={selected?.kind === 'skills' ? selected.name : null}
+          onRelinkOpenChange={(open) => {
+            if (!open) {
+              setRelinkTarget(null);
+            }
+          }}
+          onRemoveConfirm={() => removeAsset.mutate()}
+          onRemoveOpenChange={setRemoveOpen}
+          onRunAnalysisAgain={handleRunAnalysisAgain}
+          onUpdateResultsOpenChange={(open) => {
+            if (!open) {
+              setUpdateResults(null);
+            }
+          }}
+          pendingAiEdit={pendingAiEdit}
+          previewFilePath={previewFilePath}
+          relinkTarget={relinkTarget}
+          removeOpen={removeOpen}
+          review={review}
+          selected={selected}
+          totalAssets={library.data?.length ?? 0}
+          updateResults={updateResults}
         />
       </section>
     </div>

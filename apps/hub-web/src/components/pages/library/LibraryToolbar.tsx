@@ -27,6 +27,88 @@ function shortSha(sha: string | null | undefined): string {
   return sha ? sha.slice(0, 7) : '…';
 }
 
+function SkillUpdateMenu({
+  items,
+  isCompact,
+  isUpdatingSkills,
+  onUpdateSkill,
+  onUpdateSkills
+}: {
+  items: SkillUpdateItem[];
+  isCompact: boolean;
+  isUpdatingSkills: boolean;
+  onUpdateSkill: (name: string) => void;
+  onUpdateSkills: () => void;
+}) {
+  const count = items.length;
+
+  if (count === 0) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              aria-label={isUpdatingSkills ? 'Updating skills' : 'Update skills'}
+              disabled={isUpdatingSkills}
+              onClick={onUpdateSkills}
+              size="icon-sm"
+              variant="secondary"
+            >
+              <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+            </Button>
+          }
+        />
+        <TooltipContent>{isUpdatingSkills ? 'Updating…' : 'Update skills'}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          isCompact ? (
+            <Button
+              aria-label={isUpdatingSkills ? 'Updating skills' : `Update ${count} skills`}
+              disabled={isUpdatingSkills}
+              size="sm"
+              variant="secondary"
+            >
+              <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+              <span className="tabular-nums">{count}</span>
+            </Button>
+          ) : (
+            <Button disabled={isUpdatingSkills} size="sm" variant="secondary">
+              <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+              {isUpdatingSkills ? 'Updating…' : `Update (${count})`}
+            </Button>
+          )
+        }
+      />
+      <DropdownMenuContent align="end" className="w-80">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            {count} update{count === 1 ? '' : 's'} available
+          </DropdownMenuLabel>
+          {items.map((item) => (
+            <DropdownMenuItem key={item.name} onClick={() => onUpdateSkill(item.name)}>
+              <span className="min-w-0 flex-1 truncate">{item.name}</span>
+              <span className="ml-auto shrink-0 font-mono text-2xs tabular-nums text-muted-foreground">
+                {shortSha(item.currentSha)} → {shortSha(item.latestSha)}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onUpdateSkills}>
+          <RefreshCw />
+          Update all ({count})
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 interface LibraryToolbarProps {
   assetCount: number;
   filterKind: FilterKind;
@@ -71,7 +153,6 @@ export function LibraryToolbar({
   skillUpdateItems = []
 }: LibraryToolbarProps) {
   const showSkillActions = filterKind === 'skills';
-  const skillUpdateCount = skillUpdateItems.length;
 
   return (
     <div className="grid min-w-0 shrink-0 gap-3 pb-4">
@@ -119,69 +200,13 @@ export function LibraryToolbar({
                   <TooltipContent>Install skill</TooltipContent>
                 </Tooltip>
 
-                {skillUpdateCount > 0 ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        isCompact ? (
-                          <Button
-                            aria-label={
-                              isUpdatingSkills ? 'Updating skills' : `Update ${skillUpdateCount} skills`
-                            }
-                            disabled={isUpdatingSkills}
-                            size="sm"
-                            variant="secondary"
-                          >
-                            <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
-                            <span className="tabular-nums">{skillUpdateCount}</span>
-                          </Button>
-                        ) : (
-                          <Button disabled={isUpdatingSkills} size="sm" variant="secondary">
-                            <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
-                            {isUpdatingSkills ? 'Updating…' : `Update (${skillUpdateCount})`}
-                          </Button>
-                        )
-                      }
-                    />
-                    <DropdownMenuContent align="end" className="w-80">
-                      <DropdownMenuGroup>
-                        <DropdownMenuLabel>
-                          {skillUpdateCount} update{skillUpdateCount === 1 ? '' : 's'} available
-                        </DropdownMenuLabel>
-                        {skillUpdateItems.map((item) => (
-                        <DropdownMenuItem key={item.name} onClick={() => onUpdateSkill(item.name)}>
-                          <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                          <span className="ml-auto shrink-0 font-mono text-2xs tabular-nums text-muted-foreground">
-                            {shortSha(item.currentSha)} → {shortSha(item.latestSha)}
-                          </span>
-                        </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={onUpdateSkills}>
-                        <RefreshCw />
-                        Update all ({skillUpdateCount})
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          aria-label={isUpdatingSkills ? 'Updating skills' : 'Update skills'}
-                          disabled={isUpdatingSkills}
-                          onClick={onUpdateSkills}
-                          size="icon-sm"
-                          variant="secondary"
-                        >
-                          <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
-                        </Button>
-                      }
-                    />
-                    <TooltipContent>{isUpdatingSkills ? 'Updating…' : 'Update skills'}</TooltipContent>
-                  </Tooltip>
-                )}
+                <SkillUpdateMenu
+                  isCompact={isCompact}
+                  isUpdatingSkills={isUpdatingSkills}
+                  items={skillUpdateItems}
+                  onUpdateSkill={onUpdateSkill}
+                  onUpdateSkills={onUpdateSkills}
+                />
               </>
             ) : null}
 
