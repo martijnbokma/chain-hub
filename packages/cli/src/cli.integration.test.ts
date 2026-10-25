@@ -107,6 +107,14 @@ describe("CLI integration", () => {
     expect(event.skill).toBe("cli-test");
 
     logs = [];
+    await runCli(cliArgv("capture", "--event", "correction", "--skill", "cli-test", "--summary", "CLI fix"));
+    logs = [];
+    await runCli(cliArgv("resolve", "cli-test"));
+    const resolved = JSON.parse(logs.join("\n")) as { skill: string; resolvedCount: number };
+    expect(resolved.skill).toBe("cli-test");
+    expect(resolved.resolvedCount).toBe(1);
+
+    logs = [];
     await runCli(cliArgv("reflect", "--write"));
     expect(logs.some((line) => line.includes("Reflection written to"))).toBe(true);
 

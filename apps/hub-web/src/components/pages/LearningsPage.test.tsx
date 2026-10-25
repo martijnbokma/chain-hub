@@ -33,6 +33,9 @@ function report(overrides: Partial<ReflectionReport> = {}): ReflectionReport {
         failureCount: 0,
         correctionCount: 1,
         noteCount: 0,
+        openFailureCount: 0,
+        openCorrectionCount: 1,
+        resolvedAt: null,
         firstSeen: correction.capturedAt,
         lastSeen: correction.capturedAt,
         trend: 'new',
@@ -61,6 +64,20 @@ describe('LearningsPage', () => {
       'href',
       expect.stringContaining('asset=pr-review')
     );
+  });
+
+  it('marks a skill as addressed so it leaves the needs-attention list', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(learningsApi, 'getReflection').mockResolvedValue(report());
+    const resolve = vi
+      .spyOn(learningsApi, 'resolveSkill')
+      .mockResolvedValue({ skill: 'pr-review', resolvedAt: correction.capturedAt, resolvedCount: 1 });
+    renderWithProviders(<LearningsPage />, { route: '/learnings' });
+
+    await user.click(await screen.findByRole('button', { name: 'Mark addressed' }));
+
+    await waitFor(() => expect(resolve).toHaveBeenCalledWith({ skill: 'pr-review' }));
+    expect(toast.success).toHaveBeenCalledWith('Marked as addressed');
   });
 
   it('shows the empty state when nothing was captured', async () => {

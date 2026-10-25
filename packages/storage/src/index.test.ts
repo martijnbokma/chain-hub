@@ -22,6 +22,7 @@ import {
   initializeHub,
   listAssets,
   renameAsset,
+  resolveSkillLearnings,
   setupIntegrations,
   syncAssetToEditors,
   assertSafeAssetKind,
@@ -302,6 +303,72 @@ describe("buildReflectionReport", () => {
 
     expect(report.totalEvents).toBe(150);
     expect(report.skills[0].totalEvents).toBe(150);
+  });
+});
+
+describe("resolveSkillLearnings", () => {
+  it("marks open issues addressed so reflection open counts drop to zero", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(hub, [
+      { type: "correction", skill: "api", summary: "old fix", capturedAt: "2026-01-01T00:00:00.000Z" },
+      { type: "failure", skill: "api", summary: "new fail", capturedAt: "2026-01-02T00:00:00.000Z" },
+      { type: "note", skill: "api", summary: "just a note", capturedAt: "2026-01-03T00:00:00.000Z" }
+    ]);
+
+    const result = await resolveSkillLearnings(hub, "api");
+
+    // The marker checkpoints all events, so it lands on the note's timestamp.
+    expect(result).toEqual({ skill: "api", resolvedAt: "2026-01-03T00:00:00.000Z", resolvedCount: 2 });
+    const api = (await buildReflectionReport(hub)).skills.find((s) => s.skill === "api");
+    expect(api?.openCorrectionCount).toBe(0);
+    expect(api?.openFailureCount).toBe(0);
+    expect(api?.resolvedAt).toBe("2026-01-03T00:00:00.000Z");
+    expect(api?.correctionCount).toBe(1);
+    expect(api?.failureCount).toBe(1);
+  });
+
+  it("only counts issues captured after the marker", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(hub, [
+      { type: "failure", skill: "api", summary: "old fail", capturedAt: "2026-01-01T00:00:00.000Z" }
+    ]);
+    await resolveSkillLearnings(hub, "api");
+    await writeEvents(hub, [
+      { type: "failure", skill: "api", summary: "old fail", capturedAt: "2026-01-01T00:00:00.000Z" },
+      { type: "correction", skill: "api", summary: "new fix", capturedAt: "2026-01-05T00:00:00.000Z" }
+    ]);
+
+    const api = (await buildReflectionReport(hub)).skills.find((s) => s.skill === "api");
+
+    expect(api?.openFailureCount).toBe(0);
+    expect(api?.openCorrectionCount).toBe(1);
+  });
+
+  it("hides resolved field reports from getSkillLearnings", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(hub, [
+      { type: "correction", skill: "api", summary: "old fix", capturedAt: "2026-01-01T00:00:00.000Z" },
+      { type: "note", skill: "api", summary: "noted earlier", capturedAt: "2026-01-01T12:00:00.000Z" }
+    ]);
+    await resolveSkillLearnings(hub, "api");
+    await writeEvents(hub, [
+      { type: "correction", skill: "api", summary: "old fix", capturedAt: "2026-01-01T00:00:00.000Z" },
+      { type: "note", skill: "api", summary: "noted earlier", capturedAt: "2026-01-01T12:00:00.000Z" },
+      { type: "note", skill: "api", summary: "fresh note", capturedAt: "2026-01-03T00:00:00.000Z" }
+    ]);
+
+    const learnings = await getSkillLearnings(hub, "api");
+
+    expect(learnings.map((event) => event.summary)).toEqual(["fresh note"]);
+  });
+
+  it("throws when the skill has no open issues", async () => {
+    const hub = await makeTmpHub();
+    await writeEvents(hub, [
+      { type: "note", skill: "api", summary: "only notes", capturedAt: "2026-01-01T00:00:00.000Z" }
+    ]);
+
+    await expect(resolveSkillLearnings(hub, "api")).rejects.toThrow(/No open corrections or failures/);
   });
 });
 

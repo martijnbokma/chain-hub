@@ -1,10 +1,11 @@
 import type { Hono } from "hono";
 
-import { captureInputSchema, learningsTimelineQuerySchema } from "@chain-hub/contracts";
+import { captureInputSchema, learningsTimelineQuerySchema, resolveLearningsInputSchema } from "@chain-hub/contracts";
 import {
   captureHubEvent,
   getHubLearningsTimeline,
-  getHubReflectionReport
+  getHubReflectionReport,
+  resolveHubSkillLearnings
 } from "@chain-hub/domain";
 
 import type { RouteOptions } from "./options.js";
@@ -23,6 +24,12 @@ export function registerLearningsRoutes(app: Hono, options: RouteOptions): void 
     const payload = captureInputSchema.parse(await context.req.json());
     const event = await captureHubEvent(options.chainHome, payload);
     return context.json(event, 201);
+  });
+
+  app.post("/api/learnings/resolve", async (context) => {
+    const payload = resolveLearningsInputSchema.parse(await context.req.json());
+    const result = await resolveHubSkillLearnings(options.chainHome, payload.skill);
+    return context.json(result);
   });
 
   app.get("/api/learnings/reflect", async (context) => {

@@ -14,7 +14,6 @@ import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { errorMessage, learningsApi, libraryApi } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 import { librarySkillLink, selectSkillsNeedingAttention, type SkillNeedingAttention } from '@/lib/learnings';
-import { cn } from '@/lib/utils';
 import type { CaptureEventType, SkillReflection } from '@/types';
 
 const EVENT_TYPES: CaptureEventType[] = ['success', 'failure', 'correction', 'note'];
@@ -69,13 +68,26 @@ function issueCountLabel(item: SkillNeedingAttention): string {
 }
 
 function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
+  const queryClient = useQueryClient();
+  const resolve = useMutation({
+    mutationFn: (skill: string) => learningsApi.resolveSkill({ skill }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.learningsReflect });
+      toast.success('Marked as addressed');
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Unable to mark as addressed'));
+    }
+  });
+
   return (
     <Card>
       <CardHeader>
         <div className="grid gap-1">
           <CardTitle>Needs attention</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Audit includes these field reports and turns open ones into findings you can apply.
+            Audit includes these field reports and turns open ones into findings you can apply. Marking addressed
+            clears the reports once they are folded into the skill.
           </p>
         </div>
       </CardHeader>
@@ -95,16 +107,27 @@ function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
                   <p className="text-xs leading-5 text-pretty text-muted-foreground">{item.latestIssue.summary}</p>
                 ) : null}
               </div>
-              {item.inHub ? (
-                <Link
-                  className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }), 'shrink-0')}
-                  to={librarySkillLink(item.skill, { audit: true })}
+              <div className="flex shrink-0 items-center gap-2">
+                {item.inHub ? (
+                  <Link
+                    className={buttonVariants({ size: 'sm', variant: 'secondary' })}
+                    to={librarySkillLink(item.skill, { audit: true })}
+                  >
+                    Audit skill
+                  </Link>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Not in your hub</span>
+                )}
+                <Button
+                  disabled={resolve.isPending}
+                  loading={resolve.isPending && resolve.variables === item.skill}
+                  onClick={() => resolve.mutate(item.skill)}
+                  size="sm"
+                  variant="ghost"
                 >
-                  Audit skill
-                </Link>
-              ) : (
-                <span className="shrink-0 text-xs text-muted-foreground">Not in your hub</span>
-              )}
+                  Mark addressed
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

@@ -15,6 +15,9 @@ function reflection(overrides: Partial<SkillReflection>): SkillReflection {
     failureCount: 0,
     correctionCount: 0,
     noteCount: 0,
+    openFailureCount: 0,
+    openCorrectionCount: 0,
+    resolvedAt: null,
     firstSeen: "2026-09-01T00:00:00.000Z",
     lastSeen: "2026-09-01T00:00:00.000Z",
     trend: "new",
@@ -28,8 +31,8 @@ describe("selectSkillsNeedingAttention", () => {
     const result = selectSkillsNeedingAttention(
       [
         reflection({ skill: "clean", successCount: 5 }),
-        reflection({ skill: "one-issue", correctionCount: 1 }),
-        reflection({ skill: "three-issues", correctionCount: 2, failureCount: 1 })
+        reflection({ skill: "one-issue", correctionCount: 1, openCorrectionCount: 1 }),
+        reflection({ skill: "three-issues", correctionCount: 2, failureCount: 1, openCorrectionCount: 2, openFailureCount: 1 })
       ],
       new Set(["three-issues"])
     );
@@ -46,6 +49,7 @@ describe("selectSkillsNeedingAttention", () => {
         reflection({
           skill: "api",
           correctionCount: 1,
+          openCorrectionCount: 1,
           recentEvents: [event("success", "won"), event("note", "noted"), event("correction", "fix route")]
         })
       ],
@@ -53,6 +57,25 @@ describe("selectSkillsNeedingAttention", () => {
     );
 
     expect(item?.latestIssue?.summary).toBe("fix route");
+  });
+
+  it("excludes skills whose issues are all marked addressed", () => {
+    const result = selectSkillsNeedingAttention(
+      [
+        reflection({
+          skill: "resolved",
+          correctionCount: 2,
+          failureCount: 1,
+          openCorrectionCount: 0,
+          openFailureCount: 0,
+          resolvedAt: "2026-09-02T00:00:00.000Z"
+        }),
+        reflection({ skill: "open", correctionCount: 1, openCorrectionCount: 1 })
+      ],
+      new Set()
+    );
+
+    expect(result.map((item) => item.skill)).toEqual(["open"]);
   });
 });
 

@@ -4,10 +4,12 @@ import { promises as fs } from "node:fs";
 import {
   captureEventSchema,
   normalizeSkillName,
+  NotFoundError,
   type CaptureEvent,
   type CaptureInput,
   type LearningsTimeline,
   type ReflectionReport,
+  type ResolveLearningsResult,
   type SkillReflection
 } from "@chain-hub/contracts";
 
@@ -24,6 +26,31 @@ function skillKey(skill: string): string {
 
 function learningsLogPath(chainHome: string): string {
   return path.join(chainHome, "memory", "learnings", "events.jsonl");
+}
+
+function resolvedMarkersPath(chainHome: string): string {
+  return path.join(chainHome, "memory", "learnings", "resolved.json");
+}
+
+/** Skill key → captured-at threshold: corrections/failures up to it count as addressed. */
+type ResolvedMarkers = Record<string, string>;
+
+async function readResolvedMarkers(chainHome: string): Promise<ResolvedMarkers> {
+  const filePath = resolvedMarkersPath(chainHome);
+  if (!(await pathExists(filePath))) {
+    return {};
+  }
+  try {
+    const raw: unknown = JSON.parse(await fs.readFile(filePath, "utf8"));
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(raw as Record<string, unknown>).filter(([, value]) => typeof value === "string")
+    ) as ResolvedMarkers;
+  } catch {
+    return {};
+  }
 }
 
 export async function captureEvent(chainHomeInput: string | undefined, input: CaptureInput): Promise<CaptureEvent> {
@@ -108,7 +135,14 @@ export async function getLearningsTimeline(
 /** Event types that carry something a skill should learn; routine successes are excluded. */
 const SKILL_FEEDBACK_TYPES = new Set<CaptureEvent["type"]>(["correction", "failure", "note"]);
 
-/** Most recent corrections, failures and notes captured for one skill, newest first. */
+/** Corrections and failures are the events the "needs attention" flow counts as issues. */
+const ISSUE_TYPES = new Set<CaptureEvent["type"]>(["correction", "failure"]);
+
+function isOpen(event: CaptureEvent, resolvedAt: string | null): boolean {
+  return !resolvedAt || event.capturedAt > resolvedAt;
+}
+
+/** Most recent unaddressed corrections, failures and notes for one skill, newest first. */
 export async function getSkillLearnings(
   chainHomeInput: string | undefined,
   skill: string,
@@ -116,16 +150,53 @@ export async function getSkillLearnings(
 ): Promise<CaptureEvent[]> {
   const chainHome = resolveChainHome(chainHomeInput);
   const { events } = await readLearningsLog(chainHome);
+  const markers = await readResolvedMarkers(chainHome);
+  const resolvedAt = markers[skillKey(skill)] ?? null;
 
   return events
-    .filter((event) => skillKey(event.skill) === skillKey(skill) && SKILL_FEEDBACK_TYPES.has(event.type))
+    .filter(
+      (event) =>
+        skillKey(event.skill) === skillKey(skill) && SKILL_FEEDBACK_TYPES.has(event.type) && isOpen(event, resolvedAt)
+    )
     .slice(0, limit);
+}
+
+/** Mark a skill's captured corrections and failures as addressed up to its latest issue. */
+export async function resolveSkillLearnings(
+  chainHomeInput: string | undefined,
+  skill: string
+): Promise<ResolveLearningsResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+  const { events } = await readLearningsLog(chainHome);
+  const key = skillKey(skill);
+
+  const markers = await readResolvedMarkers(chainHome);
+  const previous = markers[key] ?? null;
+  const skillEvents = events.filter((event) => skillKey(event.skill) === key);
+  const openIssues = skillEvents.filter((event) => ISSUE_TYPES.has(event.type) && isOpen(event, previous));
+
+  if (openIssues.length === 0) {
+    throw new NotFoundError(`No open corrections or failures captured for skill "${key}"`);
+  }
+
+  // The marker checkpoints every event captured so far, not only the issues:
+  // a note logged after the last correction was already seen when resolving.
+  const resolvedAt = skillEvents.reduce((max, event) => (event.capturedAt > max ? event.capturedAt : max), "");
+  markers[key] = resolvedAt;
+
+  const filePath = resolvedMarkersPath(chainHome);
+  await ensureDir(path.dirname(filePath));
+  await fs.writeFile(filePath, JSON.stringify(markers, null, 2) + "\n", "utf8");
+
+  return { skill: key, resolvedAt, resolvedCount: openIssues.length };
 }
 
 export async function buildReflectionReport(chainHomeInput: string | undefined): Promise<ReflectionReport> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
   const { logPath, events: allEvents } = await readLearningsLog(chainHome);
+  const markers = await readResolvedMarkers(chainHome);
 
   const bySkill = new Map<string, CaptureEvent[]>();
 
@@ -140,10 +211,13 @@ export async function buildReflectionReport(chainHomeInput: string | undefined):
 
   for (const [skill, events] of bySkill) {
     const sorted = [...events].sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
+    const resolvedAt = markers[skill] ?? null;
     const successCount = events.filter((e) => e.type === "success").length;
     const failureCount = events.filter((e) => e.type === "failure").length;
     const correctionCount = events.filter((e) => e.type === "correction").length;
     const noteCount = events.filter((e) => e.type === "note").length;
+    const openFailureCount = events.filter((e) => e.type === "failure" && isOpen(e, resolvedAt)).length;
+    const openCorrectionCount = events.filter((e) => e.type === "correction" && isOpen(e, resolvedAt)).length;
 
     let trend: SkillReflection["trend"];
     if (events.length === 1) {
@@ -167,6 +241,9 @@ export async function buildReflectionReport(chainHomeInput: string | undefined):
       failureCount,
       correctionCount,
       noteCount,
+      openFailureCount,
+      openCorrectionCount,
+      resolvedAt,
       firstSeen: sorted[0].capturedAt,
       lastSeen: sorted[sorted.length - 1].capturedAt,
       trend,

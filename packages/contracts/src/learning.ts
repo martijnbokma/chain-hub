@@ -39,10 +39,24 @@ export const skillReflectionSchema = z.object({
   failureCount: z.number(),
   correctionCount: z.number(),
   noteCount: z.number(),
+  openFailureCount: z.number(),
+  openCorrectionCount: z.number(),
+  /** Captured-at threshold: corrections and failures up to this point are marked addressed. */
+  resolvedAt: z.string().nullable(),
   firstSeen: z.string(),
   lastSeen: z.string(),
   trend: z.enum(["improving", "struggling", "stable", "new"]),
   recentEvents: z.array(captureEventSchema)
+});
+
+export const resolveLearningsInputSchema = z.object({
+  skill: z.string().trim().min(1).max(120)
+});
+
+export const resolveLearningsResultSchema = z.object({
+  skill: z.string(),
+  resolvedAt: z.string(),
+  resolvedCount: z.number()
 });
 
 export const reflectionReportSchema = z.object({
@@ -58,4 +72,6 @@ export type CaptureEvent = z.infer<typeof captureEventSchema>;
 export type CaptureInput = z.infer<typeof captureInputSchema>;
 export type LearningsTimeline = z.infer<typeof learningsTimelineSchema>;
 export type SkillReflection = z.infer<typeof skillReflectionSchema>;
+export type ResolveLearningsInput = z.infer<typeof resolveLearningsInputSchema>;
+export type ResolveLearningsResult = z.infer<typeof resolveLearningsResultSchema>;
 export type ReflectionReport = z.infer<typeof reflectionReportSchema>;

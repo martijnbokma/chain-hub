@@ -34,7 +34,12 @@ import type {
   CaptureInput,
   CaptureEvent,
   LearningsTimeline,
-  ReflectionReport
+  ReflectionReport,
+  ResolveLearningsInput,
+  ResolveLearningsResult,
+  CatalogResult,
+  InstallCatalogEntryInput,
+  InstallCatalogEntryResult
 } from '@/types';
 
 /**
@@ -153,7 +158,9 @@ export const learningsApi = {
   getTimeline: () => getJson<LearningsTimeline>('/api/learnings'),
   getReflection: () => getJson<ReflectionReport>('/api/learnings/reflect'),
   capture: (data: CaptureInput) =>
-    sendJson<CaptureEvent>('/api/learnings/capture', 'POST', data)
+    sendJson<CaptureEvent>('/api/learnings/capture', 'POST', data),
+  resolveSkill: (data: ResolveLearningsInput) =>
+    sendJson<ResolveLearningsResult>('/api/learnings/resolve', 'POST', data)
 };
 
 export type { CaptureEvent };

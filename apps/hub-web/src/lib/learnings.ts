@@ -4,24 +4,28 @@ export type SkillNeedingAttention = {
   skill: string;
   correctionCount: number;
   failureCount: number;
-  /** Most recent correction or failure among the skill's recent events, if any. */
+  /** Most recent unaddressed correction or failure among the skill's recent events, if any. */
   latestIssue: CaptureEvent | null;
   /** Whether the skill exists in the hub, so it can be opened and audited in Library. */
   inHub: boolean;
 };
 
-/** Skills with captured corrections or failures, most issues first. */
+/** Skills with unaddressed corrections or failures, most issues first. */
 export function selectSkillsNeedingAttention(
   skills: SkillReflection[],
   hubSkillNames: ReadonlySet<string>
 ): SkillNeedingAttention[] {
+  const isOpenIssue = (skill: SkillReflection, event: CaptureEvent) =>
+    (event.type === 'correction' || event.type === 'failure') &&
+    (!skill.resolvedAt || event.capturedAt > skill.resolvedAt);
+
   return skills
-    .filter((skill) => skill.correctionCount + skill.failureCount > 0)
+    .filter((skill) => skill.openCorrectionCount + skill.openFailureCount > 0)
     .map((skill) => ({
       skill: skill.skill,
-      correctionCount: skill.correctionCount,
-      failureCount: skill.failureCount,
-      latestIssue: skill.recentEvents.find((event) => event.type === 'correction' || event.type === 'failure') ?? null,
+      correctionCount: skill.openCorrectionCount,
+      failureCount: skill.openFailureCount,
+      latestIssue: skill.recentEvents.find((event) => isOpenIssue(skill, event)) ?? null,
       inHub: hubSkillNames.has(skill.skill)
     }))
     .sort(
@@ -30,6 +34,7 @@ export function selectSkillsNeedingAttention(
     );
 }
 
+/** Deep-link into Library, optionally straight into the audit flow. */
 export function librarySkillLink(skill: string, options?: { audit?: boolean }): string {
   const params = new URLSearchParams({ kind: 'skills', asset: skill });
   if (options?.audit) {

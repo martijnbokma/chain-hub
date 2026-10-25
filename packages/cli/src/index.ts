@@ -20,9 +20,13 @@ import {
   importLibraryAsset,
   initializeChainHub,
   forkLibrarySkill,
+  resolveHubSkillLearnings,
   installLibrarySkill,
   migrateAgentsLibrarySkills,
   checkLibrarySkillUpdates,
+  getLibraryCatalog,
+  installLibraryCatalogEntry,
+  refreshLibraryCatalog,
   summarizeAgentsSkillSync,
   syncAgentsSkillsIntoHub,
   updateLibraryAsset,
@@ -332,6 +336,16 @@ program
     for (const line of formatReflectionReport(report)) {
       console.log(line);
     }
+  });
+
+program
+  .command("resolve")
+  .description("Mark a skill's captured corrections and failures as addressed")
+  .argument("<slug>", "Skill slug")
+  .action(async (slug: string) => {
+    const options = program.opts<{ chainHome?: string }>();
+    const result = await resolveHubSkillLearnings(options.chainHome, slug);
+    printJson(result);
   });
 
 program
