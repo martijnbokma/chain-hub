@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 
 import {
   assetKindSchema,
+  checkSkillUpdatesInputSchema,
   convertAssetInputSchema,
   createAssetInputSchema,
   installCatalogEntryInputSchema,
@@ -10,6 +11,7 @@ import {
   installSkillBundleInputSchema,
   installSkillInputSchema,
   migrateAgentsSkillsInputSchema,
+  relinkSkillInputSchema,
   renameAssetInputSchema,
   type AssetKind,
   updateAssetInputSchema,
@@ -26,13 +28,16 @@ import {
   forkLibrarySkill,
   getLibrary,
   getLibraryAsset,
+  getLibrarySkillUpstreamDirs,
   getSkillFile,
   getSkillFiles,
   importLibraryAsset,
   installLibrarySkill,
   installLibrarySkillBundle,
   migrateAgentsLibrarySkills,
+  relinkLibrarySkill,
   renameLibraryAsset,
+  unlinkLibrarySkill,
   updateLibraryAsset,
   updateLibrarySkills
 } from "@chain-hub/domain";
@@ -72,14 +77,15 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
 
   app.get("/api/library/skills/check-updates", async (context) => {
     const force = context.req.query("force") === "true";
-    const result = await checkLibrarySkillUpdates(options.chainHome, { force });
+    const name = context.req.query("name");
+    const result = await checkLibrarySkillUpdates(options.chainHome, { force, name: name ?? undefined });
     return context.json(result);
   });
 
   app.post("/api/library/skills/check-updates", async (context) => {
     const body = await context.req.json().catch(() => ({}));
-    const force = Boolean(body?.force);
-    const result = await checkLibrarySkillUpdates(options.chainHome, { force });
+    const payload = checkSkillUpdatesInputSchema.parse(body ?? {});
+    const result = await checkLibrarySkillUpdates(options.chainHome, payload);
     return context.json(result);
   });
 
@@ -94,6 +100,25 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     const body = await context.req.json().catch(() => ({}));
     const payload = migrateAgentsSkillsInputSchema.parse(body ?? {});
     const result = await migrateAgentsLibrarySkills(options.chainHome, payload);
+    return context.json(result);
+  });
+
+  app.get("/api/library/skills/:name/upstream-dirs", async (context) => {
+    const name = context.req.param("name");
+    const result = await getLibrarySkillUpstreamDirs(options.chainHome, name);
+    return context.json(result);
+  });
+
+  app.post("/api/library/skills/:name/relink", async (context) => {
+    const name = context.req.param("name");
+    const payload = relinkSkillInputSchema.parse(await context.req.json());
+    const result = await relinkLibrarySkill(options.chainHome, name, payload.subdir);
+    return context.json(result);
+  });
+
+  app.post("/api/library/skills/:name/unlink", async (context) => {
+    const name = context.req.param("name");
+    const result = await unlinkLibrarySkill(options.chainHome, name);
     return context.json(result);
   });
 

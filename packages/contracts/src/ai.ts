@@ -60,7 +60,9 @@ export const aiSecretsSchema = z.object({
   groqApiKey: z.string().optional(),
   openrouterApiKey: z.string().optional(),
   deepseekApiKey: z.string().optional(),
-  cerebrasApiKey: z.string().optional()
+  cerebrasApiKey: z.string().optional(),
+  /** Fine-grained PAT for GitHub sync — secrets.json never leaves the machine. */
+  githubSyncToken: z.string().optional()
 });
 
 /** Public settings returned to the dashboard — never includes raw API keys. */

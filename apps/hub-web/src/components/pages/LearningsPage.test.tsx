@@ -35,6 +35,7 @@ function report(overrides: Partial<ReflectionReport> = {}): ReflectionReport {
         noteCount: 0,
         openFailureCount: 0,
         openCorrectionCount: 1,
+        openNoteCount: 0,
         resolvedAt: null,
         firstSeen: correction.capturedAt,
         lastSeen: correction.capturedAt,
@@ -60,10 +61,52 @@ describe('LearningsPage', () => {
     renderWithProviders(<LearningsPage />, { route: '/learnings' });
 
     expect(await screen.findByText('Needs attention')).toBeInTheDocument();
+    for (const link of screen.getAllByRole('link', { name: 'Audit skill' })) {
+      expect(link).toHaveAttribute('href', expect.stringContaining('asset=pr-review'));
+    }
+  });
+
+  it('renders the trend badge as a tooltip trigger and offers an audit action for open issues', async () => {
+    vi.spyOn(learningsApi, 'getReflection').mockResolvedValue(report());
+    renderWithProviders(<LearningsPage />, { route: '/learnings' });
+
+    expect(await screen.findByRole('button', { name: '★ new' })).toBeInTheDocument();
+    expect(screen.getByText(/1 correction open/)).toBeInTheDocument();
+  });
+
+  it('lets a collecting skill audit or clear its open notes', async () => {
+    vi.spyOn(learningsApi, 'getReflection').mockResolvedValue(
+      report({
+        totalEvents: 3,
+        skills: [
+          {
+            skill: 'pr-review',
+            totalEvents: 3,
+            successCount: 0,
+            failureCount: 0,
+            correctionCount: 0,
+            noteCount: 3,
+            openFailureCount: 0,
+            openCorrectionCount: 0,
+            openNoteCount: 3,
+            resolvedAt: null,
+            firstSeen: correction.capturedAt,
+            lastSeen: correction.capturedAt,
+            trend: 'collecting',
+            recentEvents: [correction]
+          }
+        ]
+      })
+    );
+    renderWithProviders(<LearningsPage />, { route: '/learnings' });
+
+    expect(await screen.findByText('• collecting')).toBeInTheDocument();
+    expect(screen.getByText(/3 notes open/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Audit skill' })).toHaveAttribute(
       'href',
       expect.stringContaining('asset=pr-review')
     );
+    expect(screen.getByRole('button', { name: 'Mark addressed' })).toBeInTheDocument();
   });
 
   it('marks a skill as addressed so it leaves the needs-attention list', async () => {
@@ -74,7 +117,7 @@ describe('LearningsPage', () => {
       .mockResolvedValue({ skill: 'pr-review', resolvedAt: correction.capturedAt, resolvedCount: 1 });
     renderWithProviders(<LearningsPage />, { route: '/learnings' });
 
-    await user.click(await screen.findByRole('button', { name: 'Mark addressed' }));
+    await user.click((await screen.findAllByRole('button', { name: 'Mark addressed' }))[0]);
 
     await waitFor(() => expect(resolve).toHaveBeenCalledWith({ skill: 'pr-review' }));
     expect(toast.success).toHaveBeenCalledWith('Marked as addressed');

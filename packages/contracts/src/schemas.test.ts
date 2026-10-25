@@ -225,6 +225,7 @@ describe("Contracts schemas", () => {
             noteCount: 1,
             openFailureCount: 0,
             openCorrectionCount: 0,
+            openNoteCount: 0,
             resolvedAt: null,
             firstSeen: "2026-09-23T12:00:00Z",
             lastSeen: "2026-09-23T12:00:00Z",

@@ -3,8 +3,8 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { aiSettingsApi } from '@/lib/api';
-import type { AssetKind } from '@/types';
+import { aiSettingsApi, libraryApi } from '@/lib/api';
+import type { AssetDetail, AssetKind } from '@/types';
 
 import { useLibraryAiActions } from './use-library-ai-actions';
 
@@ -102,6 +102,34 @@ describe('useLibraryAiActions', () => {
 
     expect(result.current.kindAssessment).toEqual(kindAssessment);
     expect(result.current.assetAudit).toBeNull();
+  });
+
+  it('reuses an existing -local copy when the fork target is already taken', async () => {
+    const localCopy = {
+      kind: 'skills',
+      name: 'design-local',
+      content: '# Design\n',
+      provenance: null
+    } as unknown as AssetDetail;
+    vi.spyOn(libraryApi, 'forkSkill').mockRejectedValue(new Error('Skill already exists: skills/design-local'));
+    const getDetail = vi.spyOn(libraryApi, 'getByKindAndName').mockResolvedValue(localCopy);
+    const setSelected = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useLibraryAiActions({
+          selected: { kind: 'skills', name: 'design' },
+          editorContent: '# Design\n',
+          setEditorContent: vi.fn(),
+          setSelected
+        }),
+      { wrapper }
+    );
+
+    act(() => result.current.forkAndFixDescription.mutate('heading'));
+
+    await waitFor(() => expect(result.current.forkAndFixDescription.isSuccess).toBe(true));
+    expect(getDetail).toHaveBeenCalledWith('skills', 'design-local');
+    expect(setSelected).toHaveBeenCalledWith({ kind: 'skills', name: 'design-local' });
   });
 
   it('refuses to improve before an audit ran', async () => {

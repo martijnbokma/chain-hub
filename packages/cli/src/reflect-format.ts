@@ -4,7 +4,8 @@ const TREND_ICONS: Record<string, string> = {
   improving: "↑",
   struggling: "↓",
   stable: "→",
-  new: "★"
+  new: "★",
+  collecting: "•"
 };
 
 export function formatReflectionReport(report: ReflectionReport): string[] {

@@ -17,6 +17,7 @@ function reflection(overrides: Partial<SkillReflection>): SkillReflection {
     noteCount: 0,
     openFailureCount: 0,
     openCorrectionCount: 0,
+    openNoteCount: 0,
     resolvedAt: null,
     firstSeen: "2026-09-01T00:00:00.000Z",
     lastSeen: "2026-09-01T00:00:00.000Z",

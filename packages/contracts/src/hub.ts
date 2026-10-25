@@ -23,6 +23,36 @@ export const overviewSchema = z.object({
   agentsSkillsDrift: agentsSkillsDriftSchema
 });
 
+/** What kind of problem a hub issue represents; drives grouping and copy. */
+export const hubIssueKindSchema = z.enum(["health", "agents-drift", "skill-check", "skill-update", "compat"]);
+
+/** Remediation offered on an issue; the client maps each to a concrete control. */
+export const hubIssueActionSchema = z.enum([
+  "retry-check",
+  "retry-update",
+  "relink",
+  "unlink",
+  "open-asset",
+  "import-agents",
+  "open-setup"
+]);
+
+export const hubIssueSchema = z.object({
+  /** Stable identifier: `<kind>:<assetName|scope>`. */
+  id: z.string(),
+  severity: z.enum(["error", "warning"]),
+  kind: hubIssueKindSchema,
+  title: z.string().min(1),
+  detail: z.string().optional(),
+  assetKind: z.enum(assetKinds).optional(),
+  assetName: z.string().optional(),
+  actions: z.array(hubIssueActionSchema)
+});
+
+export const hubIssuesResultSchema = z.object({
+  issues: z.array(hubIssueSchema)
+});
+
 export const integrationModeSchema = z.enum(["managed", "symlink", "missing", "conflict"]);
 
 export const integrationSchema = z.object({
@@ -52,6 +82,10 @@ export const validationSchema = z.object({
 
 export type Overview = z.infer<typeof overviewSchema>;
 export type AgentsSkillsDrift = z.infer<typeof agentsSkillsDriftSchema>;
+export type HubIssue = z.infer<typeof hubIssueSchema>;
+export type HubIssueAction = z.infer<typeof hubIssueActionSchema>;
+export type HubIssueKind = z.infer<typeof hubIssueKindSchema>;
+export type HubIssuesResult = z.infer<typeof hubIssuesResultSchema>;
 export type Integration = z.infer<typeof integrationSchema>;
 export type IntegrationMode = z.infer<typeof integrationModeSchema>;
 export type ValidationCheck = z.infer<typeof validationCheckSchema>;

@@ -103,7 +103,7 @@ describe("skill routes", () => {
     expect(update.data.results).toEqual([expect.objectContaining({ name: "steady", status: "skipped" })]);
   });
 
-  it("checks updates through GET and POST, marking non-git skills not applicable", async () => {
+  it("checks updates through GET and POST, verifying path sources exist", async () => {
     const source = await writeSkillSource("local-only");
     await send("POST", "/api/library/skills/install", { path: source });
 
@@ -113,7 +113,7 @@ describe("skill routes", () => {
     ] as const) {
       const check = await send<{ results: Array<{ name: string; status: string }>; checkedAt: string }>(method, url, body);
       expect(check.status).toBe(200);
-      expect(check.data.results).toEqual([expect.objectContaining({ name: "local-only", status: "not_applicable" })]);
+      expect(check.data.results).toEqual([expect.objectContaining({ name: "local-only", status: "up_to_date" })]);
     }
   });
 

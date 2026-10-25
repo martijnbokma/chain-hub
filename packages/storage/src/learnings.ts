@@ -135,9 +135,6 @@ export async function getLearningsTimeline(
 /** Event types that carry something a skill should learn; routine successes are excluded. */
 const SKILL_FEEDBACK_TYPES = new Set<CaptureEvent["type"]>(["correction", "failure", "note"]);
 
-/** Corrections and failures are the events the "needs attention" flow counts as issues. */
-const ISSUE_TYPES = new Set<CaptureEvent["type"]>(["correction", "failure"]);
-
 function isOpen(event: CaptureEvent, resolvedAt: string | null): boolean {
   return !resolvedAt || event.capturedAt > resolvedAt;
 }
@@ -161,7 +158,7 @@ export async function getSkillLearnings(
     .slice(0, limit);
 }
 
-/** Mark a skill's captured corrections and failures as addressed up to its latest issue. */
+/** Mark a skill's captured field reports (corrections, failures and notes) as addressed up to its latest event. */
 export async function resolveSkillLearnings(
   chainHomeInput: string | undefined,
   skill: string
@@ -174,10 +171,12 @@ export async function resolveSkillLearnings(
   const markers = await readResolvedMarkers(chainHome);
   const previous = markers[key] ?? null;
   const skillEvents = events.filter((event) => skillKey(event.skill) === key);
-  const openIssues = skillEvents.filter((event) => ISSUE_TYPES.has(event.type) && isOpen(event, previous));
+  const openReports = skillEvents.filter(
+    (event) => SKILL_FEEDBACK_TYPES.has(event.type) && isOpen(event, previous)
+  );
 
-  if (openIssues.length === 0) {
-    throw new NotFoundError(`No open corrections or failures captured for skill "${key}"`);
+  if (openReports.length === 0) {
+    throw new NotFoundError(`No open field reports captured for skill "${key}"`);
   }
 
   // The marker checkpoints every event captured so far, not only the issues:
@@ -189,7 +188,7 @@ export async function resolveSkillLearnings(
   await ensureDir(path.dirname(filePath));
   await fs.writeFile(filePath, JSON.stringify(markers, null, 2) + "\n", "utf8");
 
-  return { skill: key, resolvedAt, resolvedCount: openIssues.length };
+  return { skill: key, resolvedAt, resolvedCount: openReports.length };
 }
 
 export async function buildReflectionReport(chainHomeInput: string | undefined): Promise<ReflectionReport> {
@@ -218,10 +217,13 @@ export async function buildReflectionReport(chainHomeInput: string | undefined):
     const noteCount = events.filter((e) => e.type === "note").length;
     const openFailureCount = events.filter((e) => e.type === "failure" && isOpen(e, resolvedAt)).length;
     const openCorrectionCount = events.filter((e) => e.type === "correction" && isOpen(e, resolvedAt)).length;
+    const openNoteCount = events.filter((e) => e.type === "note" && isOpen(e, resolvedAt)).length;
 
     let trend: SkillReflection["trend"];
     if (events.length === 1) {
       trend = "new";
+    } else if (successCount === 0 && failureCount + correctionCount === 0) {
+      trend = "collecting";
     } else if (successCount > failureCount + correctionCount) {
       trend = "improving";
     } else if (failureCount + correctionCount > successCount) {
@@ -243,6 +245,7 @@ export async function buildReflectionReport(chainHomeInput: string | undefined):
       noteCount,
       openFailureCount,
       openCorrectionCount,
+      openNoteCount,
       resolvedAt,
       firstSeen: sorted[0].capturedAt,
       lastSeen: sorted[sorted.length - 1].capturedAt,
@@ -271,7 +274,7 @@ export async function writeReflectionMarkdown(chainHomeInput: string | undefined
   await ensureDir(reflectionsDir);
   const filePath = path.join(reflectionsDir, `${dateSlug}.md`);
 
-  const trendIcon: Record<string, string> = { improving: "↑", struggling: "↓", stable: "→", new: "★" };
+  const trendIcon: Record<string, string> = { improving: "↑", struggling: "↓", stable: "→", new: "★", collecting: "•" };
 
   const lines: string[] = [
     `# Reflection — ${dateSlug}`,

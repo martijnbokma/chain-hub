@@ -25,6 +25,7 @@ import {
   type SkillCheckItemResult,
   type SkillLockEntry,
   type SkillsLockFile,
+  type SkillUpstreamDirsResult,
   subdirFromSkillPath,
   type UpdateSkillsInput,
   type UpdateSkillsResult
@@ -33,7 +34,7 @@ import {
 import { mutateInstallLock, readInstallLock } from "./install-lock.js";
 import { pathExists } from "./shared.js";
 import { copySkillTree, createSkillCopyFilter } from "./skill-copy.js";
-import { fetchRemoteHeadSha, resolveGitSkillDir } from "./skill-git.js";
+import { discoverGitSkillDirs, fetchRemoteHeadSha, resolveGitSkillDir } from "./skill-git.js";
 
 interface AgentsLockEntry {
   sourceType?: string;
@@ -199,7 +200,13 @@ function recordSkillInstall(
   const now = new Date().toISOString();
   return mutateSkillsLock(chainHome, (lockFile) => {
     const previous = lockFile.skills[name];
-    const entry: SkillLockEntry = { ...fields(previous, now), installedAt: previous?.installedAt ?? now, updatedAt: now };
+    const entry: SkillLockEntry = {
+      ...fields(previous, now),
+      installedAt: previous?.installedAt ?? now,
+      updatedAt: now,
+      lastCheckError: null,
+      lastUpdateError: null
+    };
     lockFile.skills[name] = entry;
     return entry;
   });
@@ -300,7 +307,8 @@ async function installSkillFromSourceUnlessUnchanged(
       cleanupDir = resolved.cleanupDir;
       sourceDir = resolved.sourceDir;
       commitSha = resolved.commitSha;
-      if (!input.subdir && resolved.detectedSubdir) {
+      // The dir SKILL.md was actually found in wins over a stale recorded subdir.
+      if (resolved.detectedSubdir) {
         resolvedSubdir = resolved.detectedSubdir;
       }
       sourceType = "git";
@@ -414,6 +422,12 @@ export async function updateSkillsFromLock(
       continue;
     }
 
+    // Uploads are hub-owned, not upstream-owned: there is no source to update from.
+    if (!isUpstreamOwnedSkill(entry)) {
+      results.push({ name, status: "skipped", previousCommitSha: entry.commitSha ?? null });
+      continue;
+    }
+
     try {
       if (entry.sourceType === "path" && !(await pathExists(path.join(entry.source, "SKILL.md")))) {
         throw new NotFoundError(`Source path missing SKILL.md: ${entry.source}`);
@@ -432,6 +446,8 @@ export async function updateSkillsFromLock(
         input.force ? null : (entry.contentHash ?? null)
       );
 
+      await clearSkillLockError(chainHome, name, "lastUpdateError");
+
       results.push({
         name,
         status: installed.unchanged ? "skipped" : "updated",
@@ -440,12 +456,31 @@ export async function updateSkillsFromLock(
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      await setSkillLockError(chainHome, name, "lastUpdateError", message);
       results.push({ name, status: "failed", previousCommitSha: entry.commitSha ?? null, error: message });
     }
   }
 
   return { results };
 }
+
+/** Writes/clears a persisted error field on one lock entry (no-op when absent). */
+async function setSkillLockError(
+  chainHome: string,
+  name: string,
+  field: "lastCheckError" | "lastUpdateError",
+  message: string | null
+): Promise<void> {
+  await mutateSkillsLock(chainHome, (lock) => {
+    const entry = lock.skills[name];
+    if (entry) {
+      entry[field] = message;
+    }
+  }).catch(() => undefined);
+}
+
+const clearSkillLockError = (chainHome: string, name: string, field: "lastCheckError" | "lastUpdateError") =>
+  setSkillLockError(chainHome, name, field, null);
 
 /** Re-probe remotes at most this often; `force` bypasses the window. */
 export const SKILL_UPDATE_CHECK_TTL_MS = 15 * 60 * 1000;
@@ -458,21 +493,55 @@ export async function checkSkillUpdatesFromLock(
   const now = new Date().toISOString();
   const freshSince = Date.now() - SKILL_UPDATE_CHECK_TTL_MS;
   const results: SkillCheckItemResult[] = [];
+  const targetName = input.name ? normalizeSkillName(input.name) : null;
 
   const gitReposToSkills = new Map<string, Array<{ name: string; entry: SkillLockEntry }>>();
+  const lockUpdates: Array<{
+    name: string;
+    latestSha?: string;
+    lastCheckedAt: string;
+    lastCheckError: string | null;
+  }> = [];
 
   for (const [name, entry] of Object.entries(lockFile.skills)) {
+    if (targetName && name !== targetName) {
+      continue;
+    }
+
     if (entry.sourceType !== "git") {
-      results.push({
-        name,
-        status: "not_applicable",
-        source: entry.source
-      });
+      if (!isUpstreamOwnedSkill(entry)) {
+        results.push({ name, status: "not_applicable", source: entry.source });
+        continue;
+      }
+
+      // Local path sources are cheap to verify: the folder can move or lose its SKILL.md.
+      const sourceOk = await pathExists(path.join(entry.source, "SKILL.md"));
+      if (sourceOk) {
+        results.push({ name, status: "up_to_date", source: entry.source });
+        if (entry.lastCheckError) {
+          lockUpdates.push({ name, lastCheckedAt: now, lastCheckError: null });
+        }
+      } else {
+        const error = `Source path missing SKILL.md: ${entry.source}`;
+        results.push({ name, status: "failed", source: entry.source, error });
+        lockUpdates.push({ name, lastCheckedAt: now, lastCheckError: error });
+      }
       continue;
     }
 
     const checkedAt = entry.lastCheckedAt ? Date.parse(entry.lastCheckedAt) : Number.NaN;
-    if (!input.force && entry.latestSha && Number.isFinite(checkedAt) && checkedAt >= freshSince) {
+    const fresh = !input.force && Number.isFinite(checkedAt) && checkedAt >= freshSince;
+    if (fresh && entry.lastCheckError) {
+      results.push({
+        name,
+        status: "failed",
+        source: entry.source,
+        currentSha: entry.commitSha ?? null,
+        error: entry.lastCheckError
+      });
+      continue;
+    }
+    if (fresh && entry.latestSha) {
       results.push({
         name,
         status: hasSkillUpdate(entry) ? "update_available" : "up_to_date",
@@ -502,8 +571,6 @@ export async function checkSkillUpdatesFromLock(
     })
   );
 
-  const skillsToUpdateInLock: Array<{ name: string; latestSha: string; lastCheckedAt: string }> = [];
-
   for (const [repo, skillList] of gitReposToSkills.entries()) {
     const probe = repoRemoteShaMap.get(repo);
 
@@ -516,22 +583,25 @@ export async function checkSkillUpdatesFromLock(
           currentSha: entry.commitSha ?? null,
           error: probe.error
         });
+        lockUpdates.push({ name, lastCheckedAt: now, lastCheckError: probe.error });
         continue;
       }
 
       const latestSha = probe?.sha;
       if (!latestSha) {
+        const error = "Could not resolve remote HEAD commit";
         results.push({
           name,
           status: "failed",
           source: repo,
           currentSha: entry.commitSha ?? null,
-          error: "Could not resolve remote HEAD commit"
+          error
         });
+        lockUpdates.push({ name, lastCheckedAt: now, lastCheckError: error });
         continue;
       }
 
-      skillsToUpdateInLock.push({ name, latestSha, lastCheckedAt: now });
+      lockUpdates.push({ name, latestSha, lastCheckedAt: now, lastCheckError: null });
 
       if (entry.commitSha && entry.commitSha === latestSha) {
         results.push({
@@ -553,12 +623,16 @@ export async function checkSkillUpdatesFromLock(
     }
   }
 
-  if (skillsToUpdateInLock.length > 0) {
+  if (lockUpdates.length > 0) {
     await mutateSkillsLock(chainHome, (currentLock) => {
-      for (const item of skillsToUpdateInLock) {
-        if (currentLock.skills[item.name]) {
-          currentLock.skills[item.name]!.latestSha = item.latestSha;
-          currentLock.skills[item.name]!.lastCheckedAt = item.lastCheckedAt;
+      for (const item of lockUpdates) {
+        const locked = currentLock.skills[item.name];
+        if (locked) {
+          locked.lastCheckedAt = item.lastCheckedAt;
+          locked.lastCheckError = item.lastCheckError;
+          if (item.latestSha) {
+            locked.latestSha = item.latestSha;
+          }
         }
       }
     }).catch(() => undefined);
@@ -570,6 +644,43 @@ export async function checkSkillUpdatesFromLock(
     results,
     checkedAt: now
   };
+}
+
+/** Directories containing SKILL.md inside a git-locked skill's source repo; used to repair a stale subdir. */
+export async function listSkillUpstreamDirs(chainHome: string, name: string): Promise<SkillUpstreamDirsResult> {
+  const normalized = normalizeSkillName(name);
+  const entry = (await readSkillsLock(chainHome)).skills[normalized];
+  if (!entry) {
+    throw new NotFoundError(`No lock entry for ${normalized}`);
+  }
+  if (entry.sourceType !== "git") {
+    throw new InvalidInputError(`Skill ${normalized} is not installed from a git repo`);
+  }
+
+  const dirs = await discoverGitSkillDirs(entry.source);
+  return { repo: entry.source, currentSubdir: entry.subdir ?? null, dirs };
+}
+
+/** Points an existing git-locked skill at another subdir in the same repo and reinstalls from it. */
+export async function relinkSkill(
+  chainHome: string,
+  input: { name: string; subdir: string },
+  readAsset: ReadAsset
+): Promise<InstallSkillResult> {
+  const name = normalizeSkillName(input.name);
+  const entry = (await readSkillsLock(chainHome)).skills[name];
+  if (!entry) {
+    throw new NotFoundError(`No lock entry for ${name}`);
+  }
+  if (entry.sourceType !== "git") {
+    throw new InvalidInputError(`Skill ${name} is not installed from a git repo`);
+  }
+
+  return installSkillFromSource(
+    chainHome,
+    { repo: entry.source, subdir: input.subdir, name, force: true },
+    readAsset
+  );
 }
 
 export async function detectAgentsSkillsDrift(

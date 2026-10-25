@@ -20,6 +20,10 @@ export const skillLockEntrySchema = z.object({
   lastCheckedAt: z.string().nullable().optional(),
   /** Remote HEAD sha seen by the last update check; compared to commitSha to flag updates. */
   latestSha: z.string().nullable().optional(),
+  /** Message of the last failed update check; cleared on the next successful probe. */
+  lastCheckError: z.string().nullable().optional(),
+  /** Message of the last failed `skill update` run; cleared on the next successful install. */
+  lastUpdateError: z.string().nullable().optional(),
   /** Catalog provenance when installed via a catalog entry (notes/docs/specs/hub-catalog.md). */
   catalogId: z.string().nullable().optional(),
   catalogEntryId: z.string().nullable().optional()
@@ -307,12 +311,27 @@ export const checkSkillUpdatesResultSchema = z.object({
 });
 
 export const checkSkillUpdatesInputSchema = z.object({
+  /** Restrict the check to one skill (still probes its repo remote). */
+  name: z.string().min(1).optional(),
   force: z.boolean().optional()
+});
+
+export const relinkSkillInputSchema = z.object({
+  /** New subdir inside the locked git source that now contains SKILL.md. */
+  subdir: z.string().min(1)
+});
+
+export const skillUpstreamDirsResultSchema = z.object({
+  repo: z.string(),
+  currentSubdir: z.string().nullable(),
+  dirs: z.array(z.string())
 });
 
 export type SkillUpdateStatus = z.infer<typeof skillUpdateStatusSchema>;
 export type SkillCheckItemResult = z.infer<typeof skillCheckItemResultSchema>;
 export type CheckSkillUpdatesResult = z.infer<typeof checkSkillUpdatesResultSchema>;
 export type CheckSkillUpdatesInput = z.infer<typeof checkSkillUpdatesInputSchema>;
+export type RelinkSkillInput = z.infer<typeof relinkSkillInputSchema>;
+export type SkillUpstreamDirsResult = z.infer<typeof skillUpstreamDirsResultSchema>;
 export type MigrateAgentsSkillsInput = z.infer<typeof migrateAgentsSkillsInputSchema>;
 export type MigrateAgentsSkillsResult = z.infer<typeof migrateAgentsSkillsResultSchema>;

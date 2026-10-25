@@ -86,6 +86,11 @@ interface AssetDetailPanelProps {
   activeFile?: string;
   onSelectFile?: (path: string) => void;
   onOpenFileManager?: () => void;
+  onRetryCheck?: () => void;
+  isRetryingCheck?: boolean;
+  onRelink?: () => void;
+  onUnlink?: () => void;
+  isUnlinking?: boolean;
 }
 
 function formatFileSize(size: number): string {
@@ -134,7 +139,12 @@ export function AssetDetailPanel({
   onPreviewFile: _onPreviewFile,
   activeFile: propActiveFile,
   onSelectFile: propOnSelectFile,
-  onOpenFileManager
+  onOpenFileManager,
+  onRetryCheck,
+  isRetryingCheck = false,
+  onRelink,
+  onUnlink,
+  isUnlinking = false
 }: AssetDetailPanelProps) {
   const [copied, setCopied] = useState(false);
   const [isRenamingUi, setIsRenamingUi] = useState(false);
@@ -413,6 +423,11 @@ export function AssetDetailPanel({
               <p className="mt-1 break-all font-mono leading-5 text-foreground/80">
                 {formatSkillSource(provenance)}
               </p>
+              {provenance?.sourceType === 'path' ? (
+                <p className="mt-1 leading-5">
+                  This source is a folder on disk, so there is no remote repository or owner to link to.
+                </p>
+              ) : null}
               {provenance?.subdir ? (
                 <p className="mt-1">
                   Subdir · <span className="font-mono">{provenance.subdir}</span>
@@ -423,6 +438,34 @@ export function AssetDetailPanel({
               ) : null}
               {provenance?.lastCheckedAt ? (
                 <p className="mt-1">Checked · {new Date(provenance.lastCheckedAt).toLocaleString()}</p>
+              ) : null}
+              {provenance?.lastCheckError || provenance?.lastUpdateError ? (
+                <div className="mt-2 rounded-lg border border-destructive/20 bg-destructive/5 px-2.5 py-2">
+                  {provenance.lastCheckError ? (
+                    <p className="text-xs leading-5 text-destructive">Check failed · {provenance.lastCheckError}</p>
+                  ) : null}
+                  {provenance.lastUpdateError ? (
+                    <p className="text-xs leading-5 text-destructive">Update failed · {provenance.lastUpdateError}</p>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {onRetryCheck ? (
+                      <Button loading={isRetryingCheck} onClick={onRetryCheck} size="sm" type="button" variant="secondary">
+                        <RefreshCw className="size-3.5" />
+                        Retry check
+                      </Button>
+                    ) : null}
+                    {onRelink && selected.kind === 'skills' && provenance.sourceType === 'git' ? (
+                      <Button onClick={onRelink} size="sm" type="button" variant="secondary">
+                        Relink…
+                      </Button>
+                    ) : null}
+                    {onUnlink ? (
+                      <Button loading={isUnlinking} onClick={onUnlink} size="sm" type="button" variant="ghost">
+                        Unlink
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               ) : null}
               {isUpstreamSkill ? (
                 <p className="mt-2 leading-5 text-foreground/80">

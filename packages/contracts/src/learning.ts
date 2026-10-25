@@ -41,11 +41,13 @@ export const skillReflectionSchema = z.object({
   noteCount: z.number(),
   openFailureCount: z.number(),
   openCorrectionCount: z.number(),
-  /** Captured-at threshold: corrections and failures up to this point are marked addressed. */
+  openNoteCount: z.number(),
+  /** Captured-at threshold: field reports (corrections, failures and notes) up to this point are marked addressed. */
   resolvedAt: z.string().nullable(),
   firstSeen: z.string(),
   lastSeen: z.string(),
-  trend: z.enum(["improving", "struggling", "stable", "new"]),
+  /** Outcome balance per skill; `collecting` marks skills with only field notes, no outcome signal yet. */
+  trend: z.enum(["improving", "struggling", "stable", "new", "collecting"]),
   recentEvents: z.array(captureEventSchema)
 });
 

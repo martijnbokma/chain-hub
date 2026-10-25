@@ -17,10 +17,14 @@ import {
   installSkillFromBundle,
   installSkillFromSource,
   listAssets,
+  listHubIssues,
+  listSkillUpstreamDirs,
   migrateAgentsSkillLock,
   projectSkillSidecars,
   readSkillFile,
   readSkillsLock,
+  relinkSkill,
+  removeSkillLockEntry,
   updateAsset,
   updateSkillsFromLock,
   validateHub
@@ -416,6 +420,140 @@ describe("installSkill", () => {
     expect(drift.lockPath).toBe(lockPath);
     expect(drift.missingCount).toBe(1);
     expect(drift.missingNames).toEqual(["missing-skill"]);
+  });
+});
+
+describe("hub issues and error recovery", () => {
+  it("skips uploaded skills on update instead of reporting them failed", async () => {
+    const skillMd = "---\nname: uploaded-skill\n---\n\n# Uploaded\n";
+    await installSkillBundle(tmpHub, {
+      name: "uploaded-skill",
+      files: [{ path: "SKILL.md", contentBase64: Buffer.from(skillMd, "utf8").toString("base64") }]
+    });
+
+    const result = await updateSkills(tmpHub, { name: "uploaded-skill" });
+    expect(result.results[0]?.status).toBe("skipped");
+    expect(result.results[0]?.error).toBeUndefined();
+  });
+
+  it("persists an update failure on the lock entry and clears it on success", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const source = await writeFixtureSkill(fixtureRoot, "vanishing-skill");
+    await installSkill(tmpHub, { path: source });
+    await fs.rm(source, { recursive: true, force: true });
+
+    const failed = await updateSkills(tmpHub, { name: "vanishing-skill" });
+    expect(failed.results[0]?.status).toBe("failed");
+    expect((await readSkillsLock(tmpHub)).skills["vanishing-skill"]?.lastUpdateError).toContain(
+      "missing SKILL.md"
+    );
+
+    await writeFixtureSkill(fixtureRoot, "vanishing-skill");
+    const retried = await updateSkills(tmpHub, { name: "vanishing-skill", force: true });
+    expect(retried.results[0]?.status).toBe("updated");
+    expect((await readSkillsLock(tmpHub)).skills["vanishing-skill"]?.lastUpdateError).toBeNull();
+  });
+
+  it("fails the update check for a vanished path source and persists the error", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const source = await writeFixtureSkill(fixtureRoot, "path-check-skill");
+    await installSkill(tmpHub, { path: source });
+    await fs.rm(source, { recursive: true, force: true });
+
+    const check = await checkSkillUpdates(tmpHub, { name: "path-check-skill", force: true });
+    expect(check.results.find((item) => item.name === "path-check-skill")?.status).toBe("failed");
+    expect((await readSkillsLock(tmpHub)).skills["path-check-skill"]?.lastCheckError).toContain(
+      "missing SKILL.md"
+    );
+
+    await writeFixtureSkill(fixtureRoot, "path-check-skill");
+    const recovered = await checkSkillUpdates(tmpHub, { name: "path-check-skill", force: true });
+    expect(recovered.results.find((item) => item.name === "path-check-skill")?.status).toBe("up_to_date");
+    expect((await readSkillsLock(tmpHub)).skills["path-check-skill"]?.lastCheckError).toBeNull();
+  });
+
+  it("restricts the update check to one skill when a name is given", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "scoped-a") });
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "scoped-b") });
+
+    const check = await checkSkillUpdates(tmpHub, { name: "scoped-a" });
+    expect(check.results.map((item) => item.name)).toEqual(["scoped-a"]);
+  });
+
+  it("reports a persisted check failure inside the TTL without re-probing", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const source = await writeFixtureSkill(fixtureRoot, "cached-fail");
+    await installSkill(tmpHub, { path: source });
+    await fs.rm(source, { recursive: true, force: true });
+    await checkSkillUpdates(tmpHub, { name: "cached-fail", force: true });
+
+    const cached = await checkSkillUpdates(tmpHub, { name: "cached-fail" });
+    const item = cached.results.find((entry) => entry.name === "cached-fail");
+    expect(item?.status).toBe("failed");
+    expect(item?.error).toContain("missing SKILL.md");
+  });
+
+  it("relinks a git skill to a moved upstream subdir", async () => {
+    const repo = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-repo-"));
+    await writeFixtureSkill(repo, "moved-skill");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: repo });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: repo });
+    await execFileAsync("git", ["add", "."], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "init"], { cwd: repo });
+    await installSkill(tmpHub, { repo, subdir: "moved-skill" });
+
+    // Upstream renames the skill folder; the recorded subdir goes stale and no
+    // name-hint fallback can find it, so the update run fails.
+    await fs.mkdir(path.join(repo, "skills"), { recursive: true });
+    await fs.rename(path.join(repo, "moved-skill"), path.join(repo, "skills", "renamed-skill"));
+    await execFileAsync("git", ["add", "-A"], { cwd: repo });
+    await execFileAsync("git", ["commit", "-m", "move skill"], { cwd: repo });
+
+    const update = await updateSkills(tmpHub, { name: "moved-skill", force: true });
+    expect(update.results[0]?.status).toBe("failed");
+
+    const dirs = await listSkillUpstreamDirs(tmpHub, "moved-skill");
+    expect(dirs.dirs).toEqual(["skills/renamed-skill"]);
+
+    const relinked = await relinkSkill(tmpHub, { name: "moved-skill", subdir: "skills/renamed-skill" }, readAsset);
+    expect(relinked.lockEntry.subdir).toBe("skills/renamed-skill");
+    expect((await readSkillsLock(tmpHub)).skills["moved-skill"]?.lastUpdateError).toBeNull();
+  });
+
+  it("unlinks a skill so it becomes a local editable copy", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    await installSkill(tmpHub, { path: await writeFixtureSkill(fixtureRoot, "unlinked-skill") });
+
+    await removeSkillLockEntry(tmpHub, "unlinked-skill");
+
+    const asset = await getAsset(tmpHub, "skills", "unlinked-skill");
+    expect(asset.provenance).toBeNull();
+    const update = await updateSkills(tmpHub, { force: true });
+    expect(update.results.find((item) => item.name === "unlinked-skill")).toBeUndefined();
+  });
+
+  it("collects lock errors and compat findings as hub issues", async () => {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-fixture-"));
+    const source = await writeFixtureSkill(fixtureRoot, "issue-skill");
+    await installSkill(tmpHub, { path: source });
+    // Written directly: createAsset would inject frontmatter that has a description.
+    await fs.mkdir(path.join(tmpHub, "skills", "bare-skill"), { recursive: true });
+    await fs.writeFile(path.join(tmpHub, "skills", "bare-skill", "SKILL.md"), "# No frontmatter\n", "utf8");
+    await fs.rm(source, { recursive: true, force: true });
+    await checkSkillUpdates(tmpHub, { name: "issue-skill", force: true });
+
+    const { issues } = await listHubIssues(tmpHub);
+
+    const checkIssue = issues.find((issue) => issue.id === "skill-check:issue-skill");
+    expect(checkIssue?.severity).toBe("error");
+    expect(checkIssue?.actions).toEqual(expect.arrayContaining(["retry-check", "open-asset", "unlink"]));
+    expect(checkIssue?.actions).not.toContain("relink");
+
+    const compatIssue = issues.find((issue) => issue.id === "compat:skills/bare-skill:missing_description");
+    expect(compatIssue?.severity).toBe("error");
+    expect(compatIssue?.actions).toEqual(["open-asset"]);
   });
 });
 

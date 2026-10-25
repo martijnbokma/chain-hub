@@ -3,30 +3,64 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { errorMessage, learningsApi, libraryApi } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 import { librarySkillLink, selectSkillsNeedingAttention, type SkillNeedingAttention } from '@/lib/learnings';
+import { cn } from '@/lib/utils';
 import type { CaptureEventType, SkillReflection } from '@/types';
 
 const EVENT_TYPES: CaptureEventType[] = ['success', 'failure', 'correction', 'note'];
 
-const TREND_BADGE: Record<SkillReflection['trend'], { label: string; variant: 'success' | 'destructive' | 'default' | 'accent' }> = {
-  improving: { label: '↑ improving', variant: 'success' },
-  struggling: { label: '↓ struggling', variant: 'destructive' },
-  stable: { label: '→ stable', variant: 'default' },
-  new: { label: '★ new', variant: 'accent' }
+const TREND_BADGE: Record<
+  SkillReflection['trend'],
+  { label: string; variant: 'success' | 'destructive' | 'default' | 'accent'; description: string }
+> = {
+  improving: {
+    label: '↑ improving',
+    variant: 'success',
+    description: 'More successes than corrections and failures captured. No action needed.'
+  },
+  struggling: {
+    label: '↓ struggling',
+    variant: 'destructive',
+    description: 'More corrections and failures than successes. Audit the skill to fold the field reports in.'
+  },
+  stable: {
+    label: '→ stable',
+    variant: 'default',
+    description: 'Successes and corrections/failures are in balance. No action needed.'
+  },
+  new: {
+    label: '★ new',
+    variant: 'accent',
+    description: 'Only one event captured so far, so there is no trend yet.'
+  },
+  collecting: {
+    label: '• collecting',
+    variant: 'default',
+    description: 'Only notes captured so far. They feed the next audit as field reports.'
+  }
 };
 
-function SkillReflectionCard({ skill }: { skill: SkillReflection }) {
+function SkillReflectionCard({ skill, inHub }: { skill: SkillReflection; inHub: boolean }) {
+  const resolve = useResolveSkill();
   const trend = TREND_BADGE[skill.trend];
+  const pendingCount = skill.openCorrectionCount + skill.openFailureCount + skill.openNoteCount;
+  const showAction = pendingCount > 0;
+  const actionText = `${openItemsLabel({
+    correctionCount: skill.openCorrectionCount,
+    failureCount: skill.openFailureCount,
+    noteCount: skill.openNoteCount
+  })} open — the next audit folds them into the skill, or mark them addressed once handled.`;
 
   return (
     <Card>
@@ -38,38 +72,76 @@ function SkillReflectionCard({ skill }: { skill: SkillReflection }) {
             {skill.failureCount} failure · {skill.correctionCount} correction · {skill.noteCount} note
           </p>
         </div>
-        <Badge variant={trend.variant}>{trend.label}</Badge>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger className={cn(badgeVariants({ variant: trend.variant }), 'cursor-help')} type="button">
+              {trend.label}
+            </TooltipTrigger>
+            <TooltipContent>{trend.description}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </CardHeader>
-      {skill.recentEvents.length > 0 ? (
-        <CardContent>
-          <ul className="grid gap-1.5">
-            {skill.recentEvents.map((event) => (
-              <li className="text-xs leading-5 text-muted-foreground" key={event.id}>
-                <span className="font-mono text-2xs uppercase text-foreground">[{event.type}]</span>{' '}
-                {event.summary}
-              </li>
-            ))}
-          </ul>
+      {skill.recentEvents.length > 0 || showAction ? (
+        <CardContent className="grid gap-3">
+          {skill.recentEvents.length > 0 ? (
+            <ul className="grid gap-1.5">
+              {skill.recentEvents.map((event) => (
+                <li className="text-xs leading-5 text-muted-foreground" key={event.id}>
+                  <span className="font-mono text-2xs uppercase text-foreground">[{event.type}]</span>{' '}
+                  {event.summary}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {showAction ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+              <p className="text-xs leading-5 text-pretty text-muted-foreground">{actionText}</p>
+              <div className="flex shrink-0 items-center gap-2">
+                {inHub ? (
+                  <Link
+                    className={buttonVariants({ size: 'sm', variant: 'secondary' })}
+                    to={librarySkillLink(skill.skill, { audit: true })}
+                  >
+                    Audit skill
+                  </Link>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Not in your hub</span>
+                )}
+                <Button
+                  disabled={resolve.isPending}
+                  loading={resolve.isPending}
+                  onClick={() => resolve.mutate(skill.skill)}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Mark addressed
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       ) : null}
     </Card>
   );
 }
 
-function issueCountLabel(item: SkillNeedingAttention): string {
+function openItemsLabel(counts: { correctionCount: number; failureCount: number; noteCount?: number }): string {
   const parts: string[] = [];
-  if (item.correctionCount > 0) {
-    parts.push(`${item.correctionCount} correction${item.correctionCount === 1 ? '' : 's'}`);
+  if (counts.correctionCount > 0) {
+    parts.push(`${counts.correctionCount} correction${counts.correctionCount === 1 ? '' : 's'}`);
   }
-  if (item.failureCount > 0) {
-    parts.push(`${item.failureCount} failure${item.failureCount === 1 ? '' : 's'}`);
+  if (counts.failureCount > 0) {
+    parts.push(`${counts.failureCount} failure${counts.failureCount === 1 ? '' : 's'}`);
+  }
+  if (counts.noteCount) {
+    parts.push(`${counts.noteCount} note${counts.noteCount === 1 ? '' : 's'}`);
   }
   return parts.join(' · ');
 }
 
-function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
+function useResolveSkill() {
   const queryClient = useQueryClient();
-  const resolve = useMutation({
+  return useMutation({
     mutationFn: (skill: string) => learningsApi.resolveSkill({ skill }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.learningsReflect });
@@ -79,6 +151,10 @@ function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
       toast.error(errorMessage(error, 'Unable to mark as addressed'));
     }
   });
+}
+
+function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
+  const resolve = useResolveSkill();
 
   return (
     <Card>
@@ -101,7 +177,7 @@ function NeedsAttentionCard({ items }: { items: SkillNeedingAttention[] }) {
               <div className="grid min-w-0 gap-0.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-foreground">{item.skill}</span>
-                  <Badge variant="warning">{issueCountLabel(item)}</Badge>
+                  <Badge variant="warning">{openItemsLabel(item)}</Badge>
                 </div>
                 {item.latestIssue ? (
                   <p className="text-xs leading-5 text-pretty text-muted-foreground">{item.latestIssue.summary}</p>
@@ -152,12 +228,15 @@ export function LearningsPage() {
     queryFn: () => libraryApi.getAll()
   });
 
-  const needsAttention = useMemo(() => {
-    const hubSkills = new Set(
-      (library.data ?? []).filter((asset) => asset.kind === 'skills').map((asset) => asset.name)
-    );
-    return selectSkillsNeedingAttention(reflection.data?.skills ?? [], hubSkills);
-  }, [library.data, reflection.data]);
+  const hubSkills = useMemo(
+    () => new Set((library.data ?? []).filter((asset) => asset.kind === 'skills').map((asset) => asset.name)),
+    [library.data]
+  );
+
+  const needsAttention = useMemo(
+    () => selectSkillsNeedingAttention(reflection.data?.skills ?? [], hubSkills),
+    [hubSkills, reflection.data]
+  );
 
   const capture = useMutation({
     mutationFn: async () => {
@@ -206,7 +285,7 @@ export function LearningsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {report!.skills.map((skill) => (
-            <SkillReflectionCard key={skill.skill} skill={skill} />
+            <SkillReflectionCard key={skill.skill} skill={skill} inHub={hubSkills.has(skill.skill)} />
           ))}
         </div>
       )}

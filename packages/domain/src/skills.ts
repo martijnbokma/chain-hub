@@ -22,7 +22,10 @@ import {
   initializeHub,
   installSkillFromBundle,
   installSkillFromSource,
+  listSkillUpstreamDirs,
   migrateAgentsSkillLock,
+  relinkSkill,
+  removeSkillLockEntry,
   resolveChainHome,
   syncAssetToEditors,
   updateSkillsFromLock
@@ -143,6 +146,31 @@ export async function forkLibrarySkill(
       : await forkHubAsset(chainHome, kind, input.name, input.as);
   await syncAssetToEditors(chainHome, kind, asset.name, asset);
   return asset;
+}
+
+/** Drops the lock entry: the skill stays in the hub and becomes hub-editable. */
+export async function unlinkLibrarySkill(chainHomeInput: string | undefined, name: string): Promise<{ ok: true }> {
+  const chainHome = await withInitializedHub(chainHomeInput);
+  await removeSkillLockEntry(chainHome, name);
+  return { ok: true };
+}
+
+/** SKILL.md-bearing directories inside a git-locked skill's source repo (for relink). */
+export async function getLibrarySkillUpstreamDirs(chainHomeInput: string | undefined, name: string) {
+  const chainHome = await withInitializedHub(chainHomeInput);
+  return listSkillUpstreamDirs(chainHome, name);
+}
+
+/** Repoints a git-locked skill to a new subdir and reinstalls + re-projects it. */
+export async function relinkLibrarySkill(
+  chainHomeInput: string | undefined,
+  name: string,
+  subdir: string
+): Promise<InstallSkillResult> {
+  const chainHome = await withInitializedHub(chainHomeInput);
+  const result = await relinkSkill(chainHome, { name, subdir }, readSkillAsset);
+  await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
+  return result;
 }
 
 export async function getHubAgentsSkillsDrift(

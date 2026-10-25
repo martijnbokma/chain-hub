@@ -1,8 +1,17 @@
-import { assetKinds, type AssetKind, type Overview, type SetupGuide, type SetupStep } from "@chain-hub/contracts";
+import {
+  assetKinds,
+  type AssetKind,
+  type HubIssue,
+  type HubIssueAction,
+  type HubIssuesResult,
+  type Overview,
+  type SetupGuide,
+  type SetupStep
+} from "@chain-hub/contracts";
 
 import { initializeHub, listAssets, readMeta, resolveChainHome, validateHub } from "./core.js";
 import { getIntegrations } from "./integrations.js";
-import { detectAgentsSkillsDrift } from "./skill-install.js";
+import { detectAgentsSkillsDrift, readSkillsLock } from "./skill-install.js";
 
 export async function getOverview(chainHomeInput?: string): Promise<Overview> {
   const chainHome = resolveChainHome(chainHomeInput);
@@ -30,6 +39,98 @@ export async function getOverview(chainHomeInput?: string): Promise<Overview> {
     },
     agentsSkillsDrift
   };
+}
+
+/**
+ * Every problem the hub knows about, in one list: structural validation issues,
+ * agents↔hub drift, persisted skill check/update failures, and per-asset
+ * editor-compat findings. Sorted errors-first so callers can render it as-is.
+ */
+export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+  const validation = await validateHub(chainHome);
+  const assets = await listAssets(chainHome);
+  const drift = await detectAgentsSkillsDrift(chainHome);
+  const lock = await readSkillsLock(chainHome);
+
+  const issues: HubIssue[] = [];
+  const presentAssets = new Set(assets.map((asset) => `${asset.kind}/${asset.name}`));
+  const openAsset = (name: string): HubIssueAction[] =>
+    presentAssets.has(`skills/${name}`) ? ["open-asset"] : [];
+
+  validation.issues.forEach((message, index) => {
+    issues.push({
+      id: `health:${index}`,
+      severity: "error",
+      kind: "health",
+      title: message,
+      actions: ["open-setup"]
+    });
+  });
+
+  if (drift.missingCount > 0) {
+    issues.push({
+      id: "agents-drift",
+      severity: "warning",
+      kind: "agents-drift",
+      title: `${drift.missingCount} skill${drift.missingCount === 1 ? "" : "s"} in ~/.agents not in Hub yet`,
+      detail: drift.missingNames.join(", "),
+      actions: ["import-agents"]
+    });
+  }
+
+  for (const [name, entry] of Object.entries(lock.skills)) {
+    const relink: HubIssueAction[] = entry.sourceType === "git" ? ["relink"] : [];
+    if (entry.lastCheckError) {
+      issues.push({
+        id: `skill-check:${name}`,
+        severity: "error",
+        kind: "skill-check",
+        title: `Update check failed for ${name}`,
+        detail: entry.lastCheckError,
+        assetKind: "skills",
+        assetName: name,
+        actions: ["retry-check", ...relink, ...openAsset(name), "unlink"]
+      });
+    }
+    if (entry.lastUpdateError) {
+      issues.push({
+        id: `skill-update:${name}`,
+        severity: "error",
+        kind: "skill-update",
+        title: `Update failed for ${name}`,
+        detail: entry.lastUpdateError,
+        assetKind: "skills",
+        assetName: name,
+        actions: ["retry-update", ...relink, ...openAsset(name), "unlink"]
+      });
+    }
+  }
+
+  for (const asset of assets) {
+    for (const issue of asset.compatIssues ?? []) {
+      issues.push({
+        id: `compat:${asset.kind}/${asset.name}:${issue.code}`,
+        severity: issue.severity,
+        kind: "compat",
+        title: `${asset.kind}/${asset.name}`,
+        detail: issue.message,
+        assetKind: asset.kind,
+        assetName: asset.name,
+        actions: ["open-asset"]
+      });
+    }
+  }
+
+  issues.sort((a, b) => {
+    if (a.severity !== b.severity) {
+      return a.severity === "error" ? -1 : 1;
+    }
+    return a.title.localeCompare(b.title);
+  });
+
+  return { issues };
 }
 
 export async function getSetupGuide(chainHomeInput?: string): Promise<SetupGuide> {

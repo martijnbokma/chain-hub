@@ -237,8 +237,53 @@ describe('LibraryPage', () => {
     expect(screen.getByRole('textbox', { name: 'View agents qa-agent' })).toHaveAttribute('readonly');
 
     await user.click(screen.getByRole('button', { name: 'Fork to customize' }));
-    await waitFor(() => expect(forkSpy).toHaveBeenCalledWith({ kind: 'agents', name: 'qa-agent' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('textbox', { name: 'Fork name' })).toHaveValue('qa-agent-local');
+    await user.click(within(dialog).getByRole('button', { name: 'Create fork' }));
+
+    await waitFor(() =>
+      expect(forkSpy).toHaveBeenCalledWith({ kind: 'agents', name: 'qa-agent', as: 'qa-agent-local' })
+    );
     expect(toast.success).toHaveBeenCalledWith('Forked to agents/qa-agent-local — safe to edit');
+  });
+
+  it('offers to open the existing local copy when the default fork name is taken', async () => {
+    const user = userEvent.setup();
+    const upstreamSkill = makeAsset({
+      kind: 'skills',
+      name: 'design',
+      content: '# Design\n',
+      provenance: {
+        source: '/Users/test/www/skills/design',
+        sourceType: 'path',
+        updatedAt: '2026-09-01T00:00:00.000Z'
+      }
+    });
+    const localFork = makeAsset({ kind: 'skills', name: 'design-local', content: '# Design local\n' });
+
+    vi.spyOn(libraryApi, 'getAll').mockResolvedValue([...assets, upstreamSkill, localFork]);
+    vi.spyOn(libraryApi, 'getByKindAndName').mockImplementation(async (kind, name) => {
+      const match = [...assets, upstreamSkill, localFork].find(
+        (item) => item.kind === kind && item.name === name
+      );
+      if (!match) throw new Error('Asset not found');
+      return match;
+    });
+    const forkSpy = vi.spyOn(libraryApi, 'forkSkill');
+
+    renderWithProviders(<LibraryPage />, { route: '/library?kind=skills&asset=design' });
+
+    await user.click(await screen.findByRole('button', { name: 'Fork to customize' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/design-local already exists in the hub/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Create fork' })).toBeDisabled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Open skills/design-local' }));
+
+    expect(await screen.findByRole('textbox', { name: 'Edit skills design-local' })).toBeInTheDocument();
+    expect(forkSpy).not.toHaveBeenCalled();
   });
 
   it('badges skills with an available update and counts them on the update button', async () => {

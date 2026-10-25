@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useSearchParams } from 'react-router-dom';
-import { Download, FolderTree } from 'lucide-react';
+import { ArrowRight, Download, FolderTree } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { hasSkillUpdate, isUpstreamOwnedSkill, resolveSkillUpstreamBrowseUrl } from '@/lib/skill-ownership';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
-import { analysisApi, libraryApi, overviewApi } from '@/lib/api';
+import { analysisApi, errorMessage, libraryApi, overviewApi } from '@/lib/api';
 import type {
   AnalysisItem,
   AssetKind,
@@ -37,11 +37,13 @@ import {
 } from './library/asset-helpers';
 import { CreateAssetDialog } from './library/CreateAssetDialog';
 import { DiscoverDialog } from './library/DiscoverDialog';
+import { ForkAssetDialog } from './library/ForkAssetDialog';
 import { InstallSkillDialog } from './library/InstallSkillDialog';
 import { LibraryToolbar } from './library/LibraryToolbar';
 import { DiscardChangesDialog } from './library/DiscardChangesDialog';
 import { RemoveAssetDialog } from './library/RemoveAssetDialog';
 import { SkillFilePreviewDialog } from './library/SkillFilePreviewDialog';
+import { SkillRelinkDialog } from './library/SkillRelinkDialog';
 import { SkillUpdateResultsDialog } from './library/SkillUpdateResultsDialog';
 import { useLibraryAiActions } from './library/use-library-ai-actions';
 import { assetKey, useAnalysisReview } from './library/use-analysis-review';
@@ -57,6 +59,7 @@ export function LibraryPage() {
   const [activeFile, setActiveFile] = useState<string>('SKILL.md');
   const [removeOpen, setRemoveOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [forkOpen, setForkOpen] = useState(false);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKind, setFilterKind] = useState<FilterKind>(() => parseKindParam(searchParams.get('kind')));
@@ -67,6 +70,7 @@ export function LibraryPage() {
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
   const [autoAuditAsset, setAutoAuditAsset] = useState<string | null>(null);
   const [updateResults, setUpdateResults] = useState<SkillBatchItemResult[] | null>(null);
+  const [relinkTarget, setRelinkTarget] = useState<string | null>(null);
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [view, setView] = useState<'assets' | 'review'>('assets');
   const analysis = useLibraryAnalysis();
@@ -365,6 +369,7 @@ export function LibraryPage() {
 
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['library', 'skill-updates'] });
+      void queryClient.invalidateQueries({ queryKey: ['issues'] });
       if (selected) {
         void queryClient.invalidateQueries({
           queryKey: ['library', 'detail', selected.kind, selected.name]
@@ -383,11 +388,50 @@ export function LibraryPage() {
     }
   });
 
+  const retryCheck = useMutation({
+    mutationFn: async (name: string) => libraryApi.checkSkillUpdates({ name, force: true }),
+    onSuccess: (result, name) => {
+      void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['library', 'skill-updates'] });
+      void queryClient.invalidateQueries({ queryKey: ['issues'] });
+      const item = result.results.find((entry) => entry.name === name);
+      if (item?.status === 'failed') {
+        toast.warning(`Check still failing for ${name}: ${item.error ?? 'unknown error'}`);
+      } else {
+        toast.success(
+          item?.status === 'update_available' ? `Update available for ${name}` : `${name} is up to date`
+        );
+      }
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Unable to check skill'));
+    }
+  });
+
+  const unlinkSkill = useMutation({
+    mutationFn: async (name: string) => libraryApi.unlinkSkill(name),
+    onSuccess: (_result, name) => {
+      void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({ queryKey: ['library', 'skill-updates'] });
+      void queryClient.invalidateQueries({ queryKey: ['issues'] });
+      if (selected) {
+        void queryClient.invalidateQueries({
+          queryKey: ['library', 'detail', selected.kind, selected.name]
+        });
+      }
+      toast.success(`${name} is now a local, editable skill`);
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Unable to unlink skill'));
+    }
+  });
+
   const forkSkill = useMutation({
-    mutationFn: async (target: { kind: AssetKind; name: string }) => {
+    mutationFn: async (target: { kind: AssetKind; name: string; as?: string }) => {
       return libraryApi.forkSkill(target);
     },
     onSuccess: (asset) => {
+      setForkOpen(false);
       setSelected({ kind: asset.kind, name: asset.name });
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['library', 'detail', asset.kind, asset.name] });
@@ -555,6 +599,14 @@ export function LibraryPage() {
     [skillUpdates]
   );
 
+  const forkTakenNames = useMemo(
+    () =>
+      new Set(
+        (library.data ?? []).filter((asset) => asset.kind === selected?.kind).map((asset) => asset.name)
+      ),
+    [library.data, selected?.kind]
+  );
+
   // Surface each distinct check outcome once; refetches of identical results stay silent.
   const checkToastSignatureRef = useRef<string | null>(null);
   useEffect(() => {
@@ -576,16 +628,19 @@ export function LibraryPage() {
     if (updates.length > 0) {
       toast.info(
         updates.length === 1 ? '1 skill update available' : `${updates.length} skill updates available`,
-        { description: updates.map((item) => item.name).join(', '), duration: 6000 }
+        { description: <ToastItemList items={updates.map((item) => item.name)} />, duration: 6000 }
       );
     }
     if (failed.length > 0) {
       toast.warning(
         failed.length === 1 ? 'Could not check 1 skill' : `Could not check ${failed.length} skills`,
         {
-          description: failed
-            .map((item) => `${item.name}${item.error ? `: ${item.error}` : ''}`)
-            .join('\n'),
+          description: (
+            <ToastItemList
+              items={failed.map((item) => `${item.name}${item.error ? `: ${item.error}` : ''}`)}
+              max={4}
+            />
+          ),
           duration: 8000
         }
       );
@@ -735,14 +790,15 @@ export function LibraryPage() {
                       Selected: <strong className="text-foreground">{selected.name}</strong>
                     </span>
                     <Button
-                      className="h-6 shrink-0 gap-1 px-2 text-xs font-medium"
+                      className="group h-6 shrink-0 gap-1 px-2 text-xs font-medium"
                       onClick={() => setMasterView('files')}
                       size="sm"
                       type="button"
                       variant="ghost"
                     >
                       <FolderTree className="size-3" />
-                      Files ({skillFiles.data?.files?.filter((f) => !f.isDirectory).length ?? 0}) →
+                      Files ({skillFiles.data?.files?.filter((f) => !f.isDirectory).length ?? 0})
+                      <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                     </Button>
                   </div>
                 ) : null}
@@ -812,7 +868,9 @@ export function LibraryPage() {
               isImproving={improveAsset.isPending}
               isReassessing={reassessKind.isPending}
               isRenaming={renameAsset.isPending}
+              isRetryingCheck={retryCheck.isPending}
               isSaving={saveAsset.isPending}
+              isUnlinking={unlinkSkill.isPending}
               isUpdating={updateSkills.isPending}
               isUpstreamSkill={isUpstreamSkill}
               kindAssessment={kindAssessment}
@@ -821,17 +879,20 @@ export function LibraryPage() {
               onConvertKind={(toKind) => convertKind.mutate(toKind)}
               onEditorChange={setEditorContent}
               onFixDescriptionWithAi={() => fixDescriptionWithAi.mutate()}
-              onFork={() => forkSkill.mutate({ kind: selected.kind, name: selected.name })}
+              onFork={() => setForkOpen(true)}
               onForkAndFixHeading={() => forkAndFixDescription.mutate('heading')}
               onForkAndFixWithAi={() => forkAndFixDescription.mutate('ai')}
               onImproveAsset={() => improveAsset.mutate()}
               onOpenFileManager={() => setMasterView('files')}
               onPreviewFile={setPreviewFilePath}
               onReassessKind={() => reassessKind.mutate()}
+              onRelink={() => setRelinkTarget(selected.name)}
               onRename={(nextName) => renameAsset.mutate(nextName)}
               onRequestDelete={() => setRemoveOpen(true)}
+              onRetryCheck={() => retryCheck.mutate(selected.name)}
               onSave={() => saveAsset.mutate()}
               onSelectFile={(filePath) => setActiveFile(filePath)}
+              onUnlink={() => unlinkSkill.mutate(selected.name)}
               onUpdateFromSource={() => updateSkills.mutate(selected.name)}
               provenance={selectedAsset.data?.provenance}
               selected={selected}
@@ -922,6 +983,25 @@ export function LibraryPage() {
           selected={selected}
         />
 
+        <ForkAssetDialog
+          isForking={forkSkill.isPending}
+          onOpenChange={setForkOpen}
+          onOpenExisting={(name) => {
+            setForkOpen(false);
+            if (selected) {
+              requestSelection({ kind: selected.kind, name });
+            }
+          }}
+          onSubmit={(name) => {
+            if (selected) {
+              forkSkill.mutate({ kind: selected.kind, name: selected.name, as: name });
+            }
+          }}
+          open={forkOpen}
+          selected={selected}
+          takenNames={forkTakenNames}
+        />
+
         <AiEditPreviewDialog
           onApprove={approveAiEdit}
           onDiscard={discardAiEdit}
@@ -968,6 +1048,15 @@ export function LibraryPage() {
           results={updateResults}
         />
 
+        <SkillRelinkDialog
+          onOpenChange={(open) => {
+            if (!open) {
+              setRelinkTarget(null);
+            }
+          }}
+          skillName={relinkTarget}
+        />
+
         <AiEditPreviewDialog
           onApprove={() => void review.approveQueuedDiff()}
           onDiscard={review.discardQueuedDiff}
@@ -999,5 +1088,22 @@ export function LibraryPage() {
         />
       </section>
     </div>
+  );
+}
+
+/** Compact toast list: a few items inline, longer lists capped vertical with "+N more". */
+function ToastItemList({ items, max = 6 }: { items: string[]; max?: number }) {
+  if (items.length <= 3) {
+    return <>{items.join(', ')}</>;
+  }
+  const shown = items.slice(0, max);
+  const hidden = items.length - shown.length;
+  return (
+    <span className="flex flex-col gap-0.5">
+      {shown.map((item) => (
+        <span key={item}>{item}</span>
+      ))}
+      {hidden > 0 ? <span>+{hidden} more</span> : null}
+    </span>
   );
 }

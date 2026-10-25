@@ -2,13 +2,37 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { ensureExplicitDescription } from '@chain-hub/contracts';
+import { ensureExplicitDescription, isUpstreamOwnedSkill, normalizeSkillName } from '@chain-hub/contracts';
 import { aiSettingsApi, libraryApi } from '@/lib/api';
-import type { AssetKind, AuditAssetResult, ClassifyAssetResult } from '@/types';
+import type { AssetDetail, AssetKind, AuditAssetResult, ClassifyAssetResult } from '@/types';
 
 import type { PendingAiEdit } from './AiEditPreviewDialog';
 
 type SelectedAsset = { kind: AssetKind; name: string };
+
+/**
+ * Fork to `<name>-local`; when that editable copy already exists, reuse it
+ * instead of dead-ending on the conflict error.
+ */
+async function forkOrReuseLocalCopy(target: SelectedAsset): Promise<{ forked: AssetDetail; reused: boolean }> {
+  try {
+    return { forked: await libraryApi.forkSkill({ kind: target.kind, name: target.name }), reused: false };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (!message.includes('already exists')) {
+      throw error;
+    }
+    const localName = normalizeSkillName(`${target.name}-local`);
+    if (!localName || localName === target.name) {
+      throw error;
+    }
+    const existing = await libraryApi.getByKindAndName(target.kind, localName).catch(() => null);
+    if (!existing || isUpstreamOwnedSkill(existing.provenance)) {
+      throw error;
+    }
+    return { forked: existing, reused: true };
+  }
+}
 
 /** AI actions on the selected asset: reassess kind, audit, improve and the description fixes. */
 export function useLibraryAiActions(options: {
@@ -182,7 +206,7 @@ export function useLibraryAiActions(options: {
       if (!selected) {
         throw new Error('No asset selected');
       }
-      const forked = await libraryApi.forkSkill({ kind: selected.kind, name: selected.name });
+      const { forked, reused } = await forkOrReuseLocalCopy(selected);
 
       const content =
         mode === 'heading'
@@ -205,14 +229,18 @@ export function useLibraryAiActions(options: {
               return result.content;
             })();
 
-      return { forked, content };
+      return { forked, content, reused };
     },
-    onSuccess: ({ forked, content }) => {
+    onSuccess: ({ forked, content, reused }) => {
       queryClient.setQueryData(['library', 'detail', forked.kind, forked.name], { ...forked, content });
       setSelected({ kind: forked.kind, name: forked.name });
       void queryClient.invalidateQueries({ queryKey: ['library'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success(`Forked to ${forked.kind}/${forked.name} — description drafted, review and save`);
+      toast.success(
+        reused
+          ? `Opened existing ${forked.kind}/${forked.name} · description drafted, review and save`
+          : `Forked to ${forked.kind}/${forked.name} — description drafted, review and save`
+      );
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Unable to fork and fix description');

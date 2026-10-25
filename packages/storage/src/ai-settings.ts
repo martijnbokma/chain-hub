@@ -108,6 +108,13 @@ function definedModels(models: UpdateAiSettingsInput["models"]): Partial<AiConfi
   return Object.fromEntries(Object.entries(models ?? {}).filter(([, model]) => model !== undefined));
 }
 
+/** Patch non-AI secrets (e.g. the GitHub sync token) into the shared secrets store. */
+export async function updateAiSecrets(chainHomeInput: string | undefined, patch: Partial<AiSecrets>): Promise<void> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  const current = await readAiSecrets(chainHome);
+  await writeAiSecrets(chainHome, { ...current, ...patch, version: 1 });
+}
+
 export async function updateAiSettings(
   chainHomeInput: string | undefined,
   input: UpdateAiSettingsInput

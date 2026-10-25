@@ -15,18 +15,18 @@ colors:
   destructive: "#ef4444"
 typography:
   display:
-    fontFamily: "Big Shoulders Display Variable, Big Shoulders Display, system-ui, sans-serif"
+    fontFamily: "Geist Variable, Geist, system-ui, sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "0.025em"
   body:
-    fontFamily: "Inter, system-ui, -apple-system, sans-serif"
+    fontFamily: "Geist Variable, Geist, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.25
   label:
-    fontFamily: "Inter, system-ui, sans-serif"
+    fontFamily: "Geist Variable, Geist, system-ui, sans-serif"
     fontSize: "0.6875rem"
     fontWeight: 500
     letterSpacing: "0.14em"
@@ -62,13 +62,13 @@ components:
 
 ## Overview
 
-**Creative North Star: "Cool Trust"**
+**Creative North Star: "Signaal"**
 
-Chain Hub is a light, premium product surface: zinc neutrals, white panels, and a single orange signal for the one action that matters. It should feel closer to a polished admin product (clear, calm, credible) than a marketing landing page or a dark terminal console.
+Chain Hub is a light, premium product surface: warm paper neutrals, white panels, and a single orange signal for the one action that matters. It should feel closer to a polished admin product (clear, calm, credible) than a marketing landing page or a dark terminal console. Shares the Signaal palette (paper #f2f0eb, ink #1c1d1f, accent #d9482b / #ff8a5b dark) and Geist fonts with apps/marketing-site.
 
 **Key Characteristics:**
-- Cool zinc/near-white neutrals; one orange accent
-- Inter for UI type; Big Shoulders Display only for the “Chain Hub” wordmark; JetBrains Mono only for literal values (paths, IDs, step indices)
+- Warm paper neutrals; one orange accent
+- Geist for UI type; Geist Mono only for literal values (paths, IDs, step indices)
 - Tight radii (10px controls / 12px surfaces) — never stadium cards
 - Subtle resting elevation; content width constrained for readable line length
 - Status sits next to content; primary actions are `w-fit`, never full-bleed by default
@@ -104,7 +104,7 @@ Chain Hub is a light, premium product surface: zinc neutrals, white panels, and 
 - **Mono literal** (`font-mono text-xs`): paths, IDs, step numbers
 
 ### Named Rules
-**The Display Budget.** Big Shoulders Display is brand-only — the shell wordmark. Do not use it for page titles, nav, or body.
+**The Display Budget.** Geist Mono is reserved for literal values (paths, IDs, step indices) — do not use it for prose or page titles.
 **The Eyebrow Budget.** Do not put an eyebrow above every card or list row. Prefer a single page-level eyebrow.
 
 ## Layout

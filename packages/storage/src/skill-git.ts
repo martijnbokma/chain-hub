@@ -157,6 +157,31 @@ export async function resolveGitSkillDir(repo: string, subdir: string | undefine
   );
 }
 
+/** Shallow-clone `repo`, list every directory holding a SKILL.md (repo-relative), then clean up. */
+export async function discoverGitSkillDirs(repo: string): Promise<string[]> {
+  const cleanupDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-scan-"));
+
+  try {
+    await execFileAsync("git", ["clone", "--depth", "1", "--", repo, cleanupDir], {
+      env: gitEnv(),
+      timeout: GIT_CLONE_TIMEOUT_MS
+    });
+  } catch (error) {
+    await fs.rm(cleanupDir, { recursive: true, force: true });
+    const message = error instanceof Error ? error.message : String(error);
+    throw new InvalidInputError(`Failed to clone skill repo ${repo}: ${message}`);
+  }
+
+  try {
+    const discovered = await findSkillDirsInRepo(cleanupDir);
+    return discovered
+      .map((dir) => path.relative(cleanupDir, dir).replace(/\\/g, "/"))
+      .sort((a, b) => a.localeCompare(b));
+  } finally {
+    await fs.rm(cleanupDir, { recursive: true, force: true });
+  }
+}
+
 function isCommitSha(value: string | undefined): value is string {
   return Boolean(value && /^[0-9a-f]{40}$/i.test(value));
 }

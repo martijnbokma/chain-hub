@@ -61,10 +61,23 @@ export function LibraryToolbar({
 
         <TooltipProvider>
           <div className="flex shrink-0 items-center gap-2">
-            <Button className="w-fit" onClick={onCreate} size="sm">
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">Create</span>
-            </Button>
+            {isCompact ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button aria-label="Create asset" onClick={onCreate} size="icon-sm">
+                      <Plus className="size-4" />
+                    </Button>
+                  }
+                />
+                <TooltipContent>Create asset</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button className="w-fit" onClick={onCreate} size="sm">
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Create</span>
+              </Button>
+            )}
 
             {showSkillActions ? (
               <>
@@ -85,15 +98,43 @@ export function LibraryToolbar({
                 </Tooltip>
 
                 {skillUpdateCount > 0 ? (
-                  <Button
-                    disabled={isUpdatingSkills}
-                    onClick={onUpdateSkills}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
-                    {isUpdatingSkills ? 'Updating…' : `Update (${skillUpdateCount})`}
-                  </Button>
+                  isCompact ? (
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            aria-label={
+                              isUpdatingSkills
+                                ? 'Updating skills'
+                                : `Update ${skillUpdateCount} skills`
+                            }
+                            disabled={isUpdatingSkills}
+                            onClick={onUpdateSkills}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            <RefreshCw
+                              className={cn('size-4', isUpdatingSkills && 'animate-spin')}
+                            />
+                            <span className="tabular-nums">{skillUpdateCount}</span>
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>
+                        {isUpdatingSkills ? 'Updating…' : `Update ${skillUpdateCount} skills`}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      disabled={isUpdatingSkills}
+                      onClick={onUpdateSkills}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      <RefreshCw className={cn('size-4', isUpdatingSkills && 'animate-spin')} />
+                      {isUpdatingSkills ? 'Updating…' : `Update (${skillUpdateCount})`}
+                    </Button>
+                  )
                 ) : (
                   <Tooltip>
                     <TooltipTrigger
