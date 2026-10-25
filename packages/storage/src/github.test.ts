@@ -16,9 +16,12 @@ vi.mock("node:child_process", () => {
       callback(null, ghOutcome);
     }
   };
-  (execFile as Record<symbol, unknown>)[promisify.custom] = () =>
-    ghOutcome instanceof Error ? Promise.reject(ghOutcome) : Promise.resolve(ghOutcome);
-  return { execFile };
+  return {
+    execFile: Object.assign(execFile, {
+      [promisify.custom]: () =>
+        ghOutcome instanceof Error ? Promise.reject(ghOutcome) : Promise.resolve(ghOutcome)
+    })
+  };
 });
 
 import {
