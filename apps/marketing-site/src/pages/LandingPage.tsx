@@ -21,12 +21,12 @@ const REPO_URL = 'https://github.com/martijnbokma/chain-hub';
 const editors = ['Claude Code', 'Cursor', 'Devin CLI', 'Windsurf', 'Zed', 'Antigravity'];
 
 const drift = [
-  { editor: 'Claude Code', status: 'rules · v1' },
-  { editor: 'Cursor', status: 'rules · v3' },
-  { editor: 'Devin CLI', status: 'missing' },
-  { editor: 'Windsurf', status: 'rules · v2 ?' },
-  { editor: 'Zed', status: 'missing' },
-  { editor: 'Antigravity', status: 'missing' },
+  { editor: 'Claude Code', status: 'CLAUDE.md · v1' },
+  { editor: 'Cursor', status: '.cursor/rules · v3' },
+  { editor: 'Devin CLI', status: '.devin/rules · missing' },
+  { editor: 'Windsurf', status: '.windsurf/rules · v2 ?' },
+  { editor: 'Zed', status: '.rules · missing' },
+  { editor: 'Antigravity', status: 'AGENTS.md · missing' },
 ];
 
 const assets = [
@@ -197,6 +197,11 @@ export function LandingPage() {
               </p>
             </div>
           </Reveal>
+          <p className="text-sm text-muted-foreground mt-4 max-w-prose">
+            Already have rules files scattered across your editors? Chain Hub wraps, not replaces:
+            <code className="font-mono text-[0.9em]"> chain asset discover</code> finds them and
+            imports them into the hub, then your editors keep working on the same files.
+          </p>
         </div>
       </section>
 
