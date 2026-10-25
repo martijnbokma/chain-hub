@@ -154,7 +154,16 @@ export function SetupPage() {
                 <div className="grid gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-medium text-foreground">{step.label}</h3>
-                    <Badge variant={statusVariant(step.status)}>{statusLabel(step.status)}</Badge>
+                    <Badge
+                      className={cn(
+                        step.status === 'done' &&
+                          (setupEditors.isSuccess || runValidate.isSuccess) &&
+                          'animate-[icon-in_200ms_ease-out]'
+                      )}
+                      variant={statusVariant(step.status)}
+                    >
+                      {statusLabel(step.status)}
+                    </Badge>
                   </div>
                   <p className="text-sm leading-5 text-muted-foreground">{step.description}</p>
                 </div>
@@ -163,7 +172,7 @@ export function SetupPage() {
                   <div className="grid gap-3">
                     <Button
                       className="w-fit"
-                      disabled={setupEditors.isPending}
+                      loading={setupEditors.isPending}
                       onClick={() => setupEditors.mutate()}
                       size="sm"
                       variant={isCurrent ? 'default' : 'secondary'}
@@ -172,10 +181,11 @@ export function SetupPage() {
                     </Button>
                     {setupEditors.data ? (
                       <ul className="grid gap-1.5 rounded-lg border border-border bg-muted/30 p-3">
-                        {setupEditors.data.filter((integration) => integration.installed).map((integration) => (
+                        {setupEditors.data.filter((integration) => integration.installed).map((integration, index) => (
                           <li
-                            className="flex items-center gap-2 text-xs text-foreground"
+                            className="flex animate-[fade-up_200ms_ease-out_both] items-center gap-2 text-xs text-foreground"
                             key={integration.id}
+                            style={{ animationDelay: `${index * 60}ms` }}
                           >
                             {integration.connected ? (
                               <CheckCircle2 className="size-3.5 shrink-0 text-success" />
@@ -208,7 +218,7 @@ export function SetupPage() {
                   <div className="grid gap-3">
                     <Button
                       className="w-fit"
-                      disabled={runValidate.isPending}
+                      loading={runValidate.isPending}
                       onClick={() => runValidate.mutate()}
                       size="sm"
                       variant={isCurrent ? 'default' : 'secondary'}
@@ -217,8 +227,12 @@ export function SetupPage() {
                     </Button>
                     {runValidate.data ? (
                       <ul className="grid gap-1.5 rounded-lg border border-border bg-muted/30 p-3">
-                        {runValidate.data.checks.map((check) => (
-                          <li className="flex items-start gap-2 text-xs text-foreground" key={check.id}>
+                        {runValidate.data.checks.map((check, index) => (
+                          <li
+                            className="flex animate-[fade-up_200ms_ease-out_both] items-start gap-2 text-xs text-foreground"
+                            key={check.id}
+                            style={{ animationDelay: `${index * 60}ms` }}
+                          >
                             {check.status === 'pass' ? (
                               <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-success" />
                             ) : (

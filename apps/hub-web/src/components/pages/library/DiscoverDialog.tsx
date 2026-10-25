@@ -77,7 +77,7 @@ export function DiscoverDialog({
                 </div>
                 <Button
                   className="w-full shrink-0 sm:w-auto"
-                  disabled={isImportingAll}
+                  loading={isImportingAll}
                   onClick={() => onImportAll(allCandidates)}
                   size="sm"
                 >
@@ -94,7 +94,7 @@ export function DiscoverDialog({
                     </div>
                     {groups.length > 1 && candidates.length > 1 ? (
                       <Button
-                        disabled={isImportingAll}
+                        loading={isImportingAll}
                         onClick={() => onImportAll(candidates)}
                         size="sm"
                         variant="secondary"
@@ -121,6 +121,7 @@ export function DiscoverDialog({
                           <Button
                             className="w-fit shrink-0"
                             disabled={isImportingThis}
+                            loading={isImportingThis && !isImportingAll}
                             onClick={() => onImport(candidate)}
                             size="sm"
                           >
@@ -142,7 +143,7 @@ export function DiscoverDialog({
         <DialogFooter>
           {allCandidates.length > 0 ? (
             <Button
-              disabled={isImportingAll}
+              loading={isImportingAll}
               onClick={() => onImportAll(allCandidates)}
             >
               {importAllLabel}

@@ -38,7 +38,7 @@ export function RemoveAssetDialog({ open, onOpenChange, selected, onConfirm, isD
           <Button onClick={() => onOpenChange(false)} variant="secondary">
             Cancel
           </Button>
-          <Button disabled={!selected || isDeleting} onClick={onConfirm} variant="destructive">
+          <Button disabled={!selected} loading={isDeleting} onClick={onConfirm} variant="destructive">
             {isDeleting ? 'Deleting…' : 'Confirm delete'}
           </Button>
         </DialogFooter>

@@ -216,7 +216,8 @@ export function AssetAuditDialog({
             ) : (
               <Button
                 className="mr-auto"
-                disabled={isImproving || !canImprove}
+                disabled={!canImprove}
+                loading={isImproving}
                 onClick={onImprove}
                 size="sm"
                 type="button"

@@ -85,6 +85,7 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 ### Frontend rules
 
 - Use shadcn/ui primitives from `apps/hub-web/src/components/ui/`. Never hand-roll buttons, inputs, dialogs, dropdowns. If a primitive is missing, add the smallest one and say so.
+- Pending async actions: use the `loading` prop on `Button` (spinner + auto-disable + `aria-busy`) — don't hand-roll `disabled={isPending}` + spinner markup. For status flips and result entrances use the `icon-in` pop, `animate-pulse`, and staggered `fade-up` keyframes in `styles.css`; icon-only buttons may spin their own icon instead (e.g. `RefreshCw animate-spin`).
 - Tailwind semantic tokens only (`bg-background`, `text-muted-foreground`, `border-border`, `bg-primary`). No hex codes, no arbitrary values, 4px spacing scale.
 - `cn()` for class merging, `cva` for variants, lucide-react for icons, sonner `toast` for feedback (no wrapper).
 - AI UI uses prompt-kit building blocks (`prompt-input.tsx`, `prompt-suggestion.tsx`, `loader.tsx`) styled with Cool Trust tokens.

@@ -163,13 +163,13 @@ export function InstallSkillDialog({
           </label>
         </DialogBody>
         <DialogFooter>
-          <Button disabled={isMigrating} onClick={onMigrate} variant="secondary">
+          <Button loading={isMigrating} onClick={onMigrate} variant="secondary">
             {isMigrating ? 'Migrating…' : 'Migrate from agents lock'}
           </Button>
           <Button onClick={() => onOpenChange(false)} variant="secondary">
             Cancel
           </Button>
-          <Button disabled={isInstalling || submitDisabled} onClick={onSubmit}>
+          <Button disabled={submitDisabled} loading={isInstalling} onClick={onSubmit}>
             {isInstalling ? 'Installing…' : 'Install'}
           </Button>
         </DialogFooter>

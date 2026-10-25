@@ -303,7 +303,7 @@ export function AiSettingsForm({ settings }: { settings: AiSettingsPublic }) {
       </div>
 
       <div className="flex flex-wrap gap-2 pt-2">
-        <Button disabled={save.isPending} type="submit">
+        <Button loading={save.isPending} type="submit">
           {save.isPending ? 'Saving…' : 'Save settings'}
         </Button>
       </div>

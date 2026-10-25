@@ -650,7 +650,7 @@ export function LibraryPage() {
               </AlertDescription>
               <Button
                 className="shrink-0"
-                disabled={installFlow.migrateAgentsSkills.isPending}
+                loading={installFlow.migrateAgentsSkills.isPending}
                 onClick={() => installFlow.migrateAgentsSkills.mutate()}
                 size="sm"
               >

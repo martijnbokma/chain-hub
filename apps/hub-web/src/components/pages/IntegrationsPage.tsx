@@ -1,5 +1,6 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +62,7 @@ export function IntegrationsPage() {
             Link each supported editor on this machine to the hub so they all stay in sync.
           </p>
         </div>
-        <Button className="w-fit shrink-0" disabled={setup.isPending} onClick={() => setup.mutate()}>
+        <Button className="w-fit shrink-0" loading={setup.isPending} onClick={() => setup.mutate()}>
           {setup.isPending ? 'Connecting…' : 'Connect editors'}
         </Button>
       </header>
@@ -79,9 +80,19 @@ export function IntegrationsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-medium text-foreground">{integration.label}</h3>
                 {integration.installed ? (
-                  <Badge variant={integration.connected ? 'success' : 'warning'}>
-                    {integration.connected ? 'Connected' : 'Not connected'}
-                  </Badge>
+                  integration.connected ? (
+                    <Badge
+                      className={cn('gap-1', setup.isSuccess && 'animate-[icon-in_200ms_ease-out]')}
+                      variant="success"
+                    >
+                      <Check aria-hidden="true" className="size-3" />
+                      Connected
+                    </Badge>
+                  ) : (
+                    <Badge className={cn(setup.isPending && 'animate-pulse')} variant="warning">
+                      Not connected
+                    </Badge>
+                  )
                 ) : (
                   <Badge variant="default">Not installed</Badge>
                 )}

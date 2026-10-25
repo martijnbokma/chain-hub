@@ -4,9 +4,11 @@ import {
   ChevronRight,
   Command as CommandIcon,
   FolderTree,
+  LayoutDashboard,
   Link2,
-  PanelLeft,
+  LoaderCircle,
   Settings,
+  Store,
   type LucideIcon
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -20,6 +22,7 @@ import { Button } from '../ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { TooltipProvider } from '../ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -206,25 +209,35 @@ function LibraryNavItem() {
 export function Shell({ children }: ShellProps) {
   const location = useLocation();
 
-  const { commandOpen, setCommandOpen, actionGroups, installedEditors, connectedCount } = useCommandPalette();
+  const { commandOpen, setCommandOpen, actionGroups, installedEditors, connectedCount, connectEditors } = useCommandPalette();
 
   return (
     <ShellToolbarProvider>
       <SidebarProvider>
+        <TooltipProvider>
         <Sidebar collapsible="icon">
           <SidebarHeader className="h-14 justify-center border-b border-sidebar-border">
-            <div className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-              <SidebarMenu className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                <SidebarMenuItem>
-                  <SidebarMenuButton className="gap-3" render={<NavLink to="/" />} size="lg">
-                    <ChainHubLogo showText={false} className="size-8! shrink-0" />
-                    <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
-                      Chain Hub
-                    </span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
+            <div className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:hidden">
+              <NavLink
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                to="/"
+              >
+                <ChainHubLogo showText={false} className="size-8! shrink-0" />
+                <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
+                  Chain Hub
+                </span>
+              </NavLink>
               <SidebarTrigger className="hidden md:flex size-8 shrink-0" />
+            </div>
+            {/* Collapsed: logo stays visible; hovering it reveals the expand toggle */}
+            <div className="group/logo relative hidden size-8 group-data-[collapsible=icon]:block">
+              <span className="flex size-8 items-center justify-center transition-opacity duration-150 group-hover/logo:opacity-0">
+                <ChainHubLogo showText={false} className="size-7" />
+              </span>
+              <SidebarTrigger
+                aria-label="Expand sidebar"
+                className="absolute inset-0 size-8 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100 focus-visible:opacity-100"
+              />
             </div>
           </SidebarHeader>
 
@@ -269,7 +282,8 @@ export function Shell({ children }: ShellProps) {
                 className={cn(
                   'h-9 flex-1 justify-start gap-2 whitespace-nowrap px-3',
                   'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8',
-                  'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0'
+                  'group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center',
+                  'group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:p-0'
                 )}
                 onClick={() => setCommandOpen(true)}
                 variant="secondary"
@@ -299,7 +313,8 @@ export function Shell({ children }: ShellProps) {
                       aria-hidden="true"
                       className={cn(
                         'size-1.5 shrink-0 rounded-full',
-                        integration.connected ? 'bg-success' : 'bg-muted-foreground/30'
+                        integration.connected ? 'bg-success' : 'bg-muted-foreground/30',
+                        !integration.connected && connectEditors.isPending && 'animate-pulse'
                       )}
                     />
                     <span
@@ -320,6 +335,7 @@ export function Shell({ children }: ShellProps) {
             </div>
           </SidebarFooter>
         </Sidebar>
+        </TooltipProvider>
 
         <SidebarInset className="min-w-0 overflow-x-hidden">
           {/* Mobile-only navigation bar */}
@@ -360,9 +376,11 @@ export function Shell({ children }: ShellProps) {
               {actionGroups.map(({ group, actions: groupActions }) => (
                 <CommandGroup heading={group} key={group}>
                   {groupActions.map((action) => {
-                    const Icon = action.icon;
+                    const isConnecting = action.id === 'connect-editors' && connectEditors.isPending;
+                    const Icon = isConnecting ? LoaderCircle : action.icon;
                     return (
                       <CommandItem
+                        disabled={isConnecting}
                         key={action.id}
                         keywords={[action.keywords]}
                         onSelect={() => {
@@ -375,14 +393,17 @@ export function Shell({ children }: ShellProps) {
                       >
                         <Icon
                           aria-hidden="true"
-                          className="mt-0.5 size-4 shrink-0 text-muted-foreground group-data-[selected=true]/command-item:text-foreground"
+                          className={cn(
+                            'mt-0.5 size-4 shrink-0 text-muted-foreground group-data-[selected=true]/command-item:text-foreground',
+                            isConnecting && 'animate-spin'
+                          )}
                         />
                         <span className="grid min-w-0 flex-1 gap-0.5">
                           <span className="truncate text-sm font-medium text-foreground">
-                            {action.label}
+                            {isConnecting ? 'Connecting…' : action.label}
                           </span>
                           <span className="truncate text-xs text-muted-foreground">
-                            {action.description}
+                            {isConnecting ? 'Linking installed editors to the hub.' : action.description}
                           </span>
                         </span>
                       </CommandItem>

@@ -309,7 +309,7 @@ export function AssetDetailPanel({
                   }}
                   value={renameValue}
                 />
-                <Button disabled={isRenaming || !renameValue.trim()} onClick={submitRename} size="icon-sm" type="button">
+                <Button disabled={!renameValue.trim()} loading={isRenaming} onClick={submitRename} size="icon-sm" type="button">
                   <Check className="size-4" />
                   <span className="sr-only">Save name</span>
                 </Button>
@@ -367,7 +367,7 @@ export function AssetDetailPanel({
               {isUpstreamSkill ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
-                    disabled={isForkingAndFixingHeading}
+                    loading={isForkingAndFixingHeading}
                     onClick={onForkAndFixHeading}
                     size="sm"
                     type="button"
@@ -376,7 +376,7 @@ export function AssetDetailPanel({
                     <GitFork className="size-4" />
                     {isForkingAndFixingHeading ? 'Forking…' : 'Fork & fix from heading'}
                   </Button>
-                  <Button disabled={isForkingAndFixingWithAi} onClick={onForkAndFixWithAi} size="sm" type="button">
+                  <Button loading={isForkingAndFixingWithAi} onClick={onForkAndFixWithAi} size="sm" type="button">
                     <GitFork className="size-4" />
                     {isForkingAndFixingWithAi ? 'Forking…' : 'Fork & fix with AI'}
                   </Button>
@@ -388,7 +388,7 @@ export function AssetDetailPanel({
                     Fix from heading
                   </Button>
                   <Button
-                    disabled={isFixingDescriptionWithAi}
+                    loading={isFixingDescriptionWithAi}
                     onClick={onFixDescriptionWithAi}
                     size="sm"
                     type="button"
@@ -473,7 +473,7 @@ export function AssetDetailPanel({
               {canConvert ? (
                 <Button
                   className="mt-3 w-fit"
-                  disabled={isConverting}
+                  loading={isConverting}
                   onClick={() => onConvertKind(kindAssessment.recommendedKind)}
                   size="sm"
                   type="button"
@@ -720,7 +720,8 @@ export function AssetDetailPanel({
           ) : null}
           <Button
             className="w-fit"
-            disabled={!editorContent.trim() || isReassessing}
+            disabled={!editorContent.trim()}
+            loading={isReassessing}
             onClick={onReassessKind}
             type="button"
             variant="secondary"
@@ -730,7 +731,8 @@ export function AssetDetailPanel({
           </Button>
           <Button
             className="w-fit"
-            disabled={!editorContent.trim() || isAuditing}
+            disabled={!editorContent.trim()}
+            loading={isAuditing}
             onClick={onAuditAsset}
             type="button"
             variant="secondary"
@@ -738,7 +740,7 @@ export function AssetDetailPanel({
             <ListChecks className="size-4" />
             {isAuditing ? 'Auditing…' : 'Audit'}
           </Button>
-          <Button className="w-fit" disabled={isDeleting} onClick={onRequestDelete} variant="secondary">
+          <Button className="w-fit" loading={isDeleting} onClick={onRequestDelete} variant="secondary">
             <Trash2 className="size-4" />
             {isDeleting ? 'Deleting…' : 'Delete asset'}
           </Button>
@@ -753,12 +755,12 @@ export function AssetDetailPanel({
               Back to SKILL.md
             </Button>
           ) : isUpstreamSkill ? (
-            <Button className="ml-auto w-fit" disabled={isForking} onClick={onFork}>
+            <Button className="ml-auto w-fit" loading={isForking} onClick={onFork}>
               <GitFork className="size-4" />
               {isForking ? 'Forking…' : 'Fork to customize'}
             </Button>
           ) : (
-            <Button className="ml-auto w-fit" disabled={!canSave} onClick={handleSave}>
+            <Button className="ml-auto w-fit" disabled={!canSave} loading={isSaving} onClick={handleSave}>
               {isSaving ? 'Saving…' : 'Save changes'}
             </Button>
           )}

@@ -220,7 +220,7 @@ export function LearningsPage() {
               placeholder="skill slug"
               value={skill}
             />
-            <Button className="sm:row-span-2" disabled={capture.isPending} type="submit">
+            <Button className="sm:row-span-2" loading={capture.isPending} type="submit">
               {capture.isPending ? 'Logging…' : 'Log event'}
             </Button>
             <Textarea

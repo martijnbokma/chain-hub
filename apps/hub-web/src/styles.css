@@ -311,3 +311,28 @@
   }
 }
 
+/* Connect-editors feedback */
+@keyframes icon-in {
+  from {
+    transform: scale(0.25);
+    opacity: 0;
+    filter: blur(4px);
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

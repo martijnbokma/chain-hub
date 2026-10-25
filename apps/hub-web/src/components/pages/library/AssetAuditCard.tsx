@@ -138,7 +138,8 @@ export function AssetAuditCard({
           ) : (
             <Button
               className="mt-3 w-fit"
-              disabled={isImproving || !canImprove}
+              disabled={!canImprove}
+              loading={isImproving}
               onClick={onImprove}
               size="sm"
               type="button"

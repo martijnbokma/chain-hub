@@ -109,7 +109,7 @@ export function OverviewPage() {
           </AlertDescription>
           <Button
             className="shrink-0"
-            disabled={importAgentsSkills.isPending}
+            loading={importAgentsSkills.isPending}
             onClick={() => importAgentsSkills.mutate()}
             size="sm"
           >

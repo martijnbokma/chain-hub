@@ -13,7 +13,7 @@ export const ASSET_KIND_LABELS = {
 
 // Navigation links for the sidebar
 export const SIDEBAR_LINKS = [
-  { to: "/", label: "Overview", iconName: "PanelLeft" },
+  { to: "/", label: "Overview", iconName: "LayoutDashboard" },
   { to: "/library", label: "Library", iconName: "FolderTree" },
   { to: "/integrations", label: "Integrations", iconName: "Link2" },
   { to: "/settings", label: "Settings", iconName: "Settings" }

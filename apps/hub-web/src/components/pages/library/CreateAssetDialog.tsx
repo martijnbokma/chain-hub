@@ -331,7 +331,7 @@ export function CreateAssetDialog({
           <Button onClick={() => onOpenChange(false)} variant="secondary">
             Cancel
           </Button>
-          <Button disabled={isSubmitting || !canCreate} onClick={onSubmit}>
+          <Button disabled={!canCreate} loading={isSubmitting} onClick={onSubmit}>
             {isSubmitting ? 'Creating…' : isAuto && kindReason ? `Create ${resolvedKind}` : 'Create asset'}
           </Button>
         </DialogFooter>
