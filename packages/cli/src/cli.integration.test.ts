@@ -136,7 +136,7 @@ describe("CLI integration", () => {
     await expect(emptySummary).rejects.toSatisfy((error: unknown) => /summary/.test(formatCliError(error)));
 
     const bogusKind = runCli(cliArgv("asset", "list", "--kind", "bogus"));
-    await expect(bogusKind).rejects.toSatisfy((error: unknown) => /Invalid enum value/.test(formatCliError(error)));
+    await expect(bogusKind).rejects.toSatisfy((error: unknown) => /expected one of/.test(formatCliError(error)));
 
     await expect(runCli(cliArgv("asset", "show", "--kind", "skills", "--name", "missing"))).rejects.toThrow(
       "Asset not found: skills/missing"
