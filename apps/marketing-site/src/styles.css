@@ -2,6 +2,8 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Signaal (paper) — light theme; the dark Signaal (ink) set lives under .dark */
 :root {
   --background: #f2f0eb;
