@@ -10,7 +10,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#0d1318" />
+    <meta name="theme-color" content="#1C1D1F" />
+    <script>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('chain-hub-theme');
+        } catch (e) {}
+        var theme =
+          stored === 'light' || stored === 'dark'
+            ? stored
+            : window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark';
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#1C1D1F' : '#F2F0EB');
+      })();
+    </script>
     <title>Docs — Chain Hub</title>
   </head>
   <body>
