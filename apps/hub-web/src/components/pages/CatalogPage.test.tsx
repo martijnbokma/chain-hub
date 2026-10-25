@@ -7,7 +7,7 @@ import { catalogApi, libraryApi } from '@/lib/api';
 import { makeAsset, renderWithProviders } from '@/test/render';
 import type { CatalogEntryResult, CatalogResult } from '@/types';
 
-import { CatalogPage } from './CatalogPage';
+import { CATALOG_GROUP_PAGE_SIZE, CatalogPage } from './CatalogPage';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
 
@@ -150,6 +150,22 @@ describe('CatalogPage', () => {
     await user.keyboard('{End}');
     expect(screen.getByRole('tab', { name: 'Workflows' })).toHaveAttribute('aria-selected', 'true');
     expect(entryCard(/Release/)).toBeInTheDocument();
+  });
+
+  it('renders large groups in pages with a show-more control', async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: CATALOG_GROUP_PAGE_SIZE + 5 }, (_, index) =>
+      makeEntry({ id: `bulk-skill-${index}`, name: `Bulk skill ${index}` })
+    );
+    vi.mocked(catalogApi.getAll).mockResolvedValue(catalogResult({ entries: many }));
+    renderWithProviders(<CatalogPage />, { route: '/catalog' });
+
+    expect(await screen.findByRole('button', { name: /Bulk skill 0\b/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Bulk skill/ })).toHaveLength(CATALOG_GROUP_PAGE_SIZE);
+
+    await user.click(screen.getByRole('button', { name: 'Show 5 more' }));
+    expect(screen.getAllByRole('button', { name: /Bulk skill/ })).toHaveLength(CATALOG_GROUP_PAGE_SIZE + 5);
+    expect(screen.queryByRole('button', { name: /Show \d+ more/ })).not.toBeInTheDocument();
   });
 
   it('honours kind and category deep links', async () => {

@@ -28,6 +28,7 @@ import {
 import { resolveKindMeta } from './library/asset-helpers';
 
 const PAGE_FRAME = 'flex h-[calc(100vh-2rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-3rem)]';
+export const CATALOG_GROUP_PAGE_SIZE = 60;
 
 export function CatalogPage() {
   const queryClient = useQueryClient();
@@ -107,6 +108,21 @@ export function CatalogPage() {
     [entries, kind, category, searchQuery]
   );
   const grouped = useMemo(() => groupCatalogEntriesByKind(filtered), [filtered]);
+  const filterSignature = `${kind}|${category}|${searchQuery}`;
+  const [groupLimits, setGroupLimits] = useState<{ signature: string; limits: Record<string, number> }>({
+    signature: filterSignature,
+    limits: {}
+  });
+  const limitFor = (groupKind: string) =>
+    (groupLimits.signature === filterSignature ? groupLimits.limits[groupKind] : undefined) ?? CATALOG_GROUP_PAGE_SIZE;
+  const showMore = (groupKind: string) =>
+    setGroupLimits({
+      signature: filterSignature,
+      limits: {
+        ...(groupLimits.signature === filterSignature ? groupLimits.limits : {}),
+        [groupKind]: limitFor(groupKind) + CATALOG_GROUP_PAGE_SIZE
+      }
+    });
   const selected = entries.find((entry) => catalogEntryKey(entry) === selectedKey) ?? null;
 
   const setFilterParam = (key: 'kind' | 'category', value: string) => {
@@ -232,7 +248,10 @@ export function CatalogPage() {
                   </div>
                 ) : (
                   <div className="grid min-w-0 gap-6">
-                    {grouped.map(([groupKind, groupEntries]) => (
+                    {grouped.map(([groupKind, groupEntries]) => {
+                      const limit = limitFor(groupKind);
+                      const hidden = groupEntries.length - limit;
+                      return (
                       <section aria-label={`${resolveKindMeta(groupKind).label} entries`} className="grid min-w-0 gap-3" key={groupKind}>
                         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {resolveKindMeta(groupKind).label}s · {groupEntries.length}
@@ -243,7 +262,7 @@ export function CatalogPage() {
                             selected ? 'grid-cols-1' : 'sm:grid-cols-2 2xl:grid-cols-3'
                           )}
                         >
-                          {groupEntries.map((entry) => {
+                          {groupEntries.slice(0, limit).map((entry) => {
                             const key = catalogEntryKey(entry);
                             return (
                               <CatalogEntryCard
@@ -257,8 +276,14 @@ export function CatalogPage() {
                             );
                           })}
                         </div>
+                        {hidden > 0 ? (
+                          <Button className="justify-self-start" onClick={() => showMore(groupKind)} size="sm" variant="secondary">
+                            Show {Math.min(hidden, CATALOG_GROUP_PAGE_SIZE)} more
+                          </Button>
+                        ) : null}
                       </section>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
