@@ -7,6 +7,7 @@ export default defineConfig({
     // Git-heavy integration tests (bare remotes, multi-clone syncs) exceed the
     // 5s default on slower CI runners.
     testTimeout: 30_000,
+    setupFiles: ["./vitest.setup.ts"],
     coverage: {
       ...baseCoverage,
       include: ["src/**/*.ts"],
