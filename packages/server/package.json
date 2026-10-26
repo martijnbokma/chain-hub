@@ -22,7 +22,7 @@
   "dependencies": {
     "@chain-hub/contracts": "0.1.0",
     "@chain-hub/domain": "0.1.0",
-    "@hono/node-server": "^1.13.1",
+    "@hono/node-server": "^2.1.4",
     "hono": "^4.5.8"
   },
   "devDependencies": {
