@@ -14,7 +14,7 @@ export function isAddressInUseError(error: unknown): boolean {
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  return message.includes("EADDRINUSE");
+  return message.includes("EADDRINUSE") || message.includes("address already in use");
 }
 
 export async function listListeningPids(port: number): Promise<number[]> {

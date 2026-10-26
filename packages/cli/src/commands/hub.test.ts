@@ -9,7 +9,10 @@ const mocks = vi.hoisted(() => ({
   syncAgentsSkillsIntoHub: vi.fn(async () => ({ lockPath: "", results: [{ name: "a", status: "migrated" }] }))
 }));
 
-vi.mock("@chain-hub/server", () => ({ startServer: mocks.startServer }));
+vi.mock("@chain-hub/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@chain-hub/server")>()),
+  startServer: mocks.startServer
+}));
 vi.mock("node:child_process", () => ({ execFile: mocks.execFile }));
 vi.mock("@chain-hub/domain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@chain-hub/domain")>()),

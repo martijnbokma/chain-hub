@@ -10,7 +10,7 @@ import {
   syncAgentsSkillsIntoHub
 } from "@chain-hub/domain";
 import { resolveChainHome } from "@chain-hub/storage";
-import { startServer } from "@chain-hub/server";
+import { isAddressInUseError, startServer } from "@chain-hub/server";
 
 export interface HubCommandOptions {
   chainHome?: string;
@@ -62,18 +62,6 @@ function openInBrowser(url: string): void {
           : ["open", [url]]
         : [browser || "xdg-open", [url]];
   execFile(command, args as string[], () => undefined);
-}
-
-export function isAddressInUseError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-  const code = "code" in error ? error.code : undefined;
-  if (code === "EADDRINUSE") {
-    return true;
-  }
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("EADDRINUSE") || message.includes("address already in use");
 }
 
 export async function checkExistingHub(port: number): Promise<{ isRunning: boolean; url: string } | null> {

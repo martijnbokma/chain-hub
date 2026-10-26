@@ -27,6 +27,8 @@ type StartServerOptions = {
   requestGuard?: RequestGuardOptions;
 };
 
+export { isAddressInUseError } from "./dev-port.js";
+
 export const DEFAULT_HOSTNAME = "127.0.0.1";
 
 /** How often the running hub pushes pending changes to the backup remote. */
