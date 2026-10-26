@@ -105,7 +105,7 @@ CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|cre
 - `main` is release-only and protected (CI must pass, no force-push): never commit to it directly. Release flow (release-please, `.github/workflows/release.yml` + `release-please-config.json`):
   1. Fast-forward `main` so it gets the exact commit CI checked on `develop`: `git switch main && git merge --ff-only develop && git push`
   2. Release-please opens/updates a release PR on `main` (branch `release-please--branches--main--components--chain-hub`) that accumulates the version bump and the generated `packages/cli/CHANGELOG.md`. Review that changelog in the PR — this is the changelog review gate; if a change is missing, its commit subject was not conventional.
-  3. Merge the release PR → tag (`chain-hub-vX.Y.Z`), GitHub release, and npm publish (`--tag beta`) happen automatically.
+  3. Merge the release PR → tag (`chain-hub-vX.Y.Z`), GitHub release, and npm publish (`--tag beta`) happen automatically. The release PR never gets CI checks (`GITHUB_TOKEN` PRs don't trigger workflows) — merge it with `gh pr merge --admin`. To re-run a missed/failed publish: `gh workflow run release.yml` (dispatch always runs the publish job).
   4. Merge `main` back into `develop` so the next `--ff-only` does not fail.
 
 Conventional Commits with package scope: `feat(hub-web): add command palette shortcut`. Scopes: `hub-web`, `docs`, `cli`, `server`, `domain`, `storage`, `contracts`. The changelog only shows `feat`, `fix`, `perf` and `revert` — `chore`, `test`, `ci`, `docs`, `refactor`, `style`, `build` are hidden by design. Write subjects for the changelog reader (user-facing impact), not the diff.
