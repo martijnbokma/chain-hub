@@ -459,6 +459,20 @@ export async function getSyncStatus(chainHomeInput?: string): Promise<SyncStatus
   };
 }
 
+/** Persist an auto-sync failure so the dashboard can surface it until the next successful sync. */
+async function recordAutoSyncError(chainHomeInput: string | undefined, error: unknown): Promise<void> {
+  try {
+    const chainHome = resolveChainHome(chainHomeInput);
+    const state = await readSyncState(chainHome);
+    await writeSyncState(chainHome, {
+      ...state,
+      lastSyncError: `Auto-sync failed: ${error instanceof Error ? error.message : String(error)}`
+    });
+  } catch {
+    // A failing state write must not mask the original sync problem.
+  }
+}
+
 /** Background sync for `chain hub` start — only when enabled, never throws. */
 export async function autoSyncOnStart(chainHomeInput?: string): Promise<void> {
   try {
@@ -469,5 +483,22 @@ export async function autoSyncOnStart(chainHomeInput?: string): Promise<void> {
     await syncNow(chainHome);
   } catch (error) {
     console.warn(`[chain-hub] background sync skipped:`, error instanceof Error ? error.message : error);
+    await recordAutoSyncError(chainHomeInput, error);
+  }
+}
+
+/** Periodic background sync — runs only when the hub drifted from the remote, never throws. */
+export async function autoSyncIfDirty(chainHomeInput?: string): Promise<void> {
+  try {
+    const config = await readSyncConfig(chainHomeInput);
+    if (!config.enabled || !config.autoSync || !config.remote) return;
+    const chainHome = resolveChainHome(chainHomeInput);
+    if (await mergeInProgress(chainHome)) return;
+    const status = await getSyncStatus(chainHome);
+    if (status.uncommitted + status.ahead + status.behind === 0) return;
+    await syncNow(chainHome);
+  } catch (error) {
+    console.warn(`[chain-hub] periodic sync skipped:`, error instanceof Error ? error.message : error);
+    await recordAutoSyncError(chainHomeInput, error);
   }
 }

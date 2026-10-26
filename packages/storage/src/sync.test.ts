@@ -9,7 +9,9 @@ import { ConflictError, InvalidInputError } from "@chain-hub/contracts";
 
 import { readAiSecrets } from "./ai-settings.js";
 import { initializeHub } from "./core.js";
+import { listHubIssues } from "./hub.js";
 import {
+  autoSyncIfDirty,
   connectSync,
   disconnectSync,
   getSyncStatus,
@@ -250,6 +252,98 @@ async function stageFile(dir: string, relative: string, message: string): Promis
   await execFileAsync("git", ["add", "--", relative], { cwd: dir });
   await execFileAsync("git", ["commit", "-m", message], { cwd: dir });
 }
+
+describe("autoSyncIfDirty", () => {
+  it("pushes pending changes without a manual sync", async () => {
+    const remote = await makeBareRemote();
+    mockExistingRepo(remote);
+
+    const a = await makeTmpDir("chain-hub-a-");
+    await initializeHub(a);
+    await connectSync(a, { method: "pat", token: "x" });
+
+    await write(a, "skills/dirty/SKILL.md", "# Dirty");
+    await autoSyncIfDirty(a);
+
+    expect(await remoteFiles(remote)).toContain("skills/dirty/SKILL.md");
+    const status = await getSyncStatus(a);
+    expect(status.uncommitted).toBe(0);
+    expect(status.lastSyncError).toBeNull();
+  });
+
+  it("does nothing while auto-sync is off", async () => {
+    const remote = await makeBareRemote();
+    mockExistingRepo(remote);
+
+    const a = await makeTmpDir("chain-hub-a-");
+    await initializeHub(a);
+    await connectSync(a, { method: "pat", token: "x", autoSync: false });
+
+    await write(a, "skills/dirty/SKILL.md", "# Dirty");
+    await autoSyncIfDirty(a);
+
+    expect(await remoteFiles(remote)).not.toContain("skills/dirty/SKILL.md");
+    expect((await getSyncStatus(a)).uncommitted).toBeGreaterThan(0);
+  });
+});
+
+describe("sync hub issues", () => {
+  it("warns about un-backed-up changes when auto-sync is off", async () => {
+    const remote = await makeBareRemote();
+    mockExistingRepo(remote);
+
+    const a = await makeTmpDir("chain-hub-a-");
+    await initializeHub(a);
+    await connectSync(a, { method: "pat", token: "x", autoSync: false });
+    await write(a, "skills/pending/SKILL.md", "# Pending");
+
+    const { issues } = await listHubIssues(a);
+
+    const syncIssue = issues.find((issue) => issue.id === "sync:pending");
+    expect(syncIssue?.severity).toBe("warning");
+    expect(syncIssue?.actions).toEqual(["open-integrations"]);
+  });
+
+  it("stays quiet about pending changes while auto-sync is on", async () => {
+    const remote = await makeBareRemote();
+    mockExistingRepo(remote);
+
+    const a = await makeTmpDir("chain-hub-a-");
+    await initializeHub(a);
+    await connectSync(a, { method: "pat", token: "x" });
+    await write(a, "skills/pending/SKILL.md", "# Pending");
+
+    const { issues } = await listHubIssues(a);
+
+    expect(issues.find((issue) => issue.kind === "sync")).toBeUndefined();
+  });
+
+  it("reports merge conflicts as an error issue", async () => {
+    const remote = await makeBareRemote();
+    mockExistingRepo(remote);
+
+    const a = await makeTmpDir("chain-hub-a-");
+    await initializeHub(a);
+    await connectSync(a, { method: "pat", token: "x" });
+
+    const b = path.join(await makeTmpDir("chain-hub-parent-"), "hub");
+    await connectSync(b, { method: "pat", token: "x" });
+
+    await write(a, "rules/shared.md", "base\nfrom-A\n");
+    await stageFile(a, "rules/shared.md", "a edit");
+    await syncNow(a);
+
+    await write(b, "rules/shared.md", "base\nfrom-B\n");
+    await stageFile(b, "rules/shared.md", "b edit");
+    await syncNow(b);
+
+    const { issues } = await listHubIssues(b);
+
+    const syncIssue = issues.find((issue) => issue.id === "sync:conflicts");
+    expect(syncIssue?.severity).toBe("error");
+    expect(syncIssue?.actions).toEqual(["open-integrations"]);
+  });
+});
 
 describe("disconnectSync", () => {
   it("removes the remote and clears config, keeping local files", async () => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Cloud, CloudOff, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,12 +17,28 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { errorMessage, syncApi } from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
+import { useSyncStatus } from '@/lib/use-sync-status';
 import type { ResolveConflictsInput, SyncConnectInput, SyncStatus } from '@/types';
 
 function formatSyncTime(value: string | null): string {
   if (!value) return 'Never';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 'Never' : date.toLocaleString();
+}
+
+/** Urgency-legible relative time; the absolute timestamp stays in the title. */
+function formatRelativeTime(value: string | null): string {
+  if (!value) return 'Never';
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return 'Never';
+  const minutes = Math.max(0, Math.round((Date.now() - then) / 60_000));
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? '1 day ago' : `${days} days ago`;
 }
 
 type Choice = 'local' | 'remote' | 'manual';
@@ -34,7 +50,7 @@ function ConflictResolver({ status }: { status: SyncStatus }) {
   const resolve = useMutation({
     mutationFn: (input: ResolveConflictsInput) => syncApi.resolve(input),
     onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.syncStatus });
       toast.success('Merge finished and pushed');
       if (result.conflicts.length > 0) {
         toast.info(`${result.conflicts.length} conflict(s) left`);
@@ -113,7 +129,7 @@ function ConnectSyncDialog({ open, onOpenChange }: { open: boolean; onOpenChange
   const connect = useMutation({
     mutationFn: (input: SyncConnectInput) => syncApi.connect(input),
     onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.syncStatus });
       toast.success(
         result.conflicts.length > 0
           ? 'Connected — resolve the listed conflicts to finish'
@@ -235,18 +251,18 @@ function ConnectSyncDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 export function CloudBackupCard() {
   const [connectOpen, setConnectOpen] = useState(false);
   const queryClient = useQueryClient();
-  const status = useQuery({ queryKey: ['sync-status'], queryFn: () => syncApi.status() });
+  const status = useSyncStatus();
 
   const syncNow = useMutation({
     mutationFn: () => syncApi.now(),
     onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.syncStatus });
       toast.success(
         result.conflicts.length > 0 ? 'Merge conflict — pick a version per file below' : 'Hub synced to GitHub'
       );
     },
     onError: (error) => {
-      void queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.syncStatus });
       toast.error(errorMessage(error, 'Sync failed'));
     }
   });
@@ -254,7 +270,7 @@ export function CloudBackupCard() {
   const disconnect = useMutation({
     mutationFn: () => syncApi.disconnect(),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.syncStatus });
       toast.success('Disconnected — local files and history were kept');
     },
     onError: (error) => {
@@ -306,8 +322,11 @@ export function CloudBackupCard() {
                   <Cloud aria-hidden="true" className="size-4 text-muted-foreground" />
                   <code className="break-all font-mono text-sm text-foreground">{data.remote?.repo}</code>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Last sync: {formatSyncTime(data.lastSyncAt)}
+                <p
+                  className="text-xs text-muted-foreground"
+                  title={data.lastSyncAt ? formatSyncTime(data.lastSyncAt) : undefined}
+                >
+                  Last sync: {formatRelativeTime(data.lastSyncAt)}
                   {data.authMethod ? ` · via ${data.authMethod === 'gh' ? 'GitHub CLI' : 'token'}` : ''}
                   {data.autoSync ? ' · auto-sync on' : ' · auto-sync off'}
                 </p>
@@ -320,9 +339,11 @@ export function CloudBackupCard() {
               <div className="flex items-center gap-2">
                 {data.uncommitted + data.ahead + data.behind > 0 ? (
                   <div className="flex items-center gap-1.5">
-                    {data.uncommitted > 0 ? <Badge variant="default">{data.uncommitted} unsaved</Badge> : null}
-                    {data.ahead > 0 ? <Badge variant="default">↑ {data.ahead}</Badge> : null}
-                    {data.behind > 0 ? <Badge variant="default">↓ {data.behind}</Badge> : null}
+                    {data.uncommitted > 0 ? (
+                      <Badge variant="warning">{data.uncommitted} unsynced</Badge>
+                    ) : null}
+                    {data.ahead > 0 ? <Badge variant="warning">↑ {data.ahead}</Badge> : null}
+                    {data.behind > 0 ? <Badge variant="warning">↓ {data.behind}</Badge> : null}
                   </div>
                 ) : null}
                 <Button

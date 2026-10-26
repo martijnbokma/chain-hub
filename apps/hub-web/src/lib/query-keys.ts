@@ -16,5 +16,6 @@ export const queryKeys = {
   skillFile: (name: string, path: string) => ['library', 'skill-file', name, path] as const,
   skillUpdates: ['library', 'skill-updates'] as const,
   catalog: ['catalog'] as const,
-  githubStars: (slug: string) => ['github-stars', slug] as const
+  githubStars: (slug: string) => ['github-stars', slug] as const,
+  syncStatus: ['sync-status'] as const
 };

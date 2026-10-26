@@ -15,6 +15,7 @@ import type {
   UpdateAiSettingsInput
 } from "@chain-hub/contracts";
 import {
+  autoSyncIfDirty,
   autoSyncOnStart,
   buildReflectionReport,
   captureEvent,
@@ -181,6 +182,11 @@ export async function resolveHubSyncConflicts(chainHome: string | undefined, inp
 /** Fire-and-forget sync for `chain hub`/`chain setup` — no-op unless sync is connected with autoSync on. */
 export async function autoSyncHubOnStart(chainHome?: string): Promise<void> {
   return autoSyncOnStart(chainHome);
+}
+
+/** Periodic background sync — no-op unless sync is connected, autoSync is on, and the hub drifted. */
+export async function autoSyncHubIfDirty(chainHome?: string): Promise<void> {
+  return autoSyncIfDirty(chainHome);
 }
 
 export async function connectEditors(chainHome?: string) {

@@ -75,7 +75,7 @@ function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="p-2 -my-2 text-muted-foreground hover:text-foreground transition-colors"
+      className="p-2.5 -my-2.5 text-muted-foreground hover:text-foreground transition-colors"
     >
       {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
     </button>
@@ -263,11 +263,11 @@ export function DocsLayout() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 text-foreground" aria-label="Chain Hub — home">
             <LogoLockup className="h-6 w-auto" />
-            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">
+            <span className="hidden sm:inline font-mono text-xs uppercase tracking-widest text-muted-foreground mt-0.5">
               Docs
             </span>
           </a>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <a
               href="/"
               className="hidden sm:inline font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"

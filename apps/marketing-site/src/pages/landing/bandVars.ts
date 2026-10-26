@@ -13,4 +13,5 @@ export const BAND_VARS = {
   '--color-border': 'var(--band-line)',
   '--color-card': 'var(--band-panel)',
   '--color-primary': '#FF8A5B',
+  '--color-primary-foreground': '#1C1D1F',
 } as CSSProperties;

@@ -181,6 +181,16 @@ export function OverviewPage() {
             Open setup
           </Link>
         );
+      case 'open-integrations':
+        return (
+          <Link
+            className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }))}
+            key={action}
+            to="/integrations"
+          >
+            Open backup settings
+          </Link>
+        );
       default:
         return null;
     }

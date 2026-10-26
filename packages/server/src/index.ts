@@ -1,6 +1,7 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 
+import { autoSyncHubIfDirty } from "@chain-hub/domain";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
@@ -27,6 +28,9 @@ type StartServerOptions = {
 };
 
 export const DEFAULT_HOSTNAME = "127.0.0.1";
+
+/** How often the running hub pushes pending changes to the backup remote. */
+export const AUTO_SYNC_INTERVAL_MS = 15 * 60 * 1000;
 
 /** Largest request body the API accepts; skill folder uploads are the biggest legitimate payload. */
 export const MAX_BODY_BYTES = 25 * 1024 * 1024;
@@ -87,6 +91,13 @@ export async function startServer(options: StartServerOptions = {}) {
 
   return await new Promise<ReturnType<typeof serve>>((resolve, reject) => {
     const server = serve({ fetch: app.fetch, port, hostname }, () => {
+      // Keeps the backup remote converging while the hub stays open; the timer
+      // is unref'd so it never keeps the process alive on its own.
+      const autoSyncTimer = setInterval(() => {
+        void autoSyncHubIfDirty(options.chainHome);
+      }, AUTO_SYNC_INTERVAL_MS);
+      autoSyncTimer.unref();
+      server.once("close", () => clearInterval(autoSyncTimer));
       resolve(server);
     });
 

@@ -100,7 +100,7 @@ function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="p-2 -my-2 text-muted-foreground hover:text-foreground transition-colors"
+      className="p-2.5 -my-2.5 text-muted-foreground hover:text-foreground transition-colors"
     >
       {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
     </button>
@@ -109,7 +109,7 @@ function ThemeToggle() {
 
 export function TitleblockBar() {
   return (
-    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md">
+    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-border">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
       <Link to="/" className="flex items-center text-foreground" aria-label="Chain Hub, home">
         <LogoLockup className="h-6 w-auto" />
@@ -127,6 +127,15 @@ export function TitleblockBar() {
         {/* Separate Vite app (apps/docs), reverse-proxied under /docs — plain link, not a router route here */}
         <a href="/docs/" className="inline-block -my-3 py-3 hover:text-foreground transition-colors">
           Docs
+        </a>
+        <a
+          href="https://github.com/martijnbokma/chain-hub"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="GitHub, opens in a new tab"
+          className="hidden sm:inline-block -my-3 py-3 hover:text-foreground transition-colors"
+        >
+          GitHub ↗
         </a>
         <ThemeToggle />
       </nav>

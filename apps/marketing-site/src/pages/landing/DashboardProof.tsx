@@ -38,6 +38,8 @@ function FramedFigure({
         <img
           src={image.light}
           alt={image.alt}
+          width={2560}
+          height={1154}
           className="w-full h-auto block transition-transform duration-300 group-hover:scale-[1.03] dark:hidden"
           loading="lazy"
         />
@@ -45,6 +47,8 @@ function FramedFigure({
           src={image.dark}
           alt=""
           aria-hidden="true"
+          width={2560}
+          height={1154}
           className="w-full h-auto hidden transition-transform duration-300 group-hover:scale-[1.03] dark:block"
           loading="lazy"
         />
@@ -112,7 +116,7 @@ function Lightbox({
                   type="button"
                   onClick={() => onNavigate(-1)}
                   aria-label="Previous screenshot"
-                  className="p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors"
+                  className="p-2.5 rounded-sm border border-border text-foreground hover:border-ring transition-colors"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -123,7 +127,7 @@ function Lightbox({
                   type="button"
                   onClick={() => onNavigate(1)}
                   aria-label="Next screenshot"
-                  className="p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors"
+                  className="p-2.5 rounded-sm border border-border text-foreground hover:border-ring transition-colors"
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -137,7 +141,7 @@ function Lightbox({
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute top-6 right-6 p-2 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
+        className="absolute top-6 right-6 p-2.5 rounded-sm border border-border text-foreground hover:border-ring transition-colors bg-card"
       >
         <X size={20} />
       </button>
@@ -198,8 +202,11 @@ export function DashboardProof() {
 
   return (
     <>
-      <section id="proof" className="max-w-6xl mx-auto px-6 py-20 lg:py-28 scroll-mt-16">
+      <section id="proof" className="border-b border-border scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-6 py-20 lg:py-28">
         <SectionHead
+          index="07"
+          kicker="Proof"
           title="The real dashboard, not a mockup"
           copy="Real screenshots of the dashboard running on your machine: hub health, your files, a skill in detail, and the AI settings. Click any figure to view it full size."
         />
@@ -208,6 +215,7 @@ export function DashboardProof() {
             <FramedFigure key={image.light} image={image} index={index} onOpen={setLightboxIndex} />
           ))}
         </Reveal>
+        </div>
       </section>
 
       <Lightbox

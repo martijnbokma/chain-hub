@@ -2,7 +2,7 @@
 name: Chain Hub
 description: Local-first AI workspace control plane — a cool, premium product app that feels simple, trustworthy, and easy to use.
 colors:
-  primary: "#F97316"
+  primary: "#d9482b"
   accent: "#F4F4F5"
   background: "#FAFAFA"
   surface: "#FFFFFF"
@@ -40,8 +40,8 @@ spacing:
   card-padding: "16px"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
+    backgroundColor: "{colors.text-primary}"
+    textColor: "{colors.background}"
     rounded: "{rounded.control}"
     height: "2.25rem"
     padding: "0 0.875rem"
@@ -76,7 +76,7 @@ Chain Hub is a light, premium product surface: warm paper neutrals, white panels
 ## Colors
 
 ### Primary
-- **Signal Orange** (`#F97316`): primary action, active nav, focus ring, tinted badges
+- **Signal Orange** (`#d9482b`, `#ff8a5b` in dark): active nav, focus ring, tinted badges, small signal details (dots, step indices, kind-icon accents)
 - **Accent surface** (`#F4F4F5`): hover/selected fills for menus and list rows (not brand orange)
 
 ### Neutral
@@ -88,7 +88,7 @@ Chain Hub is a light, premium product surface: warm paper neutrals, white panels
 - **Border** (`#E4E4E7`): hairlines
 
 ### Named Rules
-**The One Signal Rule.** Orange appears only on the primary action, active nav, focus rings, and tinted badges (kind and status chips).
+**The One Signal Rule.** Orange appears only on active nav, focus rings, tinted badges (kind and status chips), and small signal details — never on buttons. Primary actions are solid ink (`bg-foreground`/`text-background`), so the orange stays scarce and meaningful.
 
 **The Tinted-Opacity Badge Rule.** Status badges use low-opacity fills (`border-{hue}-500/20`, `bg-{hue}-500/10`, `text-{hue}-700`).
 
@@ -138,6 +138,7 @@ Page-level loading uses `PageSkeleton` variants (`checklist` | `dashboard` | `wo
 
 ### Do
 - Use semantic tokens only (`bg-background`, `text-foreground`, `border-border`, …)
+- Use `KIND_META` for asset-kind icons: the authored set in `components/ui/asset-kind-icons.tsx` (ink linework + signal accent dot; the rules check is drawn in signal). Never substitute a lucide stand-in — and keep the set in sync with `apps/marketing-site/src/pages/landing/AssetIcons.tsx`
 - Keep orange rare (One Signal Rule)
 - Prefer divided lists / stacks over stacks of soft cards for sequential content
 - Keep primary buttons `w-fit` unless a form footer truly needs full width

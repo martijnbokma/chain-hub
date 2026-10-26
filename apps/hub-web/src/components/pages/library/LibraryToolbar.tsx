@@ -243,7 +243,7 @@ export function LibraryToolbar({
       <div
         className={cn(
           'flex min-w-0 flex-col gap-3',
-          !isCompact && 'sm:flex-row sm:items-center'
+          !isCompact && 'lg:flex-row lg:items-center'
         )}
       >
         <Tabs
@@ -282,7 +282,7 @@ export function LibraryToolbar({
         </div>
 
         <Tabs
-          className={cn('shrink-0 gap-0', isCompact ? 'w-full' : 'w-full sm:w-auto')}
+          className={cn('shrink-0 gap-0', isCompact ? 'w-full' : 'w-full lg:w-auto')}
           onValueChange={(value) => {
             if (value === 'all' || value === 'editable' || value === 'upstream') {
               onOwnershipChange(value);
@@ -292,7 +292,7 @@ export function LibraryToolbar({
         >
           <TabsList
             aria-label="Filter by ownership"
-            className={cn(isCompact ? 'w-full' : 'w-full sm:w-auto')}
+            className={cn(isCompact ? 'w-full' : 'w-full lg:w-auto')}
           >
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="editable">Editable</TabsTrigger>

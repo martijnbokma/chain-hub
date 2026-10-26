@@ -8,9 +8,9 @@
 :root {
   --background: #f2f0eb;
   --foreground: #1c1d1f;
-  --card: #fbfaf8;
+  --card: #ffffff;
   --card-foreground: #1c1d1f;
-  --primary: #c13f1f;
+  --primary: #d9482b;
   --primary-foreground: #f2f0eb;
   --secondary: #e6e3dc;
   --secondary-foreground: #1c1d1f;
@@ -82,6 +82,8 @@
   html {
     color-scheme: light;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   html.dark {

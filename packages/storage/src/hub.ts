@@ -12,6 +12,7 @@ import {
 import { initializeHub, listAssets, readMeta, resolveChainHome, validateHub } from "./core.js";
 import { getIntegrations } from "./integrations.js";
 import { detectAgentsSkillsDrift, readSkillsLock } from "./skill-install.js";
+import { getSyncStatus } from "./sync.js";
 
 export async function getOverview(chainHomeInput?: string): Promise<Overview> {
   const chainHome = resolveChainHome(chainHomeInput);
@@ -124,6 +125,43 @@ export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesR
         actions: ["open-asset"]
       });
     }
+  }
+
+  // Sync only raises issues a human must resolve: pending changes with
+  // auto-sync on converge by themselves via the server's periodic sync.
+  try {
+    const sync = await getSyncStatus(chainHome);
+    if (sync.conflicts.length > 0) {
+      issues.push({
+        id: "sync:conflicts",
+        severity: "error",
+        kind: "sync",
+        title: "Cloud backup has merge conflicts",
+        detail: `${sync.conflicts.length} file(s) changed on two machines — pick a version per file to resume syncing.`,
+        actions: ["open-integrations"]
+      });
+    } else if (sync.lastSyncError) {
+      issues.push({
+        id: "sync:error",
+        severity: "error",
+        kind: "sync",
+        title: "Cloud backup sync failed",
+        detail: sync.lastSyncError,
+        actions: ["open-integrations"]
+      });
+    } else if (sync.connected && !sync.autoSync && sync.uncommitted + sync.ahead > 0) {
+      const pending = sync.uncommitted + sync.ahead;
+      issues.push({
+        id: "sync:pending",
+        severity: "warning",
+        kind: "sync",
+        title: `${pending} change${pending === 1 ? "" : "s"} not backed up`,
+        detail: "Auto-sync is off — sync manually from Integrations.",
+        actions: ["open-integrations"]
+      });
+    }
+  } catch {
+    // Sync status is best-effort here; the sync API reports hard failures itself.
   }
 
   issues.sort((a, b) => {

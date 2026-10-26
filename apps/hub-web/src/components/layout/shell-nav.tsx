@@ -3,6 +3,7 @@ import { ChevronRight, FolderTree, type LucideIcon } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { ASSET_KIND_LABELS, ASSET_KINDS } from '../../lib/constants';
+import { KIND_META } from '../pages/library/asset-helpers';
 import { cn } from '../../lib/utils';
 import type { AssetKind } from '../../types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -105,17 +106,21 @@ export function LibraryNavItem() {
               >
                 All assets
               </DropdownMenuItem>
-              {ASSET_KINDS.map((kind) => (
-                <DropdownMenuItem
-                  className={cn(activeKind === kind && 'bg-accent text-accent-foreground')}
-                  key={kind}
-                  onClick={() => {
-                    navigate(`/library?kind=${kind}`);
-                  }}
-                >
-                  {ASSET_KIND_LABELS[kind]}
-                </DropdownMenuItem>
-              ))}
+              {ASSET_KINDS.map((kind) => {
+                const KindIcon = KIND_META[kind].icon;
+                return (
+                  <DropdownMenuItem
+                    className={cn(activeKind === kind && 'bg-accent text-accent-foreground')}
+                    key={kind}
+                    onClick={() => {
+                      navigate(`/library?kind=${kind}`);
+                    }}
+                  >
+                    <KindIcon />
+                    {ASSET_KIND_LABELS[kind]}
+                  </DropdownMenuItem>
+                );
+              })}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -126,9 +131,15 @@ export function LibraryNavItem() {
   return (
     <SidebarMenuItem>
       <Collapsible className="group/collapsible w-full" onOpenChange={setOpen} open={open}>
-        <div className="flex w-full items-center gap-0.5">
+        <div
+          className={cn(
+            'flex w-full items-center gap-0.5 rounded-xl transition-colors',
+            'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            isLibraryRoute && activeKind === null && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
+        >
           <SidebarMenuButton
-            className="h-9 min-w-0 flex-1"
+            className="h-9 min-w-0 flex-1 hover:bg-transparent active:bg-transparent data-active:bg-transparent"
             isActive={isLibraryRoute && activeKind === null}
             onClick={() => {
               setOpen(true);
@@ -143,8 +154,7 @@ export function LibraryNavItem() {
           <CollapsibleTrigger
             aria-label="Toggle Library kinds"
             className={cn(
-              'flex size-7 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground',
-              'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              'flex size-7 shrink-0 items-center justify-center rounded-lg',
               'outline-hidden ring-sidebar-ring focus-visible:ring-2'
             )}
           >
@@ -153,19 +163,25 @@ export function LibraryNavItem() {
         </div>
         <CollapsibleContent>
           <SidebarMenuSub>
-            {ASSET_KINDS.map((kind) => (
-              <SidebarMenuSubItem key={kind}>
-                <SidebarMenuSubButton
-                  isActive={activeKind === kind}
-                  onClick={() => {
-                    closeMobileSidebar(isMobile, setOpenMobile);
-                  }}
-                  render={<NavLink to={`/library?kind=${kind}`} />}
-                >
-                  <span>{ASSET_KIND_LABELS[kind]}</span>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            ))}
+            {ASSET_KINDS.map((kind) => {
+              const KindIcon = KIND_META[kind].icon;
+              return (
+                <SidebarMenuSubItem key={kind}>
+                  <SidebarMenuSubButton
+                    isActive={activeKind === kind}
+                    onClick={() => {
+                      closeMobileSidebar(isMobile, setOpenMobile);
+                    }}
+                    render={<NavLink to={`/library?kind=${kind}`} />}
+                  >
+                    <span className="flex shrink-0 items-center text-sidebar-foreground">
+                      <KindIcon className="size-4" />
+                    </span>
+                    <span>{ASSET_KIND_LABELS[kind]}</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
           </SidebarMenuSub>
         </CollapsibleContent>
       </Collapsible>

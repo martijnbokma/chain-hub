@@ -27,7 +27,7 @@ export function CopyCommand({ command }: { command: string }) {
 
   return (
     <div className="flex items-center justify-between gap-3 bg-band px-3 py-2.5" style={BAND_VARS}>
-      <span className="font-mono text-[13px] text-foreground truncate" title={command}>
+      <span className="min-w-0 overflow-x-auto whitespace-nowrap font-mono text-[13px] text-foreground" title={command}>
         <span className="text-primary select-none">~ $ </span>
         {command}
       </span>
@@ -35,7 +35,7 @@ export function CopyCommand({ command }: { command: string }) {
         type="button"
         onClick={copy}
         aria-label={`Copy command: ${command}`}
-        className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+        className="shrink-0 -m-1.5 p-2.5 text-muted-foreground hover:text-foreground transition-colors"
       >
         {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
         <span role="status" className="sr-only">

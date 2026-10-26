@@ -24,7 +24,7 @@ export const overviewSchema = z.object({
 });
 
 /** What kind of problem a hub issue represents; drives grouping and copy. */
-export const hubIssueKindSchema = z.enum(["health", "agents-drift", "skill-check", "skill-update", "compat"]);
+export const hubIssueKindSchema = z.enum(["health", "agents-drift", "skill-check", "skill-update", "compat", "sync"]);
 
 /** Remediation offered on an issue; the client maps each to a concrete control. */
 export const hubIssueActionSchema = z.enum([
@@ -34,7 +34,8 @@ export const hubIssueActionSchema = z.enum([
   "unlink",
   "open-asset",
   "import-agents",
-  "open-setup"
+  "open-setup",
+  "open-integrations"
 ]);
 
 export const hubIssueSchema = z.object({

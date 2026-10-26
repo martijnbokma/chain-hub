@@ -74,7 +74,8 @@ export {
   disconnectSync,
   syncNow,
   resolveSyncConflicts,
-  autoSyncOnStart
+  autoSyncOnStart,
+  autoSyncIfDirty
 } from "./sync.js";
 
 export { readAnalysisReport, writeAnalysisReport } from "./analysis.js";

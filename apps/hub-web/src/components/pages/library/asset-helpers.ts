@@ -1,6 +1,12 @@
-import { Sparkles, Bot, Workflow, ScrollText, NotebookText, type LucideIcon } from 'lucide-react';
-
 import { isEditableHubAsset } from '@chain-hub/contracts';
+import {
+  AgentsKindIcon,
+  PromptsKindIcon,
+  RulesKindIcon,
+  SkillsKindIcon,
+  WorkflowsKindIcon,
+  type AssetKindIcon
+} from '@/components/ui/asset-kind-icons';
 import { ASSET_KINDS } from '@/lib/constants';
 import type {
   AssetKind,
@@ -77,15 +83,15 @@ export function groupDiscoveredByEditor(candidates: DiscoveredAsset[]): Record<s
   }, {});
 }
 
-export const KIND_META: Record<AssetKind, { label: string; icon: LucideIcon }> = {
-  skills: { label: 'Skill', icon: Sparkles },
-  agents: { label: 'Agent', icon: Bot },
-  workflows: { label: 'Workflow', icon: Workflow },
-  rules: { label: 'Rule', icon: ScrollText },
-  prompts: { label: 'Prompt', icon: NotebookText }
+export const KIND_META: Record<AssetKind, { label: string; icon: AssetKindIcon }> = {
+  skills: { label: 'Skill', icon: SkillsKindIcon },
+  agents: { label: 'Agent', icon: AgentsKindIcon },
+  workflows: { label: 'Workflow', icon: WorkflowsKindIcon },
+  rules: { label: 'Rule', icon: RulesKindIcon },
+  prompts: { label: 'Prompt', icon: PromptsKindIcon }
 };
 
-export function resolveKindMeta(kind: string): { label: string; icon: LucideIcon } {
+export function resolveKindMeta(kind: string): { label: string; icon: AssetKindIcon } {
   if (kind === 'skills' || kind === 'agents' || kind === 'workflows' || kind === 'rules' || kind === 'prompts') {
     return KIND_META[kind];
   }

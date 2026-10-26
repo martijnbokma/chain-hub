@@ -51,6 +51,24 @@ describe('OverviewPage', () => {
     expect(screen.getByRole('link', { name: 'Open setup' })).toHaveAttribute('href', '/setup');
   });
 
+  it('links sync issues to the backup settings', async () => {
+    vi.spyOn(overviewApi, 'get').mockResolvedValue(makeOverview());
+    vi.spyOn(issuesApi, 'get').mockResolvedValue({
+      issues: [
+        makeIssue({
+          id: 'sync:conflicts',
+          kind: 'sync',
+          title: 'Cloud backup has merge conflicts',
+          actions: ['open-integrations']
+        })
+      ]
+    });
+    renderWithProviders(<OverviewPage />);
+
+    expect(await screen.findByText('Cloud backup has merge conflicts')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open backup settings' })).toHaveAttribute('href', '/integrations');
+  });
+
   it('imports ~/.agents skills that are not in the hub yet', async () => {
     const user = userEvent.setup();
     vi.spyOn(overviewApi, 'get').mockResolvedValue(

@@ -31,6 +31,7 @@ import {
 } from '../ui/sidebar';
 import { LibraryNavItem, SidebarNavLink } from './shell-nav';
 import { ShellToolbarProvider } from './ShellToolbar';
+import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { useCommandPalette } from './useCommandPalette';
 
 interface ShellProps {
@@ -135,6 +136,8 @@ export function Shell({ children }: ShellProps) {
               </Button>
               <ThemeToggle className="group-data-[collapsible=icon]:size-8" />
             </div>
+
+            <SyncStatusIndicator />
 
             <div className="grid gap-2.5 rounded-2xl border border-border px-3 py-3 group-data-[collapsible=icon]:hidden">
               <div className="flex items-center justify-between gap-2">
