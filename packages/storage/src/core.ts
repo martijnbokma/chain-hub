@@ -21,7 +21,7 @@ import {
 
 import { seedLearningsRule, seedWelcomeSkill } from "./seed.js";
 import { CORRUPT_ASSETS_LOCK_PREFIX, installLockKey, readInstallLock, removeInstallLockEntry } from "./install-lock.js";
-import { CORRUPT_LOCK_PREFIX, removeSkillLockEntry, renameSkillLockEntry } from "./skill-install.js";
+import { CORRUPT_LOCK_PREFIX, removeSkillLockEntry, renameSkillLockEntry } from "./skills-lock.js";
 import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
 
 function prepareAssetContent(kind: AssetKind, name: string, content: string): string {

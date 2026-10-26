@@ -15,10 +15,10 @@ import {
   connectSync,
   disconnectSync,
   getSyncStatus,
-  readSyncConfig,
   resolveSyncConflicts,
   syncNow
 } from "./sync.js";
+import { readSyncConfig } from "./sync-state.js";
 
 const execFileAsync = promisify(execFile);
 

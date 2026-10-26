@@ -11,7 +11,8 @@ import {
 
 import { initializeHub, listAssets, readMeta, resolveChainHome, validateHub } from "./core.js";
 import { getIntegrations } from "./integrations.js";
-import { detectAgentsSkillsDrift, readSkillsLock } from "./skill-install.js";
+import { detectAgentsSkillsDrift } from "./skill-agents.js";
+import { readSkillsLock } from "./skills-lock.js";
 import { getSyncStatus } from "./sync.js";
 
 export async function getOverview(chainHomeInput?: string): Promise<Overview> {

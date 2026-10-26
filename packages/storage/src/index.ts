@@ -19,21 +19,20 @@ export {
 
 export { listSkillFiles, readSkillFile } from "./skill-files.js";
 
+export { installSkillFromSource, installSkillFromBundle, forkSkillFromHub } from "./skill-install.js";
+
+export { updateSkillsFromLock, checkSkillUpdatesFromLock } from "./skill-updates.js";
+
+export { migrateAgentsSkillLock, detectAgentsSkillsDrift } from "./skill-agents.js";
+
+export { listSkillUpstreamDirs, relinkSkill } from "./skill-upstream.js";
+
 export {
-  installSkillFromSource,
-  installSkillFromBundle,
-  updateSkillsFromLock,
-  checkSkillUpdatesFromLock,
-  migrateAgentsSkillLock,
-  detectAgentsSkillsDrift,
-  forkSkillFromHub,
   readSkillsLock,
   renameSkillLockEntry,
   removeSkillLockEntry,
-  unlinkSkill,
-  listSkillUpstreamDirs,
-  relinkSkill
-} from "./skill-install.js";
+  unlinkSkill
+} from "./skills-lock.js";
 
 export {
   readInstallLock,
@@ -67,8 +66,6 @@ export {
 export { getOverview, getSetupGuide, listHubIssues } from "./hub.js";
 
 export {
-  readSyncConfig,
-  readSyncState,
   getSyncStatus,
   connectSync,
   disconnectSync,
@@ -77,6 +74,7 @@ export {
   autoSyncOnStart,
   autoSyncIfDirty
 } from "./sync.js";
+export { readSyncConfig, readSyncState } from "./sync-state.js";
 
 export { readAnalysisReport, writeAnalysisReport } from "./analysis.js";
 
