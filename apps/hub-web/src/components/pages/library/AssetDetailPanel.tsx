@@ -17,14 +17,10 @@ import type {
   SkillFileEntry,
   SkillLockEntry
 } from '@/types';
-import { AssetAuditCard } from './AssetAuditCard';
-import { AssetCompatBanner } from './AssetCompatBanner';
 import { AssetDetailActions } from './AssetDetailActions';
+import { AssetInfoStack } from './AssetInfoStack';
 import { AssetFileTabs } from './AssetFileTabs';
-import { AssetKindAssessment } from './AssetKindAssessment';
-import { AssetPackageFilesStrip } from './AssetPackageFilesStrip';
 import { AssetSidecarEditor } from './AssetSidecarEditor';
-import { AssetProvenanceCard } from './AssetProvenanceCard';
 import { AssetRenameTitle } from './AssetRenameTitle';
 import { contentForClipboard, KIND_META } from './asset-helpers';
 
@@ -310,61 +306,39 @@ export function AssetDetailPanel({
         <Badge variant="accent">{selected.kind}</Badge>
       </CardHeader>
       <CardContent className="grid flex-1 grid-rows-[minmax(0,auto)_1fr_auto] gap-4 overflow-hidden">
-        <div className="grid min-h-0 max-h-72 gap-3 overflow-y-auto">
-          {blockingCompatIssue ? (
-            <AssetCompatBanner
-              isFixingDescriptionWithAi={isFixingDescriptionWithAi}
-              isForkingAndFixingHeading={isForkingAndFixingHeading}
-              isForkingAndFixingWithAi={isForkingAndFixingWithAi}
-              isUpstreamSkill={isUpstreamSkill}
-              issue={blockingCompatIssue}
-              onFixDescriptionWithAi={onFixDescriptionWithAi}
-              onFixFromHeading={handleFixDescription}
-              onForkAndFixHeading={onForkAndFixHeading}
-              onForkAndFixWithAi={onForkAndFixWithAi}
-            />
-          ) : null}
-          <AssetProvenanceCard
-            isRetryingCheck={isRetryingCheck}
-            isUnlinking={isUnlinking}
-            isUpstreamSkill={isUpstreamSkill}
-            kind={selected.kind}
-            onRelink={onRelink}
-            onRetryCheck={onRetryCheck}
-            onUnlink={onUnlink}
-            provenance={provenance}
-            updateAvailable={updateAvailable}
-            upstreamBrowseUrl={upstreamBrowseUrl}
-          />
-          {selected.kind === 'skills' && nonDirectoryFiles.length > 0 ? (
-            <AssetPackageFilesStrip
-              fileCount={nonDirectoryFiles.length}
-              onOpenFileManager={onOpenFileManager}
-              onToggleFilesMenu={() => setIsFilesMenuOpen((prev) => !prev)}
-            />
-          ) : null}
-          {kindAssessment ? (
-            <AssetKindAssessment
-              assessment={kindAssessment}
-              canConvert={canConvert}
-              isConverting={isConverting}
-              isUpstreamSkill={isUpstreamSkill}
-              onConvert={() => onConvertKind(kindAssessment.recommendedKind)}
-              recommendedLabel={recommendedLabel}
-            />
-          ) : null}
-          {assetAudit || isAuditing ? (
-            <AssetAuditCard
-              assetName={selected.name}
-              audit={assetAudit}
-              canImprove={Boolean(editorContent.trim())}
-              isAuditing={isAuditing}
-              isImproving={isImproving}
-              isUpstreamSkill={isUpstreamSkill}
-              onImprove={onImproveAsset}
-            />
-          ) : null}
-        </div>
+        <AssetInfoStack
+          assetAudit={assetAudit}
+          blockingCompatIssue={blockingCompatIssue}
+          canConvert={canConvert}
+          hasEditorContent={Boolean(editorContent.trim())}
+          isAuditing={isAuditing}
+          isConverting={isConverting}
+          isFixingDescriptionWithAi={isFixingDescriptionWithAi}
+          isForkingAndFixingHeading={isForkingAndFixingHeading}
+          isForkingAndFixingWithAi={isForkingAndFixingWithAi}
+          isImproving={isImproving}
+          isRetryingCheck={isRetryingCheck}
+          isUnlinking={isUnlinking}
+          isUpstreamSkill={isUpstreamSkill}
+          kindAssessment={kindAssessment}
+          nonDirectoryFiles={nonDirectoryFiles}
+          onConvertKind={onConvertKind}
+          onFixDescriptionWithAi={onFixDescriptionWithAi}
+          onFixFromHeading={handleFixDescription}
+          onForkAndFixHeading={onForkAndFixHeading}
+          onForkAndFixWithAi={onForkAndFixWithAi}
+          onImproveAsset={onImproveAsset}
+          onOpenFileManager={onOpenFileManager}
+          onRelink={onRelink}
+          onRetryCheck={onRetryCheck}
+          onToggleFilesMenu={() => setIsFilesMenuOpen((prev) => !prev)}
+          onUnlink={onUnlink}
+          provenance={provenance}
+          recommendedLabel={recommendedLabel}
+          selected={selected}
+          updateAvailable={updateAvailable}
+          upstreamBrowseUrl={upstreamBrowseUrl}
+        />
         <div className="flex min-h-0 flex-col">
           {selected.kind === 'skills' && nonDirectoryFiles.length > 0 ? (
             <AssetFileTabs
