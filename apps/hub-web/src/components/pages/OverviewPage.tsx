@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription, AlertIcon } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { errorMessage, issuesApi, libraryApi, overviewApi } from '@/lib/api';
 import { ASSET_KIND_LABELS, ASSET_KINDS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import type { HubIssue, HubIssueAction } from '@/types';
 import { SkillRelinkDialog } from './library/SkillRelinkDialog';
+import { HubIssueList } from './overview/HubIssueList';
 
 export function OverviewPage() {
   const queryClient = useQueryClient();
@@ -98,104 +98,6 @@ export function OverviewPage() {
     }
   });
 
-  function renderIssueAction(issue: HubIssue, action: HubIssueAction) {
-    const name = issue.assetName ?? '';
-    switch (action) {
-      case 'retry-check':
-        return (
-          <Button
-            key={action}
-            loading={retryCheck.isPending && retryCheck.variables === name}
-            onClick={() => retryCheck.mutate(name)}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Retry check
-          </Button>
-        );
-      case 'retry-update':
-        return (
-          <Button
-            key={action}
-            loading={retryUpdate.isPending && retryUpdate.variables === name}
-            onClick={() => retryUpdate.mutate(name)}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Retry update
-          </Button>
-        );
-      case 'relink':
-        return (
-          <Button
-            key={action}
-            onClick={() => setRelinkTarget(name)}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Relink…
-          </Button>
-        );
-      case 'unlink':
-        return (
-          <Button
-            key={action}
-            loading={unlinkSkill.isPending && unlinkSkill.variables === name}
-            onClick={() => unlinkSkill.mutate(name)}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            Unlink
-          </Button>
-        );
-      case 'open-asset':
-        return (
-          <Link
-            className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }))}
-            key={action}
-            to={`/library?kind=${issue.assetKind}&asset=${encodeURIComponent(name)}`}
-          >
-            Open in Library
-          </Link>
-        );
-      case 'import-agents':
-        return (
-          <Button
-            key={action}
-            loading={importAgentsSkills.isPending}
-            onClick={() => importAgentsSkills.mutate()}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Import into Hub
-          </Button>
-        );
-      case 'open-setup':
-        return (
-          <Link className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }))} key={action} to="/setup">
-            Open setup
-          </Link>
-        );
-      case 'open-integrations':
-        return (
-          <Link
-            className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }))}
-            key={action}
-            to="/integrations"
-          >
-            Open backup settings
-          </Link>
-        );
-      default:
-        return null;
-    }
-  }
-
   if (overview.isLoading) {
     return <PageSkeleton variant="dashboard" />;
   }
@@ -250,36 +152,14 @@ export function OverviewPage() {
       ) : null}
 
       {hubIssues.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">Issues</h3>
-            <Badge variant="warning">{hubIssues.length}</Badge>
-          </div>
-          <ul className="grid items-start gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
-            {hubIssues.map((issue) => (
-              <li className="h-full rounded-xl border border-border bg-muted/40 px-3 py-3" key={issue.id}>
-                <div className="flex min-w-0 items-start gap-3">
-                  {issue.severity === 'error' ? (
-                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-                  ) : (
-                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">{issue.title}</p>
-                    {issue.detail ? (
-                      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{issue.detail}</p>
-                    ) : null}
-                    {issue.actions.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {issue.actions.map((action) => renderIssueAction(issue, action))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <HubIssueList
+          importAgentsSkills={importAgentsSkills}
+          issues={hubIssues}
+          onRelink={setRelinkTarget}
+          retryCheck={retryCheck}
+          retryUpdate={retryUpdate}
+          unlinkSkill={unlinkSkill}
+        />
       ) : null}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">

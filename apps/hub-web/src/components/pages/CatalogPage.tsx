@@ -13,7 +13,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { cn } from '@/lib/utils';
 import type { CatalogEntryResult } from '@/types';
 import { CatalogDetailPanel } from './catalog/CatalogDetailPanel';
-import { CatalogEntryCard } from './catalog/CatalogEntryCard';
+import { CatalogGroupSection } from './catalog/CatalogGroupSection';
 import { CatalogToolbar } from './catalog/CatalogToolbar';
 import {
   catalogEntryKey,
@@ -32,7 +32,6 @@ import {
   type CatalogTagFilter
 } from './catalog/catalog-helpers';
 import { useGithubStarsMap } from './catalog/use-github-stars';
-import { resolveKindMeta } from './library/asset-helpers';
 
 const PAGE_FRAME = 'flex h-[calc(100vh-2rem)] min-w-0 flex-col -mb-4 sm:-mb-6 sm:h-[calc(100vh-3rem)]';
 export const CATALOG_GROUP_PAGE_SIZE = 60;
@@ -266,42 +265,20 @@ export function CatalogPage() {
                   </div>
                 ) : (
                   <div className="grid min-w-0 gap-6">
-                    {grouped.map(([groupKind, groupEntries]) => {
-                      const limit = limitFor(groupKind);
-                      const hidden = groupEntries.length - limit;
-                      return (
-                      <section aria-label={`${resolveKindMeta(groupKind).label} entries`} className="grid min-w-0 gap-3" key={groupKind}>
-                        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          {resolveKindMeta(groupKind).label}s · {groupEntries.length}
-                        </h2>
-                        <div
-                          className={cn(
-                            'grid min-w-0 gap-3',
-                            selected ? 'grid-cols-1' : 'sm:grid-cols-2 2xl:grid-cols-3'
-                          )}
-                        >
-                          {groupEntries.slice(0, limit).map((entry) => {
-                            const key = catalogEntryKey(entry);
-                            return (
-                              <CatalogEntryCard
-                                compact={selected !== null}
-                                entry={entry}
-                                key={key}
-                                onSelect={() => setSelectedKey(key)}
-                                selected={key === selectedKey}
-                                updateAvailable={hasUpdate(entry)}
-                              />
-                            );
-                          })}
-                        </div>
-                        {hidden > 0 ? (
-                          <Button className="justify-self-start" onClick={() => showMore(groupKind)} size="sm" variant="secondary">
-                            Show {Math.min(hidden, CATALOG_GROUP_PAGE_SIZE)} more
-                          </Button>
-                        ) : null}
-                      </section>
-                      );
-                    })}
+                    {grouped.map(([groupKind, groupEntries]) => (
+                      <CatalogGroupSection
+                        compact={selected !== null}
+                        entries={groupEntries}
+                        groupKind={groupKind}
+                        hasUpdate={hasUpdate}
+                        key={groupKind}
+                        limit={limitFor(groupKind)}
+                        onSelect={setSelectedKey}
+                        onShowMore={showMore}
+                        pageSize={CATALOG_GROUP_PAGE_SIZE}
+                        selectedKey={selectedKey}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
