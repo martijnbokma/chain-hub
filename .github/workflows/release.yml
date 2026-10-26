@@ -36,7 +36,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22.13.0"
+          # Newer than ci.yml on purpose: trusted publishing needs npm >= 11.5.1 / Node >= 22.14
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Setup Bun
