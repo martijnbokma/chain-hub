@@ -173,7 +173,7 @@ The "how it works" trio: three frame-bordered cards, each with a numbered header
 - **Focus:** border shifts to the ring color (orange), no glow.
 
 ### Navigation
-A single titleblock header bar: the drawn brand lockup (inline `LogoLockup` SVG — same paths as `logo-lockup.svg` but stroked in `currentColor` so it follows the theme) on the left, nav links (Why / What / How anchors + Docs + GitHub ↗) and the Sun/Moon theme toggle on the right, separated from the page by one hairline rule.
+A single titleblock header bar: the drawn brand lockup (inline `LogoLockup` SVG — same paths as `logo-lockup.svg` but inked in `currentColor` so it follows the theme) on the left, nav links (Why / What / How anchors + Docs + GitHub ↗) and the Sun/Moon theme toggle on the right, separated from the page by one hairline rule.
 
 ### Hero
 Copy column carries a mono label line (`FREE · OPEN SOURCE · LOCAL-FIRST`) over the display headline, then muted sub-copy with key phrases set semibold ink, the primary signal CTA plus a hairline secondary, and a closing note line prefixed by a signal dot (`Free and open source. Nothing leaves your computer.`).

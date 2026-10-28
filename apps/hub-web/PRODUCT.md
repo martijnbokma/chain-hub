@@ -44,7 +44,7 @@ A companion Discover/Import flow finds assets that already exist natively in a l
 
 ## Brand Commitments
 
-Name: **Chain Hub**. Existing wordmark/monogram in the app shell: an outlined orange "CH" mark paired with a Big Shoulders Display "CHAIN HUB" title (matches marketing titleblock). No other product name or rebrand is in play for this surface.
+Name: **Chain Hub**. Brand lockup: the open-ring mark (hub node + signal line to one orange dot) paired with a lowercase "chain hub" wordmark in Outfit Semibold (OFL, outlined to paths), shared with the marketing site and docs. No other product name or rebrand is in play for this surface.
 
 ## Evidence on Hand
 
