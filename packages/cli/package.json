@@ -38,7 +38,7 @@
     "@chain-hub/server": "0.1.0",
     "@chain-hub/storage": "0.1.0",
     "tsup": "^8.2.4",
-    "tsx": "^4.16.2",
+    "tsx": "^4.23.15",
     "vitest": "^5.0.5"
   }
 }
