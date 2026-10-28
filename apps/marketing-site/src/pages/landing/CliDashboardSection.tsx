@@ -37,7 +37,7 @@ export function CliDashboardSection() {
           index="04"
           kicker="Two ways to use it"
           title="Terminal or dashboard"
-          copy="Both work on the same hub folder. Use the command line when you're in flow, and the dashboard when you want to see everything at a glance."
+          copy="Both work on the same hub folder. Use the command line when you're in flow, and the dashboard when you want the whole picture."
         />
         <Reveal className="grid lg:grid-cols-2 gap-5">
           <div className="min-w-0 border-[1.5px] border-frame bg-card flex flex-col">

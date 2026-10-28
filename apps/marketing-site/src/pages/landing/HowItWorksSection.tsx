@@ -18,7 +18,7 @@ const steps = [
   {
     label: 'Connect',
     title: 'Connect your editors',
-    description: 'Links the hub into each editor you use. From now on they all read the same files.',
+    description: 'Links the hub into each editor you use, so they all read the same files.',
     command: 'chain setup',
   },
 ];

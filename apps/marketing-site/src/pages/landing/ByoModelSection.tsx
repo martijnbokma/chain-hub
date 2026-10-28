@@ -11,7 +11,7 @@ const aiProviders: { name: string; description: string; local?: boolean }[] = [
   { name: 'Groq', description: 'Fast inference for open models.' },
   { name: 'OpenRouter', description: 'One key, any open or proprietary model.' },
   { name: 'DeepSeek', description: 'DeepSeek models with your own API key.' },
-  { name: 'Cerebras', description: 'Ultra-fast inference speed.' },
+  { name: 'Cerebras', description: 'Fast inference with your own API key.' },
 ];
 
 export function ByoModelSection() {
@@ -22,7 +22,7 @@ export function ByoModelSection() {
           index="06"
           kicker="Optional"
           title="Bring your own model"
-          copy="Optional, and off by default. Add your own AI model in Settings and Chain Hub can draft a complete skill, agent, workflow, rule or prompt from a short description, or check and improve one you already have."
+          copy="Off by default. Add your own AI model in Settings and Chain Hub can draft a complete skill, agent, workflow, rule or prompt from a short description, or check and improve one you already have."
         />
         <Reveal className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {aiProviders.map(({ name, description, local }) => (

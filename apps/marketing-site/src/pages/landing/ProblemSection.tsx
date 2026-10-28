@@ -45,8 +45,8 @@ export function ProblemSection() {
               ))}
             </div>
             <p className="text-base text-foreground leading-relaxed text-pretty mt-5">
-              Change something in one place and the others fall behind. After a week nobody knows
-              which version is the right one.
+              Change something in one place and the others quietly fall behind. Before long
+              you're guessing which copy to trust.
             </p>
           </div>
           <div className="bp-corners border-[1.5px] border-frame bg-band p-6" style={BAND_VARS} data-ui>
@@ -55,7 +55,7 @@ export function ProblemSection() {
               <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-muted-foreground">One source of truth</span>
             </div>
             <h3 className="font-display font-semibold text-2xl tracking-[-0.02em] text-balance text-foreground mb-5">
-              One folder. Linked everywhere.
+              One folder keeps them all in sync
             </h3>
             <div className="flex items-center gap-4 font-mono text-[13px] text-foreground">
               <LogoMark className="size-14 shrink-0" />

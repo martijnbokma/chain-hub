@@ -72,7 +72,7 @@ export function DashboardProof() {
         <SectionHead
           index="07"
           kicker="Proof"
-          title="The real dashboard, not a mockup"
+          title="See it running"
           copy="Real screenshots of the dashboard running on your machine: hub health, your files, a skill in detail, and the AI settings. Click any figure to view it full size."
         />
         <Reveal className="grid md:grid-cols-2 gap-8">
