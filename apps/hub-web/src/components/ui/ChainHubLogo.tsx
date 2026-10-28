@@ -57,6 +57,8 @@ export function ChainHubLogo({
       viewBox="0 0 259 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Chain Hub"
       className={className}
       style={size ? { height: size, width: 'auto' } : undefined}
     >

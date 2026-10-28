@@ -95,7 +95,7 @@ Chain Hub is a light, premium product surface: warm paper neutrals, white panels
 ## Typography
 
 ### Hierarchy
-- **Wordmark** (`ChainHubLogo` mark + "Chain Hub" in `font-sans text-lg font-semibold tracking-tight`): shell brand only. The drawn lockup (`ChainHubLogo`, marketing/docs `LogoLockup`) pairs the mark with a lowercase "chain hub" wordmark in Outfit Semibold (OFL) converted to paths, in ink; the mark's dot is the lockup's only orange (One Signal Rule)
+- **Wordmark** (`ChainHubLogo` lockup, `h-9` in the sidebar and `h-8` in the mobile bar; mark only when the sidebar is collapsed): shell brand only. The drawn lockup (`ChainHubLogo`, marketing/docs `LogoLockup`) pairs the mark with a lowercase "chain hub" wordmark in Outfit Semibold (OFL) converted to paths, in ink; the mark's dot is the lockup's only orange (One Signal Rule)
 - **Page title** (`text-xl font-semibold`): one per screen
 - **Row / card title** (`text-sm font-medium` or `font-semibold`)
 - **Body** (`text-sm leading-5`)

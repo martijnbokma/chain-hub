@@ -53,10 +53,7 @@ export function Shell({ children }: ShellProps) {
                 className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                 to="/"
               >
-                <ChainHubLogo showText={false} className="size-8! shrink-0" />
-                <span className="truncate font-sans text-lg font-semibold tracking-tight text-foreground">
-                  Chain Hub
-                </span>
+                <ChainHubLogo className="h-9 w-auto shrink-0 text-foreground" />
               </NavLink>
               <SidebarTrigger className="hidden md:flex size-8 shrink-0" />
             </div>
@@ -152,11 +149,8 @@ export function Shell({ children }: ShellProps) {
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 md:hidden">
             <div className="flex items-center gap-2.5">
               <SidebarTrigger />
-              <NavLink className="flex items-center gap-2" to="/">
-                <ChainHubLogo showText={false} className="size-6 shrink-0" />
-                <span className="font-sans text-base font-semibold tracking-tight text-foreground">
-                  Chain Hub
-                </span>
+              <NavLink className="flex items-center" to="/">
+                <ChainHubLogo className="h-8 w-auto shrink-0 text-foreground" />
               </NavLink>
             </div>
             <ThemeToggle className="size-8" />
