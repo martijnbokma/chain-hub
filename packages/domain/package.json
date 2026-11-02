@@ -23,7 +23,7 @@
     "@chain-hub/storage": "0.1.0"
   },
   "devDependencies": {
-    "tsup": "^8.2.4",
+    "tsup": "^9.0.0",
     "vitest": "^5.0.5"
   }
 }
