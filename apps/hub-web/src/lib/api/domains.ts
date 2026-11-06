@@ -7,6 +7,8 @@ import type {
   AssetRecord,
   AssetDetail,
   DiscoveredAsset,
+  DiscoverSkillDirsInput,
+  DiscoverSkillDirsResult,
   ImportAssetInput,
   InstallSkillInput,
   InstallSkillBundleInput,
@@ -93,6 +95,8 @@ export const libraryApi = {
     sendJson<InstallSkillResult>('/api/library/skills/install', 'POST', data),
   installSkillBundle: (data: InstallSkillBundleInput) =>
     sendJson<InstallSkillResult>('/api/library/skills/install-bundle', 'POST', data),
+  discoverSkillDirs: (data: DiscoverSkillDirsInput) =>
+    sendJson<DiscoverSkillDirsResult>('/api/library/skills/discover-dirs', 'POST', data),
   checkSkillUpdates: (options: { name?: string; force?: boolean } = {}) =>
     sendJson<CheckSkillUpdatesResult>('/api/library/skills/check-updates', 'POST', options),
   getSkillUpstreamDirs: (name: string) =>

@@ -2,12 +2,26 @@ import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { libraryApi } from '@/lib/api';
-import type { AssetKind } from '@/types';
+import { libraryApi, SecurityBlockedError } from '@/lib/api';
+import type { AssetKind, DiscoverSkillDirsResult, InstallSkillResult } from '@/types';
 
 import { type BrowsedSkillFolder, readBrowsedSkillFolder } from './skill-folder-upload';
 
 type SelectedAsset = { kind: AssetKind; name: string };
+
+/** Picker option for the repo root itself — a repo can hold both a root SKILL.md and nested skill dirs. */
+export const REPO_ROOT_DIR = '';
+
+export interface InstallFailure {
+  subdir: string;
+  error: Error;
+}
+
+/** Human-readable name for an install target: the subdir basename, or the repo root marker. */
+function installTargetLabel(subdir: string): string {
+  const base = subdir.split('/').filter(Boolean).pop();
+  return base ?? 'repo root';
+}
 
 export function useLibraryInstallFlow(options: {
   onInstalled: (selected: SelectedAsset) => void;
@@ -21,7 +35,21 @@ export function useLibraryInstallFlow(options: {
   const [installSubdir, setInstallSubdir] = useState('');
   const [installName, setInstallName] = useState('');
   const [installForce, setInstallForce] = useState(false);
+  const [blockedScan, setBlockedScan] = useState<SecurityBlockedError['scan'] | null>(null);
+  const [blockedLabels, setBlockedLabels] = useState<string[]>([]);
   const [browsedFolder, setBrowsedFolder] = useState<BrowsedSkillFolder | null>(null);
+  const [repoScan, setRepoScan] = useState<DiscoverSkillDirsResult | null>(null);
+  const [selectedDirs, setSelectedDirs] = useState<string[]>([]);
+
+  const scanOptions = repoScan
+    ? [...(repoScan.hasRootSkill ? [REPO_ROOT_DIR] : []), ...repoScan.dirs]
+    : [];
+  const repoPickerActive = installMode === 'repo' && scanOptions.length > 1;
+
+  const clearRepoScan = () => {
+    setRepoScan(null);
+    setSelectedDirs([]);
+  };
 
   const resetInstallForm = () => {
     setInstallPath('');
@@ -30,37 +58,134 @@ export function useLibraryInstallFlow(options: {
     setInstallName('');
     setInstallForce(false);
     setBrowsedFolder(null);
+    clearRepoScan();
     if (folderInputRef.current) {
       folderInputRef.current.value = '';
     }
   };
 
-  const installSkill = useMutation({
-    mutationFn: async () => {
-      return installMode === 'path' && browsedFolder
-          ? libraryApi.installSkillBundle({
-              files: browsedFolder.files,
-              name: installName.trim() || browsedFolder.label || undefined,
-              force: installForce
-            })
-          : libraryApi.installSkill({
-              path: installMode === 'path' ? installPath.trim() || undefined : undefined,
-              repo: installMode === 'repo' ? installRepo.trim() || undefined : undefined,
-              subdir: installSubdir.trim() || undefined,
-              name: installName.trim() || undefined,
-              force: installForce
-            });
-    },
+  const scanSkillDirs = useMutation({
+    mutationFn: (repo: string) => libraryApi.discoverSkillDirs({ repo }),
     onSuccess: (result) => {
-      setInstallOpen(false);
-      resetInstallForm();
-      options.onInstalled({ kind: 'skills', name: result.asset.name });
-      void queryClient.invalidateQueries({ queryKey: ['library'] });
-      void queryClient.invalidateQueries({ queryKey: ['setup'] });
-      void queryClient.invalidateQueries({ queryKey: ['overview'] });
-      toast.success(`Installed skills/${result.asset.name}`);
+      const found = [...(result.hasRootSkill ? [REPO_ROOT_DIR] : []), ...result.dirs];
+      if (found.length === 0) {
+        clearRepoScan();
+        toast.error('No SKILL.md found in this repo');
+        return;
+      }
+      setRepoScan(result);
+      setSelectedDirs(found);
+      // A single nested dir can go straight into the subdir field; no picker needed.
+      if (!result.hasRootSkill && result.dirs.length === 1) {
+        setInstallSubdir(result.dirs[0]);
+      }
     },
     onError: (error: Error) => {
+      clearRepoScan();
+      toast.error(error.message || 'Unable to scan repo');
+    }
+  });
+
+  const installSkill = useMutation({
+    mutationFn: async (allowUnsafe: boolean): Promise<{ installed: InstallSkillResult[]; failures: InstallFailure[] }> => {
+      if (installMode === 'path' && browsedFolder) {
+        try {
+          const result = await libraryApi.installSkillBundle({
+            files: browsedFolder.files,
+            name: installName.trim() || browsedFolder.label || undefined,
+            force: installForce,
+            allowUnsafe
+          });
+          return { installed: [result], failures: [] };
+        } catch (error) {
+          // Route bundle blocks through the same failures path so the panel + label logic applies.
+          return {
+            installed: [],
+            failures: [{ subdir: '', error: error instanceof Error ? error : new Error(String(error)) }]
+          };
+        }
+      }
+      // With the picker active each checked dir becomes its own install; REPO_ROOT_DIR maps to no subdir.
+      const targets = repoPickerActive ? selectedDirs : [installSubdir.trim()];
+      const installed: InstallSkillResult[] = [];
+      const failures: InstallFailure[] = [];
+      for (const subdir of targets) {
+        try {
+          installed.push(
+            await libraryApi.installSkill({
+              path: installMode === 'path' ? installPath.trim() || undefined : undefined,
+              repo: installMode === 'repo' ? installRepo.trim() || undefined : undefined,
+              subdir: installMode === 'repo' && subdir ? subdir : undefined,
+              name: targets.length === 1 ? installName.trim() || undefined : undefined,
+              force: installForce,
+              allowUnsafe
+            })
+          );
+        } catch (error) {
+          failures.push({ subdir, error: error instanceof Error ? error : new Error(String(error)) });
+        }
+      }
+      return { installed, failures };
+    },
+    onSuccess: ({ installed, failures }) => {
+      if (installed.length > 0) {
+        void queryClient.invalidateQueries({ queryKey: ['library'] });
+        void queryClient.invalidateQueries({ queryKey: ['setup'] });
+        void queryClient.invalidateQueries({ queryKey: ['overview'] });
+      }
+
+      const blocked = failures.find((failure) => failure.error instanceof SecurityBlockedError);
+      if (failures.length > 0) {
+        // Keep only the failed dirs checked so a retry installs exactly what is missing.
+        if (repoPickerActive) {
+          setSelectedDirs(failures.map((failure) => failure.subdir));
+        }
+        if (blocked) {
+          setBlockedScan((blocked.error as SecurityBlockedError).scan);
+          const labels = failures
+            .filter((failure) => failure.error instanceof SecurityBlockedError)
+            .map((failure) =>
+              installMode === 'repo'
+                ? installTargetLabel(failure.subdir)
+                : (browsedFolder?.label ??
+                    installPath.trim().split('/').filter(Boolean).pop() ??
+                    'this skill')
+            );
+          setBlockedLabels(labels);
+          toast.error(`Security scan blocked ${labels[0]} — review the findings`);
+        } else {
+          setBlockedScan(null);
+          setBlockedLabels([]);
+          const [first] = failures;
+          toast.error(
+            failures.length === 1
+              ? first.error.message || 'Unable to install skill'
+              : `${first.error.message} — ${failures.length - 1} more failed`
+          );
+        }
+        if (installed.length > 0) {
+          toast.success(
+            installed.length === 1
+              ? `Installed skills/${installed[0].asset.name}`
+              : `Installed ${installed.length} skills`
+          );
+        }
+        return;
+      }
+
+      setInstallOpen(false);
+      setBlockedScan(null);
+      setBlockedLabels([]);
+      resetInstallForm();
+      const last = installed[installed.length - 1];
+      options.onInstalled({ kind: 'skills', name: last.asset.name });
+      toast.success(
+        installed.length === 1 ? `Installed skills/${last.asset.name}` : `Installed ${installed.length} skills`
+      );
+    },
+    onError: (error: Error) => {
+      setBlockedScan(null);
+      setBlockedLabels([]);
       toast.error(error.message || 'Unable to install skill');
     }
   });
@@ -83,7 +208,9 @@ export function useLibraryInstallFlow(options: {
   });
 
   const installSubmitDisabled =
-    installMode === 'path' ? !browsedFolder && installPath.trim().length === 0 : installRepo.trim().length === 0;
+    installMode === 'path'
+      ? !browsedFolder && installPath.trim().length === 0
+      : installRepo.trim().length === 0 || (repoPickerActive && selectedDirs.length === 0);
 
   const handleBrowseFiles = (fileList: FileList): void => {
     void readBrowsedSkillFolder(fileList)
@@ -101,6 +228,20 @@ export function useLibraryInstallFlow(options: {
       });
   };
 
+  const handleInstallRepoChange = (value: string) => {
+    setInstallRepo(value);
+    // Scan results belong to the URL they were taken from; editing the URL drops them.
+    if (repoScan) {
+      clearRepoScan();
+    }
+  };
+
+  const toggleSelectedDir = (dir: string) => {
+    setSelectedDirs((current) =>
+      current.includes(dir) ? current.filter((item) => item !== dir) : [...current, dir]
+    );
+  };
+
   return {
     installOpen,
     setInstallOpen,
@@ -110,6 +251,7 @@ export function useLibraryInstallFlow(options: {
     setInstallPath,
     installRepo,
     setInstallRepo,
+    handleInstallRepoChange,
     installSubdir,
     setInstallSubdir,
     installName,
@@ -122,6 +264,16 @@ export function useLibraryInstallFlow(options: {
     installSkill,
     migrateAgentsSkills,
     installSubmitDisabled,
-    handleBrowseFiles
+    handleBrowseFiles,
+    blockedScan,
+    blockedLabels,
+    clearBlockedScan: () => setBlockedScan(null),
+    repoScan,
+    scanOptions,
+    repoPickerActive,
+    selectedDirs,
+    toggleSelectedDir,
+    scanSkillDirs,
+    clearRepoScan
   };
 }

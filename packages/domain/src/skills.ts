@@ -3,6 +3,8 @@ import type {
   AssetDetail,
   CheckSkillUpdatesInput,
   CheckSkillUpdatesResult,
+  DiscoverSkillDirsInput,
+  DiscoverSkillDirsResult,
   ForkSkillInput,
   InstallSkillBundleInput,
   InstallSkillInput,
@@ -16,6 +18,7 @@ import type {
 import {
   checkSkillUpdatesFromLock,
   detectAgentsSkillsDrift,
+  discoverGitSkills,
   forkHubAsset,
   forkSkillFromHub,
   getAsset,
@@ -163,6 +166,15 @@ export async function unlinkLibrarySkill(
   const chainHome = await withInitializedHub(chainHomeInput);
   await unlinkSkill(chainHome, name, reason);
   return { ok: true };
+}
+
+/** SKILL.md locations inside an arbitrary git repo; feeds the install dialog picker, writes nothing. */
+export async function discoverLibrarySkillDirs(
+  chainHomeInput: string | undefined,
+  input: DiscoverSkillDirsInput
+): Promise<DiscoverSkillDirsResult> {
+  await withInitializedHub(chainHomeInput);
+  return discoverGitSkills(input.repo);
 }
 
 /** SKILL.md-bearing directories inside a git-locked skill's source repo (for relink). */

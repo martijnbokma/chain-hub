@@ -356,6 +356,21 @@ export const skillUpstreamDirsResultSchema = z.object({
   dirs: z.array(z.string())
 });
 
+export const discoverSkillDirsInputSchema = z.object({
+  repo: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => !value.startsWith("-"), { message: "Repository must be a URL or path, not an option" })
+});
+
+export const discoverSkillDirsResultSchema = z.object({
+  repo: z.string(),
+  /** The repo root itself holds a SKILL.md; installs then need no subdir. */
+  hasRootSkill: z.boolean(),
+  dirs: z.array(z.string())
+});
+
 export type SkillUpdateStatus = z.infer<typeof skillUpdateStatusSchema>;
 export type SkillCheckItemResult = z.infer<typeof skillCheckItemResultSchema>;
 export type CheckSkillUpdatesResult = z.infer<typeof checkSkillUpdatesResultSchema>;
@@ -363,5 +378,7 @@ export type CheckSkillUpdatesInput = z.infer<typeof checkSkillUpdatesInputSchema
 export type UnlinkSkillInput = z.infer<typeof unlinkSkillInputSchema>;
 export type RelinkSkillInput = z.infer<typeof relinkSkillInputSchema>;
 export type SkillUpstreamDirsResult = z.infer<typeof skillUpstreamDirsResultSchema>;
+export type DiscoverSkillDirsInput = z.infer<typeof discoverSkillDirsInputSchema>;
+export type DiscoverSkillDirsResult = z.infer<typeof discoverSkillDirsResultSchema>;
 export type MigrateAgentsSkillsInput = z.infer<typeof migrateAgentsSkillsInputSchema>;
 export type MigrateAgentsSkillsResult = z.infer<typeof migrateAgentsSkillsResultSchema>;

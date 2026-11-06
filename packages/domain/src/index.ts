@@ -61,6 +61,7 @@ export { buildSecurityExtraScanner, rescanHubAssets } from "./security.js";
 export { AiProviderError } from "./ai-providers.js";
 export {
   checkLibrarySkillUpdates,
+  discoverLibrarySkillDirs,
   forkLibrarySkill,
   getHubAgentsSkillsDrift,
   getLibrarySkillUpstreamDirs,

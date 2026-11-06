@@ -5,6 +5,7 @@ import {
   checkSkillUpdatesInputSchema,
   convertAssetInputSchema,
   createAssetInputSchema,
+  discoverSkillDirsInputSchema,
   installCatalogEntryInputSchema,
   forkSkillInputSchema,
   importAssetInputSchema,
@@ -26,6 +27,7 @@ import {
   createLibraryAsset,
   deleteLibraryAsset,
   discoverLibraryAssets,
+  discoverLibrarySkillDirs,
   forkLibrarySkill,
   getLibrary,
   getLibraryAsset,
@@ -62,6 +64,12 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     const payload = installSkillBundleInputSchema.parse(await context.req.json());
     const result = await installLibrarySkillBundle(options.chainHome, payload);
     return context.json(result, 201);
+  });
+
+  app.post("/api/library/skills/discover-dirs", async (context) => {
+    const payload = discoverSkillDirsInputSchema.parse(await context.req.json());
+    const result = await discoverLibrarySkillDirs(options.chainHome, payload);
+    return context.json(result);
   });
 
   app.get("/api/catalog", async (context) => {

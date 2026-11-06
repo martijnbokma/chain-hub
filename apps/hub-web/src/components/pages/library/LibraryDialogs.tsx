@@ -130,6 +130,8 @@ export function LibraryDialogs({
       />
 
       <InstallSkillDialog
+        blockedLabels={installFlow.blockedLabels}
+        blockedScan={installFlow.blockedScan}
         browsedFolder={installFlow.browsedFolder}
         folderInputRef={installFlow.folderInputRef}
         installForce={installFlow.installForce}
@@ -140,6 +142,7 @@ export function LibraryDialogs({
         installSubdir={installFlow.installSubdir}
         isInstalling={installFlow.installSkill.isPending}
         isMigrating={installFlow.migrateAgentsSkills.isPending}
+        isScanning={installFlow.scanSkillDirs.isPending}
         onBrowseFiles={installFlow.handleBrowseFiles}
         onInstallForceChange={installFlow.setInstallForce}
         onInstallModeChange={(mode) => {
@@ -151,12 +154,17 @@ export function LibraryDialogs({
           installFlow.setBrowsedFolder(null);
           installFlow.setInstallPath(value);
         }}
-        onInstallRepoChange={installFlow.setInstallRepo}
+        onInstallRepoChange={installFlow.handleInstallRepoChange}
         onInstallSubdirChange={installFlow.setInstallSubdir}
         onMigrate={() => installFlow.migrateAgentsSkills.mutate()}
         onOpenChange={installFlow.setInstallOpen}
-        onSubmit={() => installFlow.installSkill.mutate()}
+        onScanRepo={() => installFlow.scanSkillDirs.mutate(installFlow.installRepo.trim())}
+        onSubmit={(allowUnsafe) => installFlow.installSkill.mutate(allowUnsafe ?? false)}
+        onToggleDir={installFlow.toggleSelectedDir}
         open={installFlow.installOpen}
+        repoPickerActive={installFlow.repoPickerActive}
+        scanOptions={installFlow.scanOptions}
+        selectedDirs={installFlow.selectedDirs}
         submitDisabled={installFlow.installSubmitDisabled}
       />
 

@@ -31,6 +31,8 @@ export type {
   ClassifyAssetInput,
   ClassifyAssetResult,
   DiscoveredAsset,
+  DiscoverSkillDirsInput,
+  DiscoverSkillDirsResult,
   DraftAssetInput,
   DraftAssetResult,
   DraftPromptInput,

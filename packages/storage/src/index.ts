@@ -27,6 +27,8 @@ export { migrateAgentsSkillLock, detectAgentsSkillsDrift } from "./skill-agents.
 
 export { listSkillUpstreamDirs, relinkSkill } from "./skill-upstream.js";
 
+export { discoverGitSkills } from "./skill-git.js";
+
 export {
   readSkillsLock,
   renameSkillLockEntry,

@@ -5,7 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
-import { fetchRemoteHeadSha, resolveGitSkillDir } from "./skill-git.js";
+import { discoverGitSkills, fetchRemoteHeadSha, resolveGitSkillDir } from "./skill-git.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -49,5 +49,28 @@ describe("resolveGitSkillDir", () => {
     const repo = await makeRepo({ "a/SKILL.md": "# A", "b/SKILL.md": "# B" });
 
     await expect(resolveGitSkillDir(repo, undefined, "unrelated-name")).rejects.toThrow(/Found skills in: a, b/);
+  });
+});
+
+describe("discoverGitSkills", () => {
+  it("reports a root SKILL.md and every nested skill dir", async () => {
+    const repo = await makeRepo({
+      "SKILL.md": "# Root",
+      "skills/a/SKILL.md": "# A",
+      "skills/b/SKILL.md": "# B",
+      "docs/guide.md": "guide"
+    });
+
+    await expect(discoverGitSkills(repo)).resolves.toEqual({
+      repo,
+      hasRootSkill: true,
+      dirs: ["skills/a", "skills/b"]
+    });
+  });
+
+  it("reports an empty result when no SKILL.md exists anywhere", async () => {
+    const repo = await makeRepo({ "README.md": "readme" });
+
+    await expect(discoverGitSkills(repo)).resolves.toEqual({ repo, hasRootSkill: false, dirs: [] });
   });
 });
