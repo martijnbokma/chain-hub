@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hub",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:hub"],
+      "port": 4320
+    }
+  ]
+}
