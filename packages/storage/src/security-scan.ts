@@ -194,7 +194,8 @@ const RULES: ScanRule[] = [
       /\bcrontab\b|\/var\/spool\/cron|\/etc\/cron\.[a-z]/,
       /LaunchAgents|LaunchDaemons|\blaunchctl\s+(?:load|bootstrap|kickstart)/,
       /\bsystemctl\s+(?:--user\s+)?enable\b/,
-      /(?:>>|>|\btee\b)\s*["']?[^\n"']*~?\/?\.(?:bashrc|zshrc|profile|bash_profile|zprofile|bash_aliases)\b/,
+      // `(?<!=)` keeps `=>` arrow functions (e.g. `...profile.map(`) from reading as a shell redirect.
+      /(?:>>|(?<!=)>|\btee\b)\s*["']?[^\n"']*~?\/?\.(?:bashrc|zshrc|profile|bash_profile|zprofile|bash_aliases)\b/,
       /\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/i,
       /\b(?:pre|post)install\b[^\n]{0,200}?\b(?:curl|wget|sh\b|bash|eval|node\s+-e)/i
     ]
@@ -223,7 +224,7 @@ const RULES: ScanRule[] = [
     detail: "Modifies system configuration, the hub's own system files, or uses sudo — far outside a skill's scope.",
     patterns: [
       /\bsudo\s+(?:tee|cp|mv|dd|install|sh|bash|chmod|chown|rm|launchctl|mkdir|systemctl|apt|yum|brew)\b/,
-      /(?:>>|>|\bcp\b|\bmv\b|\bln\b|\brm\b)\s*["']?[^\n"']{0,100}\/(?:etc|usr|System|Library[/\\]Launch)/,
+      /(?:>>|(?<!=)>|\bcp\b|\bmv\b|\bln\b|\brm\b)\s*["']?[^\n"']{0,100}\/(?:etc|usr|System|Library[/\\]Launch)/,
       /(?:>>|>|\btee\b|\bcp\b|\bmv\b|\brm\b|write|edit|overwrite)[^\n]{0,120}?~?\/?\.chain-hub[/\\]system/i,
       /\b(?:modify|edit|overwrite|replace|delete|write\s+to)\b[\s\w-]{0,30}~?\/?\.chain-hub[/\\]system/i
     ]
@@ -248,7 +249,7 @@ const RULES: ScanRule[] = [
     title: "Writes to editor, agent or user config directories",
     detail: "Modifies files under ~/.claude, ~/.cursor, ~/.agents, ~/.ssh, ~/.chain-hub or similar — verify the source trusts this.",
     patterns: [
-      /(?:>>|>|\btee\b|\bcp\b|\bmv\b|\brm\b|write|edit|overwrite|append)[^\n]{0,140}?~\/?\.(?:ssh|aws|gnupg|agents|claude|cursor|codeium|devin|windsurf|zed|config|chain-hub)[/\\]/i,
+      /(?:>>|(?<!=)>|\btee\b|\bcp\b|\bmv\b|\brm\b|write|edit|overwrite|append)[^\n]{0,140}?~\/?\.(?:ssh|aws|gnupg|agents|claude|cursor|codeium|devin|windsurf|zed|config|chain-hub)[/\\]/i,
       /\b(?:modify|edit|overwrite|append\s+to|delete|write\s+to)\b[\s\w-]{0,40}~\/?\.(?:ssh|aws|agents|claude|cursor|codeium|devin|windsurf|zed|chain-hub)\b/i
     ]
   },

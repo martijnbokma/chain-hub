@@ -64,6 +64,18 @@ describe("scanAssetFiles", () => {
     expect(report.findings.find((f) => f.ruleId === "persistence")?.severity).toBe("medium");
   });
 
+  it("does not read JS arrow functions into `.profile`-style names as shell redirects", () => {
+    const report = scan([
+      {
+        path: "assets/geometry.js",
+        content:
+          "const span = Math.max(...profile.map(p => p[k])) - Math.min(...profile.map(p => p[k]));\n" +
+          "const onSeg = (a, b, c) => Math.abs(turn(a, b, c)) <= areaTolerance;"
+      }
+    ]);
+    expect(report.findings.some((f) => f.ruleId === "persistence")).toBe(false);
+  });
+
   it("does not flag prose about credentials next to a curl example", () => {
     const report = scan([
       { path: "docs/api.md", content: "The vault stores credentials; the sandbox cannot read them.\n```\ncurl -X POST https://api.example.com/v1/sessions -d '{}'\n```" }
