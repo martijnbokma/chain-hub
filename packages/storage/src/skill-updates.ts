@@ -15,6 +15,7 @@ import {
 } from "@chain-hub/contracts";
 
 import { pathExists } from "./shared.js";
+import type { SkillInstallSecurity } from "./security-gate.js";
 import { fetchRemoteHeadSha } from "./skill-git.js";
 import { installSkillFromSourceUnlessUnchanged } from "./skill-install.js";
 import {
@@ -28,7 +29,8 @@ import {
 export async function updateSkillsFromLock(
   chainHome: string,
   input: UpdateSkillsInput,
-  readAsset: ReadAsset
+  readAsset: ReadAsset,
+  security?: SkillInstallSecurity
 ): Promise<UpdateSkillsResult> {
   const lockFile = await readSkillsLock(chainHome);
   const names = input.name ? [normalizeSkillName(input.name)] : Object.keys(lockFile.skills).sort();
@@ -91,10 +93,12 @@ export async function updateSkillsFromLock(
           repo: entry.sourceType === "git" ? entry.source : undefined,
           subdir: entry.subdir ?? undefined,
           name,
-          force: true
+          force: true,
+          allowUnsafe: input.allowUnsafe
         },
         readAsset,
-        input.force ? null : (entry.contentHash ?? null)
+        input.force ? null : (entry.contentHash ?? null),
+        { context: "update", extraScanner: security?.extraScanner }
       );
 
       await clearSkillLockError(chainHome, name, "lastUpdateError");
@@ -103,7 +107,8 @@ export async function updateSkillsFromLock(
         name,
         status: installed.unchanged ? "skipped" : "updated",
         previousCommitSha: entry.commitSha ?? null,
-        lockEntry: installed.lockEntry
+        lockEntry: installed.lockEntry,
+        ...(installed.securityScan ? { securityScan: installed.securityScan } : {})
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

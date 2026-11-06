@@ -30,12 +30,14 @@ export function registerCatalogCommands(program: Command): void {
     .description("Install a catalog entry into the hub")
     .option("--source <sourceId>", "Catalog source id", "chain-hub")
     .option("--force", "Replace an existing asset", false)
-    .action(async (entryId: string, commandOptions: { source: string; force?: boolean }) => {
+    .option("--allow-unsafe", "Install anyway when the security scan blocks the asset (audit-logged)", false)
+    .action(async (entryId: string, commandOptions: { source: string; force?: boolean; allowUnsafe?: boolean }) => {
       const options = program.opts<{ chainHome?: string }>();
       const input = installCatalogEntryInputSchema.parse({
         sourceId: commandOptions.source,
         entryId,
-        force: commandOptions.force
+        force: commandOptions.force,
+        allowUnsafe: commandOptions.allowUnsafe
       });
       const result = await installLibraryCatalogEntry(options.chainHome, input);
       printJson(result);

@@ -67,7 +67,9 @@ cd packages/storage && bunx vitest run src/skill-install.test.ts
 
 CI (`.github/workflows/ci.yml`) runs build → lint → typecheck → `test:coverage` → e2e. Run lint, typecheck and relevant tests before delivering.
 
-CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|create|show|update|remove|discover|import`, `chain skill install|update|check-updates|migrate-agents|fork`, `chain capture`, `chain reflect`. Asset kinds: `skills`, `agents`, `workflows`, `rules`, `prompts`.
+CLI surface: `chain init|status|validate|setup|guide|hub`, `chain asset list|create|show|update|remove|discover|import`, `chain skill install|update|check-updates|migrate-agents|fork`, `chain catalog list|install|refresh`, `chain security scan`, `chain capture`, `chain reflect`. Asset kinds: `skills`, `agents`, `workflows`, `rules`, `prompts`.
+
+Security scanning: every write boundary that brings outside content into the hub (skill installs from path/git/catalog/bundle, updates, relinks, agents-migration, editor imports) passes through `runSecurityGate` in `packages/storage/src/security-gate.ts` — a static rules engine (`security-scan.ts`: credentials/exfil/RCE/destructive/prompt-injection/persistence/obfuscation) plus an optional AI layer (`packages/domain/src/security.ts`, best-effort; provider errors are recorded as `aiError` and never block). Verdicts `pass|warn|fail` persist per asset in `system/security-scans.json`; `fail` throws `SecurityScanError` → HTTP 403 with `{ error, scan }` before anything is copied. Overrides: `--allow-unsafe` (CLI) / `allowUnsafe` (API/UI "Install anyway") set `overriddenAt` on the record; `edit` context caps at warn so authoring never blocks; `rescan` context never throws. Rescan via `POST /api/security/rescan` or `chain security scan [--kind --name]`.
 
 ## Code conventions
 

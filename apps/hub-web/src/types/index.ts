@@ -52,6 +52,7 @@ export type {
   Overview,
   ReflectionReport,
   RelinkSkillInput,
+  RescanAssetsResult,
   ResolveConflictsInput,
   ResolveLearningsInput,
   ResolveLearningsResult,

@@ -31,6 +31,8 @@ import {
   updateSkillsFromLock
 } from "@chain-hub/storage";
 
+import { buildSecurityExtraScanner } from "./security.js";
+
 /**
  * Skill install / update / migrate / fork use-cases.
  * Storage owns filesystem + git I/O (`skill-install.ts`); this module owns hub
@@ -61,7 +63,8 @@ export async function installLibrarySkill(
   input: InstallSkillInput
 ): Promise<InstallSkillResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await installSkillFromSource(chainHome, input, readSkillAsset);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const result = await installSkillFromSource(chainHome, input, readSkillAsset, { extraScanner });
   await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
   return result;
 }
@@ -71,7 +74,8 @@ export async function installLibrarySkillBundle(
   input: InstallSkillBundleInput
 ): Promise<InstallSkillResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await installSkillFromBundle(chainHome, input, readSkillAsset);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const result = await installSkillFromBundle(chainHome, input, readSkillAsset, { extraScanner });
   await syncAssetToEditors(chainHome, "skills", result.asset.name, result.asset);
   return result;
 }
@@ -81,7 +85,8 @@ export async function updateLibrarySkills(
   input: UpdateSkillsInput = {}
 ): Promise<UpdateSkillsResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await updateSkillsFromLock(chainHome, input, readSkillAsset);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const result = await updateSkillsFromLock(chainHome, input, readSkillAsset, { extraScanner });
 
   await projectChangedSkills(chainHome, result.results);
 
@@ -101,7 +106,8 @@ export async function migrateAgentsLibrarySkills(
   input: MigrateAgentsSkillsInput = {}
 ): Promise<MigrateAgentsSkillsResult> {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await migrateAgentsSkillLock(chainHome, input, readSkillAsset);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const result = await migrateAgentsSkillLock(chainHome, input, readSkillAsset, { extraScanner });
 
   await projectChangedSkills(chainHome, result.results);
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { InvalidInputError } from "./errors.js";
+import { securityScanRecordSchema, securityScanReportSchema } from "./security.js";
 
 export const assetKinds = ["skills", "agents", "workflows", "rules", "prompts"] as const;
 
@@ -51,7 +52,9 @@ export const assetRecordSchema = z.object({
   /** Frontmatter `author` when present (skills and other markdown assets). */
   author: z.string().nullable().optional(),
   /** Deterministic editor-compat findings (skills: required description, etc.). */
-  compatIssues: z.array(assetCompatIssueSchema).optional()
+  compatIssues: z.array(assetCompatIssueSchema).optional(),
+  /** Last security scan verdict + findings for this asset, when it has been scanned. */
+  securityScan: securityScanRecordSchema.nullable().optional()
 });
 
 export const assetDetailSchema = assetRecordSchema.extend({
@@ -112,7 +115,9 @@ export const discoveredAssetSchema = z.object({
 export const importAssetInputSchema = z.object({
   editorId: z.string(),
   kind: z.enum(assetKinds),
-  name: assetNameSchema
+  name: assetNameSchema,
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export const installSkillInputSchema = z
@@ -126,7 +131,9 @@ export const installSkillInputSchema = z
       .optional(),
     subdir: z.string().min(1).optional(),
     name: z.string().min(1).optional(),
-    force: z.boolean().optional()
+    force: z.boolean().optional(),
+    /** Install even when the security scan verdict is `fail`; the override is recorded. */
+    allowUnsafe: z.boolean().optional()
   })
   .refine((value) => Boolean(value.path) !== Boolean(value.repo), {
     message: "Provide exactly one of path or repo"
@@ -150,12 +157,16 @@ export const installSkillBundleFileSchema = z.object({
 export const installSkillBundleInputSchema = z.object({
   name: z.string().min(1).optional(),
   force: z.boolean().optional(),
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional(),
   files: z.array(installSkillBundleFileSchema).min(1).max(500, "A skill folder can have at most 500 files")
 });
 
 export const updateSkillsInputSchema = z.object({
   name: z.string().min(1).optional(),
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Update even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export const forkSkillInputSchema = z.object({
@@ -263,7 +274,9 @@ export const skillBatchItemResultSchema = z.object({
   error: z.string().optional(),
   /** Commit the hub copy was locked at before this run; lets clients show old → new. */
   previousCommitSha: z.string().nullable().optional(),
-  lockEntry: skillLockEntrySchema.optional()
+  lockEntry: skillLockEntrySchema.optional(),
+  /** Security scan report when the item was (re)scanned this run. */
+  securityScan: securityScanReportSchema.optional()
 });
 
 export const updateSkillsResultSchema = z.object({
@@ -272,7 +285,9 @@ export const updateSkillsResultSchema = z.object({
 
 export const migrateAgentsSkillsInputSchema = z.object({
   lockPath: z.string().min(1).optional(),
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Migrate even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export const migrateAgentsSkillsResultSchema = z.object({

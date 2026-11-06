@@ -15,6 +15,7 @@ import {
 
 import { installLockKey, mutateInstallLock, readInstallLock } from "./install-lock.js";
 import { installAssetFromSource } from "./asset-install.js";
+import type { SkillInstallSecurity } from "./security-gate.js";
 import { installSkillFromSource } from "./skill-install.js";
 import { getAsset } from "./core.js";
 import { pathExists, writeFileAtomic } from "./shared.js";
@@ -181,15 +182,23 @@ export async function resolveCatalogEntry(chainHome: string, sourceId: string, e
  */
 export async function installCatalogEntry(
   chainHome: string,
-  input: { sourceId: string; entryId: string; force?: boolean }
+  input: { sourceId: string; entryId: string; force?: boolean; allowUnsafe?: boolean },
+  security?: Pick<SkillInstallSecurity, "extraScanner">
 ): Promise<{ asset: Awaited<ReturnType<typeof getAsset>>; scriptsDetected: boolean }> {
   const entry = await resolveCatalogEntry(chainHome, input.sourceId, input.entryId);
 
   if (entry.kind === "skills") {
     const result = await installSkillFromSource(
       chainHome,
-      { repo: entry.source.repo, subdir: entry.source.subdir, name: entry.id, force: input.force },
-      (home, kind, name) => getAsset(home, kind, name)
+      {
+        repo: entry.source.repo,
+        subdir: entry.source.subdir,
+        name: entry.id,
+        force: input.force,
+        allowUnsafe: input.allowUnsafe
+      },
+      (home, kind, name) => getAsset(home, kind, name),
+      { context: "catalog", extraScanner: security?.extraScanner }
     );
 
     await mutateInstallLock(chainHome, (lockFile) => {
@@ -212,7 +221,9 @@ export async function installCatalogEntry(
       name: entry.id,
       force: input.force,
       catalogId: input.sourceId,
-      catalogEntryId: entry.id
+      catalogEntryId: entry.id,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: security?.extraScanner
     });
     return { asset: result.asset, scriptsDetected: false };
   }

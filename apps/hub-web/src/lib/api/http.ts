@@ -1,3 +1,5 @@
+import type { SecurityScanReport } from "@chain-hub/contracts";
+
 /**
  * Generic function to fetch JSON data from an API endpoint
  */
@@ -20,10 +22,27 @@ export async function sendJson<T>(url: string, method: 'POST' | 'PUT' | 'PATCH' 
   return parseJsonResponse<T>(response);
 }
 
+
+/** Thrown when the hub's security gate blocks an install/update (HTTP 403). Carries the scan report. */
+export class SecurityBlockedError extends Error {
+  readonly scan: SecurityScanReport;
+
+  constructor(message: string, scan: SecurityScanReport) {
+    super(message);
+    this.name = 'SecurityBlockedError';
+    this.scan = scan;
+  }
+}
+
 /** Returns the JSON body, or throws with the hub's { error } message instead of a bare status code. */
 async function parseJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; scan?: SecurityScanReport }
+      | null;
+    if (response.status === 403 && payload?.scan) {
+      throw new SecurityBlockedError(payload.error || 'Security scan blocked this content', payload.scan);
+    }
     throw new Error(payload?.error || `Request failed: ${response.status}`);
   }
 

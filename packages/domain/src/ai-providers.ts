@@ -8,15 +8,23 @@ import type {
   ClassifyAssetResult,
   DraftAssetInput,
   DraftAssetResult,
-  ImproveAssetResult
+  ImproveAssetResult,
+  SecurityScanFinding
 } from "@chain-hub/contracts";
 
-import { extractSuggestedNameFromContent, parseAudit, parseClassification, suggestNameFromIntent } from "./ai-parse.js";
+import {
+  extractSuggestedNameFromContent,
+  parseAudit,
+  parseClassification,
+  parseSecurityScan,
+  suggestNameFromIntent
+} from "./ai-parse.js";
 import {
   AUDIT_EXISTING_SYSTEM,
   AUDIT_LEARNINGS_RULES,
   CLASSIFY_EXISTING_SYSTEM,
   CLASSIFY_SYSTEM,
+  SECURITY_SCAN_SYSTEM,
   buildUserMessage,
   systemPromptForImprove,
   systemPromptForKind
@@ -192,6 +200,55 @@ export async function improveExistingAsset(params: {
   }
 
   return { content: nextContent };
+}
+
+/** Per-file cap for the security review payload; the model sees the start of each file. */
+const MAX_SCAN_FILE_CHARS = 8_000;
+/** Total payload cap across all files in one scan. */
+const MAX_SCAN_TOTAL_CHARS = 60_000;
+
+/**
+ * AI layer of the security gate: reviews the installable file set for malicious
+ * behavior and returns findings (engine "ai"). Used as the gate's extraScanner.
+ */
+export async function scanAssetForSecurity(params: {
+  config: AiConfig;
+  secrets: AiSecrets;
+  kind: AssetKind;
+  name: string;
+  files: Array<{ path: string; content: string }>;
+}): Promise<SecurityScanFinding[]> {
+  const { config, secrets, kind, name, files } = params;
+
+  let budget = MAX_SCAN_TOTAL_CHARS;
+  const blocks: string[] = [];
+  for (const file of files) {
+    if (budget <= 0) {
+      break;
+    }
+    const content = file.content.slice(0, Math.min(MAX_SCAN_FILE_CHARS, budget));
+    if (!content.trim()) {
+      continue;
+    }
+    budget -= content.length;
+    blocks.push(`--- FILE: ${file.path} ---\n${content}`);
+  }
+  if (blocks.length === 0) {
+    return [];
+  }
+
+  const raw = await completeChat({
+    config,
+    secrets,
+    system: SECURITY_SCAN_SYSTEM,
+    userMessage: [
+      `Asset kind: ${kind}`,
+      `Asset name: ${name}`,
+      `Files (${files.length}):`,
+      ...blocks
+    ].join("\n")
+  });
+  return parseSecurityScan(raw).findings;
 }
 
 /** @deprecated Prefer generateAssetDraft */

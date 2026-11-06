@@ -202,6 +202,7 @@ export function useLibraryPage() {
     retryCheck,
     unlinkSkill,
     forkSkill,
+    rescanAsset,
     convertKind
   } = useLibraryAssetMutations({
     selected,
@@ -566,6 +567,7 @@ export function useLibraryPage() {
     retryCheck,
     unlinkSkill,
     forkSkill,
+    rescanAsset,
     convertKind,
     importAsset,
     importMultipleAssets,

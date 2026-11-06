@@ -6,11 +6,14 @@ import type {
   SkillFileEntry,
   SkillLockEntry
 } from '@/types';
+import type { SecurityScanRecord } from '@chain-hub/contracts';
+
 import { AssetAuditCard } from './AssetAuditCard';
 import { AssetCompatBanner } from './AssetCompatBanner';
 import { AssetKindAssessment } from './AssetKindAssessment';
 import { AssetPackageFilesStrip } from './AssetPackageFilesStrip';
 import { AssetProvenanceCard } from './AssetProvenanceCard';
+import { AssetSecurityCard } from './AssetSecurityCard';
 
 type CompatIssue = ReturnType<typeof listAssetCompatIssues>[number];
 
@@ -46,6 +49,9 @@ interface AssetInfoStackProps {
   onForkAndFixWithAi: () => void;
   onConvertKind: (kind: AssetKind) => void;
   onImproveAsset: () => void;
+  securityScan?: SecurityScanRecord | null;
+  isRescanning: boolean;
+  onRescan: () => void;
 }
 
 /** Stacked meta cards above the editor: compat fix, provenance, files strip, kind assessment, audit. */
@@ -95,6 +101,7 @@ export function AssetInfoStack(props: AssetInfoStackProps) {
           recommendedLabel={props.recommendedLabel}
         />
       ) : null}
+      <AssetSecurityCard isRescanning={props.isRescanning} onRescan={props.onRescan} scan={props.securityScan} />
       {props.assetAudit || props.isAuditing ? (
         <AssetAuditCard
           assetName={selected.name}

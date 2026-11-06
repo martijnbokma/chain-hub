@@ -88,12 +88,14 @@ export function registerAssetCommands(program: Command): void {
     .requiredOption("--editor <id>", "Editor id to import from (e.g. claude-code)")
     .requiredOption("--kind <kind>", "Asset kind")
     .requiredOption("--name <name>", "Asset name")
-    .action(async (commandOptions: { editor: string; kind: AssetKind; name: string }) => {
+    .option("--allow-unsafe", "Import anyway when the security scan blocks the asset (audit-logged)", false)
+    .action(async (commandOptions: { editor: string; kind: AssetKind; name: string; allowUnsafe?: boolean }) => {
       const options = program.opts<{ chainHome?: string }>();
       const asset = await importLibraryAsset(options.chainHome, {
         editorId: commandOptions.editor,
         kind: commandOptions.kind,
-        name: commandOptions.name
+        name: commandOptions.name,
+        allowUnsafe: commandOptions.allowUnsafe
       });
       printJson(asset);
     });

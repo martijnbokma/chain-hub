@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { errorMessage, libraryApi } from '@/lib/api';
+import { errorMessage, libraryApi, securityApi } from '@/lib/api';
 import type { AssetKind, SkillBatchItemResult } from '@/types';
 
-interface SelectedRef {
+export interface SelectedRef {
   kind: AssetKind;
   name: string;
 }
@@ -110,5 +110,26 @@ export function useLibrarySkillMutations({
     }
   });
 
-  return { updateSkills, retryCheck, unlinkSkill, forkSkill };
+  const rescanAsset = useMutation({
+    mutationFn: async (target: SelectedRef) => securityApi.rescan({ kind: target.kind, name: target.name }),
+    onSuccess: (result, target) => {
+      void queryClient.invalidateQueries({ queryKey: ['library'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['library', 'detail', target.kind, target.name]
+      });
+      const scan = result.results[0]?.scan;
+      if (scan?.verdict === 'fail') {
+        toast.error('Security scan flagged this asset — review the findings');
+      } else if (scan?.verdict === 'warn') {
+        toast.warning('Security scan completed with warnings');
+      } else {
+        toast.success('Security scan passed');
+      }
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error, 'Unable to rescan asset'));
+    }
+  });
+
+  return { updateSkills, retryCheck, unlinkSkill, forkSkill, rescanAsset };
 }

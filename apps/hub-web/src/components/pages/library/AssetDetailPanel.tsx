@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type {
+  AssetDetail,
   AssetKind,
   AuditAssetResult,
   ClassifyAssetResult,
@@ -31,6 +32,9 @@ const MarkdownSourceEditor = React.lazy(async () => {
 
 interface AssetDetailPanelProps {
   selected: { kind: AssetKind; name: string };
+  securityScan?: AssetDetail['securityScan'] | null;
+  isRescanning: boolean;
+  onRescan: () => void;
   author: string | null | undefined;
   provenance: SkillLockEntry | null | undefined;
   isUpstreamSkill: boolean;
@@ -79,6 +83,9 @@ interface AssetDetailPanelProps {
 
 export function AssetDetailPanel({
   selected,
+  securityScan,
+  isRescanning,
+  onRescan,
   author,
   provenance,
   isUpstreamSkill,
@@ -331,9 +338,12 @@ export function AssetDetailPanel({
           onOpenFileManager={onOpenFileManager}
           onRelink={onRelink}
           onRetryCheck={onRetryCheck}
+          isRescanning={isRescanning}
+          onRescan={onRescan}
           onToggleFilesMenu={() => setIsFilesMenuOpen((prev) => !prev)}
           onUnlink={onUnlink}
           provenance={provenance}
+          securityScan={securityScan}
           recommendedLabel={recommendedLabel}
           selected={selected}
           updateAvailable={updateAvailable}

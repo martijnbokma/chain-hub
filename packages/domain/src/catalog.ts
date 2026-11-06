@@ -8,6 +8,8 @@ import {
   syncAssetToEditors
 } from "@chain-hub/storage";
 
+import { buildSecurityExtraScanner } from "./security.js";
+
 /** Catalog use-cases: browse merged indexes, install entries, refresh sources. */
 
 async function withInitializedHub(chainHomeInput: string | undefined): Promise<string> {
@@ -23,7 +25,8 @@ export async function getLibraryCatalog(chainHomeInput: string | undefined, opti
 
 export async function installLibraryCatalogEntry(chainHomeInput: string | undefined, input: InstallCatalogEntryInput) {
   const chainHome = await withInitializedHub(chainHomeInput);
-  const result = await installCatalogEntry(chainHome, input);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const result = await installCatalogEntry(chainHome, input, { extraScanner });
   await syncAssetToEditors(chainHome, result.asset.kind, result.asset.name, result.asset);
   return result;
 }

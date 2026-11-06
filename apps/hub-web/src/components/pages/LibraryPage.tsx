@@ -65,6 +65,7 @@ export function LibraryPage() {
     retryCheck,
     unlinkSkill,
     forkSkill,
+    rescanAsset,
     convertKind,
     importAsset,
     importMultipleAssets,
@@ -306,8 +307,11 @@ export function LibraryPage() {
               onSave={() => saveAsset.mutate()}
               onSelectFile={(filePath) => setActiveFile(filePath)}
               onUnlink={() => unlinkSkill.mutate(selected.name)}
+              isRescanning={rescanAsset.isPending}
+              onRescan={() => rescanAsset.mutate(selected)}
               onUpdateFromSource={() => updateSkills.mutate(selected.name)}
               provenance={selectedAsset.data?.provenance}
+              securityScan={selectedAsset.data?.securityScan ?? null}
               selected={selected}
               skillFiles={skillFiles.data?.files ?? []}
               updateAvailable={skillUpdates.get(selected.name) ?? false}

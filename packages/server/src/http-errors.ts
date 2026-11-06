@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 
-import { HubError } from "@chain-hub/contracts";
+import { HubError, SecurityScanError } from "@chain-hub/contracts";
 import { AiProviderError } from "@chain-hub/domain";
 
 type IssueCarrier = {
@@ -26,7 +26,7 @@ function messageFromZodIssues(error: IssueCarrier): string {
 
 export type ErrorResponse = {
   error: string;
-  status: 400 | 404 | 409 | 500 | 502 | 504;
+  status: 400 | 403 | 404 | 409 | 500 | 502 | 504;
 };
 
 /**
@@ -58,6 +58,11 @@ export function toErrorResponse(error: unknown): ErrorResponse {
 export function handleError(error: unknown, context: Context) {
   if (error instanceof HTTPException) {
     return error.getResponse();
+  }
+
+  // Security blocks carry the findings so clients can render them (and offer allowUnsafe).
+  if (error instanceof SecurityScanError) {
+    return context.json({ error: error.message, scan: error.report }, 403);
   }
 
   const mapped = toErrorResponse(error);

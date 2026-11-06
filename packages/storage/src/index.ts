@@ -53,6 +53,23 @@ export {
 
 export { installAssetFromSource, type InstallAssetInput } from "./asset-install.js";
 
+export { runSecurityGate, type SkillInstallSecurity, type SecurityGateOptions } from "./security-gate.js";
+export {
+  collectSkillScanFiles,
+  scanAssetFiles,
+  scanSkillTree,
+  type SecurityScanFile,
+  type SecurityExtraScanner
+} from "./security-scan.js";
+export {
+  readSecurityScans,
+  getSecurityScan,
+  recordSecurityScan,
+  removeSecurityScan,
+  renameSecurityScan,
+  copySecurityScan
+} from "./security-store.js";
+
 export { projectSkillSidecars, removeEditorSkillDirectory } from "./adapters/skill-sidecars.js";
 
 export {

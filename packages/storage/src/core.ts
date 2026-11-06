@@ -21,6 +21,14 @@ import {
 
 import { seedLearningsRule, seedWelcomeSkill } from "./seed.js";
 import { CORRUPT_ASSETS_LOCK_PREFIX, installLockKey, readInstallLock, removeInstallLockEntry } from "./install-lock.js";
+import { runSecurityGate, type SkillInstallSecurity } from "./security-gate.js";
+import {
+  copySecurityScan,
+  getSecurityScan,
+  readSecurityScans,
+  removeSecurityScan,
+  renameSecurityScan
+} from "./security-store.js";
 import { CORRUPT_LOCK_PREFIX, removeSkillLockEntry, renameSkillLockEntry } from "./skills-lock.js";
 import { ensureDir, pathExists, writeFileAtomic } from "./shared.js";
 
@@ -219,6 +227,7 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
 
   const records = (await scanAssets(chainHome)).filter((record) => !kind || record.kind === kind);
   const installLock = await readInstallLock(chainHome);
+  const securityScans = (await readSecurityScans(chainHome)).scans;
 
   return await Promise.all(
     records.map(async (asset) => {
@@ -238,7 +247,8 @@ export async function listAssets(chainHomeInput?: string, kind?: AssetKind): Pro
         ...asset,
         author,
         compatIssues,
-        provenance: installLock.entries[installLockKey(asset.kind, asset.name)] ?? null
+        provenance: installLock.entries[installLockKey(asset.kind, asset.name)] ?? null,
+        securityScan: securityScans[installLockKey(asset.kind, asset.name)] ?? null
       };
     })
   );
@@ -250,6 +260,7 @@ export async function loadAllAssetDetails(chainHomeInput?: string): Promise<Asse
   await initializeHub(chainHome);
 
   const installLock = await readInstallLock(chainHome);
+  const securityScans = (await readSecurityScans(chainHome)).scans;
 
   return Promise.all(
     (await scanAssets(chainHome)).map(async (record) => {
@@ -259,7 +270,8 @@ export async function loadAllAssetDetails(chainHomeInput?: string): Promise<Asse
         content,
         author: extractAssetAuthor(content),
         compatIssues: listAssetCompatIssues(record.kind, content),
-        provenance: installLock.entries[installLockKey(record.kind, record.name)] ?? null
+        provenance: installLock.entries[installLockKey(record.kind, record.name)] ?? null,
+        securityScan: securityScans[installLockKey(record.kind, record.name)] ?? null
       };
     })
   );
@@ -276,6 +288,7 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
   const content = await fs.readFile(filePath, "utf8");
   const stats = await fs.stat(filePath);
   const provenance = await readAssetProvenance(chainHome, kind, name);
+  const securityScan = await getSecurityScan(chainHome, kind, name);
 
   return {
     id: toAssetId(kind, name),
@@ -286,7 +299,8 @@ export async function getAsset(chainHomeInput: string | undefined, kind: AssetKi
     content,
     author: extractAssetAuthor(content),
     compatIssues: listAssetCompatIssues(kind, content),
-    provenance
+    provenance,
+    securityScan
   };
 }
 
@@ -340,6 +354,7 @@ export async function forkHubAsset(
   await ensureDir(path.dirname(toPath));
   await fs.writeFile(toPath, prepareAssetContent(kind, targetName, content), "utf8");
   await removeInstallLockEntry(chainHome, kind, targetName);
+  await copySecurityScan(chainHome, kind, name, kind, targetName);
 
   return getAsset(chainHome, kind, targetName);
 }
@@ -363,7 +378,11 @@ function resolveMoveNames(currentName: string, nextName: string): { fromName: st
 
 const EDIT_UPSTREAM_ADVICE = "Fork it to customize, or edits will be lost on update.";
 
-export async function createAsset(chainHomeInput: string | undefined, input: CreateAssetInput): Promise<AssetDetail> {
+export async function createAsset(
+  chainHomeInput: string | undefined,
+  input: CreateAssetInput,
+  security?: SkillInstallSecurity & { allowUnsafe?: boolean }
+): Promise<AssetDetail> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
@@ -381,6 +400,15 @@ export async function createAsset(chainHomeInput: string | undefined, input: Cre
     throw new ConflictError(`Asset already exists: ${input.kind}/${name}`);
   }
 
+  await runSecurityGate(chainHome, {
+    kind: input.kind,
+    name,
+    context: security?.context ?? "edit",
+    files: [{ path: input.kind === "skills" ? "SKILL.md" : `${name}.md`, content }],
+    allowUnsafe: security?.allowUnsafe,
+    extraScanner: security?.extraScanner
+  });
+
   await fs.writeFile(filePath, content, "utf8");
 
   return getAsset(chainHome, input.kind, name);
@@ -390,7 +418,8 @@ export async function updateAsset(
   chainHomeInput: string | undefined,
   kind: AssetKind,
   name: string,
-  content: string
+  content: string,
+  security?: SkillInstallSecurity & { allowUnsafe?: boolean }
 ): Promise<AssetDetail> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
@@ -404,6 +433,15 @@ export async function updateAsset(
   await assertEditableAsset(chainHome, kind, name, EDIT_UPSTREAM_ADVICE);
 
   const nextContent = prepareAssetContent(kind, name, content);
+
+  await runSecurityGate(chainHome, {
+    kind,
+    name,
+    context: security?.context ?? "edit",
+    files: [{ path: kind === "skills" ? "SKILL.md" : `${name}.md`, content: nextContent }],
+    allowUnsafe: security?.allowUnsafe,
+    extraScanner: security?.extraScanner
+  });
 
   await fs.writeFile(filePath, nextContent, "utf8");
 
@@ -429,6 +467,7 @@ export async function deleteAsset(chainHomeInput: string | undefined, kind: Asse
     await fs.unlink(filePath);
     await removeInstallLockEntry(chainHome, kind, name);
   }
+  await removeSecurityScan(chainHome, kind, name);
 }
 
 export async function renameAsset(
@@ -465,6 +504,7 @@ export async function renameAsset(
     await ensureDir(path.dirname(toPath));
     await fs.rename(fromPath, toPath);
   }
+  await renameSecurityScan(chainHome, kind, fromName, kind, toName);
 
   return getAsset(chainHome, kind, toName);
 }
@@ -514,6 +554,7 @@ export async function convertAssetKind(
   } else {
     await fs.unlink(fromPath);
   }
+  await renameSecurityScan(chainHome, fromKind, fromName, toKind, toName);
 
   return getAsset(chainHome, toKind, toName);
 }

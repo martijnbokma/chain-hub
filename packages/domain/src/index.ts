@@ -54,6 +54,9 @@ import {
 } from "@chain-hub/storage";
 
 import { auditExistingAsset, classifyExistingAsset, generateAssetDraft, improveExistingAsset } from "./ai-providers.js";
+import { buildSecurityExtraScanner } from "./security.js";
+
+export { buildSecurityExtraScanner, rescanHubAssets } from "./security.js";
 
 export { AiProviderError } from "./ai-providers.js";
 export {
@@ -150,7 +153,8 @@ export async function discoverLibraryAssets(chainHome?: string) {
 }
 
 export async function importLibraryAsset(chainHome: string | undefined, input: ImportAssetInput) {
-  const asset = await importDiscoveredAsset(chainHome, input);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const asset = await importDiscoveredAsset(chainHome, input, { extraScanner });
   await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
   return asset;
 }

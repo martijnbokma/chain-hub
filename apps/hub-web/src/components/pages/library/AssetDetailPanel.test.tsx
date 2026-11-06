@@ -73,6 +73,9 @@ describe('AssetDetailPanel tabs & sidecars', () => {
     isAuditing: false,
     onImproveAsset: vi.fn(),
     isImproving: false,
+    securityScan: null,
+    isRescanning: false,
+    onRescan: vi.fn(),
     skillFiles: [
       { path: 'reference', isDirectory: true, size: 0 },
       { path: 'reference/adapt.md', isDirectory: false, size: 1024 },

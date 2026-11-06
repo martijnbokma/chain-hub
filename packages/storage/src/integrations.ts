@@ -13,6 +13,7 @@ import {
 } from "@chain-hub/contracts";
 
 import { createAsset, getAsset, listAssets, loadAllAssetDetails, resolveChainHome } from "./core.js";
+import type { SkillInstallSecurity } from "./security-gate.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
 import { devinConfigDir } from "./adapters/devin.js";
 import { zedConfigDir } from "./adapters/zed.js";
@@ -238,7 +239,11 @@ export async function discoverAssets(chainHomeInput?: string): Promise<Discovere
 }
 
 /** Adopts a discovered native file into the hub as a regular managed asset. */
-export async function importDiscoveredAsset(chainHomeInput: string | undefined, input: ImportAssetInput): Promise<AssetDetail> {
+export async function importDiscoveredAsset(
+  chainHomeInput: string | undefined,
+  input: ImportAssetInput,
+  security?: SkillInstallSecurity
+): Promise<AssetDetail> {
   const chainHome = resolveChainHome(chainHomeInput);
   const adapter = EDITOR_ADAPTERS.find((candidate) => candidate.id === input.editorId);
 
@@ -253,7 +258,11 @@ export async function importDiscoveredAsset(chainHomeInput: string | undefined, 
     throw new NotFoundError(`No importable ${input.kind}/${input.name} found for ${input.editorId}`);
   }
 
-  const asset = await createAsset(chainHome, { kind: match.kind, name: match.name, content: match.content });
+  const asset = await createAsset(
+    chainHome,
+    { kind: match.kind, name: match.name, content: match.content },
+    { context: "import", allowUnsafe: input.allowUnsafe, extraScanner: security?.extraScanner }
+  );
 
   if (asset.kind === "skills") {
     // Scripts and references travel with the skill, so every other editor gets a working copy.

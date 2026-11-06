@@ -29,6 +29,7 @@ export function registerSkillCommands(program: Command): void {
     .option("--subdir <path>", "Skill folder inside the git repo")
     .option("--name <name>", "Override skill name")
     .option("--force", "Replace an existing hub skill", false)
+    .option("--allow-unsafe", "Install anyway when the security scan blocks the skill (audit-logged)", false)
     .action(
       async (commandOptions: {
         path?: string;
@@ -36,6 +37,7 @@ export function registerSkillCommands(program: Command): void {
         subdir?: string;
         name?: string;
         force?: boolean;
+        allowUnsafe?: boolean;
       }) => {
         const options = program.opts<{ chainHome?: string }>();
         const input = installSkillInputSchema.parse({
@@ -43,7 +45,8 @@ export function registerSkillCommands(program: Command): void {
           repo: commandOptions.repo,
           subdir: commandOptions.subdir,
           name: commandOptions.name,
-          force: commandOptions.force
+          force: commandOptions.force,
+          allowUnsafe: commandOptions.allowUnsafe
         });
         const result = await installLibrarySkill(options.chainHome, input);
         printJson(result);
@@ -55,11 +58,13 @@ export function registerSkillCommands(program: Command): void {
     .description("Reinstall hub skills from their recorded upstream sources")
     .option("--name <name>", "Update a single skill (default: all locked skills)")
     .option("--force", "Update even when the content hash is unchanged", false)
-    .action(async (commandOptions: { name?: string; force?: boolean }) => {
+    .option("--allow-unsafe", "Update anyway when the security scan blocks the new content (audit-logged)", false)
+    .action(async (commandOptions: { name?: string; force?: boolean; allowUnsafe?: boolean }) => {
       const options = program.opts<{ chainHome?: string }>();
       const input = updateSkillsInputSchema.parse({
         name: commandOptions.name,
-        force: commandOptions.force
+        force: commandOptions.force,
+        allowUnsafe: commandOptions.allowUnsafe
       });
       const result = await updateLibrarySkills(options.chainHome, input);
       printJson(result);

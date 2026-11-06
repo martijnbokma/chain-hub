@@ -45,7 +45,8 @@ import type {
   SyncStatus,
   CatalogResult,
   InstallCatalogEntryInput,
-  InstallCatalogEntryResult
+  InstallCatalogEntryResult,
+  RescanAssetsResult
 } from '@/types';
 
 import { getJson, sendJson } from './http';
@@ -92,8 +93,6 @@ export const libraryApi = {
     sendJson<InstallSkillResult>('/api/library/skills/install', 'POST', data),
   installSkillBundle: (data: InstallSkillBundleInput) =>
     sendJson<InstallSkillResult>('/api/library/skills/install-bundle', 'POST', data),
-  updateSkills: (data: { name?: string; force?: boolean } = {}) =>
-    sendJson<UpdateSkillsResult>('/api/library/skills/update', 'POST', data),
   checkSkillUpdates: (options: { name?: string; force?: boolean } = {}) =>
     sendJson<CheckSkillUpdatesResult>('/api/library/skills/check-updates', 'POST', options),
   getSkillUpstreamDirs: (name: string) =>
@@ -104,6 +103,8 @@ export const libraryApi = {
     sendJson<{ ok: true }>(`/api/library/skills/${encodeURIComponent(name)}/unlink`, 'POST', options),
   forkSkill: (data: { kind?: AssetKind; name: string; as?: string }) =>
     sendJson<AssetDetail>('/api/library/skills/fork', 'POST', data),
+  updateSkills: (data: { name?: string; force?: boolean; allowUnsafe?: boolean } = {}) =>
+    sendJson<UpdateSkillsResult>('/api/library/skills/update', 'POST', data),
   getSkillFiles: (name: string) =>
     getJson<{ files: SkillFileEntry[] }>(`/api/library/skills/${encodeURIComponent(name)}/files`),
   getSkillFile: (name: string, path: string) =>
@@ -131,6 +132,14 @@ export const analysisApi = {
   setItemStatus: (data: UpdateAnalysisItemInput) =>
     sendJson<AnalysisReport>('/api/analysis/items', 'PATCH', data)
 };
+
+// Security API — re-scan installed assets; blocked installs return 403 + scan on all install endpoints
+export const securityApi = {
+  rescan: (data: { kind?: string; name?: string } = {}) =>
+    sendJson<RescanAssetsResult>('/api/security/rescan', 'POST', data)
+};
+
+export type { RescanAssetsResult };
 
 // Integrations API
 export const integrationsApi = {

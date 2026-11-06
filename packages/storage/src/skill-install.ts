@@ -15,9 +15,12 @@ import {
   isUpstreamOwnedSkill,
   normalizeSkillName,
   NotFoundError,
+  type SecurityScanRecord,
   type SkillLockEntry
 } from "@chain-hub/contracts";
 
+import { runSecurityGate, type SkillInstallSecurity } from "./security-gate.js";
+import { getSecurityScan } from "./security-store.js";
 import { pathExists } from "./shared.js";
 import { copySkillTree, createSkillCopyFilter } from "./skill-copy.js";
 import { resolveGitSkillDir } from "./skill-git.js";
@@ -96,8 +99,9 @@ function isSkillMdPath(filePath: string): boolean {
 export async function installSkillFromBundle(
   chainHome: string,
   input: InstallSkillBundleInput,
-  readAsset: ReadAsset
-): Promise<InstallSkillResult> {
+  readAsset: ReadAsset,
+  security?: SkillInstallSecurity
+): Promise<InstallSkillResult & { securityScan: SecurityScanRecord }> {
   const skillMdEntry = input.files.find((file) => isSkillMdPath(file.path));
 
   if (!skillMdEntry) {
@@ -132,9 +136,19 @@ export async function installSkillFromBundle(
       }
     }
 
+    const contentHash = await hashSkillTree(sourceDir);
+    const securityScan = await runSecurityGate(chainHome, {
+      kind: "skills",
+      name,
+      context: security?.context ?? "upload",
+      rootDir: sourceDir,
+      contentHash,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: security?.extraScanner
+    });
+
     await copySkillTree(sourceDir, destination);
 
-    const contentHash = await hashSkillTree(destination);
     const lockEntry = await recordSkillInstall(chainHome, name, () => ({
       sourceType: "path",
       source: `upload://${name}`,
@@ -143,7 +157,7 @@ export async function installSkillFromBundle(
     }));
 
     const asset = await readAsset(chainHome, "skills", name);
-    return { asset, lockEntry };
+    return { asset, lockEntry, securityScan };
   } finally {
     await fs.rm(stagingDir, { recursive: true, force: true });
   }
@@ -152,9 +166,16 @@ export async function installSkillFromBundle(
 export async function installSkillFromSource(
   chainHome: string,
   input: InstallSkillInput,
-  readAsset: ReadAsset
-): Promise<InstallSkillResult> {
-  const { unchanged: _unchanged, ...result } = await installSkillFromSourceUnlessUnchanged(chainHome, input, readAsset, null);
+  readAsset: ReadAsset,
+  security?: SkillInstallSecurity
+): Promise<InstallSkillResult & { securityScan?: SecurityScanRecord }> {
+  const { unchanged: _unchanged, ...result } = await installSkillFromSourceUnlessUnchanged(
+    chainHome,
+    input,
+    readAsset,
+    null,
+    security
+  );
   return result;
 }
 
@@ -163,8 +184,9 @@ export async function installSkillFromSourceUnlessUnchanged(
   chainHome: string,
   input: InstallSkillInput,
   readAsset: ReadAsset,
-  knownHash: string | null
-): Promise<InstallSkillResult & { unchanged: boolean }> {
+  knownHash: string | null,
+  security?: SkillInstallSecurity
+): Promise<InstallSkillResult & { unchanged: boolean; securityScan?: SecurityScanRecord }> {
   let cleanupDir: string | null = null;
   let sourceDir: string;
   let sourceType: SkillLockEntry["sourceType"];
@@ -200,6 +222,21 @@ export async function installSkillFromSourceUnlessUnchanged(
     const contentHash = await hashSkillTree(sourceDir);
     const previousEntry = (await readSkillsLock(chainHome)).skills[name];
     if (knownHash && contentHash === knownHash && previousEntry) {
+      let securityScan = (await getSecurityScan(chainHome, "skills", name)) ?? undefined;
+      if (securityScan?.contentHash !== contentHash) {
+        // Installed before scanning existed (or the record is stale): scan the
+        // source anyway so the verdict reflects this exact content. Nothing is
+        // written, so a `fail` flags the installed copy instead of blocking.
+        securityScan = await runSecurityGate(chainHome, {
+          kind: "skills",
+          name,
+          context: "update",
+          rootDir: sourceDir,
+          contentHash,
+          enforce: false,
+          extraScanner: security?.extraScanner
+        });
+      }
       if (commitSha && (previousEntry.commitSha !== commitSha || previousEntry.latestSha !== commitSha)) {
         const updatedEntry = await mutateSkillsLock(chainHome, (lockFile) => {
           const entry = lockFile.skills[name];
@@ -210,10 +247,30 @@ export async function installSkillFromSourceUnlessUnchanged(
           }
           return entry ?? previousEntry;
         });
-        return { asset: await readAsset(chainHome, "skills", name), lockEntry: updatedEntry, unchanged: true };
+        return {
+          asset: await readAsset(chainHome, "skills", name),
+          lockEntry: updatedEntry,
+          unchanged: true,
+          securityScan
+        };
       }
-      return { asset: await readAsset(chainHome, "skills", name), lockEntry: previousEntry, unchanged: true };
+      return {
+        asset: await readAsset(chainHome, "skills", name),
+        lockEntry: previousEntry,
+        unchanged: true,
+        securityScan
+      };
     }
+
+    const securityScan = await runSecurityGate(chainHome, {
+      kind: "skills",
+      name,
+      context: security?.context ?? (knownHash ? "update" : "install"),
+      rootDir: sourceDir,
+      contentHash,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: security?.extraScanner
+    });
 
     await copySkillTree(sourceDir, destination);
 
@@ -228,7 +285,7 @@ export async function installSkillFromSourceUnlessUnchanged(
     }));
 
     const asset = await readAsset(chainHome, "skills", name);
-    return { asset, lockEntry, unchanged: false };
+    return { asset, lockEntry, unchanged: false, securityScan };
   } finally {
     if (cleanupDir) {
       await fs.rm(cleanupDir, { recursive: true, force: true });

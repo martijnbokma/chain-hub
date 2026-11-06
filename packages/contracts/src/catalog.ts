@@ -114,7 +114,9 @@ export const catalogResultSchema = z.object({
 export const installCatalogEntryInputSchema = z.object({
   sourceId: z.string().min(1),
   entryId: z.string().min(1),
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export type CatalogEntrySource = z.infer<typeof catalogEntrySourceSchema>;

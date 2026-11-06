@@ -41,7 +41,7 @@ export function useLibraryAssetMutations({
   resetAiResults
 }: LibraryAssetMutationsDeps) {
   const queryClient = useQueryClient();
-  const { updateSkills, retryCheck, unlinkSkill, forkSkill } = useLibrarySkillMutations({
+  const { updateSkills, retryCheck, unlinkSkill, forkSkill, rescanAsset } = useLibrarySkillMutations({
     selected,
     setSelected,
     setForkOpen,
@@ -223,6 +223,7 @@ export function useLibraryAssetMutations({
     retryCheck,
     unlinkSkill,
     forkSkill,
+    rescanAsset,
     convertKind
   };
 }
