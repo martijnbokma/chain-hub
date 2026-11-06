@@ -29,7 +29,7 @@
     "smoke": "node scripts/smoke-pack.mjs"
   },
   "dependencies": {
-    "commander": "^12.1.0",
+    "commander": "^15.0.0",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
