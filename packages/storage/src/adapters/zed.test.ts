@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import type { AssetDetail } from "@chain-hub/contracts";
 
-import { parseFrontmatter } from "./frontmatter.js";
 import { HEADER_MARKER } from "./marker.js";
 import { zedAdapter, zedConfigDir } from "./zed.js";
 
@@ -25,47 +24,13 @@ function makeAsset(overrides: Partial<AssetDetail> = {}): AssetDetail {
   };
 }
 
-describe("zedAdapter skills (1:1 kind)", () => {
-  it("projects a folded hub description into a single-line Zed frontmatter field", async () => {
-    const homeDir = await makeTmpHome();
-    const content = [
-      "---",
-      "name: bundle-strategy-audit",
-      "description: >-",
-      "  Audits code splitting and lazy-loading for editors.",
-      "---",
-      "",
-      "# Bundle Strategy Audit",
-      "",
-      "Body."
-    ].join("\n");
-
-    await zedAdapter.writeAsset(
-      "/chain-home",
-      homeDir,
-      makeAsset({ name: "bundle-strategy-audit", content })
-    );
-
-    const filePath = path.join(homeDir, ".agents", "skills", "bundle-strategy-audit", "SKILL.md");
-    const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
-    expect(data.description).toBe("Audits code splitting and lazy-loading for editors.");
-    expect(data.description).not.toBe(">-");
-  });
-
-  it("removes a managed skill file and its empty directory", async () => {
+describe("zedAdapter skills", () => {
+  it("leaves ~/.agents/skills alone — the agent-skills adapter owns that dir", async () => {
     const homeDir = await makeTmpHome();
     await zedAdapter.writeAsset("/chain-home", homeDir, makeAsset());
-    await zedAdapter.removeAsset("/chain-home", homeDir, "skills", "demo");
+    await zedAdapter.resync("/chain-home", homeDir, [makeAsset()]);
 
-    await expect(fs.stat(path.join(homeDir, ".agents", "skills", "demo"))).rejects.toThrow();
-  });
-
-  it("skips agents and workflows", async () => {
-    const homeDir = await makeTmpHome();
-    await zedAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "agents", name: "reviewer" }));
-    await zedAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "workflows", name: "deploy" }));
-
-    await expect(fs.stat(path.join(homeDir, ".agents", "agents"))).rejects.toThrow();
+    await expect(fs.stat(path.join(homeDir, ".agents", "skills"))).rejects.toThrow();
   });
 });
 
@@ -137,49 +102,22 @@ describe("zedAdapter rules (merge kind, via resync)", () => {
 });
 
 describe("zedAdapter.discover", () => {
-  it("finds a plain, unmanaged skill", async () => {
-    const homeDir = await makeTmpHome();
-    const filePath = path.join(homeDir, ".agents", "skills", "hand-written", "SKILL.md");
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text.", "utf8");
-
-    const discovered = await zedAdapter.discover(homeDir);
-
-    expect(discovered).toHaveLength(1);
-    expect(discovered[0]).toMatchObject({
-      kind: "skills",
-      name: "hand-written",
-      content: "---\nname: hand-written\ndescription: A hand-written skill\n---\n\nBody text."
-    });
-  });
-
-  it("never returns rules, even a foreign hand-written AGENTS.md", async () => {
+  it("returns nothing — skills live under agent-skills, rules can't be split back", async () => {
     const homeDir = await makeTmpHome();
     const filePath = path.join(zedConfigDir(homeDir), "AGENTS.md");
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, "# My own instructions\n\nDo X, then Y.", "utf8");
 
-    const discovered = await zedAdapter.discover(homeDir);
-
-    expect(discovered.some((c) => c.kind === "rules")).toBe(false);
-  });
-
-  it("excludes chain-hub-managed skills", async () => {
-    const homeDir = await makeTmpHome();
-    await zedAdapter.writeAsset("/chain-home", homeDir, makeAsset());
-
-    const discovered = await zedAdapter.discover(homeDir);
-
-    expect(discovered).toHaveLength(0);
+    expect(await zedAdapter.discover(homeDir)).toEqual([]);
   });
 });
 
 describe("zedAdapter.status", () => {
-  it("reports skills+rules as supported, agents+workflows as unsupported", async () => {
+  it("reports rules as supported, everything else as unsupported", async () => {
     const homeDir = await makeTmpHome();
     const result = await zedAdapter.status(homeDir);
-    expect(result.supportedKinds).toEqual(["skills", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["agents", "workflows", "prompts"]);
+    expect(result.supportedKinds).toEqual(["rules"]);
+    expect(result.unsupportedKinds).toEqual(["skills", "agents", "workflows", "prompts", "mcp", "hooks"]);
   });
 });
 

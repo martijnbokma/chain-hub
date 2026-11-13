@@ -15,6 +15,8 @@ import type {
   UpdateAiSettingsInput
 } from "@chain-hub/contracts";
 import {
+  assertSafeAssetKind,
+  assertSafeAssetName,
   autoSyncIfDirty,
   autoSyncOnStart,
   buildReflectionReport,
@@ -29,6 +31,9 @@ import {
   getIntegrations,
   getLearningsTimeline,
   getSkillLearnings,
+  listFoldArtifacts,
+  readFoldArtifact,
+  getHealth,
   getOverview,
   listHubIssues,
   getSetupGuide,
@@ -42,7 +47,9 @@ import {
   readAiConfig,
   readAiSecrets,
   readSkillFile,
+  removeSecurityScan,
   renameAsset,
+  resolveChainHome,
   resolveSkillLearnings,
   resolveSyncConflicts,
   syncNow,
@@ -54,17 +61,25 @@ import {
 } from "@chain-hub/storage";
 
 import { auditExistingAsset, classifyExistingAsset, generateAssetDraft, improveExistingAsset } from "./ai-providers.js";
+import { AUDIT_LEARNINGS_LIMIT } from "./learn-fold.js";
+import { buildSecurityExtraScanner } from "./security.js";
+
+export { buildSecurityExtraScanner, rescanHubAssets } from "./security.js";
 
 export { AiProviderError } from "./ai-providers.js";
 export {
   checkLibrarySkillUpdates,
+  discoverLibrarySkillDirs,
   forkLibrarySkill,
   getHubAgentsSkillsDrift,
   getLibrarySkillUpstreamDirs,
+  exportLibraryWorkflowToGhAw,
   installLibrarySkill,
+  installLibraryRepoBundle,
   installLibrarySkillBundle,
   migrateAgentsLibrarySkills,
   relinkLibrarySkill,
+  scanLibrarySkillSource,
   summarizeAgentsSkillSync,
   syncAgentsSkillsIntoHub,
   unlinkLibrarySkill,
@@ -73,7 +88,9 @@ export {
 
 export { getHubAnalysisReport, saveHubAnalysisReport, updateHubAnalysisItemStatus } from "./analysis.js";
 
-export { getLibraryCatalog, installLibraryCatalogEntry, refreshLibraryCatalog } from "./catalog.js";
+export { getLibraryCatalog, installLibraryCatalogEntry, refreshLibraryCatalog, scanLibraryCatalogEntry } from "./catalog.js";
+
+export { foldHubLearnings } from "./learn-fold.js";
 
 export async function initializeChainHub(chainHome?: string) {
   const result = await initializeHub(chainHome);
@@ -150,7 +167,8 @@ export async function discoverLibraryAssets(chainHome?: string) {
 }
 
 export async function importLibraryAsset(chainHome: string | undefined, input: ImportAssetInput) {
-  const asset = await importDiscoveredAsset(chainHome, input);
+  const extraScanner = await buildSecurityExtraScanner(chainHome);
+  const asset = await importDiscoveredAsset(chainHome, input, { extraScanner });
   await syncAssetToEditors(chainHome, asset.kind, asset.name, asset);
   return asset;
 }
@@ -205,6 +223,18 @@ export async function getHubIssues(chainHome?: string) {
   return listHubIssues(chainHome);
 }
 
+export async function getHubHealth(chainHome?: string) {
+  return getHealth(chainHome);
+}
+
+/** Delete one persisted security-scan record, e.g. for an asset that was removed. */
+export async function removeHubSecurityScan(chainHome: string | undefined, kind: string, name: string) {
+  assertSafeAssetKind(kind);
+  assertSafeAssetName(name);
+  await removeSecurityScan(resolveChainHome(chainHome), kind, name);
+  return { ok: true as const };
+}
+
 export async function captureHubEvent(chainHome: string | undefined, input: CaptureInput) {
   return captureEvent(chainHome, input);
 }
@@ -223,6 +253,14 @@ export async function resolveHubSkillLearnings(chainHome: string | undefined, sk
 
 export async function writeHubReflection(chainHome?: string) {
   return writeReflectionMarkdown(chainHome);
+}
+
+export async function listHubFoldArtifacts(chainHome?: string) {
+  return listFoldArtifacts(chainHome);
+}
+
+export async function getHubFoldArtifact(chainHome: string | undefined, date: string, skill: string) {
+  return readFoldArtifact(chainHome, date, skill);
 }
 
 export async function getHubAiSettings(chainHome?: string) {
@@ -254,8 +292,7 @@ export async function classifyHubAsset(chainHome: string | undefined, input: Cla
   });
 }
 
-/** Max captured learning events given to one audit, to keep the prompt focused. */
-const AUDIT_LEARNINGS_LIMIT = 10;
+/** Field reports given to one audit share the fold pipeline's limit. */
 
 export async function auditHubAsset(chainHome: string | undefined, input: AuditAssetInput) {
   const config = await readAiConfig(chainHome);

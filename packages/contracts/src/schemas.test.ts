@@ -152,7 +152,7 @@ describe("Contracts schemas", () => {
       const overview = overviewSchema.parse({
         chainHome: "/Users/test/.chain-hub",
         initializedAt: "2026-09-23T10:00:00Z",
-        assetCounts: { skills: 5, agents: 2, workflows: 1, rules: 3, prompts: 4 },
+        assetCounts: { skills: 5, agents: 2, workflows: 1, rules: 3, prompts: 4, mcp: 1, hooks: 0 },
         health: { initialized: true, issues: [] },
         storage: { indexedAssets: 15 },
         agentsSkillsDrift: drift

@@ -3,7 +3,14 @@ import path from "node:path";
 import { type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
 import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import {
+  buildInvokedSkillContent,
+  DISABLE_MODEL_INVOCATION,
+  removeInvokedSkill,
+  writeInvokedSkill
+} from "./invoke-skill.js";
 import { projectedFrontmatter } from "./marker.js";
+import { removeMcpServer, syncMcpServers, writeMcpServer } from "./mcp-config.js";
 import {
   buildIntegrationStatus,
   listFlatCandidates,
@@ -18,20 +25,26 @@ import { projectSkillSidecars } from "./skill-sidecars.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Cursor discovery paths (user-level): notes/docs/editor-adapters-research.md#cursor
-// Agents/workflows have no native target — Custom Modes were removed in Cursor 2.1.0
-// and Commands is being folded into Skills, so both kinds are intentionally skipped.
-const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules"];
+// Agents have no native target — Custom Modes were removed in Cursor 2.1.0.
+// Prompts/workflows project as invoke-only skills: .cursor/skills/<name>/SKILL.md
+// + disable-model-invocation, matching how Cursor folds Commands into Skills.
+// MCP servers merge into ~/.cursor/mcp.json.
+const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules", "prompts", "workflows", "mcp"];
+
+function mcpConfigPath(homeDir: string): string {
+  return path.join(homeDir, ".cursor", "mcp.json");
+}
 
 function baseDir(homeDir: string, kind: "skills" | "rules"): string {
   return path.join(homeDir, ".cursor", kind);
 }
 
-function targetPath(homeDir: string, kind: "skills" | "rules", name: string): string {
-  if (kind === "skills") {
-    return path.join(baseDir(homeDir, kind), name, "SKILL.md");
+function targetPath(homeDir: string, kind: AssetKind, name: string): string {
+  if (kind === "skills" || kind === "prompts" || kind === "workflows") {
+    return path.join(baseDir(homeDir, "skills"), name, "SKILL.md");
   }
 
-  return path.join(baseDir(homeDir, kind), `${name}.mdc`);
+  return path.join(baseDir(homeDir, "rules"), `${name}.mdc`);
 }
 
 function buildContent(asset: AssetDetail): string {
@@ -49,7 +62,18 @@ function buildContent(asset: AssetDetail): string {
 }
 
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
-  if (asset.kind !== "skills" && asset.kind !== "rules") {
+  if (!SUPPORTED_KINDS.includes(asset.kind)) {
+    return;
+  }
+
+  if (asset.kind === "prompts" || asset.kind === "workflows") {
+    const filePath = targetPath(homeDir, asset.kind, asset.name);
+    await writeInvokedSkill(filePath, buildInvokedSkillContent(asset, DISABLE_MODEL_INVOCATION), asset, { ...options, backup: { chainHome, homeDir } });
+    return;
+  }
+
+  if (asset.kind === "mcp") {
+    await writeMcpServer(mcpConfigPath(homeDir), asset);
     return;
   }
 
@@ -61,7 +85,7 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
 }
 
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
-  if (kind !== "skills" && kind !== "rules") {
+  if (!SUPPORTED_KINDS.includes(kind)) {
     return;
   }
 
@@ -70,18 +94,29 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
     return;
   }
 
+  if (kind === "prompts" || kind === "workflows") {
+    await removeInvokedSkill(targetPath(homeDir, kind, name), kind, name);
+    return;
+  }
+
+  if (kind === "mcp") {
+    await removeMcpServer(mcpConfigPath(homeDir), name);
+    return;
+  }
+
   await removeManagedFile(targetPath(homeDir, kind, name));
 }
 
 async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
   await resyncSupportedAssets(SUPPORTED_KINDS, assets, (asset, options) => writeAsset(chainHome, homeDir, asset, options));
+  await syncMcpServers(mcpConfigPath(homeDir), assets.filter((asset) => asset.kind === "mcp"));
 }
 
 async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
   return buildIntegrationStatus({
     id: "cursor",
     label: "Cursor",
-    targetPaths: [baseDir(homeDir, "skills"), baseDir(homeDir, "rules")],
+    targetPaths: [baseDir(homeDir, "skills"), baseDir(homeDir, "rules"), mcpConfigPath(homeDir)],
     supportedKinds: SUPPORTED_KINDS
   });
 }

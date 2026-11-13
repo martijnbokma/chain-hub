@@ -7,6 +7,7 @@ import {
   extractAssetAuthor,
   getExplicitDescription,
   listAssetCompatIssues,
+  parseAgentExecutionProfile,
   parseFrontmatter,
   stringifyFrontmatter
 } from "./frontmatter.js";
@@ -161,6 +162,56 @@ describe("getExplicitDescription / ensureExplicitDescription", () => {
     const content = "---\ndescription: Keep me\n---\n\n# Title\n";
     expect(ensureExplicitDescription(content, "demo")).toBe(content);
   });
+
+  it("repairs a frontmatter block broken by unquoted colons instead of burying it", () => {
+    const broken = [
+      "---",
+      "name: wordpress-plugin-engineering",
+      'description: Build or harden a plugin. Use for any work beyond a one-line fix: building features, audits. Trigger phrases: "audit plugin", "harden plugin".',
+      "version: 1.2.0",
+      "license: MIT",
+      "---",
+      "",
+      "# WordPress plugin engineering",
+      "",
+      "Body."
+    ].join("\n");
+
+    const repaired = ensureExplicitDescription(broken, "wordpress-plugin-engineering");
+    const { data, body } = parseFrontmatter(repaired);
+
+    expect(data.name).toBe("wordpress-plugin-engineering");
+    expect(data.description).toBe(
+      'Build or harden a plugin. Use for any work beyond a one-line fix: building features, audits. Trigger phrases: "audit plugin", "harden plugin".'
+    );
+    expect(data.version).toBe("1.2.0");
+    expect(data.license).toBe("MIT");
+    expect(body).toContain("# WordPress plugin engineering");
+    expect(listAssetCompatIssues("skills", repaired)).toEqual([]);
+    expect(repaired.match(/^---$/gm)).toHaveLength(2);
+  });
+
+  it("fills a missing description into a salvaged block from the real body heading", () => {
+    const broken = ["---", "name: demo", "description: Works: sometimes", "---", "", "# Demo Skill", "", "Body."].join(
+      "\n"
+    );
+    const repaired = ensureExplicitDescription(broken, "demo");
+    const { data } = parseFrontmatter(repaired);
+    expect(data.description).toBe("Works: sometimes");
+  });
+
+  it("salvages a block without description using the real body heading", () => {
+    const broken = ["---", "name: demo", "version: 1.0.0", "---", "", "# Demo Skill", "", "Body."].join("\n");
+    const repaired = ensureExplicitDescription(broken, "demo");
+    const { data } = parseFrontmatter(repaired);
+    expect(data.description).toBe("Demo Skill");
+  });
+
+  it("does not salvage blocks with nested structure — keeps the prepend fallback", () => {
+    const broken = ["---", "metadata:", "  author: someone", "---", "", "# Demo"].join("\n");
+    const ensured = ensureExplicitDescription(broken, "demo");
+    expect(getExplicitDescription(ensured)).toBe("Demo");
+  });
 });
 
 describe("listAssetCompatIssues / assertWritableAssetContent", () => {
@@ -177,6 +228,10 @@ describe("listAssetCompatIssues / assertWritableAssetContent", () => {
 
   it("ignores non-skill kinds", () => {
     expect(listAssetCompatIssues("rules", "# Title\n\nBody")).toEqual([]);
+
+    // Agents route by description too — missing one is an error, like skills.
+    expect(listAssetCompatIssues("agents", "# Agent\n\nBody")[0]?.code).toBe("missing_description");
+    expect(listAssetCompatIssues("agents", "---\ndescription: Reviews code\n---\n\n# Agent")).toEqual([]);
   });
 
   it("throws from assertWritableAssetContent for skills missing description", () => {
@@ -232,5 +287,23 @@ describe("extractAssetAuthor", () => {
     expect(extractAssetAuthor("---\nmetadata:\n  author: Nested\n---\n# A")).toBe("Nested");
     expect(extractAssetAuthor("---\nauthor: Flat\n---\n# A")).toBe("Flat");
     expect(extractAssetAuthor("# No frontmatter")).toBeNull();
+  });
+});
+
+describe("parseAgentExecutionProfile", () => {
+  it("reads the execution-profile fields an agent declares", () => {
+    const profile = parseAgentExecutionProfile(
+      "---\nname: reviewer\ntools: Read, Grep\ndisallowedTools:\n  - Bash\nmodel: haiku\nisolation: worktree\n---\n\nYou review code."
+    );
+    expect(profile).toEqual({
+      tools: "Read, Grep",
+      disallowedTools: ["Bash"],
+      model: "haiku",
+      isolation: "worktree"
+    });
+  });
+
+  it("returns an empty profile for non-agent or unparseable frontmatter", () => {
+    expect(parseAgentExecutionProfile("# No frontmatter")).toEqual({});
   });
 });

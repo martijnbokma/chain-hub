@@ -24,7 +24,15 @@ export const overviewSchema = z.object({
 });
 
 /** What kind of problem a hub issue represents; drives grouping and copy. */
-export const hubIssueKindSchema = z.enum(["health", "agents-drift", "skill-check", "skill-update", "compat", "sync"]);
+export const hubIssueKindSchema = z.enum([
+  "health",
+  "agents-drift",
+  "skill-check",
+  "skill-update",
+  "compat",
+  "sync",
+  "security"
+]);
 
 /** Remediation offered on an issue; the client maps each to a concrete control. */
 export const hubIssueActionSchema = z.enum([
@@ -35,7 +43,8 @@ export const hubIssueActionSchema = z.enum([
   "open-asset",
   "import-agents",
   "open-setup",
-  "open-integrations"
+  "open-integrations",
+  "remove-scan"
 ]);
 
 export const hubIssueSchema = z.object({
@@ -81,6 +90,38 @@ export const validationSchema = z.object({
   checks: z.array(validationCheckSchema)
 });
 
+/** Which part of the hub a health card covers. */
+export const healthSubsystemIdSchema = z.enum(["structure", "skills", "editors", "sync", "security", "ai"]);
+
+/** `inactive` means "not set up" (optional subsystem), not a problem. */
+export const healthStatusSchema = z.enum(["healthy", "warning", "error", "inactive"]);
+
+export const healthMetricSchema = z.object({
+  label: z.string().min(1),
+  value: z.string()
+});
+
+export const healthSubsystemSchema = z.object({
+  id: healthSubsystemIdSchema,
+  label: z.string(),
+  status: healthStatusSchema,
+  /** One-line human summary, e.g. "2 of 3 installed editors connected". */
+  summary: z.string(),
+  metrics: z.array(healthMetricSchema),
+  /** Most recent timestamp the subsystem produced (last sync, update check, scan). */
+  lastActivityAt: z.string().nullable().optional(),
+  /** The hub issues that belong to this subsystem. */
+  issues: z.array(hubIssueSchema)
+});
+
+export const healthReportSchema = z.object({
+  generatedAt: z.string(),
+  /** Worst status across active subsystems — `inactive` never drags it down. */
+  status: z.enum(["healthy", "warning", "error"]),
+  issueCount: z.number().int().nonnegative(),
+  subsystems: z.array(healthSubsystemSchema)
+});
+
 export type Overview = z.infer<typeof overviewSchema>;
 export type AgentsSkillsDrift = z.infer<typeof agentsSkillsDriftSchema>;
 export type HubIssue = z.infer<typeof hubIssueSchema>;
@@ -91,3 +132,8 @@ export type Integration = z.infer<typeof integrationSchema>;
 export type IntegrationMode = z.infer<typeof integrationModeSchema>;
 export type ValidationCheck = z.infer<typeof validationCheckSchema>;
 export type ValidationResult = z.infer<typeof validationSchema>;
+export type HealthSubsystemId = z.infer<typeof healthSubsystemIdSchema>;
+export type HealthStatus = z.infer<typeof healthStatusSchema>;
+export type HealthMetric = z.infer<typeof healthMetricSchema>;
+export type HealthSubsystem = z.infer<typeof healthSubsystemSchema>;
+export type HealthReport = z.infer<typeof healthReportSchema>;

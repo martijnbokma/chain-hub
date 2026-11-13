@@ -4,31 +4,14 @@
   "version": "0.1.0",
   "license": "MIT",
   "packageManager": "bun@1.3.11",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "overrides": {
-    "toml": "^5.0.1",
-    "zod": "^4.6.7",
-    "esbuild": "^0.28.1"
-  },
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "turbo run build",
-    "dev": "bun scripts/dev.ts",
-    "dev:hub": "turbo run dev --ui=stream --filter=@chain-hub/hub-web --filter=@chain-hub/server --filter=@chain-hub/contracts --filter=@chain-hub/domain --filter=@chain-hub/storage",
-    "dev:marketing": "turbo run dev --ui=stream --filter=@chain-hub/marketing-site",
-    "dev:docs": "turbo run dev --ui=stream --filter=@chain-hub/docs",
-    "hub": "turbo run build && node packages/cli/dist/index.js hub",
+    "dev": "turbo run dev --filter=@chain-hub/hub-web --filter=@chain-hub/server --filter=@chain-hub/contracts --filter=@chain-hub/domain --filter=@chain-hub/storage",
+    "hub": "turbo run build --filter=@chain-hub/* --filter=@usechain/chain-hub && node packages/cli/dist/index.js hub",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "test:coverage": "turbo run test:coverage --concurrency=1",
-    "test:e2e": "turbo run test:e2e"
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -39,6 +22,11 @@
     "globals": "^15.15.0",
     "turbo": "^2.11.10",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.72.0"
-  }
+    "typescript-eslint": "^8.72.1"
+  },
+  "description": "Chain Hub — a local-first control plane for AI assistant skills, agents, workflows, rules and prompts. One hub folder, synced into Cursor, Claude Code, Windsurf, Zed and more.",
+  "workspaces": [
+    "packages/*",
+    "web"
+  ]
 }

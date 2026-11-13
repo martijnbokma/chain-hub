@@ -130,12 +130,14 @@ describe("devinAdapter.writeAsset", () => {
     expect(body).toContain("Real skill.");
   });
 
-  it("skips prompts (no native target)", async () => {
+  it("projects prompts as user-triggered skills", async () => {
     const homeDir = await makeTmpHome();
     await devinAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "prompts", name: "idea" }));
 
-    await expect(fs.stat(configDir(homeDir))).rejects.toThrow();
-    await expect(fs.stat(path.join(homeDir, ".devin"))).rejects.toThrow();
+    const filePath = path.join(configDir(homeDir), "skills", "idea", "SKILL.md");
+    const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
+    expect(data.chain_hub_source).toBe("prompts/idea");
+    expect(data.triggers).toEqual(["user"]);
   });
 });
 
@@ -238,8 +240,8 @@ describe("devinAdapter.status", () => {
   it("reports all four kinds as supported, prompts as unsupported", async () => {
     const homeDir = await makeTmpHome();
     const result = await devinAdapter.status(homeDir);
-    expect(result.supportedKinds).toEqual(["skills", "agents", "rules", "workflows"]);
-    expect(result.unsupportedKinds).toEqual(["prompts"]);
+    expect(result.supportedKinds).toEqual(["skills", "agents", "rules", "workflows", "prompts"]);
+    expect(result.unsupportedKinds).toEqual(["mcp", "hooks"]);
     expect(result.label).toBe("Devin CLI");
     expect(result.targetPaths).toContain(path.join(configDir(homeDir), "skills"));
     expect(result.targetPaths).toContain(path.join(homeDir, ".devin", "rules"));

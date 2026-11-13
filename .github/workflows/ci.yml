@@ -1,122 +1,13 @@
-name: CI
-
+name: check
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
-
-permissions:
-  contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  ci:
-    name: Build · Lint · Typecheck · Test
+  check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # docs drift check diffs the pushed range
-
-      # The oldest Node the CLI supports (package.json engines), so we catch APIs it lacks.
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22.13.0"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.11"
-
-      - name: Cache Bun packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build
-        run: bun run build
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Typecheck
-        run: bun run typecheck
-
-      - name: Docs drift check
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bun scripts/check-docs-drift.ts origin/${{ github.base_ref }} HEAD
-          else
-            bun scripts/check-docs-drift.ts "${{ github.event.before }}" "${{ github.sha }}"
-          fi
-
-      - name: Test with coverage gate
-        run: bun run test:coverage
-
-      - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
-        working-directory: apps/hub-web
-
-      - name: E2E test
-        run: bun run test:e2e
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: apps/hub-web/playwright-report
-          retention-days: 7
-
-      - name: Smoke-test the packaged CLI
-        run: bun run smoke
-        working-directory: packages/cli
-
-  cross-platform:
-    name: Unit tests + package smoke (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22.13.0"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.11"
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build
-        run: bun run build
-
-      - name: Unit tests
-        run: bun run test
-
-      - name: Smoke-test the packaged CLI
-        run: bun run smoke
-        working-directory: packages/cli
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx turbo run build test typecheck

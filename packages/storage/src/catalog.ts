@@ -6,16 +6,21 @@ import {
   type CatalogIndex,
   catalogIndexSchema,
   type CatalogResult,
+  catalogScansFileSchema,
+  type CatalogScansFile,
   type CatalogSource,
   type CatalogSourcesFile,
   catalogSourcesFileSchema,
   InvalidInputError,
-  NotFoundError
+  NotFoundError,
+  type ScanCatalogEntryResult,
+  type SecurityScanRecord
 } from "@chain-hub/contracts";
 
 import { installLockKey, mutateInstallLock, readInstallLock } from "./install-lock.js";
-import { installAssetFromSource } from "./asset-install.js";
-import { installSkillFromSource } from "./skill-install.js";
+import { cloneRepo, installAssetFromSource, locateAssetFile } from "./asset-install.js";
+import { runSecurityGate, type SkillInstallSecurity } from "./security-gate.js";
+import { installSkillFromSource, previewSkillScan } from "./skill-install.js";
 import { getAsset } from "./core.js";
 import { pathExists, writeFileAtomic } from "./shared.js";
 
@@ -40,6 +45,10 @@ function sourcesPath(chainHome: string): string {
 
 function cachePath(chainHome: string, sourceId: string): string {
   return path.join(chainHome, "system", "catalogs", `${sourceId}.json`);
+}
+
+function scansPath(chainHome: string): string {
+  return path.join(chainHome, "system", "catalog-scans.json");
 }
 
 export async function readCatalogSources(chainHome: string): Promise<CatalogSourcesFile> {
@@ -140,6 +149,22 @@ export async function refreshCatalogIndexes(
   return { stale, failed };
 }
 
+async function readCatalogScans(chainHome: string): Promise<CatalogScansFile["scans"]> {
+  try {
+    const raw = await fs.readFile(scansPath(chainHome), "utf8");
+    return catalogScansFileSchema.parse(JSON.parse(raw)).scans;
+  } catch {
+    return {};
+  }
+}
+
+async function writeCatalogScan(chainHome: string, sourceId: string, entryId: string, scan: SecurityScanRecord): Promise<void> {
+  const scans = await readCatalogScans(chainHome);
+  scans[`${sourceId}/${entryId}`] = { scan, scannedAt: new Date().toISOString() };
+  await fs.mkdir(path.dirname(scansPath(chainHome)), { recursive: true });
+  await writeFileAtomic(scansPath(chainHome), `${JSON.stringify({ version: 1, scans }, null, 2)}\n`);
+}
+
 export async function listCatalogEntries(
   chainHome: string,
   options: { force?: boolean } = {}
@@ -147,6 +172,7 @@ export async function listCatalogEntries(
   const { stale, failed } = await refreshCatalogIndexes(chainHome, options);
   const { sources } = await readCatalogSources(chainHome);
   const lock = await readInstallLock(chainHome);
+  const scans = await readCatalogScans(chainHome);
 
   const entries: CatalogEntryResult[] = [];
   for (const source of sources) {
@@ -157,7 +183,8 @@ export async function listCatalogEntries(
     for (const entry of index.entries) {
       const installedKey = installLockKey(entry.kind, entry.id);
       const installed = Boolean(lock.entries[installedKey]);
-      entries.push({ ...entry, sourceId: source.id, installed, installedName: installed ? entry.id : null });
+      const cached = scans[`${source.id}/${entry.id}`]?.scan ?? null;
+      entries.push({ ...entry, sourceId: source.id, installed, installedName: installed ? entry.id : null, securityScan: cached });
     }
   }
 
@@ -181,15 +208,23 @@ export async function resolveCatalogEntry(chainHome: string, sourceId: string, e
  */
 export async function installCatalogEntry(
   chainHome: string,
-  input: { sourceId: string; entryId: string; force?: boolean }
+  input: { sourceId: string; entryId: string; force?: boolean; allowUnsafe?: boolean },
+  security?: Pick<SkillInstallSecurity, "extraScanner">
 ): Promise<{ asset: Awaited<ReturnType<typeof getAsset>>; scriptsDetected: boolean }> {
   const entry = await resolveCatalogEntry(chainHome, input.sourceId, input.entryId);
 
   if (entry.kind === "skills") {
     const result = await installSkillFromSource(
       chainHome,
-      { repo: entry.source.repo, subdir: entry.source.subdir, name: entry.id, force: input.force },
-      (home, kind, name) => getAsset(home, kind, name)
+      {
+        repo: entry.source.repo,
+        subdir: entry.source.subdir,
+        name: entry.id,
+        force: input.force,
+        allowUnsafe: input.allowUnsafe
+      },
+      (home, kind, name) => getAsset(home, kind, name),
+      { context: "catalog", extraScanner: security?.extraScanner }
     );
 
     await mutateInstallLock(chainHome, (lockFile) => {
@@ -212,10 +247,55 @@ export async function installCatalogEntry(
       name: entry.id,
       force: input.force,
       catalogId: input.sourceId,
-      catalogEntryId: entry.id
+      catalogEntryId: entry.id,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: security?.extraScanner
     });
     return { asset: result.asset, scriptsDetected: false };
   }
 
   throw new InvalidInputError(`Catalog entries of kind ${entry.kind} cannot be installed yet`);
+}
+
+/**
+ * Pre-install scan of a catalog entry: resolves the source exactly like an
+ * install would (clone, subdir resolution) and runs the security gate without
+ * enforcing — the verdict is cached under `sourceId/entryId` so the catalog
+ * list can show it before install. Nothing enters the hub.
+ */
+export async function scanCatalogEntry(
+  chainHome: string,
+  input: { sourceId: string; entryId: string },
+  security?: Pick<SkillInstallSecurity, "extraScanner">
+): Promise<ScanCatalogEntryResult> {
+  const entry = await resolveCatalogEntry(chainHome, input.sourceId, input.entryId);
+
+  let scan: SecurityScanRecord;
+  if (entry.kind === "skills") {
+    ({ scan } = await previewSkillScan(
+      chainHome,
+      { repo: entry.source.repo, subdir: entry.source.subdir, name: entry.id },
+      { extraScanner: security?.extraScanner }
+    ));
+  } else {
+    const cloned = await cloneRepo(entry.source.repo);
+    try {
+      const { file } = await locateAssetFile(cloned.cleanupDir, entry.source.subdir, entry.id);
+      const content = await fs.readFile(file, "utf8");
+      scan = await runSecurityGate(chainHome, {
+        kind: entry.kind,
+        name: entry.id,
+        context: "catalog",
+        files: [{ path: `${entry.id}.md`, content }],
+        enforce: false,
+        record: false,
+        extraScanner: security?.extraScanner
+      });
+    } finally {
+      await fs.rm(cloned.cleanupDir, { recursive: true, force: true });
+    }
+  }
+
+  await writeCatalogScan(chainHome, input.sourceId, input.entryId, scan);
+  return { scan };
 }

@@ -15,9 +15,14 @@ import {
   isUpstreamOwnedSkill,
   normalizeSkillName,
   NotFoundError,
+  type ScanSkillSourceInput,
+  type ScanSkillSourceResult,
+  type SecurityScanRecord,
   type SkillLockEntry
 } from "@chain-hub/contracts";
 
+import { runSecurityGate, type SkillInstallSecurity } from "./security-gate.js";
+import { getSecurityScan } from "./security-store.js";
 import { pathExists } from "./shared.js";
 import { copySkillTree, createSkillCopyFilter } from "./skill-copy.js";
 import { resolveGitSkillDir } from "./skill-git.js";
@@ -93,11 +98,42 @@ function isSkillMdPath(filePath: string): boolean {
   return normalized === "SKILL.md" || normalized.endsWith("/SKILL.md");
 }
 
+/** Writes an upload bundle into a temp staging dir; caller cleans up. */
+async function stageSkillBundleFiles(files: InstallSkillBundleInput["files"]): Promise<string> {
+  const stagingDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-upload-"));
+  try {
+    for (const file of files) {
+      const relative = assertSafeRelativeSkillPath(file.path);
+      const absolute = path.join(stagingDir, relative);
+      await fs.mkdir(path.dirname(absolute), { recursive: true });
+      await fs.writeFile(absolute, Buffer.from(file.contentBase64, "base64"));
+    }
+    return stagingDir;
+  } catch (error) {
+    await fs.rm(stagingDir, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+/** SKILL.md sits at the bundle root, or inside the single top-level folder when one wraps the upload. */
+async function resolveBundleSourceDir(stagingDir: string): Promise<string> {
+  if (await pathExists(path.join(stagingDir, "SKILL.md"))) {
+    return stagingDir;
+  }
+  const entries = await fs.readdir(stagingDir, { withFileTypes: true });
+  const onlyDir = entries.length === 1 && entries[0]?.isDirectory() ? entries[0].name : null;
+  if (onlyDir && (await pathExists(path.join(stagingDir, onlyDir, "SKILL.md")))) {
+    return path.join(stagingDir, onlyDir);
+  }
+  throw new InvalidInputError("Uploaded skill folder must include SKILL.md at the skill root");
+}
+
 export async function installSkillFromBundle(
   chainHome: string,
   input: InstallSkillBundleInput,
-  readAsset: ReadAsset
-): Promise<InstallSkillResult> {
+  readAsset: ReadAsset,
+  security?: SkillInstallSecurity
+): Promise<InstallSkillResult & { securityScan: SecurityScanRecord }> {
   const skillMdEntry = input.files.find((file) => isSkillMdPath(file.path));
 
   if (!skillMdEntry) {
@@ -111,30 +147,24 @@ export async function installSkillFromBundle(
   const name = await resolveInstallName(chainHome, input.name ?? inferredName ?? "uploaded-skill", input.force);
   const destination = skillDir(chainHome, name);
 
-  const stagingDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-upload-"));
+  const stagingDir = await stageSkillBundleFiles(input.files);
 
   try {
-    for (const file of input.files) {
-      const relative = assertSafeRelativeSkillPath(file.path);
-      const absolute = path.join(stagingDir, relative);
-      await fs.mkdir(path.dirname(absolute), { recursive: true });
-      await fs.writeFile(absolute, Buffer.from(file.contentBase64, "base64"));
-    }
+    const sourceDir = await resolveBundleSourceDir(stagingDir);
 
-    let sourceDir = stagingDir;
-    if (!(await pathExists(path.join(stagingDir, "SKILL.md")))) {
-      const entries = await fs.readdir(stagingDir, { withFileTypes: true });
-      const onlyDir = entries.length === 1 && entries[0]?.isDirectory() ? entries[0].name : null;
-      if (onlyDir && (await pathExists(path.join(stagingDir, onlyDir, "SKILL.md")))) {
-        sourceDir = path.join(stagingDir, onlyDir);
-      } else {
-        throw new InvalidInputError("Uploaded skill folder must include SKILL.md at the skill root");
-      }
-    }
+    const contentHash = await hashSkillTree(sourceDir);
+    const securityScan = await runSecurityGate(chainHome, {
+      kind: "skills",
+      name,
+      context: security?.context ?? "upload",
+      rootDir: sourceDir,
+      contentHash,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: security?.extraScanner
+    });
 
     await copySkillTree(sourceDir, destination);
 
-    const contentHash = await hashSkillTree(destination);
     const lockEntry = await recordSkillInstall(chainHome, name, () => ({
       sourceType: "path",
       source: `upload://${name}`,
@@ -143,7 +173,7 @@ export async function installSkillFromBundle(
     }));
 
     const asset = await readAsset(chainHome, "skills", name);
-    return { asset, lockEntry };
+    return { asset, lockEntry, securityScan };
   } finally {
     await fs.rm(stagingDir, { recursive: true, force: true });
   }
@@ -152,9 +182,16 @@ export async function installSkillFromBundle(
 export async function installSkillFromSource(
   chainHome: string,
   input: InstallSkillInput,
-  readAsset: ReadAsset
-): Promise<InstallSkillResult> {
-  const { unchanged: _unchanged, ...result } = await installSkillFromSourceUnlessUnchanged(chainHome, input, readAsset, null);
+  readAsset: ReadAsset,
+  security?: SkillInstallSecurity
+): Promise<InstallSkillResult & { securityScan?: SecurityScanRecord }> {
+  const { unchanged: _unchanged, ...result } = await installSkillFromSourceUnlessUnchanged(
+    chainHome,
+    input,
+    readAsset,
+    null,
+    security
+  );
   return result;
 }
 
@@ -163,8 +200,9 @@ export async function installSkillFromSourceUnlessUnchanged(
   chainHome: string,
   input: InstallSkillInput,
   readAsset: ReadAsset,
-  knownHash: string | null
-): Promise<InstallSkillResult & { unchanged: boolean }> {
+  knownHash: string | null,
+  security?: SkillInstallSecurity
+): Promise<InstallSkillResult & { unchanged: boolean; securityScan?: SecurityScanRecord }> {
   let cleanupDir: string | null = null;
   let sourceDir: string;
   let sourceType: SkillLockEntry["sourceType"];
@@ -200,6 +238,21 @@ export async function installSkillFromSourceUnlessUnchanged(
     const contentHash = await hashSkillTree(sourceDir);
     const previousEntry = (await readSkillsLock(chainHome)).skills[name];
     if (knownHash && contentHash === knownHash && previousEntry) {
+      let securityScan = (await getSecurityScan(chainHome, "skills", name)) ?? undefined;
+      if (securityScan?.contentHash !== contentHash) {
+        // Installed before scanning existed (or the record is stale): scan the
+        // source anyway so the verdict reflects this exact content. Nothing is
+        // written, so a `fail` flags the installed copy instead of blocking.
+        securityScan = await runSecurityGate(chainHome, {
+          kind: "skills",
+          name,
+          context: "update",
+          rootDir: sourceDir,
+          contentHash,
+          enforce: false,
+          extraScanner: security?.extraScanner
+        });
+      }
       if (commitSha && (previousEntry.commitSha !== commitSha || previousEntry.latestSha !== commitSha)) {
         const updatedEntry = await mutateSkillsLock(chainHome, (lockFile) => {
           const entry = lockFile.skills[name];
@@ -210,10 +263,30 @@ export async function installSkillFromSourceUnlessUnchanged(
           }
           return entry ?? previousEntry;
         });
-        return { asset: await readAsset(chainHome, "skills", name), lockEntry: updatedEntry, unchanged: true };
+        return {
+          asset: await readAsset(chainHome, "skills", name),
+          lockEntry: updatedEntry,
+          unchanged: true,
+          securityScan
+        };
       }
-      return { asset: await readAsset(chainHome, "skills", name), lockEntry: previousEntry, unchanged: true };
+      return {
+        asset: await readAsset(chainHome, "skills", name),
+        lockEntry: previousEntry,
+        unchanged: true,
+        securityScan
+      };
     }
+
+    const securityScan = await runSecurityGate(chainHome, {
+      kind: "skills",
+      name,
+      context: security?.context ?? (knownHash ? "update" : "install"),
+      rootDir: sourceDir,
+      contentHash,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: security?.extraScanner
+    });
 
     await copySkillTree(sourceDir, destination);
 
@@ -228,7 +301,65 @@ export async function installSkillFromSourceUnlessUnchanged(
     }));
 
     const asset = await readAsset(chainHome, "skills", name);
-    return { asset, lockEntry, unchanged: false };
+    return { asset, lockEntry, unchanged: false, securityScan };
+  } finally {
+    if (cleanupDir) {
+      await fs.rm(cleanupDir, { recursive: true, force: true });
+    }
+  }
+}
+
+/**
+ * Pre-install scan: resolves the source exactly like an install would (clone,
+ * staging or local path) and runs the security gate with `enforce: false` and
+ * `record: false` — the report is returned, nothing is copied, locked or
+ * persisted. `context: "install"` keeps the verdict identical to the real gate.
+ */
+export async function previewSkillScan(
+  chainHome: string,
+  input: ScanSkillSourceInput,
+  security?: SkillInstallSecurity
+): Promise<ScanSkillSourceResult> {
+  if ([input.path, input.repo, input.files].filter(Boolean).length !== 1) {
+    throw new InvalidInputError("Provide exactly one of path, repo or files");
+  }
+
+  let cleanupDir: string | null = null;
+
+  try {
+    let sourceDir: string;
+    let detectedSubdir: string | undefined;
+
+    if (input.files) {
+      const stagingDir = await stageSkillBundleFiles(input.files);
+      cleanupDir = stagingDir;
+      sourceDir = await resolveBundleSourceDir(stagingDir);
+    } else if (input.path) {
+      sourceDir = path.resolve(input.path);
+      await assertSkillSource(sourceDir);
+    } else if (input.repo) {
+      const resolved = await resolveGitSkillDir(input.repo, input.subdir, input.name);
+      cleanupDir = resolved.cleanupDir;
+      sourceDir = resolved.sourceDir;
+      detectedSubdir = resolved.detectedSubdir;
+      await assertSkillSource(sourceDir);
+    } else {
+      throw new InvalidInputError("Provide exactly one of path, repo or files");
+    }
+
+    const contentHash = await hashSkillTree(sourceDir);
+    const scan = await runSecurityGate(chainHome, {
+      kind: "skills",
+      name: normalizeSkillName(input.name ?? path.basename(sourceDir)) || "preview",
+      context: "install",
+      rootDir: sourceDir,
+      contentHash,
+      enforce: false,
+      record: false,
+      extraScanner: security?.extraScanner
+    });
+
+    return { scan, detectedSubdir };
   } finally {
     if (cleanupDir) {
       await fs.rm(cleanupDir, { recursive: true, force: true });

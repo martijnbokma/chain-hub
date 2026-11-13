@@ -1,0 +1,179 @@
+import type { ReactNode } from 'react';
+import {
+  Activity,
+  Command as CommandIcon,
+  HeartPulse,
+  LayoutDashboard,
+  Link2,
+  Settings,
+  Store
+} from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+
+import { cn } from '../../lib/utils';
+import { ThemeToggle } from '../common/ThemeToggle';
+import { ChainHubLogo } from '../ui/ChainHubLogo';
+import { Button } from '../ui/button';
+import { TooltipProvider } from '../ui/tooltip';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarProvider,
+  SidebarTrigger
+} from '../ui/sidebar';
+import { LibraryNavItem, SidebarNavLink } from './shell-nav';
+import { ShellToolbarProvider } from './ShellToolbar';
+import { SyncStatusIndicator } from './SyncStatusIndicator';
+import { CommandPaletteDialog } from './CommandPaletteDialog';
+import { LinkedEditorsCard } from './LinkedEditorsCard';
+import { useCommandPalette } from './useCommandPalette';
+
+interface ShellProps {
+  children: ReactNode;
+}
+
+export function Shell({ children }: ShellProps) {
+  const location = useLocation();
+
+  const { commandOpen, setCommandOpen, actionGroups, installedEditors, connectedCount, connectEditors } = useCommandPalette();
+
+  return (
+    <ShellToolbarProvider>
+      <SidebarProvider>
+        <TooltipProvider>
+        <Sidebar collapsible="icon">
+          <SidebarHeader className="h-14 justify-center border-b border-sidebar-border">
+            <div className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:hidden">
+              <NavLink
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                to="/"
+              >
+                <ChainHubLogo className="h-9 w-auto shrink-0 text-foreground" />
+              </NavLink>
+              <SidebarTrigger className="hidden md:flex size-8 shrink-0" />
+            </div>
+            {/* Collapsed: logo stays visible; hovering it reveals the expand toggle */}
+            <div className="group/logo relative hidden size-8 group-data-[collapsible=icon]:block">
+              <span className="flex size-8 items-center justify-center transition-opacity duration-150 group-hover/logo:opacity-0">
+                <ChainHubLogo showText={false} className="size-7" />
+              </span>
+              <SidebarTrigger
+                aria-label="Expand sidebar"
+                className="absolute inset-0 size-8 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100 focus-visible:opacity-100"
+              />
+            </div>
+          </SidebarHeader>
+
+          <SidebarContent>
+            <SidebarGroup className="pt-3">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarNavLink
+                    icon={LayoutDashboard}
+                    isActive={location.pathname === '/'}
+                    label="Overview"
+                    to="/"
+                  />
+                  <SidebarNavLink
+                    icon={HeartPulse}
+                    isActive={location.pathname.startsWith('/health')}
+                    label="Health"
+                    to="/health"
+                  />
+                  <LibraryNavItem />
+                  <SidebarNavLink
+                    icon={Store}
+                    isActive={location.pathname.startsWith('/catalog')}
+                    label="Catalog"
+                    to="/catalog"
+                  />
+                  <SidebarNavLink
+                    icon={Activity}
+                    isActive={location.pathname.startsWith('/learnings')}
+                    label="Learnings"
+                    to="/learnings"
+                  />
+                  <SidebarNavLink
+                    icon={Link2}
+                    isActive={location.pathname.startsWith('/integrations')}
+                    label="Integrations"
+                    to="/integrations"
+                  />
+                  <SidebarNavLink
+                    icon={Settings}
+                    isActive={location.pathname.startsWith('/settings')}
+                    label="Settings"
+                    to="/settings"
+                  />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter className="gap-2 border-t border-sidebar-border">
+            <div className="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
+              <Button
+                aria-label="Open command menu"
+                className={cn(
+                  'h-9 flex-1 justify-start gap-2 whitespace-nowrap px-3',
+                  'group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8',
+                  'group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center',
+                  'group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:p-0'
+                )}
+                onClick={() => setCommandOpen(true)}
+                variant="secondary"
+              >
+                <CommandIcon className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+                  Command
+                </span>
+                <kbd className="pointer-events-none rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-2xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  ⌘K
+                </kbd>
+              </Button>
+              <ThemeToggle className="group-data-[collapsible=icon]:size-8" />
+            </div>
+
+            <SyncStatusIndicator />
+
+            <LinkedEditorsCard
+              connectEditors={connectEditors}
+              connectedCount={connectedCount}
+              installedEditors={installedEditors}
+            />
+          </SidebarFooter>
+        </Sidebar>
+        </TooltipProvider>
+
+        <SidebarInset className="min-w-0 overflow-x-hidden">
+          {/* Mobile-only navigation bar */}
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 md:hidden">
+            <div className="flex items-center gap-2.5">
+              <SidebarTrigger />
+              <NavLink className="flex items-center" to="/">
+                <ChainHubLogo className="h-8 w-auto shrink-0 text-foreground" />
+              </NavLink>
+            </div>
+            <ThemeToggle className="size-8" />
+          </div>
+          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6">
+            {children}
+          </main>
+        </SidebarInset>
+
+      <CommandPaletteDialog
+        actionGroups={actionGroups}
+        connectEditors={connectEditors}
+        onOpenChange={setCommandOpen}
+        open={commandOpen}
+      />
+      </SidebarProvider>
+    </ShellToolbarProvider>
+  );
+}

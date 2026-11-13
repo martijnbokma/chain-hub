@@ -16,7 +16,7 @@ Where things live, by feature area. Load only the section you need. Rules and co
 
 | File | Endpoints |
 |---|---|
-| `hub.ts` | `/api/overview`, `/api/setup`, `/api/validate`, `/api/integrations`, `/api/integrations/setup` |
+| `hub.ts` | `/api/overview`, `/api/issues`, `/api/health`, `/api/setup`, `/api/validate`, `/api/integrations`, `/api/integrations/setup` |
 | `library.ts` | `/api/library` (CRUD, `:kind/:name`, rename, convert), `/api/library/discover`, `/api/library/import`, `/api/library/skills/*` (install, install-bundle, update, fork, migrate-agents, files) |
 | `learnings.ts` | `/api/learnings`, `/api/learnings/capture`, `/api/learnings/reflect` |
 | `ai.ts` | `/api/settings/ai`, `/api/ai/draft-prompt`, `/api/ai/classify-asset`, `/api/ai/audit-asset`, `/api/ai/improve-asset` |
@@ -25,10 +25,10 @@ Where things live, by feature area. Load only the section you need. Rules and co
 
 `claude-code.ts`, `cursor.ts`, `windsurf.ts` (also Devin targets), `zed.ts`. Shared: `types.ts`, `files.ts`, `frontmatter.ts`, `marker.ts` (Chain-Hub-managed file markers). Each has a colocated test.
 
-## hub-web (`apps/hub-web/src/`)
+## hub-web (`web/src/`)
 
-- `main.tsx` → `app.tsx` (routes: `/`, `/library`, `/learnings`, `/integrations`, `/settings`, `/setup`)
-- `components/pages/` — `OverviewPage`, `LibraryPage`, `LearningsPage`, `IntegrationsPage`, `SettingsPage`, `SetupPage`
+- `main.tsx` → `app.tsx` (routes: `/`, `/health`, `/library`, `/learnings`, `/integrations`, `/settings`, `/setup`)
+- `components/pages/` — `OverviewPage`, `HealthPage`, `LibraryPage`, `LearningsPage`, `IntegrationsPage`, `SettingsPage`, `SetupPage`
 - `components/pages/library/` — master–detail: `AssetList`, `AssetCard`, `AssetDetailPanel`, `LibraryToolbar`, dialogs (`CreateAssetDialog`, `DiscoverDialog`, `InstallSkillDialog`, `RemoveAssetDialog`, `AiEditPreviewDialog`, `SkillFilePreviewDialog`), flows (`use-library-create-flow.ts`, `use-library-install-flow.ts`), `asset-helpers.ts`
 - `components/layout/` — `Shell.tsx` (sidebar nav), `ShellToolbar.tsx`, `useCommandPalette.ts` (⌘K)
 - `components/common/` — `EmptyState`, `MarkdownSourceEditor`, `PageSkeleton`, `SheetMarks`, `ThemeToggle`
@@ -37,15 +37,15 @@ Where things live, by feature area. Load only the section you need. Rules and co
 - `hooks/` — `use-theme.ts`, `use-mobile.ts`
 - `types/` — view types per area (assets, ai, discover, integrations, learnings, overview, setup)
 - `e2e/` — Playwright specs (create, discover, install, rename/delete, setup wizard)
-- Design: `apps/hub-web/DESIGN.md`, `apps/hub-web/PRODUCT.md`
+- Design: `web/DESIGN.md`, `web/PRODUCT.md`
 
 ## Feature → files
 
 | Feature | Files |
 |---|---|
-| Asset CRUD | `contracts/src/asset.ts` → `storage/src/core.ts` → `domain/src/index.ts` → `server/src/routes/library.ts` → `hub-web/.../library/` |
+| Asset CRUD | `contracts/src/asset.ts` → `storage/src/core.ts` → `domain/src/index.ts` → `server/src/routes/library.ts` → `web/.../library/` |
 | Skill install/update/fork | `storage/src/skill-install.ts` (+ `skill-copy.ts`, `skill-git.ts`), `domain/src/skills.ts`, `routes/library.ts`, `InstallSkillDialog.tsx`; spec: `notes/docs/specs/hub-skill-install.md` |
 | Editor sync / discover | `storage/src/integrations.ts`, `storage/src/adapters/`, `routes/hub.ts`, `routes/library.ts` (discover/import) |
 | Learnings | `contracts/src/learning.ts`, `storage/src/learnings.ts`, `routes/learnings.ts`, `LearningsPage.tsx`, CLI `capture`/`reflect` |
 | AI drafting/audit | `contracts/src/ai.ts`, `storage/src/ai-settings.ts`, `domain/src/ai-providers.ts` (+ `ai-prompts.ts`, `ai-transport.ts`, `ai-parse.ts`), `routes/ai.ts`, `lib/ai-models.ts`, `AiEditPreviewDialog.tsx` |
-| Overview / setup | `storage/src/hub.ts`, `routes/hub.ts`, `OverviewPage.tsx`, `SetupPage.tsx` |
+| Overview / setup / health | `storage/src/hub.ts` + `storage/src/health.ts`, `routes/hub.ts`, `OverviewPage.tsx`, `HealthPage.tsx`, `SetupPage.tsx` |

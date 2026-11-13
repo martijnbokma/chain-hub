@@ -3,6 +3,12 @@ import path from "node:path";
 import { type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
 import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import {
+  buildInvokedSkillContent,
+  DISABLE_MODEL_INVOCATION,
+  removeInvokedSkill,
+  writeInvokedSkill
+} from "./invoke-skill.js";
 import { projectedFrontmatter } from "./marker.js";
 import {
   buildIntegrationStatus,
@@ -23,7 +29,9 @@ import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 // (read_config_from.windsurf), so old Windsurf installs keep working.
 // - Rules/workflows: `~/.windsurf/{rules,workflows}/<name>.md`
 // - Skills (global): `~/.codeium/windsurf/skills/<name>/SKILL.md` per Devin Desktop FAQ.
-const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules", "workflows"];
+// Prompts project as invoke-only skills (Windsurf has no native prompt format);
+// workflows keep their native ~/.windsurf/workflows/ files.
+const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules", "workflows", "prompts"];
 const LEGACY_ROOT = ".windsurf";
 
 function globalSkillsDir(homeDir: string): string {
@@ -63,6 +71,12 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
     return;
   }
 
+  if (asset.kind === "prompts") {
+    const filePath = skillPath(homeDir, asset.name);
+    await writeInvokedSkill(filePath, buildInvokedSkillContent(asset, DISABLE_MODEL_INVOCATION), asset, { ...options, backup: { chainHome, homeDir } });
+    return;
+  }
+
   if (asset.kind !== "rules" && asset.kind !== "workflows") {
     return;
   }
@@ -73,6 +87,11 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
 async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
   if (kind === "skills") {
     await removeProjectedSkill(skillPath(homeDir, name));
+    return;
+  }
+
+  if (kind === "prompts") {
+    await removeInvokedSkill(skillPath(homeDir, name), kind, name);
     return;
   }
 

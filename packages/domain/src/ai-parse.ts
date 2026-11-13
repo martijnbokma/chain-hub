@@ -1,4 +1,11 @@
-import { assetKindSchema, type AssetKind, type AuditAssetFinding, type AuditAssetResult } from "@chain-hub/contracts";
+import {
+  assetKindSchema,
+  type AssetKind,
+  type AuditAssetFinding,
+  type AuditAssetResult,
+  type SecurityScanFinding,
+  type SecurityScanVerdict
+} from "@chain-hub/contracts";
 
 import { AiProviderError } from "./ai-transport.js";
 
@@ -181,4 +188,51 @@ export function parseAudit(raw: string, options: { allowLearningSource: boolean 
   }
 
   return { summary, findings };
+}
+
+const SCAN_VERDICTS = new Set(["pass", "warn", "fail"]);
+
+/** Parses the AI security-scan response; findings get engine "ai" stamped on here. */
+export function parseSecurityScan(raw: string): { verdict: SecurityScanVerdict; findings: SecurityScanFinding[] } {
+  const parsed = extractJsonObject(raw) as { verdict?: unknown; findings?: unknown };
+  const verdict = typeof parsed.verdict === "string" ? parsed.verdict.trim().toLowerCase() : "";
+  if (!SCAN_VERDICTS.has(verdict)) {
+    throw new AiProviderError("AI security scan returned an unknown verdict", 502);
+  }
+
+  const findings: SecurityScanFinding[] = [];
+  if (Array.isArray(parsed.findings)) {
+    for (const item of parsed.findings.slice(0, 10)) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+      const row = item as {
+        severity?: unknown;
+        title?: unknown;
+        detail?: unknown;
+        file?: unknown;
+        line?: unknown;
+      };
+      const severity = typeof row.severity === "string" ? row.severity.trim().toLowerCase() : "";
+      const title = typeof row.title === "string" ? row.title.trim().slice(0, 160) : "";
+      const detail = typeof row.detail === "string" ? row.detail.trim().slice(0, 600) : "";
+      if (!SEVERITIES.has(severity) || !title || !detail) {
+        continue;
+      }
+      const file = typeof row.file === "string" && row.file.trim() ? row.file.trim().slice(0, 512) : undefined;
+      const line =
+        typeof row.line === "number" && Number.isInteger(row.line) && row.line > 0 ? row.line : undefined;
+      findings.push({
+        ruleId: "ai-review",
+        severity: severity as SecurityScanFinding["severity"],
+        engine: "ai",
+        title,
+        detail,
+        ...(file ? { file } : {}),
+        ...(line ? { line } : {})
+      });
+    }
+  }
+
+  return { verdict: verdict as SecurityScanVerdict, findings };
 }

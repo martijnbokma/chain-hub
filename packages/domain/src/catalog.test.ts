@@ -51,7 +51,7 @@ describe("installLibraryCatalogEntry", () => {
 
     const result = await installLibraryCatalogEntry(undefined, { sourceId: "s", entryId: "e" });
 
-    expect(installCatalogEntry).toHaveBeenCalledWith("/tmp/hub", { sourceId: "s", entryId: "e" });
+    expect(installCatalogEntry).toHaveBeenCalledWith("/tmp/hub", { sourceId: "s", entryId: "e" }, { extraScanner: undefined });
     expect(syncAssetToEditors).toHaveBeenCalledWith("/tmp/hub", "skills", "demo-skill", asset);
     expect(result.scriptsDetected).toBe(true);
   });

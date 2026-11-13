@@ -78,11 +78,14 @@ describe("antigravityAdapter.writeAsset", () => {
     expect(data.model).toBeUndefined();
   });
 
-  it("skips workflows (retired by Antigravity)", async () => {
+  it("projects workflows as invoke-only plugin skills", async () => {
     const homeDir = await makeTmpHome();
     await antigravityAdapter.writeAsset("/chain-home", homeDir, makeAsset({ kind: "workflows", name: "deploy" }));
 
-    await expect(fs.stat(pluginDir(homeDir))).rejects.toThrow();
+    const filePath = path.join(pluginDir(homeDir), "skills", "deploy", "SKILL.md");
+    const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
+    expect(data.chain_hub_source).toBe("workflows/deploy");
+    expect(data["disable-model-invocation"]).toBe(true);
   });
 
   it("leaves a foreign plugin.json untouched and writes nothing", async () => {
@@ -158,8 +161,8 @@ describe("antigravityAdapter.status", () => {
     const homeDir = await makeTmpHome();
     const result = await antigravityAdapter.status(homeDir);
 
-    expect(result.supportedKinds).toEqual(["skills", "agents", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["workflows", "prompts"]);
+    expect(result.supportedKinds).toEqual(["skills", "agents", "rules", "prompts", "workflows"]);
+    expect(result.unsupportedKinds).toEqual(["mcp", "hooks"]);
     expect(result.connected).toBe(false);
     expect(result.targetPaths).toContain(path.join(pluginDir(homeDir), "skills"));
   });

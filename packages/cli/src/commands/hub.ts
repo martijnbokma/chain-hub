@@ -37,9 +37,8 @@ async function isDirectory(target: string): Promise<boolean> {
 async function resolveStaticRoot(cliDir: string): Promise<string> {
   const candidatePaths = [
     // Workspace build of the dashboard in this repository
-    path.resolve(cliDir, "../../apps/hub-web/dist"),
-    path.resolve(cliDir, "../apps/hub-web/dist"),
-    path.resolve(process.cwd(), "apps", "hub-web", "dist"),
+    path.resolve(cliDir, "../../../web/dist"),
+    path.resolve(process.cwd(), "web", "dist"),
     // Published package: dashboard copied next to the CLI bundle at build time
     path.resolve(cliDir, "web")
   ];

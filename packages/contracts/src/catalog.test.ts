@@ -99,6 +99,17 @@ describe("skill lock helpers", () => {
     expect(hasSkillUpdate({ ...lock, commitSha: "a", latestSha: "b" })).toBe(true);
   });
 
+  it("does not flag updates for unlinked skills with a stale latestSha", () => {
+    const unlinked = {
+      ...lock,
+      latestSha: "b",
+      unlinkedAt: "2026-01-02T00:00:00Z",
+      unlinkedReason: "source-missing" as const
+    };
+    expect(hasSkillUpdate(unlinked)).toBe(false);
+    expect(hasSkillUpdate({ ...lock, latestSha: "b", source: "upload://demo" })).toBe(false);
+  });
+
   it("normalizes names, subdirs and safe paths", () => {
     expect(normalizeSkillName("  My Skill! ")).toBe("my-skill");
     expect(subdirFromSkillPath("skills/a/SKILL.md")).toBe("skills/a");

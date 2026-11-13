@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AssetDetail, AssetKind } from "@chain-hub/contracts";
 
+import { agentSkillsAdapter } from "./agent-skills.js";
 import { antigravityAdapter } from "./antigravity.js";
 import { claudeCodeAdapter } from "./claude-code.js";
 import { cursorAdapter } from "./cursor.js";
@@ -12,7 +13,6 @@ import { devinAdapter, devinConfigDir } from "./devin.js";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { EditorAdapter } from "./types.js";
 import { windsurfAdapter } from "./windsurf.js";
-import { zedAdapter } from "./zed.js";
 
 function asset(kind: AssetKind, name: string, content: string): AssetDetail {
   const relativePath = kind === "skills" ? `skills/${name}/SKILL.md` : `${kind}/${name}.md`;
@@ -46,12 +46,72 @@ async function projectedData(adapter: EditorAdapter, item: AssetDetail, relative
   return parseFrontmatter(await fs.readFile(path.join(homeDir, relativeTarget), "utf8")).data;
 }
 
+describe("prompts/workflows project as invoke-only skills", () => {
+  const prompt = asset("prompts", "pr-review", [
+    "---",
+    "description: Review a pull request",
+    "---",
+    "",
+    "Review the PR for correctness and style.",
+    ""
+  ].join("\n"));
+
+  it.each([
+    [claudeCodeAdapter, ".claude/skills/pr-review/SKILL.md"],
+    [cursorAdapter, ".cursor/skills/pr-review/SKILL.md"],
+    [agentSkillsAdapter, ".agents/skills/pr-review/SKILL.md"],
+    [windsurfAdapter, ".codeium/windsurf/skills/pr-review/SKILL.md"],
+    [antigravityAdapter, ".gemini/config/plugins/chain-hub/skills/pr-review/SKILL.md"]
+  ])("%o marks it invoke-only", async (adapter, target) => {
+    const data = await projectedData(adapter, prompt, target);
+
+    expect(data).toMatchObject({
+      chain_hub_source: "prompts/pr-review",
+      name: "pr-review",
+      description: "Review a pull request",
+      "disable-model-invocation": true
+    });
+  });
+
+  it("Devin marks invoke-only with triggers: [user]", async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-projection-devin-"));
+    await devinAdapter.writeAsset("/chain-home", homeDir, prompt);
+    const data = parseFrontmatter(await fs.readFile(path.join(devinConfigDir(homeDir), "skills", "pr-review", "SKILL.md"), "utf8")).data;
+
+    expect(data).toMatchObject({
+      chain_hub_source: "prompts/pr-review",
+      triggers: ["user"]
+    });
+  });
+
+  it("a same-named real skill wins the slot over a prompt", async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-projection-slot-"));
+    await agentSkillsAdapter.writeAsset("/chain-home", homeDir, skill);
+    await agentSkillsAdapter.writeAsset("/chain-home", homeDir, asset("prompts", "pdf-tool", "Prompt body."));
+
+    const data = parseFrontmatter(await fs.readFile(path.join(homeDir, ".agents", "skills", "pdf-tool", "SKILL.md"), "utf8")).data;
+    expect(data.chain_hub_source).toBe("skills/pdf-tool");
+  });
+
+  it("removeAsset removes an invoke-only skill but not a same-named real skill", async () => {
+    const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-projection-rm-"));
+    await agentSkillsAdapter.writeAsset("/chain-home", homeDir, prompt);
+    await agentSkillsAdapter.removeAsset("/chain-home", homeDir, "prompts", "pr-review");
+    await expect(fs.stat(path.join(homeDir, ".agents", "skills", "pr-review"))).rejects.toThrow();
+
+    await agentSkillsAdapter.writeAsset("/chain-home", homeDir, skill);
+    await agentSkillsAdapter.removeAsset("/chain-home", homeDir, "prompts", "pdf-tool");
+    const data = parseFrontmatter(await fs.readFile(path.join(homeDir, ".agents", "skills", "pdf-tool", "SKILL.md"), "utf8")).data;
+    expect(data.chain_hub_source).toBe("skills/pdf-tool");
+  });
+});
+
 describe("projection keeps asset frontmatter", () => {
   it.each([
     [claudeCodeAdapter, ".claude/skills/pdf-tool/SKILL.md"],
     [cursorAdapter, ".cursor/skills/pdf-tool/SKILL.md"],
     [windsurfAdapter, ".codeium/windsurf/skills/pdf-tool/SKILL.md"],
-    [zedAdapter, ".agents/skills/pdf-tool/SKILL.md"],
+    [agentSkillsAdapter, ".agents/skills/pdf-tool/SKILL.md"],
     [antigravityAdapter, ".gemini/config/plugins/chain-hub/skills/pdf-tool/SKILL.md"]
   ])("%o keeps skill fields", async (adapter, target) => {
     const data = await projectedData(adapter, skill, target);

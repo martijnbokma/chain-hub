@@ -157,8 +157,8 @@ export async function resolveGitSkillDir(repo: string, subdir: string | undefine
   );
 }
 
-/** Shallow-clone `repo`, list every directory holding a SKILL.md (repo-relative), then clean up. */
-export async function discoverGitSkillDirs(repo: string): Promise<string[]> {
+/** Shallow-clone `repo`, report the root SKILL.md flag and every skill dir (repo-relative), then clean up. */
+export async function discoverGitSkills(repo: string): Promise<{ repo: string; hasRootSkill: boolean; dirs: string[] }> {
   const cleanupDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-skill-scan-"));
 
   try {
@@ -173,13 +173,20 @@ export async function discoverGitSkillDirs(repo: string): Promise<string[]> {
   }
 
   try {
+    const hasRootSkill = await pathExists(path.join(cleanupDir, "SKILL.md"));
     const discovered = await findSkillDirsInRepo(cleanupDir);
-    return discovered
+    const dirs = discovered
       .map((dir) => path.relative(cleanupDir, dir).replace(/\\/g, "/"))
       .sort((a, b) => a.localeCompare(b));
+    return { repo, hasRootSkill, dirs };
   } finally {
     await fs.rm(cleanupDir, { recursive: true, force: true });
   }
+}
+
+/** Shallow-clone `repo`, list every directory holding a SKILL.md (repo-relative), then clean up. */
+export async function discoverGitSkillDirs(repo: string): Promise<string[]> {
+  return (await discoverGitSkills(repo)).dirs;
 }
 
 function isCommitSha(value: string | undefined): value is string {

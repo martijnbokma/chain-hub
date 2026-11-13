@@ -3,7 +3,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const browserApps = ["apps/hub-web/src/**/*.{ts,tsx}", "apps/marketing-site/src/**/*.{ts,tsx}", "apps/docs/src/**/*.{ts,tsx}"];
+const browserApps = ["web/src/**/*.{ts,tsx}"];
 
 export default tseslint.config(
   {
@@ -12,8 +12,8 @@ export default tseslint.config(
       "**/coverage/**",
       "**/.turbo/**",
       "**/node_modules/**",
-      "apps/hub-web/playwright-report/**",
-      "apps/hub-web/test-results/**",
+      "web/playwright-report/**",
+      "web/test-results/**",
       // Local agent/editor tooling, not product source (see .gitignore).
       ".remember/**",
       ".specstory/**",
@@ -41,7 +41,7 @@ export default tseslint.config(
     }
   },
   {
-    files: ["packages/**/src/**/*.ts", "packages/*/scripts/**/*.mjs", "apps/*/e2e/**/*.{ts,mjs}", "*.{ts,mjs}"],
+    files: ["packages/**/src/**/*.ts", "packages/*/scripts/**/*.mjs", "web/e2e/**/*.{ts,mjs}", "scripts/**/*.{ts,mjs}", "*.{ts,mjs}"],
     languageOptions: {
       globals: globals.node
     }

@@ -47,7 +47,7 @@ const cleanEntry = {
 describe("saveHubAnalysisReport", () => {
   it("derives one item per finding type and skips clean assets", async () => {
     const hub = await makeTmpHub();
-    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "# Hi" });
+    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "---\ndescription: Reviews code\n---\n\n# Hi" });
     await createAsset(hub, { kind: "skills", name: "fine", content: "# Fine\n\nDescribed." });
 
     const report = await saveHubAnalysisReport(hub, {
@@ -70,7 +70,7 @@ describe("saveHubAnalysisReport", () => {
 
   it("keeps dismissed items dismissed while content is unchanged, reopens after edits", async () => {
     const hub = await makeTmpHub();
-    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "# Hi" });
+    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "---\ndescription: Reviews code\n---\n\n# Hi" });
     await saveHubAnalysisReport(hub, { totalAssets: 1, entries: [mismatchEntry] });
 
     const itemId = "agents/maybe-skill/kind-mismatch";
@@ -79,14 +79,14 @@ describe("saveHubAnalysisReport", () => {
     const unchanged = await saveHubAnalysisReport(hub, { totalAssets: 1, entries: [mismatchEntry] });
     expect(unchanged.items.find((item) => item.id === itemId)?.status).toBe("dismissed");
 
-    await updateAsset(hub, "agents", "maybe-skill", "# Hi\n\nEdited body.");
+    await updateAsset(hub, "agents", "maybe-skill", "---\ndescription: Reviews code\n---\n\n# Hi\n\nEdited body.");
     const changed = await saveHubAnalysisReport(hub, { totalAssets: 1, entries: [mismatchEntry] });
     expect(changed.items.find((item) => item.id === itemId)?.status).toBe("open");
   });
 
   it("drops items that no longer appear in the new run", async () => {
     const hub = await makeTmpHub();
-    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "# Hi" });
+    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "---\ndescription: Reviews code\n---\n\n# Hi" });
     await saveHubAnalysisReport(hub, { totalAssets: 1, entries: [mismatchEntry] });
 
     const clean = await saveHubAnalysisReport(hub, {
@@ -100,7 +100,7 @@ describe("saveHubAnalysisReport", () => {
 describe("updateHubAnalysisItemStatus", () => {
   it("sets the status and persists the report", async () => {
     const hub = await makeTmpHub();
-    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "# Hi" });
+    await createAsset(hub, { kind: "agents", name: "maybe-skill", content: "---\ndescription: Reviews code\n---\n\n# Hi" });
     await saveHubAnalysisReport(hub, { totalAssets: 1, entries: [mismatchEntry] });
 
     const report = await updateHubAnalysisItemStatus(hub, {

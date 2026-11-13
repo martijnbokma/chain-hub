@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { aiConfigSchema, type AiSecrets } from "@chain-hub/contracts";
+import { aiConfigSchema, getExplicitDescription, type AiSecrets } from "@chain-hub/contracts";
 
 import { AiProviderError, auditExistingAsset, classifyExistingAsset, generateAssetDraft, improveExistingAsset } from "./ai-providers.js";
 
@@ -41,7 +41,7 @@ describe("generateAssetDraft", () => {
       Response.json({
         content: [{ type: "text", text: "You are a careful PR reviewer." }]
       })
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     const secrets: AiSecrets = { version: 1, anthropicApiKey: "sk-ant-test" };
     const result = await generateAssetDraft({
@@ -61,7 +61,7 @@ describe("generateAssetDraft", () => {
       Response.json({
         choices: [{ message: { content: "OpenAI drafted prompt" } }]
       })
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     const result = await generateAssetDraft({
       config: config("openai"),
@@ -80,7 +80,7 @@ describe("generateAssetDraft", () => {
       return Response.json({
         choices: [{ message: { content: "Mistral drafted prompt" } }]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await generateAssetDraft({
       config: config("mistral"),
@@ -108,7 +108,7 @@ describe("generateAssetDraft", () => {
       Response.json({
         message: { content: "Ollama drafted prompt" }
       })
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     const result = await generateAssetDraft({
       config: config("ollama"),
@@ -117,7 +117,7 @@ describe("generateAssetDraft", () => {
     });
 
     expect(result.content).toBe("Ollama drafted prompt");
-    expect(String((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0])).toContain(
+    expect(String((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0])).toContain(
       "/api/chat"
     );
   });
@@ -125,7 +125,7 @@ describe("generateAssetDraft", () => {
   it("maps Ollama network failures to AiProviderError", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new Error("ECONNREFUSED");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await expect(
       generateAssetDraft({
@@ -142,7 +142,7 @@ describe("generateAssetDraft", () => {
   it("maps cloud provider network failures to a readable 502", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new TypeError("fetch failed");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await expect(
       generateAssetDraft({
@@ -156,7 +156,7 @@ describe("generateAssetDraft", () => {
   it("maps provider timeouts to a 504 AiProviderError", async () => {
     globalThis.fetch = vi.fn(async () => {
       throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await expect(
       generateAssetDraft({
@@ -174,7 +174,7 @@ describe("generateAssetDraft", () => {
       timeouts.push(ms);
       return realTimeout(ms);
     });
-    globalThis.fetch = vi.fn(async () => Response.json({ message: { content: "Draft body" } })) as typeof fetch;
+    globalThis.fetch = vi.fn(async () => Response.json({ message: { content: "Draft body" } })) as unknown as typeof fetch;
 
     await generateAssetDraft({
       config: config("ollama"),
@@ -199,7 +199,7 @@ describe("generateAssetDraft", () => {
         }),
         { status: 400 }
       )
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     await expect(
       generateAssetDraft({
@@ -231,7 +231,7 @@ describe("generateAssetDraft", () => {
         }),
         { status: 401 }
       )
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     await expect(
       generateAssetDraft({
@@ -255,7 +255,7 @@ describe("generateAssetDraft", () => {
       return Response.json({
         content: [{ type: "text", text: "---\nname: a11y-audit\ndescription: Audit a11y\n---\n\n# A11y" }]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await generateAssetDraft({
       config: config("anthropic"),
@@ -293,7 +293,7 @@ describe("generateAssetDraft", () => {
       return Response.json({
         content: [{ type: "text", text: "# Release checklist\n\n1. Version\n2. Tag" }]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await generateAssetDraft({
       config: config("anthropic"),
@@ -324,7 +324,7 @@ describe("generateAssetDraft", () => {
           }
         ]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await classifyExistingAsset({
       config: config("anthropic"),
@@ -372,7 +372,7 @@ describe("generateAssetDraft", () => {
           }
         ]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await auditExistingAsset({
       config: config("anthropic"),
@@ -401,7 +401,7 @@ describe("generateAssetDraft", () => {
           }
         ]
       })
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     const result = await auditExistingAsset({
       config: config("anthropic"),
@@ -440,7 +440,7 @@ describe("generateAssetDraft", () => {
           }
         ]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await auditExistingAsset({
       config: config("anthropic"),
@@ -482,7 +482,7 @@ describe("generateAssetDraft", () => {
           }
         ]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await auditExistingAsset({
       config: config("anthropic"),
@@ -504,7 +504,7 @@ describe("generateAssetDraft", () => {
       expect(user).toContain("1. [medium] (from a field report) SVG click targets");
       expect(user).toContain("2. [low] Triggers");
       return Response.json({ content: [{ type: "text", text: "# Frontend\n\nUse Element.closest." }] });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     await improveExistingAsset({
       config: config("anthropic"),
@@ -539,7 +539,7 @@ describe("generateAssetDraft", () => {
           }
         ]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const result = await improveExistingAsset({
       config: config("anthropic"),
@@ -560,6 +560,79 @@ describe("generateAssetDraft", () => {
     expect(result.content).toContain("name: review-pr");
     expect(result.content).toMatch(/when auditing/i);
   });
+
+  it("restores the frontmatter opening fence when the model drops it", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        content: [
+          {
+            type: "text",
+            text: "name: review-pr\ndescription: Review PRs for security. Use when auditing pull requests.\n---\n\n# Review PR\n\n1. Check auth"
+          }
+        ]
+      })
+    ) as unknown as typeof fetch;
+
+    const result = await improveExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "review-pr",
+      content:
+        "---\nname: review-pr\ndescription: Review PRs.\n---\n\n# Review\n\nLook at the PR.",
+      findings: [{ severity: "low", title: "Tighten", detail: "Tighten the steps." }]
+    });
+
+    expect(result.content.startsWith("---\n")).toBe(true);
+    expect(getExplicitDescription(result.content)).toBe(
+      "Review PRs for security. Use when auditing pull requests."
+    );
+  });
+
+  it("re-applies the original frontmatter when the model removes it entirely", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        content: [{ type: "text", text: "# Review PR\n\n1. Check auth\n2. Report findings" }]
+      })
+    ) as unknown as typeof fetch;
+
+    const result = await improveExistingAsset({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      kind: "skills",
+      name: "review-pr",
+      content:
+        "---\nname: review-pr\ndescription: Review PRs for security. Use when auditing pull requests.\n---\n\n# Review\n\nLook at the PR.",
+      findings: [{ severity: "low", title: "Tighten", detail: "Tighten the steps." }]
+    });
+
+    expect(getExplicitDescription(result.content)).toBe(
+      "Review PRs for security. Use when auditing pull requests."
+    );
+    expect(result.content).toContain("# Review PR");
+  });
+
+  it("restores the frontmatter opening fence on drafts too", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        content: [
+          {
+            type: "text",
+            text: "name: a11y-audit\ndescription: Audit React accessibility.\n---\n\n# A11y audit\n\n1. Run checks"
+          }
+        ]
+      })
+    ) as unknown as typeof fetch;
+
+    const result = await generateAssetDraft({
+      config: config("anthropic"),
+      secrets: { version: 1, anthropicApiKey: "sk-ant-test" },
+      input: { intent: "Audit React accessibility", kind: "skills" }
+    });
+
+    expect(result.content.startsWith("---\n")).toBe(true);
+    expect(getExplicitDescription(result.content)).toBe("Audit React accessibility.");
+  });
 });
 
 describe("truncation guards", () => {
@@ -567,7 +640,7 @@ describe("truncation guards", () => {
   const finding = { severity: "medium" as const, title: "Tighten", detail: "Make steps concrete." };
 
   it("refuses to improve an asset longer than the model input limit", async () => {
-    globalThis.fetch = vi.fn() as typeof fetch;
+    globalThis.fetch = vi.fn() as unknown as typeof fetch;
 
     await expect(
       improveExistingAsset({
@@ -585,7 +658,7 @@ describe("truncation guards", () => {
   it("says when an audit only saw the start of the asset", async () => {
     globalThis.fetch = vi.fn(async () =>
       Response.json({ content: [{ type: "text", text: '{"summary":"Looks fine","findings":[]}' }], stop_reason: "end_turn" })
-    ) as typeof fetch;
+    ) as unknown as typeof fetch;
 
     const result = await auditExistingAsset({
       config: config("anthropic"),
@@ -603,7 +676,7 @@ describe("truncation guards", () => {
     ["openai", { choices: [{ message: { content: "partial" }, finish_reason: "length" }] }],
     ["ollama", { message: { content: "partial" }, done_reason: "length" }]
   ] as const)("treats a %s response cut off at the token limit as an error", async (provider, body) => {
-    globalThis.fetch = vi.fn(async () => Response.json(body)) as typeof fetch;
+    globalThis.fetch = vi.fn(async () => Response.json(body)) as unknown as typeof fetch;
 
     await expect(
       improveExistingAsset({

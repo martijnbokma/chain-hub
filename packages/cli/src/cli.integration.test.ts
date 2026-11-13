@@ -128,6 +128,10 @@ describe("CLI integration", () => {
     await runCli(cliArgv("reflect"));
     expect(logs.length).toBeGreaterThan(0);
 
+    logs = [];
+    await runCli(cliArgv("reflect", "--apply"));
+    expect(logs.some((line) => line.includes("Nothing to fold"))).toBe(true);
+
     await expect(runCli(cliArgv("capture", "--event", "invalid-type", "--skill", "foo", "--summary", "bar"))).rejects.toThrow();
   });
 

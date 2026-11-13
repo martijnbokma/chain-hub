@@ -8,7 +8,7 @@ control plane: one hub folder, one CLI, one dashboard, synced into your editors.
 Requirements: **Bun 1.3+** and **Node ≥ 22.13**.
 
 ```bash
-git clone https://github.com/martijnbokma/chain-hub.git
+git clone https://github.com/usechainhub/chain-hub.git
 cd chain-hub
 bun install
 ```
@@ -41,7 +41,7 @@ cd packages/storage && bunx vitest run src/skill-install.test.ts
 - **Tests**: colocate `*.test.ts(x)` next to source; new functionality needs tests.
 - **TypeScript**: strict, no `any`, named exports, ESM only. Comments in English.
 - **Frontend**: use the shadcn/ui primitives and Tailwind semantic tokens in
-  `apps/hub-web` — don't hand-roll new primitives if one exists.
+  `web/` — don't hand-roll new primitives if one exists.
 - **Commits**: Conventional Commits with a package scope, one topic per commit —
   e.g. `feat(storage): add catalog source refresh`. Scopes: `hub-web`, `docs`,
   `cli`, `server`, `domain`, `storage`, `contracts`.

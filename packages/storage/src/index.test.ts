@@ -518,7 +518,7 @@ describe("setupIntegrations", () => {
       installed: false,
       connected: false
     });
-    expect((await fs.readdir(tmpHome)).sort()).toEqual([".claude"]);
+    expect((await fs.readdir(tmpHome)).sort()).toEqual([".claude", ".claude.json"]);
   });
 
   it("reports managed mode with correct supported/unsupported kinds via getIntegrations", async () => {
@@ -529,8 +529,8 @@ describe("setupIntegrations", () => {
     const integrations = await getIntegrations(hub);
     const claudeCode = integrations.find((integration) => integration.id === "claude-code");
     expect(claudeCode?.mode).toBe("managed");
-    expect(claudeCode?.supportedKinds).toEqual(["skills", "agents", "rules"]);
-    expect(claudeCode?.unsupportedKinds).toEqual(["workflows", "prompts"]);
+    expect(claudeCode?.supportedKinds).toEqual(["skills", "agents", "rules", "prompts", "workflows", "mcp", "hooks"]);
+    expect(claudeCode?.unsupportedKinds).toEqual([]);
   });
 
   it("claims unmarked editor twins when hub already owns the skill name", async () => {

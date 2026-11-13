@@ -107,8 +107,8 @@ describe("cursorAdapter.status", () => {
   it("reports supported/unsupported kinds correctly", async () => {
     const homeDir = await makeTmpHome();
     const result = await cursorAdapter.status(homeDir);
-    expect(result.supportedKinds).toEqual(["skills", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["agents", "workflows", "prompts"]);
+    expect(result.supportedKinds).toEqual(["skills", "rules", "prompts", "workflows", "mcp"]);
+    expect(result.unsupportedKinds).toEqual(["agents", "hooks"]);
     expect(result.mode).toBe("missing");
   });
 });

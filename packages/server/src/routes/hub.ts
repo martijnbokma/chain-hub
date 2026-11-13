@@ -4,6 +4,7 @@ import {
   connectEditors,
   getDashboardOverview,
   getGuidedSetup,
+  getHubHealth,
   getHubIssues,
   getIntegrationStatus,
   validateChainHub
@@ -25,6 +26,11 @@ export function registerHubRoutes(app: Hono, options: RouteOptions): void {
   app.get("/api/issues", async (context) => {
     const issues = await getHubIssues(options.chainHome);
     return context.json(issues);
+  });
+
+  app.get("/api/health", async (context) => {
+    const health = await getHubHealth(options.chainHome);
+    return context.json(health);
   });
 
   app.get("/api/validate", async (context) => {

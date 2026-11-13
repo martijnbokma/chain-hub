@@ -5,13 +5,18 @@ import {
   checkSkillUpdatesInputSchema,
   convertAssetInputSchema,
   createAssetInputSchema,
+  discoverSkillDirsInputSchema,
   installCatalogEntryInputSchema,
+  exportGhAwInputSchema,
+  installRepoBundleInputSchema,
+  scanCatalogEntryInputSchema,
   forkSkillInputSchema,
   importAssetInputSchema,
   installSkillBundleInputSchema,
   installSkillInputSchema,
   migrateAgentsSkillsInputSchema,
   relinkSkillInputSchema,
+  scanSkillSourceInputSchema,
   unlinkSkillInputSchema,
   renameAssetInputSchema,
   type AssetKind,
@@ -23,9 +28,13 @@ import {
   convertLibraryAssetKind,
   getLibraryCatalog,
   installLibraryCatalogEntry,
+  exportLibraryWorkflowToGhAw,
+  installLibraryRepoBundle,
+  scanLibraryCatalogEntry,
   createLibraryAsset,
   deleteLibraryAsset,
   discoverLibraryAssets,
+  discoverLibrarySkillDirs,
   forkLibrarySkill,
   getLibrary,
   getLibraryAsset,
@@ -38,6 +47,7 @@ import {
   migrateAgentsLibrarySkills,
   relinkLibrarySkill,
   renameLibraryAsset,
+  scanLibrarySkillSource,
   unlinkLibrarySkill,
   updateLibraryAsset,
   updateLibrarySkills
@@ -64,6 +74,30 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     return context.json(result, 201);
   });
 
+  app.post("/api/library/bundles/install", async (context) => {
+    const payload = installRepoBundleInputSchema.parse(await context.req.json());
+    const result = await installLibraryRepoBundle(options.chainHome, payload);
+    return context.json(result, 201);
+  });
+
+  app.post("/api/library/workflows/export-gh-aw", async (context) => {
+    const payload = exportGhAwInputSchema.parse(await context.req.json());
+    const result = await exportLibraryWorkflowToGhAw(options.chainHome, payload);
+    return context.json(result, 201);
+  });
+
+  app.post("/api/library/skills/discover-dirs", async (context) => {
+    const payload = discoverSkillDirsInputSchema.parse(await context.req.json());
+    const result = await discoverLibrarySkillDirs(options.chainHome, payload);
+    return context.json(result);
+  });
+
+  app.post("/api/library/skills/scan-source", async (context) => {
+    const payload = scanSkillSourceInputSchema.parse(await context.req.json());
+    const result = await scanLibrarySkillSource(options.chainHome, payload);
+    return context.json(result);
+  });
+
   app.get("/api/catalog", async (context) => {
     const refresh = context.req.query("refresh") === "true";
     const result = await getLibraryCatalog(options.chainHome, { force: refresh });
@@ -74,6 +108,12 @@ export function registerLibraryRoutes(app: Hono, options: RouteOptions): void {
     const payload = installCatalogEntryInputSchema.parse(await context.req.json());
     const result = await installLibraryCatalogEntry(options.chainHome, payload);
     return context.json(result, 201);
+  });
+
+  app.post("/api/catalog/scan", async (context) => {
+    const payload = scanCatalogEntryInputSchema.parse(await context.req.json());
+    const result = await scanLibraryCatalogEntry(options.chainHome, payload);
+    return context.json(result);
   });
 
   app.get("/api/library/skills/check-updates", async (context) => {

@@ -3,17 +3,25 @@ import { promises as fs } from "node:fs";
 
 import {
   captureEventSchema,
+  InvalidInputError,
   normalizeSkillName,
   NotFoundError,
+  type AuditAssetFinding,
   type CaptureEvent,
   type CaptureInput,
+  type CaptureResult,
+  type FoldArtifact,
+  type FoldArtifactSummary,
   type LearningsTimeline,
   type ReflectionReport,
   type ResolveLearningsResult,
+  type SkillLockEntry,
   type SkillReflection
 } from "@chain-hub/contracts";
 
 import { initializeHub, resolveChainHome } from "./core.js";
+import { prepareAssetContent } from "./asset-paths.js";
+import { runSecurityGate } from "./security-gate.js";
 import { ensureDir, pathExists } from "./shared.js";
 
 /**
@@ -53,7 +61,7 @@ async function readResolvedMarkers(chainHome: string): Promise<ResolvedMarkers> 
   }
 }
 
-export async function captureEvent(chainHomeInput: string | undefined, input: CaptureInput): Promise<CaptureEvent> {
+export async function captureEvent(chainHomeInput: string | undefined, input: CaptureInput): Promise<CaptureResult> {
   const chainHome = resolveChainHome(chainHomeInput);
   await initializeHub(chainHome);
 
@@ -70,7 +78,11 @@ export async function captureEvent(chainHomeInput: string | undefined, input: Ca
 
   await fs.appendFile(logPath, JSON.stringify(event) + "\n", "utf8");
 
-  return event;
+  // `--skill` doubles as a free-form topic slug; the flag just tells callers
+  // whether this event can ever be folded into an actual hub skill.
+  const knownSkill = await pathExists(path.join(chainHome, "skills", event.skill, "SKILL.md"));
+
+  return { ...event, knownSkill };
 }
 
 type LearningsLog = {
@@ -308,4 +320,159 @@ export async function writeReflectionMarkdown(chainHomeInput: string | undefined
   await fs.writeFile(filePath, content, "utf8");
 
   return { filePath, content };
+}
+
+export function foldsDir(chainHome: string): string {
+  return path.join(chainHome, "memory", "learnings", "folds");
+}
+
+export type FoldArtifactInput = {
+  skill: string;
+  outcome: "applied" | "upstream-proposal" | "to-source" | "findings-only";
+  auditSummary: string;
+  findings: AuditAssetFinding[];
+  events: CaptureEvent[];
+  before: string;
+  after: string;
+  provenance?: SkillLockEntry | null;
+  /** Where the improvement was actually written: hub asset path or upstream source path. */
+  writtenTo?: string | null;
+};
+
+/**
+ * Record one fold as a dated markdown artifact under memory/learnings/folds/<date>/.
+ * The artifact carries findings, folded reports and before/after content — the
+ * audit trail that makes unattended writes reviewable (and revertable) afterwards.
+ */
+export async function writeFoldArtifact(
+  chainHomeInput: string | undefined,
+  input: FoldArtifactInput
+): Promise<{ filePath: string; content: string }> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  const dateSlug = new Date().toISOString().slice(0, 10);
+  const dir = path.join(foldsDir(chainHome), dateSlug);
+  await ensureDir(dir);
+  const filePath = path.join(dir, `${skillKey(input.skill)}.md`);
+
+  const lines: string[] = [
+    `# Fold — ${input.skill}`,
+    ``,
+    `> ${new Date().toISOString()} · outcome: ${input.outcome}${input.writtenTo ? ` · written to ${input.writtenTo}` : ""}`,
+    ``,
+    `## Audit summary`,
+    ``,
+    input.auditSummary,
+    ``,
+    `## Findings applied (${input.findings.length})`,
+    ``
+  ];
+  for (const finding of input.findings) {
+    lines.push(`- **[${finding.severity}]** ${finding.title} — ${finding.detail} *(source: ${finding.source ?? "best-practice"})*`);
+  }
+  lines.push(``, `## Field reports folded (${input.events.length})`, ``);
+  for (const event of input.events) {
+    lines.push(`- \`[${event.type}]\` ${event.summary} *(${event.capturedAt})*`);
+  }
+  if (input.provenance) {
+    lines.push(
+      ``,
+      `## Provenance`,
+      ``,
+      `- sourceType: ${input.provenance.sourceType}`,
+      `- source: ${input.provenance.source}`,
+      input.provenance.subdir ? `- subdir: ${input.provenance.subdir}` : `- subdir: (root)`
+    );
+  }
+  lines.push(``, `## Before`, ``, "```markdown", input.before.trimEnd(), "```", ``, `## After`, ``, "```markdown", input.after.trimEnd(), "```", ``);
+
+  const content = lines.join("\n");
+  await fs.writeFile(filePath, content, "utf8");
+
+  return { filePath, content };
+}
+
+const FOLD_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const FOLD_SLUG_RE = /^[a-z0-9-]+$/;
+
+function foldArtifactPath(chainHome: string, date: string, skill: string): string {
+  if (!FOLD_DATE_RE.test(date) || !FOLD_SLUG_RE.test(skill)) {
+    throw new InvalidInputError(`Invalid fold artifact reference: ${date}/${skill}`);
+  }
+  const dir = path.resolve(foldsDir(chainHome), date);
+  const filePath = path.resolve(dir, `${skill}.md`);
+  if (!filePath.startsWith(dir + path.sep)) {
+    throw new InvalidInputError(`Unsafe fold artifact path: ${date}/${skill}`);
+  }
+  return filePath;
+}
+
+/** Fold artifacts on disk, newest date first, for the read-only review surface. */
+export async function listFoldArtifacts(chainHomeInput: string | undefined): Promise<FoldArtifactSummary[]> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  const root = foldsDir(chainHome);
+  if (!(await pathExists(root))) {
+    return [];
+  }
+
+  const out: FoldArtifactSummary[] = [];
+  for (const date of (await fs.readdir(root)).filter((name) => FOLD_DATE_RE.test(name))) {
+    const dir = path.join(root, date);
+    for (const fileName of (await fs.readdir(dir)).filter((name) => name.endsWith(".md"))) {
+      const raw = await fs.readFile(path.join(dir, fileName), "utf8");
+      const header = raw.split("\n").find((line) => line.startsWith("> ")) ?? "";
+      const outcome = (header.match(/outcome: ([a-z-]+)/)?.[1] ?? "applied") as FoldArtifactSummary["outcome"];
+      const writtenTo = header.match(/written to (.+)$/)?.[1]?.trim() ?? null;
+      out.push({ date, skill: fileName.slice(0, -3), outcome, writtenTo, fileName });
+    }
+  }
+  return out.sort((a, b) => b.date.localeCompare(a.date) || a.skill.localeCompare(b.skill));
+}
+
+export async function readFoldArtifact(
+  chainHomeInput: string | undefined,
+  date: string,
+  skill: string
+): Promise<FoldArtifact> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  const filePath = foldArtifactPath(chainHome, date, skill);
+  if (!(await pathExists(filePath))) {
+    throw new NotFoundError(`Fold artifact not found: ${date}/${skill}`);
+  }
+  const content = await fs.readFile(filePath, "utf8");
+  const header = content.split("\n").find((line) => line.startsWith("> ")) ?? "";
+  const outcome = (header.match(/outcome: ([a-z-]+)/)?.[1] ?? "applied") as FoldArtifact["outcome"];
+  const writtenTo = header.match(/written to (.+)$/)?.[1]?.trim() ?? null;
+  return { date, skill, outcome, writtenTo, fileName: `${skill}.md`, content };
+}
+
+/**
+ * Write an improved SKILL.md back to a path-sourced skill's origin directory,
+ * updating the maker's copy so future installs/updates carry the improvement.
+ */
+export async function writeSkillToPathSource(
+  chainHomeInput: string | undefined,
+  entry: SkillLockEntry,
+  skill: string,
+  content: string
+): Promise<{ filePath: string }> {
+  if (entry.sourceType !== "path") {
+    throw new InvalidInputError(`Skill "${skill}" is not installed from a local path source`);
+  }
+  const chainHome = resolveChainHome(chainHomeInput);
+  const sourceDir = path.resolve(entry.source);
+  const filePath = path.join(sourceDir, "SKILL.md");
+  if (!(await pathExists(filePath))) {
+    throw new NotFoundError(`Source SKILL.md not found at ${filePath}`);
+  }
+
+  const prepared = prepareAssetContent("skills", skill, content);
+  await runSecurityGate(chainHome, {
+    kind: "skills",
+    name: skill,
+    context: "edit",
+    files: [{ path: "SKILL.md", content: prepared }]
+  });
+
+  await fs.writeFile(filePath, prepared, "utf8");
+  return { filePath };
 }

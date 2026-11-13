@@ -116,8 +116,8 @@ describe("claudeCodeAdapter.status", () => {
     const result = await claudeCodeAdapter.status(homeDir);
     expect(result.connected).toBe(false);
     expect(result.mode).toBe("missing");
-    expect(result.supportedKinds).toEqual(["skills", "agents", "rules"]);
-    expect(result.unsupportedKinds).toEqual(["workflows", "prompts"]);
+    expect(result.supportedKinds).toEqual(["skills", "agents", "rules", "prompts", "workflows", "mcp", "hooks"]);
+    expect(result.unsupportedKinds).toEqual([]);
   });
 
   it("reports managed once a synced file exists", async () => {

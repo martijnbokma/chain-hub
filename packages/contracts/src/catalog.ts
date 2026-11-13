@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { assetKindSchema } from "./asset.js";
+import { securityScanRecordSchema } from "./security.js";
 
 /**
  * Chain Hub Catalog — a git-hosted pointer index (notes/docs/specs/hub-catalog.md).
@@ -93,7 +94,9 @@ export const catalogSourcesFileSchema = z.object({
 export const catalogEntryResultSchema = catalogEntrySchema.extend({
   sourceId: z.string(),
   installed: z.boolean(),
-  installedName: z.string().nullable().optional()
+  installedName: z.string().nullable().optional(),
+  /** Pre-install security verdict from the most recent on-demand scan; null until scanned. */
+  securityScan: securityScanRecordSchema.nullable().optional()
 });
 
 /** Why a catalog source could not be refreshed (or has never been fetched). */
@@ -114,7 +117,9 @@ export const catalogResultSchema = z.object({
 export const installCatalogEntryInputSchema = z.object({
   sourceId: z.string().min(1),
   entryId: z.string().min(1),
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export type CatalogEntrySource = z.infer<typeof catalogEntrySourceSchema>;
@@ -124,4 +129,28 @@ export type CatalogSource = z.infer<typeof catalogSourceSchema>;
 export type CatalogSourcesFile = z.infer<typeof catalogSourcesFileSchema>;
 export type CatalogEntryResult = z.infer<typeof catalogEntryResultSchema>;
 export type CatalogResult = z.infer<typeof catalogResultSchema>;
+export const scanCatalogEntryInputSchema = z.object({
+  sourceId: z.string().min(1),
+  entryId: z.string().min(1)
+});
+
+export const scanCatalogEntryResultSchema = z.object({
+  scan: securityScanRecordSchema
+});
+
+/** Cached pre-install scan verdicts, keyed `${sourceId}/${entryId}` in system/catalog-scans.json. */
+export const catalogScansFileSchema = z.object({
+  version: z.literal(1),
+  scans: z.record(
+    z.string(),
+    z.object({
+      scan: securityScanRecordSchema,
+      scannedAt: z.string()
+    })
+  )
+});
+
+export type ScanCatalogEntryInput = z.infer<typeof scanCatalogEntryInputSchema>;
+export type ScanCatalogEntryResult = z.infer<typeof scanCatalogEntryResultSchema>;
+export type CatalogScansFile = z.infer<typeof catalogScansFileSchema>;
 export type InstallCatalogEntryInput = z.infer<typeof installCatalogEntryInputSchema>;

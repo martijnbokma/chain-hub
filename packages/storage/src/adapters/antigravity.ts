@@ -4,6 +4,12 @@ import { promises as fs } from "node:fs";
 import { type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
 import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import {
+  buildInvokedSkillContent,
+  DISABLE_MODEL_INVOCATION,
+  removeInvokedSkill,
+  writeInvokedSkill
+} from "./invoke-skill.js";
 import { projectedFrontmatter } from "./marker.js";
 import {
   buildIntegrationStatus,
@@ -25,12 +31,13 @@ import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 // global folders, so hand-written files stay untouched and `agy plugin disable chain-hub`
 // switches everything off at once. Global rules otherwise only live in the single
 // ~/.gemini/GEMINI.md (shared with Gemini CLI), which we intentionally never write.
-// Workflows are retired by Antigravity on 2026-11-01 — intentionally skipped.
-const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules"];
+// Workflows are retired by Antigravity on 2026-11-01 — so prompts and workflows
+// project as invoke-only skills inside the plugin instead.
+const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules", "prompts", "workflows"];
 const PLUGIN_NAME = "chain-hub";
 const RULE_CHAR_LIMIT = 12_000;
 
-type SupportedKind = "skills" | "agents" | "rules";
+type SupportedKind = "skills" | "agents" | "rules" | "prompts" | "workflows";
 
 function isSupported(kind: AssetKind): kind is SupportedKind {
   return SUPPORTED_KINDS.includes(kind);
@@ -53,8 +60,8 @@ function baseDir(homeDir: string, kind: SupportedKind): string {
 }
 
 function targetPath(homeDir: string, kind: SupportedKind, name: string): string {
-  if (kind === "skills") {
-    return path.join(baseDir(homeDir, kind), name, "SKILL.md");
+  if (kind === "skills" || kind === "prompts" || kind === "workflows") {
+    return path.join(baseDir(homeDir, "skills"), name, "SKILL.md");
   }
 
   return path.join(baseDir(homeDir, kind), `${name}.md`);
@@ -123,6 +130,12 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
   }
 
   const filePath = targetPath(homeDir, asset.kind, asset.name);
+
+  if (asset.kind === "prompts" || asset.kind === "workflows") {
+    await writeInvokedSkill(filePath, buildInvokedSkillContent(asset, DISABLE_MODEL_INVOCATION), asset, { ...options, backup: { chainHome, homeDir } });
+    return;
+  }
+
   await writeManagedFile(filePath, buildContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
 
   if (asset.kind === "skills") {
@@ -138,6 +151,11 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
   const filePath = targetPath(homeDir, kind, name);
   if (kind === "skills") {
     await removeProjectedSkill(filePath);
+    return;
+  }
+
+  if (kind === "prompts" || kind === "workflows") {
+    await removeInvokedSkill(filePath, kind, name);
     return;
   }
 

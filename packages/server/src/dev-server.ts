@@ -8,11 +8,11 @@ const PORT = 2342;
 const MAX_BIND_ATTEMPTS = 3;
 
 function resolveDevStaticRoot(): string | undefined {
-  const candidate = path.resolve(process.cwd(), "apps/hub-web/dist");
+  const candidate = path.resolve(process.cwd(), "web/dist");
   if (existsSync(path.join(candidate, "index.html"))) {
     return candidate;
   }
-  const alt = path.resolve(process.cwd(), "../../apps/hub-web/dist");
+  const alt = path.resolve(process.cwd(), "../../web/dist");
   if (existsSync(path.join(alt, "index.html"))) {
     return alt;
   }

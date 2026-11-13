@@ -13,6 +13,7 @@ import {
 } from "@chain-hub/contracts";
 
 import { createAsset, getAsset, listAssets, loadAllAssetDetails, resolveChainHome } from "./core.js";
+import type { SkillInstallSecurity } from "./security-gate.js";
 import { EDITOR_ADAPTERS } from "./adapters/index.js";
 import { devinConfigDir } from "./adapters/devin.js";
 import { zedConfigDir } from "./adapters/zed.js";
@@ -33,8 +34,20 @@ const LEGACY_INTEGRATION_TARGETS = [
   { id: "devin", label: "Devin CLI", relativeTarget: ".config/devin/chain-hub" },
   { id: "zed", label: "Zed", relativeTarget: ".config/zed/chain-hub" },
   // No legacy symlink ever existed for Antigravity; removeLegacySymlink only unlinks symlinks, so this is inert.
-  { id: "antigravity", label: "Google Antigravity", relativeTarget: ".gemini/config/plugins/chain-hub" }
+  { id: "antigravity", label: "Google Antigravity", relativeTarget: ".gemini/config/plugins/chain-hub" },
+  // No legacy symlink ever existed for the portable skills dir either.
+  { id: "agent-skills", label: "Agent Skills (portable)", relativeTarget: ".agents/chain-hub" },
+  // No legacy symlink for Codex; its rules surface is a merged section in ~/.codex/AGENTS.md.
+  { id: "codex", label: "OpenAI Codex", relativeTarget: ".codex/chain-hub" }
 ] as const;
+
+/**
+ * Config roots of agents that read the open-standard `~/.agents/skills`
+ * directory (agentskills.io): Codex, Copilot, Gemini CLI, plus the directory
+ * itself (created by `npx skills` or any compliant agent) and Zed's config —
+ * Zed's only skills surface is the shared dir.
+ */
+const AGENT_SKILLS_CONSUMER_ROOTS = [".agents", ".codex", ".copilot", ".gemini"];
 
 /**
  * Config folders that show an editor is installed. Chain Hub only projects into
@@ -58,6 +71,22 @@ export async function isEditorInstalled(id: string, homeDir: string): Promise<bo
     // Devin CLI's config folder is platform specific (%APPDATA%\devin on Windows);
     // ~/.devin is the shared Devin product folder (Desktop writes rules/workflows there).
     return (await pathExists(devinConfigDir(homeDir))) || (await pathExists(path.join(homeDir, ".devin")));
+  }
+
+  if (id === "codex") {
+    return pathExists(path.join(homeDir, ".codex"));
+  }
+
+  if (id === "agent-skills") {
+    if (await pathExists(zedConfigDir(homeDir))) {
+      return true;
+    }
+    for (const root of AGENT_SKILLS_CONSUMER_ROOTS) {
+      if (await pathExists(path.join(homeDir, root))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   for (const root of EDITOR_CONFIG_ROOTS[id] ?? []) {
@@ -238,7 +267,11 @@ export async function discoverAssets(chainHomeInput?: string): Promise<Discovere
 }
 
 /** Adopts a discovered native file into the hub as a regular managed asset. */
-export async function importDiscoveredAsset(chainHomeInput: string | undefined, input: ImportAssetInput): Promise<AssetDetail> {
+export async function importDiscoveredAsset(
+  chainHomeInput: string | undefined,
+  input: ImportAssetInput,
+  security?: SkillInstallSecurity
+): Promise<AssetDetail> {
   const chainHome = resolveChainHome(chainHomeInput);
   const adapter = EDITOR_ADAPTERS.find((candidate) => candidate.id === input.editorId);
 
@@ -253,7 +286,11 @@ export async function importDiscoveredAsset(chainHomeInput: string | undefined, 
     throw new NotFoundError(`No importable ${input.kind}/${input.name} found for ${input.editorId}`);
   }
 
-  const asset = await createAsset(chainHome, { kind: match.kind, name: match.name, content: match.content });
+  const asset = await createAsset(
+    chainHome,
+    { kind: match.kind, name: match.name, content: match.content },
+    { context: "import", allowUnsafe: input.allowUnsafe, extraScanner: security?.extraScanner }
+  );
 
   if (asset.kind === "skills") {
     // Scripts and references travel with the skill, so every other editor gets a working copy.

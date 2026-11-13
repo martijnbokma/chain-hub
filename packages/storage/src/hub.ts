@@ -1,16 +1,23 @@
 import {
   assetKinds,
+  type AgentsSkillsDrift,
   type AssetKind,
+  type AssetRecord,
   type HubIssue,
   type HubIssueAction,
   type HubIssuesResult,
   type Overview,
+  type SecurityScansFile,
   type SetupGuide,
-  type SetupStep
+  type SetupStep,
+  type SkillsLockFile,
+  type SyncStatus,
+  type ValidationResult
 } from "@chain-hub/contracts";
 
 import { initializeHub, listAssets, readMeta, resolveChainHome, validateHub } from "./core.js";
 import { getIntegrations } from "./integrations.js";
+import { readSecurityScans } from "./security-store.js";
 import { detectAgentsSkillsDrift } from "./skill-agents.js";
 import { readSkillsLock } from "./skills-lock.js";
 import { getSyncStatus } from "./sync.js";
@@ -43,19 +50,40 @@ export async function getOverview(chainHomeInput?: string): Promise<Overview> {
   };
 }
 
-/**
- * Every problem the hub knows about, in one list: structural validation issues,
- * agents↔hub drift, persisted skill check/update failures, and per-asset
- * editor-compat findings. Sorted errors-first so callers can render it as-is.
- */
-export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesResult> {
-  const chainHome = resolveChainHome(chainHomeInput);
-  await initializeHub(chainHome);
-  const validation = await validateHub(chainHome);
-  const assets = await listAssets(chainHome);
-  const drift = await detectAgentsSkillsDrift(chainHome);
-  const lock = await readSkillsLock(chainHome);
+/** Everything the unified issue list is derived from — collected in one pass. */
+export interface HubIssueInputs {
+  validation: ValidationResult;
+  assets: AssetRecord[];
+  drift: AgentsSkillsDrift;
+  lock: SkillsLockFile;
+  scans: SecurityScansFile;
+  /** Null when sync state can't be read — the sync API reports hard failures itself. */
+  sync: SyncStatus | null;
+}
 
+/** One read pass over everything the issue list needs (shared with getHealth). */
+export async function collectHubIssueInputs(chainHome: string): Promise<HubIssueInputs> {
+  const [validation, assets, drift, lock, scans] = await Promise.all([
+    validateHub(chainHome),
+    listAssets(chainHome),
+    detectAgentsSkillsDrift(chainHome),
+    readSkillsLock(chainHome),
+    readSecurityScans(chainHome)
+  ]);
+
+  let sync: SyncStatus | null = null;
+  try {
+    sync = await getSyncStatus(chainHome);
+  } catch {
+    sync = null;
+  }
+
+  return { validation, assets, drift, lock, scans, sync };
+}
+
+/** Pure: the unified problem list from collected inputs, sorted errors-first. */
+export function buildHubIssues(inputs: HubIssueInputs): HubIssue[] {
+  const { validation, assets, drift, lock, scans, sync } = inputs;
   const issues: HubIssue[] = [];
   const presentAssets = new Set(assets.map((asset) => `${asset.kind}/${asset.name}`));
   const openAsset = (name: string): HubIssueAction[] =>
@@ -128,41 +156,69 @@ export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesR
     }
   }
 
+  // Persisted scan verdicts: an unacknowledged `fail` on a present asset is an
+  // error; overridden/warn is a warning. Records for removed assets are stale —
+  // a warning with no remediation action, not an error.
+  for (const [key, scan] of Object.entries(scans.scans)) {
+    if (scan.verdict === "pass") {
+      continue;
+    }
+    const slash = key.indexOf("/");
+    const kind = key.slice(0, slash);
+    const name = key.slice(slash + 1);
+    const assetKind = (assetKinds as readonly string[]).includes(kind) ? (kind as AssetKind) : undefined;
+    const present = presentAssets.has(key);
+    const findings = scan.findings[0]?.title
+      ? `${scan.findings[0].title}${scan.findings.length > 1 ? ` (+${scan.findings.length - 1} more)` : ""}`
+      : undefined;
+    issues.push({
+      id: `security:${key}`,
+      severity: present && scan.verdict === "fail" && !scan.overriddenAt ? "error" : "warning",
+      kind: "security",
+      title: present
+        ? `Security scan ${scan.verdict === "fail" ? "failed" : "warnings"} for ${key}`
+        : `Scan record for removed asset ${key}`,
+      detail: !present
+        ? "The asset is no longer in the hub; this scan record can be removed."
+        : scan.overriddenAt
+          ? "Fail verdict was explicitly allowed on install."
+          : findings,
+      assetKind,
+      assetName: name,
+      actions: present ? ["open-asset"] : ["remove-scan"]
+    });
+  }
+
   // Sync only raises issues a human must resolve: pending changes with
   // auto-sync on converge by themselves via the server's periodic sync.
-  try {
-    const sync = await getSyncStatus(chainHome);
-    if (sync.conflicts.length > 0) {
-      issues.push({
-        id: "sync:conflicts",
-        severity: "error",
-        kind: "sync",
-        title: "Cloud backup has merge conflicts",
-        detail: `${sync.conflicts.length} file(s) changed on two machines — pick a version per file to resume syncing.`,
-        actions: ["open-integrations"]
-      });
-    } else if (sync.lastSyncError) {
-      issues.push({
-        id: "sync:error",
-        severity: "error",
-        kind: "sync",
-        title: "Cloud backup sync failed",
-        detail: sync.lastSyncError,
-        actions: ["open-integrations"]
-      });
-    } else if (sync.connected && !sync.autoSync && sync.uncommitted + sync.ahead > 0) {
-      const pending = sync.uncommitted + sync.ahead;
-      issues.push({
-        id: "sync:pending",
-        severity: "warning",
-        kind: "sync",
-        title: `${pending} change${pending === 1 ? "" : "s"} not backed up`,
-        detail: "Auto-sync is off — sync manually from Integrations.",
-        actions: ["open-integrations"]
-      });
-    }
-  } catch {
-    // Sync status is best-effort here; the sync API reports hard failures itself.
+  if (sync && sync.conflicts.length > 0) {
+    issues.push({
+      id: "sync:conflicts",
+      severity: "error",
+      kind: "sync",
+      title: "Cloud backup has merge conflicts",
+      detail: `${sync.conflicts.length} file(s) changed on two machines — pick a version per file to resume syncing.`,
+      actions: ["open-integrations"]
+    });
+  } else if (sync?.lastSyncError) {
+    issues.push({
+      id: "sync:error",
+      severity: "error",
+      kind: "sync",
+      title: "Cloud backup sync failed",
+      detail: sync.lastSyncError,
+      actions: ["open-integrations"]
+    });
+  } else if (sync?.connected && !sync.autoSync && sync.uncommitted + sync.ahead > 0) {
+    const pending = sync.uncommitted + sync.ahead;
+    issues.push({
+      id: "sync:pending",
+      severity: "warning",
+      kind: "sync",
+      title: `${pending} change${pending === 1 ? "" : "s"} not backed up`,
+      detail: "Auto-sync is off — sync manually from Integrations.",
+      actions: ["open-integrations"]
+    });
   }
 
   issues.sort((a, b) => {
@@ -172,7 +228,18 @@ export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesR
     return a.title.localeCompare(b.title);
   });
 
-  return { issues };
+  return issues;
+}
+
+/**
+ * Every problem the hub knows about, in one list: structural validation issues,
+ * agents↔hub drift, persisted skill check/update failures, and per-asset
+ * editor-compat findings. Sorted errors-first so callers can render it as-is.
+ */
+export async function listHubIssues(chainHomeInput?: string): Promise<HubIssuesResult> {
+  const chainHome = resolveChainHome(chainHomeInput);
+  await initializeHub(chainHome);
+  return { issues: buildHubIssues(await collectHubIssueInputs(chainHome)) };
 }
 
 export async function getSetupGuide(chainHomeInput?: string): Promise<SetupGuide> {

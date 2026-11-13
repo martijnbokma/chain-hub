@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { InvalidInputError } from "./errors.js";
+import { securityScanRecordSchema, securityScanReportSchema } from "./security.js";
 
-export const assetKinds = ["skills", "agents", "workflows", "rules", "prompts"] as const;
+export const assetKinds = ["skills", "agents", "workflows", "rules", "prompts", "mcp", "hooks"] as const;
 
 export type AssetKind = (typeof assetKinds)[number];
 
@@ -51,7 +52,9 @@ export const assetRecordSchema = z.object({
   /** Frontmatter `author` when present (skills and other markdown assets). */
   author: z.string().nullable().optional(),
   /** Deterministic editor-compat findings (skills: required description, etc.). */
-  compatIssues: z.array(assetCompatIssueSchema).optional()
+  compatIssues: z.array(assetCompatIssueSchema).optional(),
+  /** Last security scan verdict + findings for this asset, when it has been scanned. */
+  securityScan: securityScanRecordSchema.nullable().optional()
 });
 
 export const assetDetailSchema = assetRecordSchema.extend({
@@ -112,7 +115,9 @@ export const discoveredAssetSchema = z.object({
 export const importAssetInputSchema = z.object({
   editorId: z.string(),
   kind: z.enum(assetKinds),
-  name: assetNameSchema
+  name: assetNameSchema,
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export const installSkillInputSchema = z
@@ -126,7 +131,9 @@ export const installSkillInputSchema = z
       .optional(),
     subdir: z.string().min(1).optional(),
     name: z.string().min(1).optional(),
-    force: z.boolean().optional()
+    force: z.boolean().optional(),
+    /** Install even when the security scan verdict is `fail`; the override is recorded. */
+    allowUnsafe: z.boolean().optional()
   })
   .refine((value) => Boolean(value.path) !== Boolean(value.repo), {
     message: "Provide exactly one of path or repo"
@@ -150,12 +157,74 @@ export const installSkillBundleFileSchema = z.object({
 export const installSkillBundleInputSchema = z.object({
   name: z.string().min(1).optional(),
   force: z.boolean().optional(),
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional(),
   files: z.array(installSkillBundleFileSchema).min(1).max(500, "A skill folder can have at most 500 files")
+});
+
+/** Plugin-bundle install: one repo carrying multiple assets in the conventional layout. */
+export const installRepoBundleInputSchema = z.object({
+  repo: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => !value.startsWith("-"), { message: "Repository must be a URL or path, not an option" }),
+  force: z.boolean().optional(),
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
+});
+
+export const installRepoBundleResultSchema = z.object({
+  installed: z.array(z.object({ kind: z.enum(assetKinds), name: z.string() })),
+  /** Per-item failures — a broken entry does not hold the rest of the bundle back. */
+  failed: z.array(
+    z.object({
+      id: z.string(),
+      kind: z.enum(assetKinds),
+      name: z.string(),
+      error: z.string()
+    })
+  )
+});
+
+/** gh-aw export: write a workflow asset into a repo's .github/workflows dir (one-shot, repo-scoped). */
+export const exportGhAwInputSchema = z.object({
+  name: z.string().min(1),
+  repoDir: z.string().min(1),
+  force: z.boolean().optional()
+});
+
+/** Pre-install security scan: runs the install gate against a source without installing or recording. */
+export const scanSkillSourceInputSchema = z
+  .object({
+    path: z.string().min(1).optional(),
+    repo: z
+      .string()
+      .trim()
+      .min(1)
+      .refine((value) => !value.startsWith("-"), { message: "Repository must be a URL or path, not an option" })
+      .optional(),
+    subdir: z.string().min(1).optional(),
+    /** Name hint for repo auto-detection and the AI scanner; does not install. */
+    name: z.string().min(1).optional(),
+    files: z.array(installSkillBundleFileSchema).min(1).max(500, "A skill folder can have at most 500 files").optional()
+  })
+  .refine((value) => [value.path, value.repo, value.files].filter(Boolean).length === 1, {
+    message: "Provide exactly one of path, repo or files"
+  });
+
+export const scanSkillSourceResultSchema = z.object({
+  /** Record shape (nothing is persisted): carries aiError when the AI layer was unreachable. */
+  scan: securityScanRecordSchema,
+  /** Subdir SKILL.md resolved to, when the input left it empty and one was detected. */
+  detectedSubdir: z.string().nullable().optional()
 });
 
 export const updateSkillsInputSchema = z.object({
   name: z.string().min(1).optional(),
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Update even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export const forkSkillInputSchema = z.object({
@@ -183,7 +252,9 @@ export function isUnlinkedSkill(entry: SkillLockEntryValue | null | undefined): 
 
 /** True when the last update check found the upstream HEAD ahead of the locked copy. */
 export function hasSkillUpdate(entry: SkillLockEntryValue | null | undefined): boolean {
-  return Boolean(entry?.latestSha && entry.latestSha !== entry.commitSha);
+  // Unlinked skills keep latestSha as provenance but are no longer tracked —
+  // without the ownership check a stale latestSha flags an update forever.
+  return isUpstreamOwnedSkill(entry) && Boolean(entry?.latestSha && entry.latestSha !== entry.commitSha);
 }
 
 /**
@@ -263,7 +334,9 @@ export const skillBatchItemResultSchema = z.object({
   error: z.string().optional(),
   /** Commit the hub copy was locked at before this run; lets clients show old → new. */
   previousCommitSha: z.string().nullable().optional(),
-  lockEntry: skillLockEntrySchema.optional()
+  lockEntry: skillLockEntrySchema.optional(),
+  /** Security scan report when the item was (re)scanned this run. */
+  securityScan: securityScanReportSchema.optional()
 });
 
 export const updateSkillsResultSchema = z.object({
@@ -272,7 +345,9 @@ export const updateSkillsResultSchema = z.object({
 
 export const migrateAgentsSkillsInputSchema = z.object({
   lockPath: z.string().min(1).optional(),
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Migrate even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe: z.boolean().optional()
 });
 
 export const migrateAgentsSkillsResultSchema = z.object({
@@ -295,10 +370,15 @@ export type ImportAssetInput = z.infer<typeof importAssetInputSchema>;
 export type InstallSkillInput = z.infer<typeof installSkillInputSchema>;
 export type InstallSkillBundleInput = z.infer<typeof installSkillBundleInputSchema>;
 export type InstallSkillBundleFile = z.infer<typeof installSkillBundleFileSchema>;
+export type ScanSkillSourceInput = z.infer<typeof scanSkillSourceInputSchema>;
+export type ScanSkillSourceResult = z.infer<typeof scanSkillSourceResultSchema>;
 export type SkillLockSourceType = z.infer<typeof skillLockSourceTypeSchema>;
 export type SkillLockEntry = z.infer<typeof skillLockEntrySchema>;
 export type SkillsLockFile = z.infer<typeof skillsLockFileSchema>;
 export type InstallSkillResult = z.infer<typeof installSkillResultSchema>;
+export type InstallRepoBundleInput = z.infer<typeof installRepoBundleInputSchema>;
+export type InstallRepoBundleResult = z.infer<typeof installRepoBundleResultSchema>;
+export type ExportGhAwInput = z.infer<typeof exportGhAwInputSchema>;
 export type UpdateSkillsInput = z.infer<typeof updateSkillsInputSchema>;
 export type ForkSkillInput = z.infer<typeof forkSkillInputSchema>;
 export type SkillBatchItemResult = z.infer<typeof skillBatchItemResultSchema>;
@@ -341,6 +421,21 @@ export const skillUpstreamDirsResultSchema = z.object({
   dirs: z.array(z.string())
 });
 
+export const discoverSkillDirsInputSchema = z.object({
+  repo: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => !value.startsWith("-"), { message: "Repository must be a URL or path, not an option" })
+});
+
+export const discoverSkillDirsResultSchema = z.object({
+  repo: z.string(),
+  /** The repo root itself holds a SKILL.md; installs then need no subdir. */
+  hasRootSkill: z.boolean(),
+  dirs: z.array(z.string())
+});
+
 export type SkillUpdateStatus = z.infer<typeof skillUpdateStatusSchema>;
 export type SkillCheckItemResult = z.infer<typeof skillCheckItemResultSchema>;
 export type CheckSkillUpdatesResult = z.infer<typeof checkSkillUpdatesResultSchema>;
@@ -348,5 +443,7 @@ export type CheckSkillUpdatesInput = z.infer<typeof checkSkillUpdatesInputSchema
 export type UnlinkSkillInput = z.infer<typeof unlinkSkillInputSchema>;
 export type RelinkSkillInput = z.infer<typeof relinkSkillInputSchema>;
 export type SkillUpstreamDirsResult = z.infer<typeof skillUpstreamDirsResultSchema>;
+export type DiscoverSkillDirsInput = z.infer<typeof discoverSkillDirsInputSchema>;
+export type DiscoverSkillDirsResult = z.infer<typeof discoverSkillDirsResultSchema>;
 export type MigrateAgentsSkillsInput = z.infer<typeof migrateAgentsSkillsInputSchema>;
 export type MigrateAgentsSkillsResult = z.infer<typeof migrateAgentsSkillsResultSchema>;

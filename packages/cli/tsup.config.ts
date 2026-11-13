@@ -5,7 +5,7 @@ import path from "node:path";
 import { defineConfig } from "tsup";
 
 // tsup runs from packages/cli (turbo and the package scripts both use the package dir).
-const dashboardSource = path.resolve("../../apps/hub-web/dist");
+const dashboardSource = path.resolve("../../web/dist");
 const dashboardTarget = path.resolve("dist/web");
 
 export default defineConfig({
@@ -14,7 +14,7 @@ export default defineConfig({
   dts: true,
   clean: true,
   // Workspace packages aren't published — inline them into the CLI bundle
-  // so `npm install -g chain-hub` doesn't need them on the registry.
+  // so `npm install -g @usechain/chain-hub` doesn't need them on the registry.
   noExternal: [/^@chain-hub\//],
   // Ship the dashboard inside the package so `chain hub` works after an npm install.
   async onSuccess() {

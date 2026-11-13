@@ -19,13 +19,15 @@ export {
 
 export { listSkillFiles, readSkillFile } from "./skill-files.js";
 
-export { installSkillFromSource, installSkillFromBundle, forkSkillFromHub } from "./skill-install.js";
+export { installSkillFromSource, installSkillFromBundle, previewSkillScan, forkSkillFromHub } from "./skill-install.js";
 
 export { updateSkillsFromLock, checkSkillUpdatesFromLock } from "./skill-updates.js";
 
 export { migrateAgentsSkillLock, detectAgentsSkillsDrift } from "./skill-agents.js";
 
 export { listSkillUpstreamDirs, relinkSkill } from "./skill-upstream.js";
+
+export { discoverGitSkills } from "./skill-git.js";
 
 export {
   readSkillsLock,
@@ -48,10 +50,32 @@ export {
   listCatalogEntries,
   resolveCatalogEntry,
   installCatalogEntry,
+  scanCatalogEntry,
   CATALOG_FETCH_TTL_MS
 } from "./catalog.js";
 
+export { installRepoBundle } from "./bundle-install.js";
+
+export { exportWorkflowToGhAw, type ExportGhAwResult } from "./gh-aw-export.js";
+
 export { installAssetFromSource, type InstallAssetInput } from "./asset-install.js";
+
+export { runSecurityGate, type SkillInstallSecurity, type SecurityGateOptions } from "./security-gate.js";
+export {
+  collectSkillScanFiles,
+  scanAssetFiles,
+  scanSkillTree,
+  type SecurityScanFile,
+  type SecurityExtraScanner
+} from "./security-scan.js";
+export {
+  readSecurityScans,
+  getSecurityScan,
+  recordSecurityScan,
+  removeSecurityScan,
+  renameSecurityScan,
+  copySecurityScan
+} from "./security-store.js";
 
 export { projectSkillSidecars, removeEditorSkillDirectory } from "./adapters/skill-sidecars.js";
 
@@ -64,6 +88,8 @@ export {
 } from "./integrations.js";
 
 export { getOverview, getSetupGuide, listHubIssues } from "./hub.js";
+
+export { getHealth } from "./health.js";
 
 export {
   getSyncStatus,
@@ -84,7 +110,13 @@ export {
   getSkillLearnings,
   resolveSkillLearnings,
   buildReflectionReport,
-  writeReflectionMarkdown
+  writeReflectionMarkdown,
+  foldsDir,
+  writeFoldArtifact,
+  writeSkillToPathSource,
+  listFoldArtifacts,
+  readFoldArtifact,
+  type FoldArtifactInput
 } from "./learnings.js";
 
 export {

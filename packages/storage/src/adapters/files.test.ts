@@ -303,7 +303,7 @@ describe("buildIntegrationStatus", () => {
     });
 
     expect(status).toMatchObject({ id: "demo", connected: true, mode: "managed", supportedKinds: ["rules"] });
-    expect(status.unsupportedKinds).toEqual(["skills", "agents", "workflows", "prompts"]);
+    expect(status.unsupportedKinds).toEqual(["skills", "agents", "workflows", "prompts", "mcp", "hooks"]);
   });
 
   it("reports missing when no target directory has files", async () => {

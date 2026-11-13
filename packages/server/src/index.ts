@@ -16,6 +16,7 @@ import { registerAnalysisRoutes } from "./routes/analysis.js";
 import { registerHubRoutes } from "./routes/hub.js";
 import { registerLearningsRoutes } from "./routes/learnings.js";
 import { registerLibraryRoutes } from "./routes/library.js";
+import { registerSecurityRoutes } from "./routes/security.js";
 import { registerSyncRoutes } from "./routes/sync.js";
 
 type StartServerOptions = {
@@ -68,6 +69,7 @@ export function createServer(options: StartServerOptions = {}) {
   registerLearningsRoutes(app, routeOptions);
   registerAiRoutes(app, routeOptions);
   registerAnalysisRoutes(app, routeOptions);
+  registerSecurityRoutes(app, routeOptions);
   registerSyncRoutes(app, routeOptions);
 
   // Before the SPA fallback, so API clients get JSON instead of the dashboard page.

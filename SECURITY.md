@@ -5,7 +5,7 @@
 Please do **not** open a public GitHub issue for security vulnerabilities.
 
 Report privately via GitHub's
-[private vulnerability reporting](https://github.com/martijnbokma/chain-hub/security/advisories/new)
+[private vulnerability reporting](https://github.com/usechainhub/chain-hub/security/advisories/new)
 on this repository, or reach the maintainer through the contact options on their
 GitHub profile.
 

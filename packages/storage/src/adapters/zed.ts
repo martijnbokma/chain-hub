@@ -3,34 +3,20 @@ import path from "node:path";
 
 import { assetKinds, type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
-import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
-import { hasHeaderMarker, projectedFrontmatter } from "./marker.js";
-import {
-  dirHasAnyFile,
-  listSkillCandidates,
-  pathExists,
-  readUnmanagedCandidates,
-  removeProjectedSkill,
-  writeManagedFile
-} from "./files.js";
-import { projectSkillSidecars } from "./skill-sidecars.js";
+import { rebuildAgentsMdFile, RULES_SECTION_START } from "./agents-md.js";
+import { hasHeaderMarker } from "./marker.js";
+import { pathExists } from "./files.js";
 import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 
 // Zed discovery paths (user-level): notes/docs/editor-adapters-research.md#zed
+// Zed reads skills from the shared ~/.agents/skills directory — the
+// agent-skills adapter owns that target, so this adapter only handles rules.
 // Agents/workflows have no native concept in Zed — intentionally skipped.
 // Rules are a MERGE kind: Zed reads exactly one instruction file per scope
 // (first match of .rules/AGENTS.md/etc.), so all Chain Hub rule assets get
 // concatenated into one marked section of <Zed config>/AGENTS.md (see zedConfigDir). Anything the
 // user wrote outside that section is left alone.
-const SUPPORTED_KINDS: AssetKind[] = ["skills", "rules"];
-
-function skillsDir(homeDir: string): string {
-  return path.join(homeDir, ".agents", "skills");
-}
-
-function skillPath(homeDir: string, name: string): string {
-  return path.join(skillsDir(homeDir), name, "SKILL.md");
-}
+const SUPPORTED_KINDS: AssetKind[] = ["rules"];
 
 /**
  * Zed's config folder: %APPDATA%\Zed on Windows, ~/.config/zed on macOS and Linux.
@@ -46,105 +32,35 @@ function rulesFilePath(homeDir: string): string {
   return path.join(zedConfigDir(homeDir), "AGENTS.md");
 }
 
-function buildSkillContent(asset: AssetDetail): string {
-  const { data: source, body, description } = deriveDescription(asset.content, asset.name);
-  return stringifyFrontmatter(projectedFrontmatter(asset, source, { name: true, description }), body);
-}
 
-const SECTION_START = "<!-- chain-hub:rules:start -->";
-const SECTION_END = "<!-- chain-hub:rules:end -->";
 
-function buildRulesSection(ruleAssets: AssetDetail[]): string {
-  const sections = ruleAssets.map((asset) => {
-    const { body, description } = deriveDescription(asset.content, asset.name);
-    return `## ${description}\n\n${body.trim()}`;
-  });
-  const body = sections.length > 0 ? sections.join("\n\n---\n\n") : "No rules yet.";
 
-  return `${SECTION_START}\n# Chain Hub Rules\n\n${body}\n${SECTION_END}`;
-}
-
-/** Hand-written text around Chain Hub's section, or "" when the whole file is ours. */
-function userContent(existing: string): string {
-  if (hasHeaderMarker(existing)) {
-    // Files from before sections existed were entirely generated.
-    return "";
-  }
-
-  const start = existing.indexOf(SECTION_START);
-  const end = existing.indexOf(SECTION_END);
-  if (start === -1 || end === -1 || end < start) {
-    return existing.trim();
-  }
-
-  const before = existing.slice(0, start).trim();
-  const after = existing.slice(end + SECTION_END.length).trim();
-  return [before, after].filter(Boolean).join("\n\n");
-}
-
-async function rebuildRulesFile(homeDir: string, ruleAssets: AssetDetail[]): Promise<void> {
-  const filePath = rulesFilePath(homeDir);
-  const existing = (await pathExists(filePath)) ? await fs.readFile(filePath, "utf8") : "";
-  const kept = userContent(existing);
-
-  // Don't add an empty Chain Hub section to someone's own instructions.
-  const section = ruleAssets.length === 0 && kept ? "" : buildRulesSection(ruleAssets);
-  const next = [kept, section].filter(Boolean).join("\n\n");
-
-  if (!next) {
-    return;
-  }
-
-  const content = `${next}\n`;
-  if (content !== existing) {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, content, "utf8");
-  }
-}
-
-async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
-  if (asset.kind === "skills") {
-    await writeManagedFile(skillPath(homeDir, asset.name), buildSkillContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
-    await projectSkillSidecars(chainHome, path.dirname(skillPath(homeDir, asset.name)), asset.name);
-    return;
-  }
-
+async function writeAsset(_chainHome: string, homeDir: string, asset: AssetDetail, _options?: { force?: boolean }): Promise<void> {
   // Rules are a merge kind — syncAssetToEditors routes these through resync()
   // with the full rule list instead of calling writeAsset directly. This branch
   // only exists so a single rules asset write can't silently drop the file.
   if (asset.kind === "rules") {
-    await rebuildRulesFile(homeDir, [asset]);
+    await rebuildAgentsMdFile(rulesFilePath(homeDir), [asset]);
   }
 }
 
-async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind, name: string): Promise<void> {
-  if (kind === "skills") {
-    await removeProjectedSkill(skillPath(homeDir, name));
-  }
+async function removeAsset(_chainHome: string, _homeDir: string, _kind: AssetKind, _name: string): Promise<void> {
+  // Nothing 1:1 to remove — rules rebuild on the next resync; skills belong to agent-skills.
 }
 
-async function resync(chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
-  const skills = assets.filter((asset) => asset.kind === "skills");
-  const rules = assets.filter((asset) => asset.kind === "rules");
-
-  for (const skill of skills) {
-    await writeAsset(chainHome, homeDir, skill, { force: true });
-  }
-
-  await rebuildRulesFile(homeDir, rules);
+async function resync(_chainHome: string, homeDir: string, assets: AssetDetail[]): Promise<void> {
+  await rebuildAgentsMdFile(rulesFilePath(homeDir), assets.filter((asset) => asset.kind === "rules"));
 }
 
 async function status(homeDir: string): Promise<Omit<Integration, "installed">> {
   const rulesFile = rulesFilePath(homeDir);
-  const hasSkills = await dirHasAnyFile(skillsDir(homeDir));
   const rulesContent = (await pathExists(rulesFile)) ? await fs.readFile(rulesFile, "utf8") : "";
-  const hasRules = rulesContent.includes(SECTION_START) || hasHeaderMarker(rulesContent);
-  const connected = hasSkills || hasRules;
+  const connected = rulesContent.includes(RULES_SECTION_START) || hasHeaderMarker(rulesContent);
 
   return {
     id: "zed",
     label: "Zed",
-    targetPaths: [skillsDir(homeDir), rulesFile],
+    targetPaths: [rulesFile],
     connected,
     mode: connected ? "managed" : "missing",
     supportedKinds: SUPPORTED_KINDS,
@@ -152,11 +68,11 @@ async function status(homeDir: string): Promise<Omit<Integration, "installed">> 
   };
 }
 
-// Only skills are discoverable — rules are a merge kind (one generated AGENTS.md), and
-// there's no reliable way to split a foreign, hand-written AGENTS.md back into discrete
-// named rule assets, so rules are intentionally excluded from discovery.
-async function discover(homeDir: string): Promise<DiscoveredCandidate[]> {
-  return readUnmanagedCandidates(await listSkillCandidates(skillsDir(homeDir)), "skills");
+// Nothing discoverable: skills under ~/.agents/skills belong to the agent-skills
+// adapter, and there's no reliable way to split a foreign, hand-written AGENTS.md
+// back into discrete named rule assets.
+async function discover(_homeDir: string): Promise<DiscoveredCandidate[]> {
+  return [];
 }
 
 export const zedAdapter: EditorAdapter = {

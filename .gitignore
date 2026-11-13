@@ -1,49 +1,11 @@
-node_modules
-
-# Local environment and secrets
+node_modules/
+dist/
+coverage/
+.turbo/
 .env
 .env.*
-!.env.example
-dist
-.turbo
-*.log
-coverage
+*.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
 .DS_Store
-
-# Local sandbox hubs used during development
-.sandbox-hub/
-.sandbox-*/
-
-# Hub data directory (default chain home is ~/.chain-hub, not in repo)
-chain-hub-data/
-
-# Vitest
-.vitest-cache/
-
-# hub-web Vite build
-apps/hub-web/dist/
-
-# Playwright MCP debug snapshots/screenshots
-.playwright-mcp/
-
-# Playwright e2e test artifacts
-apps/hub-web/playwright-report/
-apps/hub-web/test-results/
-
-# Ad-hoc UI verification screenshots dumped at repo root
-/*.png
-*--full-page*
-
-# Local agent / editor tooling (not product source)
-.specstory/
-.remember/
-.claude/settings.local.json
-.cursor/hooks/state/
-.impeccable/
-.taste-skill/
-
-# Local agent tooling (skills installed by other agent sessions)
-.agents/
-
-# Private notes clone (martijnbokma/chain-hub-notes, optional)
-notes/

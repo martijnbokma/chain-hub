@@ -1,5 +1,9 @@
 # Chain Hub
 
+> Install the CLI with `npm install -g @usechain/chain-hub`. This
+> repository mirrors the source; canonical development happens in a
+> private monorepo and is exported here per release.
+
 A local-first AI workspace control plane — one hub folder, one CLI, one dashboard, every editor.
 
 ## Philosophy
@@ -12,8 +16,7 @@ A local-first AI workspace control plane — one hub folder, one CLI, one dashbo
 ## Workspace layout
 
 ```text
-apps/
-  hub-web/        React 19 dashboard (Tailwind v4, shadcn/ui, TanStack Query)
+web/              React 19 dashboard (Tailwind v4, shadcn/ui, TanStack Query)
 packages/
   cli/            chain binary (Commander, Node 22)
   server/         Hono localhost API

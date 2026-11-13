@@ -165,8 +165,8 @@ describe("windsurfAdapter.status", () => {
   it("reports skills+rules+workflows as supported, agents as unsupported", async () => {
     const homeDir = await makeTmpHome();
     const result = await windsurfAdapter.status(homeDir);
-    expect(result.supportedKinds).toEqual(["skills", "rules", "workflows"]);
-    expect(result.unsupportedKinds).toEqual(["agents", "prompts"]);
+    expect(result.supportedKinds).toEqual(["skills", "rules", "workflows", "prompts"]);
+    expect(result.unsupportedKinds).toEqual(["agents", "mcp", "hooks"]);
     expect(result.label).toBe("Windsurf (Devin Desktop)");
     expect(result.targetPaths).toContain(path.join(homeDir, ".codeium", "windsurf", "skills"));
   });

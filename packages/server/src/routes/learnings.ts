@@ -1,10 +1,18 @@
 import type { Hono } from "hono";
 
-import { captureInputSchema, learningsTimelineQuerySchema, resolveLearningsInputSchema } from "@chain-hub/contracts";
+import {
+  captureInputSchema,
+  foldLearningsInputSchema,
+  learningsTimelineQuerySchema,
+  resolveLearningsInputSchema
+} from "@chain-hub/contracts";
 import {
   captureHubEvent,
+  foldHubLearnings,
+  getHubFoldArtifact,
   getHubLearningsTimeline,
   getHubReflectionReport,
+  listHubFoldArtifacts,
   resolveHubSkillLearnings
 } from "@chain-hub/domain";
 
@@ -30,6 +38,25 @@ export function registerLearningsRoutes(app: Hono, options: RouteOptions): void 
     const payload = resolveLearningsInputSchema.parse(await context.req.json());
     const result = await resolveHubSkillLearnings(options.chainHome, payload.skill);
     return context.json(result);
+  });
+
+  app.post("/api/learnings/fold", async (context) => {
+    const payload = foldLearningsInputSchema.parse(await context.req.json().catch(() => ({})));
+    const result = await foldHubLearnings(options.chainHome, payload);
+    return context.json(result);
+  });
+
+  app.get("/api/learnings/folds", async (context) => {
+    return context.json(await listHubFoldArtifacts(options.chainHome));
+  });
+
+  app.get("/api/learnings/folds/:date/:skill", async (context) => {
+    const artifact = await getHubFoldArtifact(
+      options.chainHome,
+      context.req.param("date"),
+      context.req.param("skill")
+    );
+    return context.json(artifact);
   });
 
   app.get("/api/learnings/reflect", async (context) => {

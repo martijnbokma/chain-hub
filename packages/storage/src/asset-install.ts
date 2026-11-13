@@ -7,20 +7,25 @@ import { promisify } from "node:util";
 
 import {
   type AssetDetail,
+  type AssetKind,
   ConflictError,
   InvalidInputError,
   normalizeSkillName,
+  type SecurityScanContext,
   type SkillLockEntry
 } from "@chain-hub/contracts";
 
 import { installLockKey, mutateInstallLock } from "./install-lock.js";
+import { runSecurityGate } from "./security-gate.js";
+import type { SecurityExtraScanner } from "./security-scan.js";
 import { pathExists } from "./shared.js";
 import { getAsset } from "./core.js";
 
 const execFileAsync = promisify(execFile);
 
 export interface InstallAssetInput {
-  kind: "agents" | "workflows";
+  /** Any single-file kind; skills need the folder install path instead. */
+  kind: Exclude<AssetKind, "skills">;
   repo?: string;
   path?: string;
   subdir?: string;
@@ -28,9 +33,13 @@ export interface InstallAssetInput {
   force?: boolean;
   catalogId?: string;
   catalogEntryId?: string;
+  /** Install even when the security scan verdict is `fail`; the override is recorded. */
+  allowUnsafe?: boolean;
+  scanContext?: SecurityScanContext;
+  extraScanner?: SecurityExtraScanner;
 }
 
-async function cloneRepo(repo: string): Promise<{ cleanupDir: string; commitSha: string | null }> {
+export async function cloneRepo(repo: string): Promise<{ cleanupDir: string; commitSha: string | null }> {
   const cleanupDir = await fs.mkdtemp(path.join(os.tmpdir(), "chain-hub-asset-clone-"));
   try {
     await execFileAsync("git", ["clone", "--depth", "1", "--", repo, cleanupDir], {
@@ -53,7 +62,7 @@ async function cloneRepo(repo: string): Promise<{ cleanupDir: string; commitSha:
 }
 
 /** Resolves the single-file asset inside the source tree: explicit .md path, or `<subdir-or-root>/<name>.md`. */
-async function locateAssetFile(sourceRoot: string, subdir: string | undefined, name: string): Promise<{ file: string; resolvedSubdir: string | null }> {
+export async function locateAssetFile(sourceRoot: string, subdir: string | undefined, name: string): Promise<{ file: string; resolvedSubdir: string | null }> {
   const candidates: Array<{ file: string; subdir: string }> = [];
 
   if (subdir) {
@@ -120,6 +129,16 @@ export async function installAssetFromSource(
     const { file, resolvedSubdir } = await locateAssetFile(sourceRoot, input.subdir, name);
     const content = await fs.readFile(file, "utf8");
     const contentHash = createHash("sha1").update(content).digest("hex");
+
+    await runSecurityGate(chainHome, {
+      kind: input.kind,
+      name,
+      context: input.scanContext ?? (input.catalogId ? "catalog" : "install"),
+      files: [{ path: `${name}.md`, content }],
+      contentHash,
+      allowUnsafe: input.allowUnsafe,
+      extraScanner: input.extraScanner
+    });
 
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.writeFile(destination, content, "utf8");

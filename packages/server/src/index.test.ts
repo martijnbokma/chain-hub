@@ -222,6 +222,22 @@ describe("Learnings", () => {
     expect(report.skills[0].skill).toBe("reflect-skill");
     expect(report.skills[0].trend).toBe("improving");
   });
+
+  it("POST /api/learnings/fold marks skill-less slugs as orphans without AI", async () => {
+    const hub = await makeTmpHub();
+    const app = createServer({ chainHome: hub });
+    await postJson(app, "/api/learnings/capture", { type: "failure", skill: "ghost", summary: "no such skill" });
+
+    const { status, data } = await postJson<{ results: { skill: string; outcome: string }[] }>(
+      app,
+      "/api/learnings/fold",
+      {}
+    );
+    expect(status).toBe(200);
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0].skill).toBe("ghost");
+    expect(data.results[0].outcome).toBe("orphan");
+  });
 });
 
 describe("GET /api/setup", () => {
@@ -360,7 +376,7 @@ describe("AI settings and draft-prompt", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn(async () => {
       throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
     try {
       const res = await app.request("/api/ai/audit-asset", {
         method: "POST",

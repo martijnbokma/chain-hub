@@ -168,6 +168,32 @@ describe("catalog", () => {
     expect(unified.entries["skills/legacy-skill"]?.sourceType).toBe("git");
   });
 
+  it("scanCatalogEntry returns and caches a verdict shown by listCatalogEntries", async () => {
+    // A local git repo stands in for the upstream skill source.
+    const repoDir = path.join(tmpHome, "skill-repo");
+    const skillDir = path.join(repoDir, "demo-skill");
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(path.join(skillDir, "SKILL.md"), "---\nname: demo-skill\ndescription: Fixture skill\n---\n\nBody.\n", "utf8");
+    for (const args of [["init"], ["add", "."], ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "x"]]) {
+      const { execFile } = await import("node:child_process");
+      await new Promise((resolve, reject) => execFile("git", args, { cwd: repoDir }, (e) => (e ? reject(e) : resolve(null))));
+    }
+
+    const indexPath = await writeFixtureSource();
+    const index = JSON.parse(await fs.readFile(indexPath, "utf8"));
+    index.entries[0].source = { repo: repoDir, subdir: "demo-skill" };
+    index.entries = [index.entries[0]];
+    await fs.writeFile(indexPath, JSON.stringify(index), "utf8");
+    await listCatalogEntries(tmpHub, { force: true });
+
+    const { scanCatalogEntry } = await import("./index.js");
+    const result = await scanCatalogEntry(tmpHub, { sourceId: "fixture", entryId: "demo-skill" });
+    expect(result.scan.verdict).toBe("pass");
+
+    const listed = await listCatalogEntries(tmpHub);
+    expect(listed.entries.find((e) => e.id === "demo-skill")?.securityScan?.verdict).toBe("pass");
+  });
+
   it("resolveCatalogEntry throws for unknown entries", async () => {
     await writeFixtureSource();
     await listCatalogEntries(tmpHub, { force: true });

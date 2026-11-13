@@ -13,6 +13,7 @@ import {
 } from "@chain-hub/contracts";
 
 import { pathExists } from "./shared.js";
+import type { SkillInstallSecurity } from "./security-gate.js";
 import { installSkillFromSource } from "./skill-install.js";
 import { type ReadAsset, skillFile } from "./skills-lock.js";
 
@@ -65,7 +66,8 @@ export async function detectAgentsSkillsDrift(
 export async function migrateAgentsSkillLock(
   chainHome: string,
   input: MigrateAgentsSkillsInput,
-  readAsset: ReadAsset
+  readAsset: ReadAsset,
+  security?: SkillInstallSecurity
 ): Promise<MigrateAgentsSkillsResult> {
   const lockPath = path.resolve(input.lockPath ?? defaultAgentsLockPath());
 
@@ -104,11 +106,18 @@ export async function migrateAgentsSkillLock(
           repo,
           subdir: subdirFromSkillPath(entry.skillPath),
           name,
-          force: Boolean(input.force) || hubSkillExists
+          force: Boolean(input.force) || hubSkillExists,
+          allowUnsafe: input.allowUnsafe
         },
-        readAsset
+        readAsset,
+        { context: "import", extraScanner: security?.extraScanner }
       );
-      results.push({ name, status: "migrated", lockEntry: installed.lockEntry });
+      results.push({
+        name,
+        status: "migrated",
+        lockEntry: installed.lockEntry,
+        ...(installed.securityScan ? { securityScan: installed.securityScan } : {})
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       results.push({ name, status: "failed", error: message });

@@ -11,6 +11,7 @@ import { registerCatalogCommands } from "./commands/catalog.js";
 import { registerCoreCommands } from "./commands/core.js";
 import { runHubCommand } from "./commands/hub.js";
 import { registerLearningsCommands } from "./commands/learnings.js";
+import { registerSecurityCommands } from "./commands/security.js";
 import { registerSkillCommands } from "./commands/skill.js";
 import { registerSyncCommands } from "./commands/sync.js";
 
@@ -31,6 +32,7 @@ export function createProgram(): Command {
   registerAssetCommands(program);
   registerSkillCommands(program);
   registerCatalogCommands(program);
+  registerSecurityCommands(program);
   registerSyncCommands(program);
   registerLearningsCommands(program);
 

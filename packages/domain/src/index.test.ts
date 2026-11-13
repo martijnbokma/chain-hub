@@ -283,7 +283,7 @@ describe("auditHubAsset with learnings", () => {
       return Response.json({
         content: [{ type: "text", text: JSON.stringify({ summary: "ok", findings: [] }) }]
       });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
   }
 
   async function hubWithAnthropic(): Promise<string> {

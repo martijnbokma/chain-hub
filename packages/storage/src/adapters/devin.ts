@@ -1,15 +1,19 @@
-import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { type AssetDetail, type AssetKind, type Integration } from "@chain-hub/contracts";
 
-import { deriveDescription, parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
-import { FRONTMATTER_MARKER_KEY, markerSource, projectedFrontmatter } from "./marker.js";
+import { deriveDescription, stringifyFrontmatter } from "./frontmatter.js";
+import {
+  buildInvokedSkillContent,
+  removeInvokedSkill,
+  USER_TRIGGER,
+  writeInvokedSkill
+} from "./invoke-skill.js";
+import { projectedFrontmatter } from "./marker.js";
 import {
   buildIntegrationStatus,
   listFlatCandidates,
   listSkillCandidates,
-  pathExists,
   readUnmanagedCandidates,
   removeManagedFile,
   removeProjectedSkill,
@@ -22,7 +26,7 @@ import type { DiscoveredCandidate, EditorAdapter } from "./types.js";
 // Devin CLI discovery paths (user-level): notes/docs/editor-adapters-research.md#devin-cli.
 // ~/.devin/ is shared with Devin Desktop (rules/workflows); ~/.config/devin/
 // (%APPDATA%\devin on Windows) is the CLI's own config root for skills/agents.
-const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules", "workflows"];
+const SUPPORTED_KINDS: AssetKind[] = ["skills", "agents", "rules", "workflows", "prompts"];
 const DEVIN_HOME = ".devin";
 
 /**
@@ -65,49 +69,10 @@ function buildContent(asset: AssetDetail): string {
 }
 
 /**
- * Devin CLI has no workflow file format — the equivalent of a manually invoked
- * workflow is a user-triggered skill (slash command /name). ~/.devin/workflows/
+ * Devin CLI has no prompt or workflow file format — the equivalent of a manually
+ * invoked asset is a user-triggered skill (slash command /name). ~/.devin/workflows/
  * still gets a copy for Devin Desktop, which does read it.
  */
-function buildWorkflowSkillContent(asset: AssetDetail): string {
-  const { data: source, body, description } = deriveDescription(asset.content, asset.name);
-  return stringifyFrontmatter(
-    projectedFrontmatter(asset, source, { name: true, description, defaults: { triggers: ["user"] } }),
-    body
-  );
-}
-
-async function markerSourceAt(filePath: string): Promise<string | null> {
-  if (!(await pathExists(filePath))) {
-    return null;
-  }
-  const { data } = parseFrontmatter(await fs.readFile(filePath, "utf8"));
-  const source = data[FRONTMATTER_MARKER_KEY];
-  return typeof source === "string" ? source : null;
-}
-
-/** A same-named skill asset owns the skills/<name> slot — a workflow must not clobber it. */
-async function writeWorkflowSkill(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
-  const filePath = skillPath(homeDir, asset.name);
-
-  if ((await markerSourceAt(filePath)) === markerSource("skills", asset.name)) {
-    return;
-  }
-
-  await writeManagedFile(filePath, buildWorkflowSkillContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
-}
-
-async function removeWorkflowSkill(homeDir: string, name: string): Promise<void> {
-  const filePath = skillPath(homeDir, name);
-
-  // Only remove our own workflow projection — never a same-named skill's.
-  if ((await markerSourceAt(filePath)) !== markerSource("workflows", name)) {
-    return;
-  }
-
-  await removeProjectedSkill(filePath);
-}
-
 async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail, options?: { force?: boolean }): Promise<void> {
   if (asset.kind === "skills") {
     const filePath = skillPath(homeDir, asset.name);
@@ -127,9 +92,16 @@ async function writeAsset(chainHome: string, homeDir: string, asset: AssetDetail
     return;
   }
 
+  if (asset.kind === "prompts") {
+    const filePath = skillPath(homeDir, asset.name);
+    await writeInvokedSkill(filePath, buildInvokedSkillContent(asset, USER_TRIGGER), asset, { ...options, backup: { chainHome, homeDir } });
+    return;
+  }
+
   if (asset.kind === "workflows") {
     await writeManagedFile(sharedPath(homeDir, "workflows", asset.name), buildContent(asset), "frontmatter", { ...options, backup: { chainHome, homeDir } });
-    await writeWorkflowSkill(chainHome, homeDir, asset, options);
+    const filePath = skillPath(homeDir, asset.name);
+    await writeInvokedSkill(filePath, buildInvokedSkillContent(asset, USER_TRIGGER), asset, { ...options, backup: { chainHome, homeDir } });
   }
 }
 
@@ -149,9 +121,14 @@ async function removeAsset(_chainHome: string, homeDir: string, kind: AssetKind,
     return;
   }
 
+  if (kind === "prompts") {
+    await removeInvokedSkill(skillPath(homeDir, name), kind, name);
+    return;
+  }
+
   if (kind === "workflows") {
     await removeManagedFile(sharedPath(homeDir, "workflows", name));
-    await removeWorkflowSkill(homeDir, name);
+    await removeInvokedSkill(skillPath(homeDir, name), kind, name);
   }
 }
 

@@ -1,0 +1,52 @@
+import React, { Suspense, lazy } from 'react';
+import { Route, Routes } from 'react-router-dom';
+
+import { Shell } from './components/layout/Shell';
+import { PageSkeleton } from './components/common/PageSkeleton';
+import { EmptyState } from './components/common/EmptyState';
+
+const SetupPage = lazy(() => import('./components/pages/SetupPage').then((module) => ({ default: module.SetupPage })));
+const OverviewPage = lazy(() =>
+  import('./components/pages/OverviewPage').then((module) => ({ default: module.OverviewPage }))
+);
+const HealthPage = lazy(() =>
+  import('./components/pages/HealthPage').then((module) => ({ default: module.HealthPage }))
+);
+const LibraryPage = lazy(() =>
+  import('./components/pages/LibraryPage').then((module) => ({ default: module.LibraryPage }))
+);
+const CatalogPage = lazy(() =>
+  import('./components/pages/CatalogPage').then((module) => ({ default: module.CatalogPage }))
+);
+const IntegrationsPage = lazy(() =>
+  import('./components/pages/IntegrationsPage').then((module) => ({ default: module.IntegrationsPage }))
+);
+const LearningsPage = lazy(() =>
+  import('./components/pages/LearningsPage').then((module) => ({ default: module.LearningsPage }))
+);
+const SettingsPage = lazy(() =>
+  import('./components/pages/SettingsPage').then((module) => ({ default: module.SettingsPage }))
+);
+
+export function App() {
+  return (
+    <Shell>
+      <Suspense fallback={<PageSkeleton variant="dashboard" />}>
+        <Routes>
+          <Route element={<OverviewPage />} path="/" />
+          <Route element={<HealthPage />} path="/health" />
+          <Route element={<SetupPage />} path="/setup" />
+          <Route element={<LibraryPage />} path="/library" />
+          <Route element={<CatalogPage />} path="/catalog" />
+          <Route element={<LearningsPage />} path="/learnings" />
+          <Route element={<IntegrationsPage />} path="/integrations" />
+          <Route element={<SettingsPage />} path="/settings" />
+          <Route
+            element={<EmptyState description="That page doesn't exist. Use the sidebar to navigate." title="Not found" />}
+            path="*"
+          />
+        </Routes>
+      </Suspense>
+    </Shell>
+  );
+}
