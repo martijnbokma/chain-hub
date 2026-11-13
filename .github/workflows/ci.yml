@@ -5,6 +5,7 @@ on:
   pull_request:
 jobs:
   check:
+    name: Build · Lint · Typecheck · Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
