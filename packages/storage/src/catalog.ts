@@ -35,7 +35,7 @@ export const CATALOG_FETCH_TTL_MS = 60 * 60 * 1000;
 
 const DEFAULT_SOURCE: Omit<CatalogSource, "addedAt"> = {
   id: "chain-hub",
-  url: "https://raw.githubusercontent.com/martijnbokma/chain-hub-catalog/main/catalog.json",
+  url: "https://raw.githubusercontent.com/usechainhub/chain-hub-catalog/main/catalog.json",
   autoRefresh: true
 };
 

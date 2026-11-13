@@ -56,6 +56,13 @@ cd packages/storage && bunx vitest run src/skill-install.test.ts
 3. `main` is release-only and protected; releases are cut by fast-forwarding
    `develop` into `main`.
 
+## Releases
+
+Releases are handled by maintainers: the CLI publishes to npm as
+`@usechain/chain-hub`, and this repository receives a synced source snapshot
+per release. You do not need to do anything special for a release — land your
+PR on `develop` and it rides the next one.
+
 ## Reporting issues
 
 Use GitHub Issues for bugs and feature requests. For security issues see

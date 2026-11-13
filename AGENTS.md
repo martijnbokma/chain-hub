@@ -6,7 +6,10 @@ Single source of truth for all AI agents (Claude Code, Codex, Cursor, Windsurf).
 
 This repository is a read-only mirror of the canonical source. Issues
 and PRs are welcome; maintainers sync them upstream. Release
-history lives in `packages/*/CHANGELOG.md` and on GitHub releases.
+history lives in `packages/*/CHANGELOG.md` and on GitHub releases. The public repo is a
+read-only mirror synced per release with
+`bun apps/chain-hub/scripts/export-oss.ts --push` (see
+`docs/guides/deploy-workflow.md`).
 
 ## Read on demand (not every session)
 
@@ -48,7 +51,10 @@ Two changelog feeds exist, do not merge them: the platform feed
 `/changelog` on the marketing site) covers Silvfox-owned surfaces —
 commits under `apps/chain-hub/site/**`. The per-package `CHANGELOG.md`
 files under `packages/*/` and the docs site's `changelog.mdx` belong to
-the upstream `release-please`/OSS boundary.
+the upstream `release-please`/OSS boundary. The site feed is opt-in
+(`noteworthyOnly`): only commits with `[changelog]` in the subject or a
+`Release-Note:` trailer appear — write them for visitors, never internal
+`@silvfox/*` package names.
 
 - Dependency direction: `contracts ← storage ← domain ← server/cli`. hub-web never imports domain or storage.
 - Only `packages/storage` reads or writes the hub folder (`src/core.ts`, `src/skill-install.ts`). Never bypass it.
